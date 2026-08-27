@@ -45,6 +45,32 @@ def test_router_will_threaded_to_broker() -> None:
     assert router.broker._connection_kwargs["will"] is will
 
 
+@pytest.mark.mqtt()
+def test_router_recovery_callback_threaded_to_broker() -> None:
+    async def on_connection_recovery_failed() -> None:
+        pass
+
+    router = StreamRouter(
+        on_connection_recovery_failed=on_connection_recovery_failed,
+    )
+
+    assert (
+        router.broker._connection_kwargs["on_connection_recovery_failed"]
+        is on_connection_recovery_failed
+    )
+
+
+@pytest.mark.mqtt()
+def test_router_session_replay_config_threaded_to_broker() -> None:
+    router = StreamRouter(
+        session_replay_buffer_size=10,
+        session_replay_timeout=20.0,
+    )
+
+    assert router.broker._connection_kwargs["session_replay_buffer_size"] == 10
+    assert router.broker._connection_kwargs["session_replay_timeout"] == 20.0
+
+
 @pytest.mark.connected()
 @pytest.mark.mqtt()
 class TestRouter(MQTTFastAPITestcaseConfig, FastAPITestcase):

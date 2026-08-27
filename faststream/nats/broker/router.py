@@ -216,7 +216,7 @@ class NatsRoute(SubscriberRoute):
         )
 
 
-class NatsRouter(NatsRegistrator, BrokerRouter[Msg]):
+class NatsRouter(NatsRegistrator, BrokerRouter[Msg, NatsBrokerConfig]):
     """Includable to NatsBroker router."""
 
     def __init__(

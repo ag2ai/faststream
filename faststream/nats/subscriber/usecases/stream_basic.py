@@ -74,7 +74,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 extra_options["inbox_prefix"] = inbox_prefix
 
             self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **extra_options,
             )
@@ -103,7 +103,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
@@ -119,7 +119,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 extra_options["inbox_prefix"] = inbox_prefix
 
             self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **extra_options,
             )

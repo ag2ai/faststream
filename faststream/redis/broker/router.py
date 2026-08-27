@@ -9,7 +9,7 @@ from faststream._internal.broker.router import (
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.redis.configs.broker import RedisRouterConfig
-from faststream.redis.message import BaseMessage
+from faststream.redis.message import UnifyRedisDict
 
 from .registrator import RedisRegistrator
 
@@ -153,7 +153,7 @@ class RedisRoute(SubscriberRoute):
 
 class RedisRouter(
     RedisRegistrator,
-    BrokerRouter[BaseMessage],
+    BrokerRouter[UnifyRedisDict, RedisRouterConfig],
 ):
     """Includable to RedisBroker router."""
 

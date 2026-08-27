@@ -249,7 +249,7 @@ exch_direct = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.DIR
 exch_fanout = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.FANOUT)
 exch_topic = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.TOPIC)
 exch_headers = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.HEADERS)
-reqular_queue = RabbitQueue("test-reqular-queue", auto_delete=True)
+regular_queue = RabbitQueue("test-regular-queue", auto_delete=True)
 
 routing_key_queue = RabbitQueue(
     "test-routing-key-queue",
@@ -286,15 +286,15 @@ broker = RabbitBroker()
     ),
     (
         pytest.param(
-            reqular_queue,
+            regular_queue,
             exch_direct,
-            reqular_queue.routing(),
+            regular_queue.routing(),
             {},
             True,
             id="direct match",
         ),
         pytest.param(
-            reqular_queue,
+            regular_queue,
             exch_direct,
             "wrong key",
             {},
@@ -302,7 +302,7 @@ broker = RabbitBroker()
             id="direct mismatch",
         ),
         pytest.param(
-            reqular_queue,
+            regular_queue,
             exch_fanout,
             "",
             {},

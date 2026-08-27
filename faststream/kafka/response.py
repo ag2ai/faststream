@@ -3,14 +3,16 @@ from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
 
+from faststream._internal.kafka import (
+    extract_per_message_keys_and_bodies,
+    key_for_index,
+    realign_keys,
+)
 from faststream.response.publish_type import PublishType
 from faststream.response.response import (
     BatchPublishCommand,
     PublishCommand,
     Response,
-    extract_per_message_keys_and_bodies,
-    key_for_index,
-    realign_keys,
 )
 
 if TYPE_CHECKING:
