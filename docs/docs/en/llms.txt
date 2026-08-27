@@ -1,12 +1,12 @@
 # FastStream
-> Open-source framework for building asynchronous web services that interact with event streams.Supports Kafka, RabbitMQ, NATS, Redis, and integrates seamlessly with FastAPI.
+> Asynchronous Python framework for building event-driven applications. Supports Kafka, RabbitMQ, NATS, Redis and MQTT, and integrates with any HTTP framework.
 
-FastStream simplifies the process of writing producers and consumers for message queues, handling all the parsing, networking and documentation generation automatically.
-Making streaming microservices has never been easier. Designed with junior developers in mind, FastStream simplifies your work while keeping the door open for more advanced use cases.
+FastStream simplifies the process of writing producers and consumers for message queues, handling all the parsing, lifecycle and documentation generation automatically.
+If you know FastAPI, you already know FastStream: the same decorators, type-driven validation, dependency injection and generated documentation, pointed at Kafka, RabbitMQ, NATS, Redis and MQTT instead of HTTP. FastStream is a client for your broker, not a layer above all of them: the API is small enough to onboard a teammate in an afternoon, and it never costs you access to the broker underneath.
 
 
-## Feature
-- [Feature](https://faststream.ag2.ai/latest/): Effortless event stream integration for your services
+## Features
+- [Features](https://faststream.ag2.ai/latest/): Effortless event stream integration for your services
 
 ## Tutorial
 - [Getting Started](https://faststream.ag2.ai/latest/getting-started/): Quick start to use FastStream
@@ -130,6 +130,16 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [Declare Queue/Exchange](https://faststream.ag2.ai/latest/rabbit/declare/): FastStream subscribers automatically declare and validate RabbitMQ exchanges and queues (publishers only declare exchanges), but there are times when you may need to declare them manually. RabbitBroker offers an easy way to accomplish this.
 - [Message Information](https://faststream.ag2.ai/latest/rabbit/message/): FastStream serializes message bodies for access through function arguments, but you may sometimes need access to the message ID, headers, or other meta-information. You can easily obtain this by accessing the message object in the Context.
 - [Security Configuration](https://faststream.ag2.ai/latest/rabbit/security/): This chapter covers the security options available in FastStream and their usage. FastStream enhances application security by utilizing security objects when creating brokers, which encapsulate security-related configurations and mechanisms.
+
+## MQTT
+- [MQTT](https://faststream.ag2.ai/latest/mqtt/): MQTT is a lightweight publish/subscribe protocol designed for constrained networks and high fan-out. Messages are addressed by topic strings; brokers route publishes to subscribers whose topic filters match, including the + and # wildcards.
+- [Publishing](https://faststream.ag2.ai/latest/mqtt/publishing/): FastStream uses the same publishing patterns as in the getting started guide: await broker.publish(...), @broker.publisher(...), and publisher objects.
+- [Message & serialization](https://faststream.ag2.ai/latest/mqtt/message/): FastStream wraps each incoming zmqtt.Message in MQTTMessage, which extends the generic StreamMessage.
+- [Request / response](https://faststream.ag2.ai/latest/mqtt/rpc/): FastStream mirrors the RabbitMQ RPC style: await broker.request(...) blocks until a reply arrives, and subscribers that return a value publish the response to the caller's reply address.
+- [Acknowledgement](https://faststream.ag2.ai/latest/mqtt/ack/): MQTT delivery acknowledgement is tied to QoS at the protocol level.
+- [Shared subscriptions](https://faststream.ag2.ai/latest/mqtt/shared/): Some MQTT brokers support shared subscriptions so that each message is delivered to one consumer in a group, for load balancing.
+- [MQTT 3.1.1 vs 5.0](https://faststream.ag2.ai/latest/mqtt/versions/): FastStream selects the wire protocol with MQTTBroker(..., version="3.1.1" | "5.0"). The same Python API is available for both; features that require MQTT 5.0 raise FeatureNotSupportedException when version="3.1.1".
+- [Security](https://faststream.ag2.ai/latest/mqtt/security/): MQTTBroker accepts the same security object pattern as other FastStream brokers where supported.
 
 ## NATS
 - [NATS](https://faststream.ag2.ai/latest/nats/): NATS is a high-performance, easy-to-use message broker written in Golang. It's an excellent choice for applications that don't require complex routing logic, can handle high loads, scale efficiently, and minimize hardware costs. Additionally, NATS allows for zero-cost creation of new entities (as all subjects are simply routing fields), making it suitable for RPC over MQ use cases.

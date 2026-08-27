@@ -7,7 +7,8 @@ hide:
   - toc
 ---
 
-<meta http-equiv="refresh" content="0; url=../">
+<script>location.replace("../" + location.hash);</script>
+<noscript><meta http-equiv="refresh" content="0; url=../"></noscript>
 
 # This page has moved
 
