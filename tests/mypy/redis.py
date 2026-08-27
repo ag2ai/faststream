@@ -403,6 +403,8 @@ async def check_stream_subscriber_message_type(
 
     message = await subscriber.get_one()
     assert_type(message, RedisStreamMessage | None)
+    if message is not None:
+        assert_type(await message.get_delivery_count(), int)
 
     async for msg in subscriber:
         assert_type(msg, RedisStreamMessage)
