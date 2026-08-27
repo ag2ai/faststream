@@ -6,10 +6,12 @@ from typing_extensions import assert_type
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
     ListSub,
+    PubSub,
     RedisBroker,
     RedisChannelMessage,
     RedisListMessage,
     RedisMessage as Message,
+    RedisPublisher,
     RedisRoute as Route,
     RedisRouter,
     RedisStreamMessage,
@@ -461,3 +463,20 @@ RedisBroker().include_routers(RedisRouter())
 RedisRouter(routers=[RedisRouter()])
 RedisRouter().include_router(RedisRouter())
 RedisRouter().include_routers(RedisRouter())
+
+
+# `RedisPublisher` is documented as a copy of `RedisRegistrator.publisher(...)`
+# arguments, so it must accept the same schema objects that method does.
+RedisRouter(
+    handlers=(
+        Route(
+            async_handler,
+            channel=PubSub("test"),
+            publishers=(
+                RedisPublisher(channel=PubSub("test")),
+                RedisPublisher(list=ListSub("test")),
+                RedisPublisher(stream=StreamSub("test")),
+            ),
+        ),
+    ),
+)

@@ -74,6 +74,7 @@ search:
         - [Acknowledgement](confluent/ack.md)
         - [Message Information](confluent/message.md)
         - [Security Configuration](confluent/security.md)
+        - [Topic Configuration](confluent/topic-configuration.md)
         - [Additional Configuration](confluent/additional-configuration.md)
         - [How-To](howto/confluent/index.md)
     - [How-To](howto/kafka/index.md)
