@@ -297,7 +297,7 @@ class AsyncConfluentConsumer:
         topics: dict[str, Topic] = {t.name: t for t in self.topics}
 
         for p in self.partitions:
-            topics.setdefault(p.topic, Topic(p.topic))
+            topics.setdefault(p.topic, Topic(p.topic, declare=p.declare))
 
         return [t for t in topics.values() if t.declare]
 

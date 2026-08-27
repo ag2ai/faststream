@@ -79,6 +79,28 @@ class TestTopicSchema:
 
 
 @pytest.mark.confluent()
+class TestPartitionSchema:
+    def test_declares_by_default(self) -> None:
+        assert TopicPartition("test").declare
+
+    def test_add_prefix_keeps_declare(self) -> None:
+        partition = TopicPartition("test", declare=False).add_prefix("prefix_")
+
+        assert partition.topic == "prefix_test"
+        assert not partition.declare
+
+    def test_to_confluent_ignores_declare(self) -> None:
+        confluent_partition = TopicPartition(
+            "test",
+            partition=1,
+            declare=False,
+        ).to_confluent()
+
+        assert confluent_partition.topic == "test"
+        assert confluent_partition.partition == 1
+
+
+@pytest.mark.confluent()
 class TestSubscriberTopics:
     def test_str_is_normalized_to_topic(self) -> None:
         broker = KafkaBroker()
@@ -163,6 +185,13 @@ class TestTopicsToCreate:
         consumer = build_consumer(partitions=(TopicPartition("test", partition=0),))
 
         assert consumer.topics_to_create == [Topic("test")]
+
+    def test_partitions_can_opt_out(self) -> None:
+        consumer = build_consumer(
+            partitions=(TopicPartition("test", partition=0, declare=False),),
+        )
+
+        assert consumer.topics_to_create == []
 
     def test_duplicate_names_collapse_to_the_last(self) -> None:
         consumer = build_consumer(
