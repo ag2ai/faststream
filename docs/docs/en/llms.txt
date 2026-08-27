@@ -6,7 +6,7 @@ Making streaming microservices has never been easier. Designed with junior devel
 
 
 ## Feature
-- [Feature](https://faststream.ag2.ai/latest/faststream/): Effortless event stream integration for your services
+- [Feature](https://faststream.ag2.ai/latest/): Effortless event stream integration for your services
 
 ## Tutorial
 - [Getting Started](https://faststream.ag2.ai/latest/getting-started/): Quick start to use FastStream
@@ -174,8 +174,8 @@ Making streaming microservices has never been easier. Designed with junior devel
 - [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/): This section contains information about Public FastStream API
 - [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/): This section contains information about All FastStream API
 
-## FastStream People
-- [FastStream People](https://faststream.ag2.ai/latest/faststream-people/): FastStream has an amazing community that welcomes people from all backgrounds. The following are the top contributors to FastStream.
+## Used By
+- [Used By](https://faststream.ag2.ai/latest/who-uses/): Open-source projects and organizations that use FastStream, plus tools shipping a FastStream integration and community extensions.
 
 ## Contributing
 - [Contributing](https://faststream.ag2.ai/latest/getting-started/contributing/): How to contribute to the project

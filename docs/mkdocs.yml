@@ -65,7 +65,6 @@ extra_css:
   - stylesheets/extra.css
 
 extra_javascript:
-  - javascripts/extra.js
   - javascripts/gurubase-widget.js
   - javascripts/theme-switch.js
 
@@ -77,8 +76,6 @@ plugins:
       manual: true
   - macros:                      # Jinja templates
       include_dir: includes
-      include_yaml:
-        - people: ../docs/data/people.yml
   - mkdocstrings:                # Generate References
       default_handler: python
       handlers:

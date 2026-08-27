@@ -284,7 +284,7 @@ async def test_invalid():
 
 ## Running the application
 
-The application can be started using built-in **FastStream** CLI command.
+The application can be started using the built-in **FastStream** CLI command.
 
 Before running the service, install **FastStream CLI** using the following command:
 
@@ -334,7 +334,7 @@ The availability of such documentation significantly simplifies the integration 
 
 ## Dependencies
 
-**FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/)) has a dependency management system similar to `pytest fixtures` and `FastAPI Depends` at the same time. Function arguments declare which dependencies you want are needed, and a special decorator delivers them from the global Context object.
+**FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/)) has a dependency management system similar to `pytest fixtures` and `FastAPI Depends` at the same time. Function arguments declare which dependencies are needed, and a special decorator delivers them from the global Context object.
 
 ```python
 from typing import Annotated
@@ -427,6 +427,19 @@ More integration features can be found [here](https://faststream.ag2.ai/latest/g
 
 ## Benchmarks
 We use codspeed to run benchmarks for both FastStream itself and raw clients.
+
+---
+
+## Used By
+
+**FastStream** is used by research institutions, public sector organizations and companies — among
+them **ECMWF**, **Hydro-Québec**, the **Rubin Observatory**, **NERSC** and **Red Hat**. Neighbouring
+projects such as **Pydantic Logfire**, **RabbitMQ** and **EMQX** maintain a **FastStream**
+integration of their own.
+
+See the full list on the [Used By](https://faststream.ag2.ai/latest/who-uses/) page, and open a pull request to add your own project.
+
+---
 
 ## Stay in touch
 

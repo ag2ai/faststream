@@ -2,7 +2,7 @@
 search:
   exclude: true
 ---
-- [Features](faststream.md)
+- [Features](index.md)
 - Tutorial
     - [Getting Started](getting-started/index.md)
     - [Subscription and Serialization](getting-started/subscription/index.md)
@@ -141,7 +141,7 @@ search:
 - [Reference - Code API](api/index.md)
 {public_api}
 {api}
-- [FastStream People](faststream-people.md)
+- [Used By](who-uses.md)
 - Contributing
     - [Development](getting-started/contributing/CONTRIBUTING.md)
     - [Documentation](getting-started/contributing/docs.md)
