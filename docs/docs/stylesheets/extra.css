@@ -20,52 +20,6 @@ https://github.com/squidfunk/mkdocs-material/blob/master/src/assets/stylesheets/
     --md-typeset-a-color: #48A8D8;
 }
 
-.user-link::before {
-    content: " ";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
-.user-list-center {
-    justify-content: space-evenly;
-    display: flex;
-    flex-wrap: wrap;
-}
-
-.user {
-    flex: 1 0 20%;
-    margin: 1em;
-    min-width: 7em;
-}
-
-.user .avatar-wrapper {
-    width: 80px;
-    height: 80px;
-    margin: 10px auto;
-    overflow: hidden;
-    border-radius: 50%;
-    position: relative;
-}
-
-.user .avatar-wrapper img {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.user .title {
-    text-align: center;
-}
-
-.user .count {
-    font-size: 80%;
-    text-align: center;
-}
-
 a.external-link {
     /* For right to left languages */
     direction: ltr;

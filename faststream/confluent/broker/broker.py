@@ -66,6 +66,7 @@ class KafkaBroker(
     BrokerUsecase[
         Message | tuple[Message, ...],
         Callable[..., AsyncConfluentConsumer],
+        KafkaBrokerConfig,
     ],
 ):
     url: list[str]

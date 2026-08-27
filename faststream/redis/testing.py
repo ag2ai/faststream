@@ -1,7 +1,9 @@
 import re
+import uuid
 from collections.abc import AsyncGenerator, Generator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
+from dataclasses import dataclass
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -51,8 +53,42 @@ if TYPE_CHECKING:
     from faststream._internal.parser import CodecProto
     from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
+    from faststream.response import Response
 
-__all__ = ("TestRedisBroker",)
+__all__ = (
+    "PEL",
+    "TestRedisBroker",
+)
+
+
+@dataclass(kw_only=True)
+class Entry:
+    handler: "LogicSubscriber"
+    msg: Any
+
+
+PELKey = tuple[str | None, uuid.UUID, str | None]
+
+
+class PEL:
+    def __init__(self) -> None:
+        self.entries: dict[PELKey, Entry] = {}
+        self.put = MagicMock(wraps=self._put)
+        self.remove = MagicMock(wraps=self._remove)
+
+    def _remove(self, correlation_id: PELKey) -> None:
+        self.entries.pop(correlation_id)
+
+    def _put(
+        self,
+        msg: Any,
+        handler: "LogicSubscriber",
+        correlation_id: PELKey,
+    ) -> None:
+        self.entries.update({correlation_id: Entry(msg=msg, handler=handler)})
+
+    def get_entry(self, correlation_id: PELKey) -> Entry | None:
+        return self.entries.get(correlation_id)
 
 
 class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
@@ -81,7 +117,11 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         *brokers: RedisBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        pel: PEL | None = None,
     ) -> None:
+
+        self.pel = pel or PEL()
+
         super().__init__(
             *brokers,
             with_real=with_real,
@@ -103,9 +143,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                         wraps=partial(self._fake_connect, broker),
                     ):
                         await broker.connect()
-
                     cluster_stack.enter_context(self._patch_producer(broker))
-
             async with super()._create_ctx() as brokers:
                 yield brokers
 
@@ -115,7 +153,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
             es.enter_context(
                 change_producer(
                     broker.config.broker_config,
-                    FakeProducer(broker, self.brokers, broker.config),
+                    FakeProducer(broker, self.brokers, broker.config, self.pel),
                 ),
             )
 
@@ -123,7 +161,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                 es.enter_context(
                     change_producer(
                         publisher,
-                        FakeProducer(broker, self.brokers, publisher.config),
+                        FakeProducer(broker, self.brokers, publisher.config, self.pel),
                     ),
                 )
 
@@ -192,6 +230,7 @@ class FakeProducer(RedisFastProducer):
         broker: RedisBroker,
         brokers: Sequence[RedisBroker],
         config: ParserConfig,
+        pel: PEL | None = None,
     ) -> None:
         self.broker = broker
         self.brokers = brokers
@@ -208,6 +247,7 @@ class FakeProducer(RedisFastProducer):
             default.decode_message,
         )
         self.codec = broker.config.broker_codec or DefaultCodec()
+        self.pel = pel or PEL()
 
     @property
     def subscribers(self) -> "Iterable[LogicSubscriber]":
@@ -232,21 +272,22 @@ class FakeProducer(RedisFastProducer):
             serializer=self.broker.config.fd_config._serializer,
             codec=self.codec,
         )
-
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
-
+        session_id = uuid.uuid4()
         for visitor, visited_ch, handler in self._find_handlers(
-            destination,
-            visitors,
+            destination=destination,
+            visitors=visitors,
+            cmd=cmd,
+            session_id=session_id,
         ):
             msg = visitor.get_message(
                 visited_ch,
                 body,
                 handler,
             )
-
-            await self._execute_handler(msg, handler)
+            self._put_pel(msg=msg, cmd=cmd, handler=handler, session_id=session_id)
+            await self._execute_handler(msg, handler, session_id=session_id)
 
         return 0
 
@@ -263,19 +304,22 @@ class FakeProducer(RedisFastProducer):
 
         destination = _make_destination_kwargs(cmd)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
+        session_id = uuid.uuid4()
 
         for visitor, visited_ch, handler in self._find_handlers(
-            destination,
-            visitors,
+            destination=destination,
+            visitors=visitors,
+            cmd=cmd,
+            session_id=session_id,
         ):
             msg = visitor.get_message(
                 visited_ch,
                 body,
                 handler,
             )
-
+            self._put_pel(msg=msg, cmd=cmd, handler=handler, session_id=session_id)
             with anyio.fail_after(cmd.timeout):
-                return await self._execute_handler(msg, handler)
+                return await self._execute_handler(msg, handler, session_id=session_id)
 
         raise SubscriberNotFound
 
@@ -292,10 +336,13 @@ class FakeProducer(RedisFastProducer):
             )
             for m in cmd.batch_bodies
         ]
+        session_id = uuid.uuid4()
 
         for visitor, visited_ch, handler in self._find_handlers(
             {"list": cmd.destination},
             (ListVisitor(),),
+            cmd=cmd,
+            session_id=session_id,
         ):
             casted_handler = cast("_ListHandlerMixin", handler)
 
@@ -305,8 +352,8 @@ class FakeProducer(RedisFastProducer):
                     data_to_send,
                     casted_handler,
                 )
-
-                await self._execute_handler(msg, handler)
+                self._put_pel(msg=msg, cmd=cmd, handler=handler, session_id=session_id)
+                await self._execute_handler(msg, handler, session_id=session_id)
 
         return 0
 
@@ -314,9 +361,10 @@ class FakeProducer(RedisFastProducer):
         self,
         msg: Any,
         handler: "LogicSubscriber",
+        session_id: uuid.UUID,
     ) -> "PubSubMessage":
         result = await handler.process_message(msg)
-
+        self._remove_pel(handler=handler, result=result, session_id=session_id)
         return PubSubMessage(
             type="message",
             data=await build_message(
@@ -335,6 +383,8 @@ class FakeProducer(RedisFastProducer):
         self,
         destination: "_DestinationKwargs",
         visitors: "Sequence[Visitor]",
+        cmd: "RedisPublishCommand",
+        session_id: uuid.UUID,
     ) -> "Iterator[tuple[Visitor, str, LogicSubscriber]]":
         published_groups: set[tuple[str, str]] = set()
 
@@ -343,15 +393,99 @@ class FakeProducer(RedisFastProducer):
                 visited_ch = visitor.visit(**destination, sub=handler)
                 if visited_ch is None:
                     continue
-
-                if isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.group:
-                    group_key = (visited_ch, handler.stream_sub.group)
-                    if group_key in published_groups:
-                        break
-                    published_groups.add(group_key)
-
+                if not self._return_handlers(
+                    handler=handler,
+                    visited_ch=visited_ch,
+                    published_groups=published_groups,
+                    cmd=cmd,
+                    session_id=session_id,
+                ):
+                    break
                 yield visitor, visited_ch, handler
                 break
+
+    def _return_handlers(
+        self,
+        handler: "LogicSubscriber",
+        visited_ch: str,
+        published_groups: set[tuple[str, str]],
+        cmd: "RedisPublishCommand",
+        session_id: uuid.UUID,
+    ) -> bool:
+        if isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.group:
+            group_key = (visited_ch, handler.stream_sub.group)
+
+            if self._handler_min_idle_time(handler) and self._check_pel(
+                handler=handler,
+                cmd=cmd,
+                session_id=session_id,
+            ):
+                return True
+            if group_key in published_groups:
+                return False
+            published_groups.add(group_key)
+            return True
+        return True
+
+    def _handler_group(self, handler: "LogicSubscriber") -> str | None:
+        if isinstance(handler, _StreamHandlerMixin):
+            return handler.stream_sub.group
+        return None
+
+    def _handler_no_ack(self, handler: "LogicSubscriber") -> bool:
+        return isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.no_ack
+
+    def _handler_min_idle_time(self, handler: "LogicSubscriber") -> int | None:
+        if isinstance(handler, _StreamHandlerMixin):
+            return handler.stream_sub.min_idle_time
+        return None
+
+    def _check_pel(
+        self,
+        handler: "LogicSubscriber",
+        cmd: "RedisPublishCommand",
+        session_id: uuid.UUID,
+    ) -> Optional["Entry"]:
+        return self.pel.get_entry(
+            correlation_id=(
+                cmd.correlation_id,
+                session_id,
+                self._handler_group(handler),
+            )
+        )
+
+    def _put_pel(
+        self,
+        handler: "LogicSubscriber",
+        msg: Any,
+        cmd: "RedisPublishCommand",
+        session_id: uuid.UUID,
+    ) -> None:
+        if not self._handler_no_ack(handler):
+            self.pel.put(
+                msg=msg,
+                handler=handler,
+                correlation_id=(
+                    cmd.correlation_id,
+                    session_id,
+                    self._handler_group(handler),
+                ),
+            )
+
+    def _remove_pel(
+        self,
+        result: "Response",
+        handler: "LogicSubscriber",
+        session_id: uuid.UUID,
+    ) -> None:
+        if result.correlation_id and not self._handler_no_ack(handler):
+            self.pel.remove(
+                correlation_id=(
+                    result.correlation_id,
+                    session_id,
+                    self._handler_group(handler),
+                )
+            )
 
 
 async def build_message(
@@ -424,7 +558,12 @@ class ChannelVisitor(Visitor):
             type="message",
             data=body,
             channel=channel,
-            pattern=sub.channel.pattern.encode() if sub.channel.pattern else None,
+            # Real Redis reports the pattern it was psubscribed with; this keeps
+            # reporting the template, as it did before the two were split apart.
+            # Aligning it belongs with #2450, which gives the template a meaning.
+            pattern=sub.channel.address.template.encode()
+            if sub.channel.pattern
+            else None,
         )
 
 

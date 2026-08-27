@@ -28,7 +28,7 @@ class RabbitPublisherSpecification(
             routing: str | None = self.config.routing_key
 
         elif is_routing_exchange(self.config.exchange):
-            routing = self.config.queue.routing()
+            routing = self.config.queue.routing_template()
 
         else:
             routing = None
@@ -43,7 +43,7 @@ class RabbitPublisherSpecification(
         exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
         queue_binding = amqp.Queue.from_queue(self.config.queue)
 
-        r = self.config.routing_key or self.config.queue.routing()
+        r = self.config.routing_key or self.config.queue.routing_template()
         routing_key = f"{self._outer_config.prefix}{r}"
 
         return {

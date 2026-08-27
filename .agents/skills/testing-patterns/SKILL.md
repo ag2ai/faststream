@@ -63,6 +63,18 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase): ...
 
 **Rule:** new cross-broker behavior goes into a base class in `tests/brokers/base/` so every broker inherits the test. Broker-specific behavior is tested directly in `tests/brokers/<broker>/`.
 
+## Regression tests
+
+A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
+
+```python
+@pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/2513")
+async def test_publisher_without_destination(self) -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/2513."""
+```
+
+The URL goes on the docstring's own first line, with the explanation of the behavior below it. `xfail`/`skip` reasons take the same URL. Comments inside the test body follow the **code-architecture** rules — two lines, over the line they explain.
+
 ## In-memory vs real broker
 
 - Default to the in-memory `TestBroker` (`faststream/<broker>/testing.py`) via a `*MemoryTestcaseConfig` — fast, runs everywhere, no `connected` mark.

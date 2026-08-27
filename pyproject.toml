@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "faststream"
-description = "FastStream: the simplest way to work with a messaging queues"
+description = "A thin, typed Python client for Kafka, RabbitMQ, NATS, Redis and MQTT — with AsyncAPI docs and in-memory testing."
 readme = "README.md"
 authors = [
     { name = "AG2AI", email = "support@ag2.ai" },
@@ -14,7 +14,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
-version = "0.7.4"
+version = "0.7.5"
 
 keywords = [
     "rabbitmq",
@@ -77,7 +77,7 @@ nats = ["nats-py>=2.12.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<9.0.0"]
 
-mqtt = ["zmqtt>=0.1.0,<0.2.0"]
+mqtt = ["zmqtt>=0.2.0,<0.3.0"]
 
 cli = [
     "typer>=0.9,!=0.12,<=0.27.1",
@@ -115,7 +115,8 @@ lint = [
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "mypy==1.19.1",
-    # mypy extensions
+    "pyright==1.1.407",
+    # type checkers extensions
     "types-Deprecated",
     "types-PyYAML",
     "types-setuptools",
@@ -168,7 +169,7 @@ Homepage = "https://faststream.ag2.ai/latest/"
 Documentation = "https://faststream.ag2.ai/latest/getting-started/"
 Tracker = "https://github.com/ag2ai/FastStream/issues"
 Source = "https://github.com/ag2ai/FastStream"
-Discord = "https://discord.gg/qFm6aSqq59"
+Discussions = "https://github.com/ag2ai/faststream/discussions"
 
 [project.scripts]
 faststream = "faststream.__main__:cli"
@@ -200,6 +201,14 @@ warn_unused_ignores = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
+
+[tool.pyright]
+# Public API surface only: `tests/mypy` exercises the documented API the way a
+# user does. Pyright still follows imports into `faststream/`, so breakage in
+# the framework surfaces here — but internal annotations are not policed.
+include = ["tests/mypy"]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -279,3 +288,12 @@ fail_under = 20
 
 [tool.bandit]
 skips = ["B101"]
+
+[tool.typos.default.extend-identifiers]
+# Contributor handles in the generated release notes. Names, not misspellings.
+WellFREEzZ = "WellFREEzZ"
+RinZ27 = "RinZ27"
+
+[tool.typos.default.extend-words]
+# ruff's flake8-copyright rule prefix, not a shortening of "copy".
+CPY = "CPY"

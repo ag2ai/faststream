@@ -118,7 +118,7 @@ class KafkaRoute(SubscriberRoute):
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
-        partition_assignment_strategy: Sequence["AbstractPartitionAssignor"] = (
+        partition_assignment_strategy: Sequence[type["AbstractPartitionAssignor"]] = (
             RoundRobinPartitionAssignor,
         ),
         max_poll_interval_ms: int = 5 * 60 * 1000,
@@ -389,9 +389,10 @@ class KafkaRouter(
     KafkaRegistrator,
     BrokerRouter[
         Union[
-            "ConsumerRecord",
-            tuple["ConsumerRecord", ...],
-        ]
+            "ConsumerRecord[Any, Any]",
+            tuple["ConsumerRecord[Any, Any]", ...],
+        ],
+        KafkaBrokerConfig,
     ],
 ):
     """Includable to KafkaBroker router."""

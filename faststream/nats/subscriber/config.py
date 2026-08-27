@@ -17,6 +17,9 @@ if TYPE_CHECKING:
 class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     subject: str
     queue: str | None
+    # A JetStream consumer may address a stream through `filter_subjects` instead of `subject`,
+    # so the specification layer needs them to render a meaningful address.
+    filter_subjects: list[str] = field(default_factory=list)
 
 
 @dataclass(kw_only=True)

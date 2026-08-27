@@ -87,7 +87,7 @@ faststream run main:app --reload
 By default **FastStream** watches for `.py` file changes, but you can specify an extra file extensions to watch by (your config files as an example)
 
 ```shell
-faststream run main:app --reload  --reload-ext .yml --realod-ext .yaml
+faststream run main:app --reload  --reload-ext .yml --reload-ext .yaml
 ```
 
 ### Extra options

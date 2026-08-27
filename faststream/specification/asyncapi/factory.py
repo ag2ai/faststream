@@ -14,7 +14,7 @@ class AsyncAPI(SpecificationFactory):
     def __init__(
         self,
         /,
-        *brokers: "BrokerUsecase[Any, Any]",
+        *brokers: "BrokerUsecase[Any, Any, Any]",
         title: str = "FastStream",
         version: str = "0.1.0",
         description: str | None = None,
@@ -37,7 +37,7 @@ class AsyncAPI(SpecificationFactory):
         self.identifier = identifier
         self.schema_version = schema_version
 
-        self.brokers: list[BrokerUsecase[Any, Any]] = []
+        self.brokers: list[BrokerUsecase[Any, Any, Any]] = []
         for br in brokers:
             self.add_broker(br)
 
@@ -45,7 +45,7 @@ class AsyncAPI(SpecificationFactory):
 
     def add_broker(
         self,
-        broker: "BrokerUsecase[Any, Any]",
+        broker: "BrokerUsecase[Any, Any, Any]",
         /,
     ) -> "SpecificationFactory":
         if broker not in self.brokers:

@@ -196,7 +196,7 @@ just pre-commit-all
 
 ## Documentation
 
-For detailed instructions on building and serving the documentation, please refer to the [documentation contribution guide](/getting-started/contributing/docs){.internal-link}.
+For detailed instructions on building and serving the documentation, please refer to the [documentation contribution guide](./docs.md){.internal-link}.
 
 ## Commits
 

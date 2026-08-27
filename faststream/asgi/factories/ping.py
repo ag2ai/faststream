@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 def make_ping_asgi(
-    broker: "BrokerUsecase[Any, Any]",
+    broker: "BrokerUsecase[Any, Any, Any]",
     /,
     timeout: float | None = None,
     include_in_schema: bool = True,

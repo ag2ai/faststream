@@ -1,7 +1,7 @@
 import pytest
 
 from faststream import AckPolicy
-from faststream.mqtt import MQTTBroker, MQTTRouter
+from faststream.mqtt import MQTTBroker, MQTTRouter, QoS, Will
 
 
 @pytest.mark.mqtt()
@@ -72,3 +72,43 @@ def test_sub_overrides_broker_and_router() -> None:
 def test_mqtt_connect_timeout_threaded_to_client() -> None:
     broker = MQTTBroker(mqtt_connect_timeout=7.0)
     assert broker._connection_kwargs["mqtt_connect_timeout"] == 7.0
+
+
+@pytest.mark.mqtt()
+def test_recovery_callback_threaded_to_client() -> None:
+    async def on_connection_recovery_failed() -> None:
+        pass
+
+    broker = MQTTBroker(
+        on_connection_recovery_failed=on_connection_recovery_failed,
+    )
+
+    assert (
+        broker._connection_kwargs["on_connection_recovery_failed"]
+        is on_connection_recovery_failed
+    )
+
+
+@pytest.mark.mqtt()
+def test_session_replay_config_threaded_to_client() -> None:
+    broker = MQTTBroker(
+        session_replay_buffer_size=10,
+        session_replay_timeout=20.0,
+    )
+
+    assert broker._connection_kwargs["session_replay_buffer_size"] == 10
+    assert broker._connection_kwargs["session_replay_timeout"] == 20.0
+
+
+@pytest.mark.mqtt()
+def test_will_threaded_to_client() -> None:
+    will = Will(
+        topic="status/service",
+        payload=b"offline",
+        qos=QoS.AT_LEAST_ONCE,
+        retain=True,
+    )
+
+    broker = MQTTBroker(will=will)
+
+    assert broker._connection_kwargs["will"] is will

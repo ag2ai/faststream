@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream.mqtt import MQTTRouter
+from faststream.mqtt import MQTTRouter, QoS, Will
 from faststream.mqtt.fastapi import MQTTRouter as StreamRouter
 from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 
@@ -29,6 +29,46 @@ def test_router_url() -> None:
     assert router.broker._connection_kwargs["host"] == "router"
     assert router.broker._connection_kwargs["port"] == 8884
     assert router.broker._connection_kwargs["tls"] is True
+
+
+@pytest.mark.mqtt()
+def test_router_will_threaded_to_broker() -> None:
+    will = Will(
+        topic="status/service",
+        payload=b"offline",
+        qos=QoS.AT_LEAST_ONCE,
+        retain=True,
+    )
+
+    router = StreamRouter(will=will)
+
+    assert router.broker._connection_kwargs["will"] is will
+
+
+@pytest.mark.mqtt()
+def test_router_recovery_callback_threaded_to_broker() -> None:
+    async def on_connection_recovery_failed() -> None:
+        pass
+
+    router = StreamRouter(
+        on_connection_recovery_failed=on_connection_recovery_failed,
+    )
+
+    assert (
+        router.broker._connection_kwargs["on_connection_recovery_failed"]
+        is on_connection_recovery_failed
+    )
+
+
+@pytest.mark.mqtt()
+def test_router_session_replay_config_threaded_to_broker() -> None:
+    router = StreamRouter(
+        session_replay_buffer_size=10,
+        session_replay_timeout=20.0,
+    )
+
+    assert router.broker._connection_kwargs["session_replay_buffer_size"] == 10
+    assert router.broker._connection_kwargs["session_replay_timeout"] == 20.0
 
 
 @pytest.mark.connected()

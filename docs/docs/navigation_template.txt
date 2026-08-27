@@ -2,7 +2,7 @@
 search:
   exclude: true
 ---
-- [Features](faststream.md)
+- [Features](index.md)
 - Tutorial
     - [Getting Started](getting-started/index.md)
     - [Subscription and Serialization](getting-started/subscription/index.md)
@@ -12,6 +12,7 @@ search:
         - [Filtering](getting-started/subscription/filtering.md)
         - [Testing](getting-started/subscription/test.md)
         - [Dynamic Subscribers](getting-started/subscription/dynamic.md)
+        - [Concurrency](getting-started/subscription/concurrency.md)
     - [Publishing](getting-started/publishing/index.md)
         - [Broker Publish](getting-started/publishing/broker.md)
         - [Decorator](getting-started/publishing/decorator.md)
@@ -87,6 +88,7 @@ search:
     - [Publishing](rabbit/publishing.md)
     - [RPC](rabbit/rpc.md)
     - [Acknowledgement](rabbit/ack.md)
+    - [Concurrency and Prefetch](rabbit/prefetch.md)
     - [Declare Queue/Exchange](rabbit/declare.md)
     - [Message Information](rabbit/message.md)
     - [Security Configuration](rabbit/security.md)
@@ -131,6 +133,7 @@ search:
         - [Batching](redis/streams/batch.md)
         - [Acknowledgement](redis/streams/ack.md)
         - [Claiming](redis/streams/claiming.md)
+        - [Testing Consumer Groups](redis/streams/testing.md)
     - [RPC](redis/rpc.md)
     - [Pipeline](redis/pipeline.md)
     - [Message Information](redis/message.md)
@@ -140,7 +143,7 @@ search:
 - [Reference - Code API](api/index.md)
 {public_api}
 {api}
-- [FastStream People](faststream-people.md)
+- [Used By](who-uses.md)
 - Contributing
     - [Development](getting-started/contributing/CONTRIBUTING.md)
     - [Documentation](getting-started/contributing/docs.md)

@@ -23,11 +23,19 @@ class TasksMixin(SubscriberUsecase[Any]):
         func: Callable[..., Coroutine[Any, Any, Any]],
         func_args: tuple[Any, ...] | None = None,
         func_kwargs: dict[str, Any] | None = None,
+        *,
+        restart_on_failure: bool = True,
     ) -> asyncio.Task[Any]:
         args = func_args or ()
         kwargs = func_kwargs or {}
         task = asyncio.create_task(func(*args, **kwargs))
-        callback = TaskCallbackSupervisor(func, func_args, func_kwargs, self)
+        callback = TaskCallbackSupervisor(
+            func,
+            func_args,
+            func_kwargs,
+            self,
+            restart_on_failure=restart_on_failure,
+        )
         task.add_done_callback(callback)
         self.tasks.append(task)
         return task

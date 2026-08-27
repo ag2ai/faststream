@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -48,7 +49,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
             m.mock.assert_called_once_with("hello")
 
-    async def test_partition_match_exect(
+    async def test_partition_match_exact(
         self,
         queue: str,
     ) -> None:
@@ -210,6 +211,42 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish("hello", queue)
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
+
+    @pytest.mark.parametrize(
+        "returned",
+        (pytest.param(None, id="None"), pytest.param([], id="Empty Sequence")),
+    )
+    async def test_batch_publisher_empty_result_matches_default_publisher(
+        self,
+        queue: str,
+        returned: Any,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3056.
+
+        An empty result publishes one empty message, exactly as a non-batch
+        publisher does.
+        """
+        broker = self.get_broker()
+
+        batch_publisher = broker.publisher(queue + "1", batch=True)
+        default_publisher = broker.publisher(queue + "2")
+
+        @batch_publisher
+        @broker.subscriber(queue)
+        async def batched(msg):
+            return returned
+
+        @default_publisher
+        @broker.subscriber(queue + "3")
+        async def single(msg) -> None:
+            return None
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+            await br.publish("hello", queue + "3")
+
+            default_publisher.mock.assert_called_once_with(b"")
+            batch_publisher.mock.assert_called_once_with([b""])
 
     async def test_respect_middleware(self, queue: str) -> None:
         routes = []

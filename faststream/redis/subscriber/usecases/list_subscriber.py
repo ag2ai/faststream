@@ -122,7 +122,7 @@ class _ListHandlerMixin(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
