@@ -279,3 +279,12 @@ fail_under = 20
 
 [tool.bandit]
 skips = ["B101"]
+
+[tool.typos.default.extend-identifiers]
+# Contributor handles in the generated release notes. Names, not misspellings.
+WellFREEzZ = "WellFREEzZ"
+RinZ27 = "RinZ27"
+
+[tool.typos.default.extend-words]
+# ruff's flake8-copyright rule prefix, not a shortening of "copy".
+CPY = "CPY"
