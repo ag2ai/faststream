@@ -38,7 +38,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - [**Tests Without a Broker**](#testing-the-service): an in-memory test client runs your subscribers and publishers with validation intact — no containers in CI, no flakes, milliseconds instead of minutes
 
-- **Observable From Day One**: OpenTelemetry traces, Prometheus metrics and Kubernetes probes come with the framework — a couple of middlewares instead of a few hundred lines in every service
+- [**Observable From Day One**](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/): OpenTelemetry traces, Prometheus metrics and Kubernetes probes come with the framework — a couple of middlewares instead of a few hundred lines in every service
 
 - [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/) consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/) exchanges and DLQ, [**NATS**](https://nats.io/) JetStream and KeyValue, [**Redis**](https://redis.io/) Streams, [**MQTT**](https://mqtt.org/) QoS. Five first-class clients that happen to share their ergonomics.
 
@@ -50,9 +50,9 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](#fastapi-plugin-deprecated) especially)
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated), now shipped as its own package
 
-That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
+That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 
 ---
 
@@ -391,9 +391,11 @@ if __name__ == "__main__":
 
 ### **FastAPI** Plugin (deprecated)
 
-The integration has been moved to the
-**[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
-package and will be removed in 1.0.0 version.
+> **Deprecated.** The integration has been moved to the **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)** package and will be removed in the 1.0.0 version:
+>
+> ```bash
+> pip install faststream_fastapi
+> ```
 
 Also, **FastStream** can be used as part of **FastAPI**.
 

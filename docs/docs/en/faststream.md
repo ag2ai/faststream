@@ -89,7 +89,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - [**Tests Without a Broker**](#testing-the-service): an in-memory test client runs your subscribers and publishers with validation intact — no containers in CI, no flakes, milliseconds instead of minutes
 
-- **Observable From Day One**: OpenTelemetry traces, Prometheus metrics and Kubernetes probes come with the framework — a couple of middlewares instead of a few hundred lines in every service
+- [**Observable From Day One**](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/){.internal-link}: OpenTelemetry traces, Prometheus metrics and Kubernetes probes come with the framework — a couple of middlewares instead of a few hundred lines in every service
 
 - [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/){target="_blank"} consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/){target="_blank"} exchanges and DLQ, [**NATS**](https://nats.io/){target="_blank"} JetStream and KeyValue, [**Redis**](https://redis.io/){.external-link target="_blank"} Streams, [**MQTT**](https://mqtt.org/){.external-link target="_blank"} QoS. Five first-class clients that happen to share their ergonomics.
 
@@ -103,7 +103,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](#fastapi-plugin) especially)
 
-That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
+That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 
 ??? info "Project History"
     **FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka){.external-link target="_blank"} and [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}. By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
