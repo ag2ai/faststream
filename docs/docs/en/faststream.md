@@ -7,7 +7,9 @@ search:
 
 # FastStream
 
-**FastStream** is an asynchronous Python framework for building event-driven applications. It brings together message broker integration, dependency injection, validation, testing utilities, and [**AsyncAPI**](https://www.asyncapi.com/) documentation generation in a single toolkit, reducing boilerplate without hiding the capabilities of the underlying broker.
+**FastStream** is an asynchronous Python framework for building event-driven applications.
+
+If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="_blank"}, you already know **FastStream**: the same decorators, type-driven validation, dependency injection and generated documentation — pointed at Kafka, RabbitMQ, NATS, Redis and MQTT instead of HTTP. It takes the boilerplate off your hands and leaves your broker intact.
 
 ---
 
@@ -83,17 +85,19 @@ parsing, lifecycle and documentation generation automatically.
 
 Making streaming microservices has never been easier. The API is small enough to onboard a teammate in an afternoon, and it never costs you access to the broker underneath — approachable and complete are not a trade-off here. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
+- [**A Spec You Never Write**](#project-documentation): a full [**AsyncAPI**](https://www.asyncapi.com/){.external-link target="_blank"} document generated from your handlers — the contract the neighbouring team keeps asking for, guaranteed to match the code, with an in-browser form for publishing test messages
+
+- [**Tests Without a Broker**](#testing-the-service): an in-memory test client runs your subscribers and publishers with validation intact — no containers in CI, no flakes, milliseconds instead of minutes
+
+- **Observable From Day One**: OpenTelemetry traces, Prometheus metrics and Kubernetes probes come with the framework — a couple of middlewares instead of a few hundred lines in every service
+
 - [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/){target="_blank"} consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/){target="_blank"} exchanges and DLQ, [**NATS**](https://nats.io/){target="_blank"} JetStream and KeyValue, [**Redis**](https://redis.io/){.external-link target="_blank"} Streams, [**MQTT**](https://mqtt.org/){.external-link target="_blank"} QoS. Five first-class clients that happen to share their ergonomics.
 
 - [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
 
-- [**Automatic Docs**](#project-documentation): Stay ahead with automatic [**AsyncAPI**](https://www.asyncapi.com/){.external-link target="_blank"} documentation
-
-- **Intuitive**: Full-typed editor support makes your development experience smooth, catching errors before they reach runtime
-
 - [**Powerful Dependency Injection System**](#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system
 
-- [**Testable**](#testing-the-service): Supports in-memory tests, making your CI/CD pipeline faster and more reliable
+- **Intuitive**: Full-typed editor support makes your development experience smooth, catching errors before they reach runtime
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
