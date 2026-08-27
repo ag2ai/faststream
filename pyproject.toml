@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "faststream"
-description = "FastStream: the simplest way to work with a messaging queues"
+description = "A thin, typed Python client for Kafka, RabbitMQ, NATS, Redis and MQTT — with AsyncAPI docs and in-memory testing."
 readme = "README.md"
 authors = [
     { name = "AG2AI", email = "support@ag2.ai" },
@@ -169,7 +169,7 @@ Homepage = "https://faststream.ag2.ai/latest/"
 Documentation = "https://faststream.ag2.ai/latest/getting-started/"
 Tracker = "https://github.com/ag2ai/FastStream/issues"
 Source = "https://github.com/ag2ai/FastStream"
-Discord = "https://discord.gg/qFm6aSqq59"
+Discussions = "https://github.com/ag2ai/faststream/discussions"
 
 [project.scripts]
 faststream = "faststream.__main__:cli"

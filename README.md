@@ -1,6 +1,8 @@
 # FastStream
 
-[**FastStream**](https://faststream.ag2.ai/latest/) is an asynchronous Python framework for building event-driven applications. It brings together message broker integration, dependency injection, validation, testing utilities, and [**AsyncAPI**](https://www.asyncapi.com/) documentation generation in a single toolkit, reducing boilerplate without hiding the capabilities of the underlying broker.
+[**FastStream**](https://faststream.ag2.ai/latest/) is an asynchronous Python framework for building event-driven applications.
+
+If you know [**FastAPI**](https://fastapi.tiangolo.com/), you already know **FastStream**: the same decorators, type-driven validation, dependency injection and generated documentation — pointed at Kafka, RabbitMQ, NATS, Redis and MQTT instead of HTTP. It takes the boilerplate off your hands and leaves your broker intact.
 
 ---
 
@@ -17,9 +19,9 @@
 [![Dependency Review](https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml/badge.svg)](https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml)
 [![License](https://img.shields.io/github/license/ag2ai/faststream.svg)](https://github.com/ag2ai/faststream/blob/main/LICENSE)
 [![Code of Conduct](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/ag2ai/faststream/blob/main/.github/CODE_OF_CONDUCT.md)\
-[![Discord](https://img.shields.io/discord/1085457301214855171?logo=discord&label=EN)](https://discord.gg/qFm6aSqq59)
+[![Discussions](https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions)](https://github.com/ag2ai/faststream/discussions)
 [![FastStream](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json)](https://faststream.ag2.ai)
-[![Telegram](https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram&label=RU)](https://t.me/python_faststream)\
+[![Telegram](https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram)](https://t.me/python_faststream)\
 [![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20FastStream%20Guru-006BFF)](https://gurubase.io/g/faststream)
 </div>
 
@@ -28,27 +30,29 @@
 ## Features
 
 [**FastStream**](https://faststream.ag2.ai/latest/) simplifies the process of writing producers and consumers for message queues, handling all the
-parsing, networking and documentation generation automatically.
+parsing, lifecycle and documentation generation automatically.
 
-Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
+Making streaming microservices has never been easier. The API is small enough to onboard a teammate in an afternoon, and it never costs you access to the broker underneath — approachable and complete are not a trade-off here. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
-- [**Multiple Brokers**](#unified-api): **FastStream** provides a suitable API to work across multiple message brokers ([**Kafka**](https://kafka.apache.org/), [**RabbitMQ**](https://www.rabbitmq.com/), [**NATS**](https://nats.io/), [**Redis**](https://redis.io/), [**MQTT**](https://mqtt.org/) support)
+- [**A Spec You Never Write**](#project-documentation): a full [**AsyncAPI**](https://www.asyncapi.com/) document generated from your handlers — the contract the neighbouring team keeps asking for, guaranteed to match the code, with an in-browser form for publishing test messages
+
+- [**Tests Without a Broker**](#testing-the-service): an in-memory test client runs your subscribers and publishers with validation intact — no containers in CI, no flakes, milliseconds instead of minutes
+
+- [**Observable From Day One**](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/): OpenTelemetry traces, Prometheus metrics and Kubernetes probes come with the framework — a couple of middlewares instead of a few hundred lines in every service
+
+- [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/) consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/) exchanges and DLQ, [**NATS**](https://nats.io/) JetStream and KeyValue, [**Redis**](https://redis.io/) Streams, [**MQTT**](https://mqtt.org/) QoS. Five first-class clients that happen to share their ergonomics.
 
 - [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/) or [**Msgspec**](https://jcristharif.com/msgspec/) validation capabilities to serialize and validate incoming messages
 
-- [**Automatic Docs**](#project-documentation): Stay ahead with automatic [**AsyncAPI**](https://www.asyncapi.com/) documentation
+- [**Powerful Dependency Injection System**](#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system
 
 - **Intuitive**: Full-typed editor support makes your development experience smooth, catching errors before they reach runtime
 
-- [**Powerful Dependency Injection System**](#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system
-
-- [**Testable**](#testing-the-service): Supports in-memory tests, making your CI/CD pipeline faster and more reliable
-
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](#fastapi-plugin) especially)
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated), now shipped as its own package
 
-That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you're just starting with streaming microservices or looking to scale, **FastStream** has got you covered.
+That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 
 ---
 
@@ -57,21 +61,24 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 <details>
 <summary><b>Table of Contents</b></summary>
 
-- [Features](#features)
-- [Versioning Policy](#versioning-policy)
-- [Installation](#installation)
-- [Quick Start](#writing-app-code)
-  - [Pydantic serialization](#pydantic-serialization)
-  - [Msgspec serialization](#msgspec-serialization)
-  - [Unified API](#unified-api)
-- [Testing](#testing-the-service)
-- [CLI](#running-the-application)
-- [AsyncAPI Documentation](#project-documentation)
-- [Dependencies](#dependencies)
-- [Integrations](#http-frameworks-integrations)
-  - [Any Framework](#any-framework)
-  - [**FastAPI** Plugin](#fastapi-plugin)
-- [Stay in touch](#stay-in-touch)
+- [FastStream](#faststream)
+  - [Features](#features)
+  - [Versioning Policy](#versioning-policy)
+  - [Installation](#installation)
+  - [Writing app code](#writing-app-code)
+    - [Pydantic serialization](#pydantic-serialization)
+    - [Msgspec serialization](#msgspec-serialization)
+    - [Your Broker, In Full](#your-broker-in-full)
+  - [Testing the service](#testing-the-service)
+  - [Running the application](#running-the-application)
+  - [Project Documentation](#project-documentation)
+  - [Dependencies](#dependencies)
+  - [HTTP Frameworks integrations](#http-frameworks-integrations)
+    - [Any Framework](#any-framework)
+    - [**FastAPI** Plugin (deprecated)](#fastapi-plugin-deprecated)
+  - [Benchmarks](#benchmarks)
+  - [Stay in touch](#stay-in-touch)
+  - [Contributors](#contributors)
 
 </details>
 
@@ -81,15 +88,19 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 **FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka) and [**Propan**](https://github.com/lancetnik/propan). By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
 </details>
 
----
+<a id="versioning-policy"></a>
 
-## Versioning Policy
+<details>
+<summary><b>Versioning Policy</b></summary>
 
 FastStream has a stable public API. Only major updates may introduce breaking changes.
 
 Prior to FastStream's 1.0 release, each minor update is considered a major and can introduce breaking changes, but these changes were communicated through two-versions deprecation warnings prior to being fully removed. So features deprecated in the 0.4 version were only removed in version 0.6.
 
 Our team is working toward the stable 1.0 version.
+</details>
+
+---
 
 ## Installation
 
@@ -195,13 +206,20 @@ from faststream.kafka import KafkaBroker
 broker = KafkaBroker(serializer=MsgSpecSerializer())
 ```
 
-You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/gettings-started/subscription/msgspec/).
+You can read more about the feature in the [documentation](https://faststream.ag2.ai/latest/getting-started/subscription/msgspec/).
 
-### Unified API
+<a id="unified-api"></a>
 
-At first glance, **FastStream** unifies various broker backends under a single API. However, a completely unified API inevitably results in missing features. We do not want to limit users' choices. If you prefer Kafka over Redis, there is a reason. Therefore, we support all native broker features you need.
+### Your Broker, In Full
 
-Consequently, our unified API has a relatively limited scope:
+**FastStream is a thin client, not an abstraction layer.** It wraps your broker's own library — `aiokafka` or `confluent-kafka`, `aio-pika`, `nats-py`, `redis-py`, `zmqtt` — and takes over what every service otherwise rewrites by hand: lifecycle, serialization, acknowledgement, observability, documentation, tests. What the broker itself offers stays yours.
+
+Two rules follow, and they explain most of our API decisions:
+
+1. **We do not implement business logic.** No retries, no delayed delivery, no task orchestration. Those are architectural choices, and a framework that makes them for you owns your architecture.
+2. **Every native broker feature stays reachable.** When the ergonomic path is not enough, the client underneath is one annotation away — `Connection` and `Channel` for RabbitMQ, `Consumer` for Kafka, `Client` for NATS and MQTT, `Redis` for Redis. Every broker we support has one.
+
+What the five clients share is a deliberately small surface:
 
 ```python
 from faststream.[broker] import [Broker], [Broker]Message
@@ -266,7 +284,7 @@ async def test_invalid():
 
 ## Running the application
 
-The application can be started using built-in **FastStream** CLI command.
+The application can be started using the built-in **FastStream** CLI command.
 
 Before running the service, install **FastStream CLI** using the following command:
 
@@ -316,7 +334,7 @@ The availability of such documentation significantly simplifies the integration 
 
 ## Dependencies
 
-**FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/)) has a dependency management system similar to `pytest fixtures` and `FastAPI Depends` at the same time. Function arguments declare which dependencies you want are needed, and a special decorator delivers them from the global Context object.
+**FastStream** (thanks to [**FastDepends**](https://lancetnik.github.io/FastDepends/)) has a dependency management system similar to `pytest fixtures` and `FastAPI Depends` at the same time. Function arguments declare which dependencies are needed, and a special decorator delivers them from the global Context object.
 
 ```python
 from typing import Annotated
@@ -373,9 +391,11 @@ if __name__ == "__main__":
 
 ### **FastAPI** Plugin (deprecated)
 
-The integration has been moved to the
-**[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
-package and will be removed in 1.0.0 version.
+> **Deprecated.** The integration has been moved to the **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)** package and will be removed in the 1.0.0 version:
+>
+> ```bash
+> pip install faststream_fastapi
+> ```
 
 Also, **FastStream** can be used as part of **FastAPI**.
 
@@ -408,15 +428,28 @@ More integration features can be found [here](https://faststream.ag2.ai/latest/g
 ## Benchmarks
 We use codspeed to run benchmarks for both FastStream itself and raw clients.
 
+---
+
+## Used By
+
+**FastStream** is used by research institutions, public sector organizations and companies — among
+them **ECMWF**, **Hydro-Québec**, the **Rubin Observatory**, **NERSC** and **Red Hat**. Neighbouring
+projects such as **Pydantic Logfire**, **RabbitMQ** and **EMQX** maintain a **FastStream**
+integration of their own.
+
+See the full list on the [Used By](https://faststream.ag2.ai/latest/who-uses/) page, and open a pull request to add your own project.
+
+---
+
 ## Stay in touch
 
 Please show your support and stay in touch by:
 
 - giving our [GitHub repository](https://github.com/ag2ai/faststream/) a star, and
 
-- joining our [EN Discord server](https://discord.gg/qFm6aSqq59)
+- joining the [discussions](https://github.com/ag2ai/faststream/discussions) on GitHub
 
-- joining our [RU Telegram group](https://t.me/python_faststream)
+- joining our [Telegram group](https://t.me/python_faststream)
 
 Your support helps us to stay in touch with you and encourages us to
 continue developing and improving the framework. Thank you for your

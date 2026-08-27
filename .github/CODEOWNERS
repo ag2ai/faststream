@@ -1,11 +1,17 @@
 # FastStream code owners
-# About code owners https://docs.github.com/ru/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# About code owners https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# The last matching pattern wins, so broad defaults come first and
+# narrow areas override them below.
 
-# Global
-* @Lancetnik
+# Defaults
+/faststream/ @IvanKirpichnikov
+/tests/ @IvanKirpichnikov
+/docs/ @IvanKirpichnikov
 
-# Documentation
-/docs/ @kumaranvpl
+# Core internals and the public API surface
+/faststream/_internal/ @Lancetnik
+/tests/brokers/base/ @Lancetnik
 
 # Observability
 /faststream/opentelemetry/ @draincoder
