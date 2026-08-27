@@ -348,3 +348,65 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         )
 
         assert mock.call_count == 2, mock.call_count
+
+    @pytest.mark.asyncio()
+    async def test_consume_without_value(
+        self,
+        mock: MagicMock,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @consume_broker.subscriber(*args, **kwargs)
+        async def handler(msg: bytes) -> None:
+            event.set()
+            mock(msg)
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(
+                        br._producer._producer.producer.send(queue, key=b""),
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            mock.assert_called_once_with(b"")
+
+    @pytest.mark.asyncio()
+    async def test_consume_batch_without_value(
+        self,
+        mock: MagicMock,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @consume_broker.subscriber(*args, **kwargs)
+        async def handler(msg: list[bytes]) -> None:
+            event.set()
+            mock(msg)
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            await asyncio.wait(
+                (
+                    asyncio.create_task(
+                        br._producer._producer.producer.send(queue, key=b""),
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
+
+            mock.assert_called_once_with([b""])
