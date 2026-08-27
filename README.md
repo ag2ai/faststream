@@ -88,15 +88,19 @@ That's **FastStream** in a nutshell - easy, efficient, and powerful. Whether you
 **FastStream** is a package based on the ideas and experiences gained from [**FastKafka**](https://github.com/airtai/fastkafka) and [**Propan**](https://github.com/lancetnik/propan). By joining our forces, we picked up the best from both packages and created a unified way to write services capable of processing streamed data regardless of the underlying protocol.
 </details>
 
----
+<a id="versioning-policy"></a>
 
-## Versioning Policy
+<details>
+<summary><b>Versioning Policy</b></summary>
 
 FastStream has a stable public API. Only major updates may introduce breaking changes.
 
 Prior to FastStream's 1.0 release, each minor update is considered a major and can introduce breaking changes, but these changes were communicated through two-versions deprecation warnings prior to being fully removed. So features deprecated in the 0.4 version were only removed in version 0.6.
 
 Our team is working toward the stable 1.0 version.
+</details>
+
+---
 
 ## Installation
 
