@@ -299,6 +299,11 @@ class ListBatchPublisher(ListPublisher):
             cmd, batch=True, message_format=self.config.message_format
         )
 
+        if not cmd.batch_bodies:
+            # Match the non-batch publisher: an empty result is one empty message,
+            # not a batch of zero, which no broker can express (see issue #3056).
+            cmd.batch_bodies = (b"",)
+
         cmd.set_destination(list=self.list.name)
 
         cmd.add_headers(self.headers, override=False)

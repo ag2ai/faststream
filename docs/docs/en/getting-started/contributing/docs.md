@@ -60,9 +60,9 @@ After making all the changes, you can issue a `PR` with them - and we will gladl
 
     (e.g [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"} - `[**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}`)
 
-- Internal links need to mark `{.internal-link}`
+- Internal links need to mark `{.internal-link}` and point to a relative path of the target `.md` file (root-absolute paths like `/getting-started/...` break, because the site is served under a version prefix such as `/latest/`)
 
-    (e.g [contribution page](/getting-started/contributing/contributing){.internal-link} - `[contribution page](/getting-started/contributing/contributing){.internal-link}`)
+    (e.g [contribution page](./CONTRIBUTING.md){.internal-link} - `[contribution page](./CONTRIBUTING.md){.internal-link}`)
 
 - A lot of links going in a row doesn't need to mark both `{.external_link}` and `{.internal_link}`. In this case use only `{target="_blank"}` for external links
 

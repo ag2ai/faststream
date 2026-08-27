@@ -66,6 +66,14 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 - Line length 90, double quotes, Google-style docstrings.
 - `just mypy` must pass before a PR.
 
+### Comments
+
+A comment carries the **why** — the constraint, the surprise, the reason this line is not the obvious one. What the code does is already on the screen.
+
+- **Two lines, maximum.** A caveat needing more than that is usually a docstring, an ADR, or a sign the code should be clearer.
+- **Directly above the line it explains**, so the reader meets the explanation at the moment the code surprises them. A caveat about one assertion belongs over that assertion, not in the docstring header several screens up.
+- **Name the issue** when the code exists because of a reported bug: `# ... which no broker can express (see issue #3056).` The next reader gets the whole investigation for free.
+
 ## Related skills
 
 - **testing-patterns** — every source change needs tests following the base-testcase model.
