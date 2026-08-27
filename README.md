@@ -217,7 +217,7 @@ You can read more about the feature in the [documentation](https://faststream.ag
 Two rules follow, and they explain most of our API decisions:
 
 1. **We do not implement business logic.** No retries, no delayed delivery, no task orchestration. Those are architectural choices, and a framework that makes them for you owns your architecture.
-2. **Every native broker feature stays reachable.** When the ergonomic path is not enough, the broker's own client is one annotation away — `Connection` and `Channel` for RabbitMQ, `Client` for NATS, `Redis` for Redis — typed as the vendor library's own classes, not ours.
+2. **Every native broker feature stays reachable.** When the ergonomic path is not enough, the client underneath is one annotation away — `Connection` and `Channel` for RabbitMQ, `Consumer` for Kafka, `Client` for NATS and MQTT, `Redis` for Redis. Every broker we support has one.
 
 What the five clients share is a deliberately small surface:
 
