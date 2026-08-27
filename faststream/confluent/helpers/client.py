@@ -292,6 +292,8 @@ class AsyncConfluentConsumer:
 
     @property
     def topics_to_create(self) -> list["Topic"]:
+        # Conflicting duplicates are reported by `create_subscriber`, the only
+        # public way to get here, so collapsing to the last one is enough.
         topics: dict[str, Topic] = {t.name: t for t in self.topics}
 
         for p in self.partitions:

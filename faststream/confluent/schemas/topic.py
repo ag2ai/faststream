@@ -65,7 +65,7 @@ class Topic(NameRequired):
         )
 
     def __hash__(self) -> int:
-        """Supports hash to store real objects in declarer."""
+        """Restore hashability, which defining `__eq__` would otherwise remove."""
         return hash(
             (
                 self.name,
