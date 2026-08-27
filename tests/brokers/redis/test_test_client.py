@@ -165,10 +165,6 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         An empty result publishes one empty message, exactly as a non-batch
         publisher does.
-
-        Redis batch subscribers decode every element to `str`, so the batch side
-        observes `""` where the default publisher observes `b""` -- the payload
-        on the wire is the same empty message in both cases.
         """
         broker = self.get_broker()
 
@@ -190,6 +186,8 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish("hello", queue + "3")
 
             default_publisher.mock.assert_called_once_with(b"")
+            # Redis batch subscribers decode every element to `str`, so the same
+            # empty message on the wire is observed as `""` rather than `b""`.
             batch_publisher.mock.assert_called_once_with([""])
 
     async def test_stream(
