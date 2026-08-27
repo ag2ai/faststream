@@ -30,15 +30,6 @@ class NatsSubscriberSpecification(
         ]
 
     @property
-    def _resolved_subject_string(self) -> str:
-        """The declared subject, falling back to the filtered subjects when there is none.
-
-        A JetStream consumer can address a stream through `filter_subjects` alone, leaving
-        `subject` empty. Mirrors `LogicSubscriber._resolved_subject_string`.
-        """
-        return self.subject.template or ", ".join(self.filter_subjects)
-
-    @property
     def subjects(self) -> list[str]:
         """The subjects this endpoint reads, one channel each.
 
@@ -51,11 +42,8 @@ class NatsSubscriberSpecification(
         return self.filter_subjects
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{self._resolved_subject_string}:{self.call_name}"
+    def channel_labels(self) -> list[str]:
+        return self.subjects
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
@@ -94,7 +82,7 @@ class NotIncludeSpecifation(SubscriberSpecification):
         return False
 
     @property
-    def name(self) -> str:
+    def channel_labels(self) -> list[str]:
         raise NotImplementedError
 
     def get_schema(self) -> dict[str, "SubscriberSpec"]:

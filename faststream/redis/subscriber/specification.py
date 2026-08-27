@@ -39,6 +39,10 @@ class RedisSubscriberSpecification(
         }
 
     @property
+    def channel_labels(self) -> list[str]:
+        return [self.address]
+
+    @property
     def address(self) -> str:
         raise NotImplementedError
 
@@ -57,13 +61,6 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
         self.channel = channel
-
-    @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{self.address}:{self.call_name}"
 
     @property
     def address(self) -> str:
@@ -91,13 +88,6 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
         self.list_sub = list_sub
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{self.address}:{self.call_name}"
-
-    @property
     def address(self) -> str:
         return f"{self._outer_config.prefix}{self.list_sub.name}"
 
@@ -119,13 +109,6 @@ class StreamSubscriberSpecification(RedisSubscriberSpecification):
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
         self.stream_sub = stream_sub
-
-    @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{self.address}:{self.call_name}"
 
     @property
     def address(self) -> str:

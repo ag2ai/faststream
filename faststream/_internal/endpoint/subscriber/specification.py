@@ -91,8 +91,20 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
 
     @property
     @abstractmethod
-    def name(self) -> str:
+    def channel_labels(self) -> list[str]:
+        """The label each of this endpoint's channels is keyed by, one per channel.
+
+        Usually the address, but not always: MQTT keeps the `$share/` prefix its
+        address drops, and RabbitMQ names a queue and an exchange rather than the
+        routing key a message travels by.
+        """
         raise NotImplementedError
+
+    @property
+    def name(self) -> str:
+        """The key of the first channel this endpoint names."""
+        labels = self.channel_labels
+        return self._channel_key(labels[0], split=len(labels) > 1)
 
     @abstractmethod
     def get_schema(self) -> dict[str, "SubscriberSpec"]:

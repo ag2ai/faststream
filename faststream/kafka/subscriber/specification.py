@@ -36,11 +36,8 @@ class KafkaSubscriberSpecification(
         return list(dict.fromkeys(topics))
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{','.join(self.topics)}:{self.call_name}"
+    def channel_labels(self) -> list[str]:
+        return self.topics
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
