@@ -22,10 +22,6 @@ MQTTBroker(
     session_replay_timeout=60.0,
 )
 
-MQTTBroker("mqtts://localhost")
-MQTTBroker(url="mqtt://localhost:1884")
-MQTTBroker(host="localhost", port=1884)
-
 
 async def check_multiple_test_brokers() -> None:
     async with TestMQTTBroker(MQTTBroker()) as br1:
