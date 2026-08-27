@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import pytest
 
@@ -150,6 +151,46 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish("hello", queue)
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
+
+    @pytest.mark.parametrize(
+        "returned",
+        (pytest.param(None, id="None"), pytest.param([], id="Empty Sequence")),
+    )
+    async def test_batch_publisher_empty_result_matches_default_publisher(
+        self,
+        queue: str,
+        returned: Any,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3056.
+
+        An empty result publishes one empty message, exactly as a non-batch
+        publisher does.
+
+        Redis batch subscribers decode every element to `str`, so the batch side
+        observes `""` where the default publisher observes `b""` -- the payload
+        on the wire is the same empty message in both cases.
+        """
+        broker = self.get_broker()
+
+        batch_publisher = broker.publisher(list=ListSub(queue + "1", batch=True))
+        default_publisher = broker.publisher(list=queue + "2")
+
+        @batch_publisher
+        @broker.subscriber(queue)
+        async def batched(msg):
+            return returned
+
+        @default_publisher
+        @broker.subscriber(queue + "3")
+        async def single(msg) -> None:
+            return None
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+            await br.publish("hello", queue + "3")
+
+            default_publisher.mock.assert_called_once_with(b"")
+            batch_publisher.mock.assert_called_once_with([""])
 
     async def test_stream(
         self,
