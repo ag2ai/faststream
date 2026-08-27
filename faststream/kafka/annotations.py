@@ -3,6 +3,7 @@ from typing import Annotated
 from aiokafka import AIOKafkaConsumer
 
 from faststream._internal.context import Context
+from faststream._internal.di import register_context_annotations
 from faststream.annotations import ContextRepo, Logger
 from faststream.kafka.broker import KafkaBroker as KB
 from faststream.kafka.message import KafkaMessage as KM
@@ -23,3 +24,14 @@ Consumer = Annotated[AIOKafkaConsumer, Context("handler_.consumer")]
 KafkaMessage = Annotated[KM, Context("message")]
 KafkaBroker = Annotated[KB, Context("broker")]
 KafkaProducer = Annotated[AioKafkaFastProducer, Context("broker._producer")]
+
+
+register_context_annotations(
+    __name__,
+    {
+        AIOKafkaConsumer: "Consumer",
+        KB: "KafkaBroker",
+        KM: "KafkaMessage",
+        AioKafkaFastProducer: "KafkaProducer",
+    },
+)

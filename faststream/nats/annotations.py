@@ -5,6 +5,7 @@ from nats.js.client import JetStreamContext as _JetStream
 from nats.js.object_store import ObjectStore as _ObjectStore
 
 from faststream._internal.context import Context
+from faststream._internal.di import register_context_annotations
 from faststream.annotations import ContextRepo, Logger
 from faststream.nats.broker import NatsBroker as _Broker
 from faststream.nats.message import (
@@ -33,3 +34,16 @@ NatsKvMessage = Annotated[_KVMessage, Context("message")]
 NatsBroker = Annotated[_Broker, Context("broker")]
 Client = Annotated[_NatsClient, Context("broker.config.connection_state.connection")]
 JsClient = Annotated[_JetStream, Context("broker.config.connection_state.stream")]
+
+
+register_context_annotations(
+    __name__,
+    {
+        _NatsClient: "Client",
+        _JetStream: "JsClient",
+        _ObjectStore: "ObjectStorage",
+        _Broker: "NatsBroker",
+        _Message: "NatsMessage",
+        _KVMessage: "NatsKvMessage",
+    },
+)

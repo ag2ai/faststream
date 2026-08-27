@@ -8,6 +8,7 @@ from redis.asyncio.client import (
 
 from faststream import Depends
 from faststream._internal.context import Context
+from faststream._internal.di import register_context_annotations
 from faststream.annotations import ContextRepo, Logger
 from faststream.params import NoCast
 from faststream.redis.broker.broker import RedisBroker as RB
@@ -54,3 +55,18 @@ async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
 
 
 Pipeline = Annotated[RedisPipeline, Depends(get_pipe, cast=False)]
+
+
+register_context_annotations(
+    __name__,
+    {
+        _RedisClient: "Redis",
+        _RedisPipeline: "Pipeline",
+        RB: "RedisBroker",
+        Rm: "RedisMessage",
+        Rcm: "RedisChannelMessage",
+        Rsm: "RedisStreamMessage",
+        Rbsm: "RedisBatchStreamMessage",
+        Rlm: "RedisListMessage",
+    },
+)

@@ -9,6 +9,7 @@ from fast_depends.core import CallModel, build_call_model
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.context.composition import ContextRepoComposition
+from faststream._internal.di.hints import check_context_annotations
 from faststream._internal.utils import apply_types, to_async
 
 if TYPE_CHECKING:
@@ -85,6 +86,8 @@ class FastDependsConfig:
             )
 
             if self.use_fastdepends:
+                check_context_annotations(dependent)
+
                 wrapper: InjectWrapper[..., Any] = apply_types(
                     None, context__=self.context
                 )
