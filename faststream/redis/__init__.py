@@ -27,7 +27,7 @@ try:
         RedisRouter,
         RedisSentinelBroker,
     )
-    from .exceptions import StreamGroupNotFoundError
+    from .exceptions import StreamClaimUnsupportedError, StreamGroupNotFoundError
     from .parser import BinaryMessageFormatV1
     from .response import RedisPublishCommand, RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
@@ -61,6 +61,7 @@ __all__ = (
     "RedisRouter",
     "RedisSentinelBroker",
     "RedisStreamMessage",
+    "StreamClaimUnsupportedError",
     "StreamGroupNotFoundError",
     "StreamSub",
     "TestApp",

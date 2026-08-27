@@ -5,6 +5,7 @@ import pytest
 from faststream import AckPolicy
 from faststream._internal.constants import EMPTY
 from faststream.redis import ListSub, PubSub, RedisBroker, RedisRouter, StreamSub
+from faststream.redis._compat import REDIS_V710
 from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -76,6 +77,24 @@ def test_stream_with_group_and_min_idle_time() -> None:
             group="test_group",
             consumer="test_consumer",
             min_idle_time=1000,
+        ),
+    )
+    assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
+
+
+@pytest.mark.redis()
+@pytest.mark.skipif(
+    not REDIS_V710,
+    reason="`claim_min_idle_time` requires redis-py 7.1.0+",
+)
+def test_stream_with_group_and_claim_min_idle_time() -> None:
+    config = RedisSubscriberConfig(
+        _outer_config=MagicMock(ack_policy=EMPTY),
+        stream_sub=StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+            claim_min_idle_time=1000,
         ),
     )
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR

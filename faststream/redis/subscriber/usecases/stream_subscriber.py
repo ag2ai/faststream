@@ -1,16 +1,19 @@
 import asyncio
 import logging
 import math
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
 from redis.exceptions import ResponseError
-from typing_extensions import override
+from typing_extensions import TypedDict, override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream.redis.exceptions import StreamGroupNotFoundError
+from faststream.redis.exceptions import (
+    StreamClaimUnsupportedError,
+    StreamGroupNotFoundError,
+)
 from faststream.redis.message import (
     BatchStreamMessage,
     DefaultStreamMessage,
@@ -31,6 +34,7 @@ if TYPE_CHECKING:
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
+    from faststream.redis.message import _StreamMessage
     from faststream.redis.schemas import StreamSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
 
@@ -38,20 +42,24 @@ if TYPE_CHECKING:
 TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
+# With `StreamSub.claim_min_idle_time` (XREADGROUP CLAIM), every entry carries
+# two extra fields: idle time (ms) and previous-delivery count.
+StreamEntry: TypeAlias = (
+    tuple[Offset, dict[bytes, bytes]] | tuple[Offset, dict[bytes, bytes], int, int]
+)
+
 ReadResponse = tuple[
     tuple[
         TopicName,
-        tuple[
-            tuple[
-                Offset,
-                dict[bytes, bytes],
-            ],
-            ...,
-        ],
+        tuple[StreamEntry, ...],
     ],
     ...,
 ]
 ReadCallable = Callable[[str], Awaitable[ReadResponse]]
+
+
+class _ClaimKwargs(TypedDict, total=False):
+    claim_min_idle_time: int
 
 
 class _StreamHandlerMixin(LogicSubscriber):
@@ -68,11 +76,74 @@ class _StreamHandlerMixin(LogicSubscriber):
         self.last_id = config.stream_sub.last_id
         self.read_id = self.last_id
         self.min_idle_time = config.stream_sub.min_idle_time
+        self.claim_min_idle_time = config.stream_sub.claim_min_idle_time
         self.autoclaim_start_id = b"0-0"
 
     @property
     def stream_sub(self) -> "StreamSub":
         return self._stream_sub.add_prefix(self._outer_config.prefix)
+
+    @property
+    def _claim_kwargs(self) -> _ClaimKwargs:
+        """`xreadgroup` kwargs enabling the XREADGROUP CLAIM option.
+
+        Passed conditionally: redis-py older than 7.1.0 doesn't accept the
+        `claim_min_idle_time` argument at all. The `type: ignore[misc]` at the
+        call sites is needed because the types-redis stubs (4.6) predate the
+        argument, while redis-py itself accepts it since 7.1.0.
+        """
+        if self.claim_min_idle_time is None:
+            return {}
+        return {"claim_min_idle_time": self.claim_min_idle_time}
+
+    def _parse_stream_entry(
+        self,
+        entry: "StreamEntry",
+    ) -> tuple[bytes, dict[bytes, bytes], tuple[int, int] | None]:
+        """Split a stream entry into id, payload and optional CLAIM metadata.
+
+        With `claim_min_idle_time` enabled, Redis extends every entry with two
+        extra fields: milliseconds since the last delivery and the number of
+        *previous* deliveries (0 for new messages, one less than XPENDING's
+        `times_delivered`). An entry missing the metadata means Redis ignored
+        the CLAIM option (it does so when reading with an explicit id), so the
+        requested recovery behavior is off - fail loudly instead of degrading
+        silently.
+        """
+        message_id, data, *claim_meta = entry
+
+        if self.claim_min_idle_time is None:
+            return message_id, data, None
+
+        if len(claim_meta) == 2:
+            return message_id, data, (claim_meta[0], claim_meta[1])
+
+        msg = (
+            "Stream entry is missing XREADGROUP CLAIM metadata. Redis ignores "
+            "the CLAIM option when reading with an explicit id, so the "
+            "requested `claim_min_idle_time` behavior is disabled."
+        )
+        raise ValueError(msg)
+
+    def _attach_claim_metadata(
+        self,
+        message: "_StreamMessage",
+        claim_metas: "Sequence[tuple[int, int] | None]",
+    ) -> None:
+        """Expose per-entry CLAIM metadata via the raw message.
+
+        Set only when `claim_min_idle_time` is enabled, so messages of regular
+        subscribers stay unchanged. `delivery_counts` counts *previous*
+        deliveries (0 = new message) - one less than XPENDING's
+        `times_delivered`.
+        """
+        if self.claim_min_idle_time is None:
+            return
+
+        # `_parse_stream_entry` guarantees the metadata when claiming is
+        # enabled; the None-filter below only narrows the type.
+        message["idle_times"] = [m[0] for m in claim_metas if m is not None]
+        message["delivery_counts"] = [m[1] for m in claim_metas if m is not None]
 
     def get_log_context(
         self,
@@ -101,6 +172,18 @@ class _StreamHandlerMixin(LogicSubscriber):
                         "Stopping subscriber — restart the application to recreate the group."
                     )
                     raise StreamGroupNotFoundError(msg) from e
+
+                if (
+                    self.claim_min_idle_time is not None
+                    and "syntax error" in str(e).lower()
+                ):
+                    msg = (
+                        "Redis server rejected the XREADGROUP CLAIM option for "
+                        f"stream `{self.stream_sub.name}`. `claim_min_idle_time` "
+                        "requires Redis server 8.4+. Stopping subscriber."
+                    )
+                    raise StreamClaimUnsupportedError(msg) from e
+
                 raise
 
             except Exception as e:
@@ -150,13 +233,14 @@ class _StreamHandlerMixin(LogicSubscriber):
                 def read(
                     _: str,
                 ) -> Awaitable[ReadResponse]:
-                    return client.xreadgroup(
+                    return client.xreadgroup(  # type: ignore[misc]
                         groupname=stream.group,
                         consumername=stream.consumer,
                         streams={stream.name: self.read_id},
                         count=stream.max_records,
                         block=stream.polling_interval,
                         noack=stream.no_ack,
+                        **self._claim_kwargs,
                     )
 
             else:
@@ -204,19 +288,23 @@ class _StreamHandlerMixin(LogicSubscriber):
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
+        claim_meta: tuple[int, int] | None = None
+
         if self.stream_sub.group and self.stream_sub.consumer:
             if self.min_idle_time is None:
-                stream_message = await self._client.xreadgroup(
+                stream_message = await self._client.xreadgroup(  # type: ignore[misc]
                     groupname=self.stream_sub.group,
                     consumername=self.stream_sub.consumer,
                     streams={self.stream_sub.name: self.read_id},
                     block=math.ceil(timeout * 1000),
                     count=1,
+                    **self._claim_kwargs,
                 )
                 if not stream_message:
                     return None
 
-                ((stream_name, ((message_id, raw_message),)),) = stream_message
+                ((stream_name, (entry,)),) = stream_message
+                message_id, raw_message, claim_meta = self._parse_stream_entry(entry)
             else:
                 stream_message = await self._client.xautoclaim(
                     name=self.stream_sub.name,
@@ -252,6 +340,7 @@ class _StreamHandlerMixin(LogicSubscriber):
             message_ids=[message_id],
             data=raw_message,
         )
+        self._attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
         context = self._outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
@@ -277,20 +366,28 @@ class _StreamHandlerMixin(LogicSubscriber):
         context = self._outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
+        claim_meta: tuple[int, int] | None
+
         while True:
+            claim_meta = None
+
             if self.stream_sub.group and self.stream_sub.consumer:
                 if self.min_idle_time is None:
-                    stream_message = await self._client.xreadgroup(
+                    stream_message = await self._client.xreadgroup(  # type: ignore[misc]
                         groupname=self.stream_sub.group,
                         consumername=self.stream_sub.consumer,
                         streams={self.stream_sub.name: self.read_id},
                         block=math.ceil(timeout * 1000),
                         count=1,
+                        **self._claim_kwargs,
                     )
                     if not stream_message:
                         continue
 
-                    ((stream_name, ((message_id, raw_message),)),) = stream_message
+                    ((stream_name, (entry,)),) = stream_message
+                    message_id, raw_message, claim_meta = self._parse_stream_entry(
+                        entry,
+                    )
                 else:
                     stream_message = await self._client.xautoclaim(
                         name=self.stream_sub.name,
@@ -326,6 +423,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 message_ids=[message_id],
                 data=raw_message,
             )
+            self._attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
             msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
                 msg=redis_incoming_msg,
@@ -353,36 +451,22 @@ class StreamSubscriber(_StreamHandlerMixin):
 
     async def _get_msgs(
         self,
-        read: Callable[
-            [str],
-            Awaitable[
-                tuple[
-                    tuple[
-                        TopicName,
-                        tuple[
-                            tuple[
-                                Offset,
-                                dict[bytes, bytes],
-                            ],
-                            ...,
-                        ],
-                    ],
-                    ...,
-                ],
-            ],
-        ],
+        read: ReadCallable,
     ) -> None:
         for stream_name, msgs in await read(self.last_id):
             if msgs:
                 self.last_id = msgs[-1][0].decode()
 
-                for message_id, raw_msg in msgs:
+                for entry in msgs:
+                    message_id, raw_msg, claim_meta = self._parse_stream_entry(entry)
+
                     msg = DefaultStreamMessage(
                         type="stream",
                         channel=stream_name.decode(),
                         message_ids=[message_id],
                         data=raw_msg,
                     )
+                    self._attach_claim_metadata(msg, [claim_meta])
 
                     await self.consume_one(msg)
 
@@ -401,12 +485,7 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
 
     async def _get_msgs(
         self,
-        read: Callable[
-            [str],
-            Awaitable[
-                tuple[tuple[bytes, tuple[tuple[bytes, dict[bytes, bytes]], ...]], ...],
-            ],
-        ],
+        read: ReadCallable,
     ) -> None:
         for stream_name, msgs in await read(self.last_id):
             if msgs:
@@ -414,9 +493,12 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
 
                 data: list[dict[bytes, bytes]] = []
                 ids: list[bytes] = []
-                for message_id, i in msgs:
+                claim_metas: list[tuple[int, int] | None] = []
+                for entry in msgs:
+                    message_id, i, claim_meta = self._parse_stream_entry(entry)
                     data.append(i)
                     ids.append(message_id)
+                    claim_metas.append(claim_meta)
 
                 msg = BatchStreamMessage(
                     type="bstream",
@@ -424,6 +506,7 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
                     data=data,
                     message_ids=ids,
                 )
+                self._attach_claim_metadata(msg, claim_metas)
 
                 await self.consume_one(msg)
 
