@@ -36,19 +36,22 @@ class RabbitPublisherSpecification(
         return None
 
     @property
-    def address(self) -> str:
+    def address(self) -> str | None:
         """The routing key a message published here travels by, prefixed.
 
         The exchange decides first, not the declaration: a fanout reaches every
         queue bound to it and ignores any routing key handed to it, so one declared
         anyway still addresses nothing. The subscriber gates on the same question,
         which is what keeps both ends of an address showing one string.
+
+        `None` rather than `""` for that case: AsyncAPI reads an absent address as
+        unknown, and an empty one as an address zero characters long.
         """
         if not is_routing_exchange(self.config.exchange):
-            return ""
+            return None
 
         routing = self.routing
-        return f"{self._outer_config.prefix}{routing}" if routing else ""
+        return f"{self._outer_config.prefix}{routing}" if routing else None
 
     @property
     def name(self) -> str:

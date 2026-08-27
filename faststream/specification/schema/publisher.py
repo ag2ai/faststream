@@ -15,4 +15,4 @@ class PublisherSpec:
     description: str | None
     operation: Operation
     bindings: ChannelBinding | None
-    address: str
+    address: str | None

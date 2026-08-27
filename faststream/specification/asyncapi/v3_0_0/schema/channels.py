@@ -13,7 +13,8 @@ class Channel(BaseModel):
     """A class to represent a channel.
 
     Attributes:
-        address: A string representation of this channel's address.
+        address: A string representation of this channel's address, absent
+            where there is none to give.
         description : optional description of the channel
         servers : optional list of servers associated with the channel
         bindings : optional channel binding
@@ -24,7 +25,7 @@ class Channel(BaseModel):
         Config : configuration for the class (only applicable for Pydantic version 1)
     """
 
-    address: str
+    address: str | None = None
     description: str | None = None
     servers: list[dict[str, str]] | None = None
     messages: dict[str, Message | Reference]

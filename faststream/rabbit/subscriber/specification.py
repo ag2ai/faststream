@@ -31,15 +31,17 @@ class RabbitSubscriberSpecification(
         return f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}:{self.call_name}"
 
     @property
-    def address(self) -> str:
+    def address(self) -> str | None:
         """The routing key the queue is bound by, prefixed.
 
-        Empty where the exchange ignores routing keys: a fanout reaches every queue
+        `None` where the exchange ignores routing keys: a fanout reaches every queue
         bound to it, so the queue this subscriber reads from names nothing a message
-        is routed by. The document drops the queue binding for the same reason.
+        is routed by. The document drops the queue binding for the same reason, and
+        drops the address rather than giving an empty one — AsyncAPI reads an absent
+        address as unknown, which `""` does not say.
         """
         if not is_routing_exchange(self.config.exchange):
-            return ""
+            return None
 
         return self.config.queue.add_prefix(
             self._outer_config.prefix,

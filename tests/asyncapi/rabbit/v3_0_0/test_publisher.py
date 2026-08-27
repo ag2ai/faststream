@@ -18,7 +18,8 @@ class TestArguments(PublisherTestcase):
 
         assert schema["channels"] == {
             "_:test-ex:Publisher": {
-                "address": "",
+                # no `address`: the exchange ignores routing keys, and an absent
+                # address is how the document says there is none
                 "bindings": {
                     "amqp": {
                         "bindingVersion": "0.3.0",
@@ -106,7 +107,8 @@ class TestArguments(PublisherTestcase):
 
         assert schema["channels"] == {
             "_:test-ex:Publisher": {
-                "address": "",
+                # no `address`: the exchange ignores routing keys, and an absent
+                # address is how the document says there is none
                 "bindings": {
                     "amqp": {
                         "bindingVersion": "0.3.0",
