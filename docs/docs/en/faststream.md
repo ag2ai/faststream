@@ -79,11 +79,11 @@ search:
 ## Features
 
 [**FastStream**](https://faststream.ag2.ai/) simplifies the process of writing producers and consumers for message queues, handling all the
-parsing, networking and documentation generation automatically.
+parsing, lifecycle and documentation generation automatically.
 
-Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
+Making streaming microservices has never been easier. The API is small enough to onboard a teammate in an afternoon, and it never costs you access to the broker underneath — approachable and complete are not a trade-off here. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
 
-- [**Native Broker Features**](#native-broker-features): **FastStream** never hides your broker — use [**Kafka**](https://kafka.apache.org/){target="_blank"} consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/){target="_blank"} exchanges and DLQ, [**NATS**](https://nats.io/){target="_blank"} JetStream and KeyValue, [**Redis**](https://redis.io/){.external-link target="_blank"} Streams, [**MQTT**](https://mqtt.org/){.external-link target="_blank"} — each in full, with the same ergonomics
+- [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/){target="_blank"} consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/){target="_blank"} exchanges and DLQ, [**NATS**](https://nats.io/){target="_blank"} JetStream and KeyValue, [**Redis**](https://redis.io/){.external-link target="_blank"} Streams, [**MQTT**](https://mqtt.org/){.external-link target="_blank"} QoS. Five first-class clients that happen to share their ergonomics.
 
 - [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
 
@@ -299,11 +299,16 @@ You can read more about the feature in the [documentation](https://faststream.ag
 
 <a id="unified-api"></a>
 
-### Native Broker Features
+### Your Broker, In Full
 
-**FastStream does not hide your broker.** A completely unified API inevitably results in missing features, and we do not want to limit your choices: if you chose Kafka over Redis, there was a reason. So the shared API is deliberately small — everything beyond it is your broker's own, in full.
+**FastStream is a thin client, not an abstraction layer.** It wraps your broker's own library — `aiokafka` or `confluent-kafka`, `aio-pika`, `nats-py`, `redis-py`, `zmqtt` — and takes over what every service otherwise rewrites by hand: lifecycle, serialization, acknowledgement, observability, documentation, tests. What the broker itself offers stays yours.
 
-The shared part covers only this:
+Two rules follow, and they explain most of our API decisions:
+
+1. **We do not implement business logic.** No retries, no delayed delivery, no task orchestration. Those are architectural choices, and a framework that makes them for you owns your architecture.
+2. **Every native broker feature stays reachable.** When the ergonomic path is not enough, the native object is one annotation away: `Annotated[IncomingMessage, Context("message.raw_message")]`.
+
+What the five clients share is a deliberately small surface:
 
 === "AIOKafka"
     ```python linenums="1"
