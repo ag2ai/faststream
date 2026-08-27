@@ -14,24 +14,26 @@ class KafkaSubscriberSpecification(
 ):
     @property
     def topics(self) -> list[str]:
-        topics: set[str] = set()
+        """The topics this endpoint reads, in the order they were declared.
 
-        topics.update(f"{self._outer_config.prefix}{t}" for t in self.config.topics)
+        Deduped through a dict rather than a set: set order varies per process and
+        would reach the document as the order of its channels.
+        """
+        prefix = self._outer_config.prefix
 
-        topics.update(
-            f"{self._outer_config.prefix}{p.topic}" for p in self.config.partitions
-        )
+        topics = [f"{prefix}{t}" for t in self.config.topics]
+        topics.extend(f"{prefix}{p.topic}" for p in self.config.partitions)
 
         if self.config.pattern:
             # A topic is a literal and takes the prefix as one; a pattern is the
             # one Kafka argument that is compiled, so its prefix is compiled too.
-            topics.add(
+            topics.append(
                 Address(self.config.pattern, KAFKA_ADDRESS_SYNTAX)
-                .add_prefix(self._outer_config.prefix)
+                .add_prefix(prefix)
                 .template,
             )
 
-        return list(topics)
+        return list(dict.fromkeys(topics))
 
     @property
     def name(self) -> str:

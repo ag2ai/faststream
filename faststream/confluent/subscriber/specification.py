@@ -12,15 +12,17 @@ class KafkaSubscriberSpecification(
 ):
     @property
     def topics(self) -> list[str]:
-        topics: set[str] = set()
+        """The topics this endpoint reads, in the order they were declared.
 
-        topics.update(f"{self._outer_config.prefix}{t.name}" for t in self.config.topics)
+        Deduped through a dict rather than a set: set order varies per process and
+        would reach the document as the order of its channels.
+        """
+        prefix = self._outer_config.prefix
 
-        topics.update(
-            f"{self._outer_config.prefix}{p.topic}" for p in self.config.partitions
-        )
+        topics = [f"{prefix}{t.name}" for t in self.config.topics]
+        topics.extend(f"{prefix}{p.topic}" for p in self.config.partitions)
 
-        return list(topics)
+        return list(dict.fromkeys(topics))
 
     @property
     def name(self) -> str:
