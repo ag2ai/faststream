@@ -62,11 +62,6 @@ class Address:
         return self._compile()[1]
 
     @property
-    def declared_address(self) -> str:
-        """The declared address with literal braces restored, e.g. `cache{shard}.{level}`."""
-        return self.template.replace("{{", "{").replace("}}", "}")
-
-    @property
     def regex(self) -> Pattern[str] | None:
         """Captures each Path parameter out of an incoming message's address."""
         return self._compile()[0]

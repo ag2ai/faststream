@@ -61,3 +61,15 @@ def test_escaped_braces_with_parameters() -> None:
     assert address.broker_address == "cache{shard}.logs.*"
     assert address.regex is not None
     assert address.regex.match("cache{shard}.logs.info").groupdict() == {"level": "info"}
+
+
+def test_declared_address_restores_literal_braces() -> None:
+    address = Address("cache{{shard}}.logs.{level}", SYNTAX)
+
+    assert address.declared_address == "cache{shard}.logs.{level}"
+
+
+def test_declared_address_without_escaped_braces() -> None:
+    address = Address("logs.{level}", SYNTAX)
+
+    assert address.declared_address == "logs.{level}"
