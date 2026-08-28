@@ -77,13 +77,12 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
         async with self.patch_broker(broker) as br:
             await br.start()
             # `other.orders.info` differs in its first segment, where every
-            # broker anchors a pattern, so it is unmatched everywhere. A real
-            # broker drops it silently; an in-memory one has nowhere to route it
-            # and says so. Neither is under test — only that it never arrives.
-            # Published first, so it has had its chance by the time the matching
-            # message arrives and releases the assertion below.
+            # broker anchors a pattern, so nothing declared here matches it.
             with suppress(SubscriberNotFound):
+                # A real broker drops an unrouted message; an in-memory one says so.
                 await self.publish(br, f"other{sep}{queue}{sep}info", "foreign")
+
+            # Sent second, so the foreign message has had its chance to arrive.
             await self.publish(br, f"{queue}{sep}info", "matching")
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
