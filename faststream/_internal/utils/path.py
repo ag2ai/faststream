@@ -13,64 +13,6 @@ ESCAPED_LEFT_BRACE = "__faststream_escaped_left__"
 ESCAPED_RIGHT_BRACE = "__faststream_escaped_right__"
 
 
-def _escape_literal_braces(path: str) -> str:
-    result = ""
-    idx = 0
-    while idx < len(path):
-        if path.startswith("{{", idx):
-            result += ESCAPED_LEFT_BRACE
-            idx += 2
-        elif path.startswith("}}", idx):
-            result += ESCAPED_RIGHT_BRACE
-            idx += 2
-        else:
-            result += path[idx]
-            idx += 1
-    return result
-
-
-def _restore_braces(fragment: str) -> str:
-    """Put a declaration's literal braces back into an address."""
-    return fragment.replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}")
-
-
-def _restore_braces_in_regex(fragment: str) -> str:
-    """Put a declaration's literal braces back into a capture regex.
-
-    Escaped, unlike an address: a bare `{2}` in a pattern is a quantifier on
-    whatever precedes it, not the two characters somebody wrote.
-    """
-    return fragment.replace(ESCAPED_LEFT_BRACE, r"\{").replace(
-        ESCAPED_RIGHT_BRACE,
-        r"\}",
-    )
-
-
-def _restore_literal_braces(path: str) -> str:
-    """Undo a declaration's `{{`/`}}` escaping, leaving each `{param}` alone.
-
-    Goes through the same scan the parameter parser uses rather than looking for
-    the pairs a second time, so one function decides what an escape is.
-    """
-    return _restore_braces(_escape_literal_braces(path))
-
-
-@dataclass(frozen=True)
-class AddressSyntax:
-    """How one broker spells a wildcard where an Address template has a Path parameter.
-
-    Attributes:
-        replace_symbol: What each `{param}` becomes in the Broker address.
-        patch_regex: Broker-specific fixups applied to the compiled capture regex.
-        param_regex: What a `{param}` may capture — one whole segment, which means
-            everything up to whatever this broker separates segments with.
-    """
-
-    replace_symbol: str
-    patch_regex: Callable[[str], str]
-    param_regex: str = "[^.]+"
-
-
 class Address:
     """An Address template together with the Broker address it compiles to.
 
@@ -90,7 +32,7 @@ class Address:
 
     __slots__ = ("_compiled", "_declaration", "_syntax", "template")
 
-    def __init__(self, declaration: str, syntax: AddressSyntax) -> None:
+    def __init__(self, declaration: str, syntax: "AddressSyntax") -> None:
         self._declaration = declaration
         """The declaration verbatim, escapes and all: what the parser reads."""
 
@@ -134,6 +76,22 @@ class Address:
             )
 
         return self._compiled
+
+
+@dataclass(frozen=True)
+class AddressSyntax:
+    """How one broker spells a wildcard where an Address template has a Path parameter.
+
+    Attributes:
+        replace_symbol: What each `{param}` becomes in the Broker address.
+        patch_regex: Broker-specific fixups applied to the compiled capture regex.
+        param_regex: What a `{param}` may capture — one whole segment, which means
+            everything up to whatever this broker separates segments with.
+    """
+
+    replace_symbol: str
+    patch_regex: Callable[[str], str]
+    param_regex: str = "[^.]+"
 
 
 def compile_path(
@@ -187,3 +145,45 @@ def match_path(pattern: Pattern[str] | None, subject: str) -> dict[str, Any]:
     if pattern is not None and (match := pattern.match(subject)):
         return match.groupdict()
     return {}
+
+
+def _escape_literal_braces(path: str) -> str:
+    result = ""
+    idx = 0
+    while idx < len(path):
+        if path.startswith("{{", idx):
+            result += ESCAPED_LEFT_BRACE
+            idx += 2
+        elif path.startswith("}}", idx):
+            result += ESCAPED_RIGHT_BRACE
+            idx += 2
+        else:
+            result += path[idx]
+            idx += 1
+    return result
+
+
+def _restore_literal_braces(path: str) -> str:
+    """Undo a declaration's `{{`/`}}` escaping, leaving each `{param}` alone.
+
+    Goes through the same scan the parameter parser uses rather than looking for
+    the pairs a second time, so one function decides what an escape is.
+    """
+    return _restore_braces(_escape_literal_braces(path))
+
+
+def _restore_braces(fragment: str) -> str:
+    """Put a declaration's literal braces back into an address."""
+    return fragment.replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}")
+
+
+def _restore_braces_in_regex(fragment: str) -> str:
+    """Put a declaration's literal braces back into a capture regex.
+
+    Escaped, unlike an address: a bare `{2}` in a pattern is a quantifier on
+    whatever precedes it, not the two characters somebody wrote.
+    """
+    return fragment.replace(ESCAPED_LEFT_BRACE, r"\{").replace(
+        ESCAPED_RIGHT_BRACE,
+        r"\}",
+    )
