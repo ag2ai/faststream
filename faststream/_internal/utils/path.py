@@ -6,7 +6,7 @@ from typing import Any
 
 from faststream.exceptions import SetupError
 
-PARAM_REGEX = re.compile(r"{([a-zA-Z0-9_]+)}")
+PARAM_REGEX = re.compile(r"(?<!\{)\{([a-zA-Z0-9_]+)\}(?!\})")
 
 
 @dataclass(frozen=True)
@@ -47,6 +47,11 @@ class Address:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.template!r})"
 
+    @property
+    def declared_address(self) -> str:
+        """The address as the broker sees it, with literal braces restored."""
+        return self.template.replace("{{", "{").replace("}}", "}")
+
     def __bool__(self) -> bool:
         """Whether an address was declared at all."""
         return bool(self.template)
@@ -79,6 +84,26 @@ class Address:
         return self._compiled
 
 
+ESCAPED_LEFT_BRACE = "__faststream_escaped_left__"
+ESCAPED_RIGHT_BRACE = "__faststream_escaped_right__"
+
+
+def _escape_literal_braces(path: str) -> str:
+    result = ""
+    idx = 0
+    while idx < len(path):
+        if path.startswith("{{", idx):
+            result += ESCAPED_LEFT_BRACE
+            idx += 2
+        elif path.startswith("}}", idx):
+            result += ESCAPED_RIGHT_BRACE
+            idx += 2
+        else:
+            result += path[idx]
+            idx += 1
+    return result
+
+
 def compile_path(
     path: str,
     replace_symbol: str,
@@ -86,6 +111,7 @@ def compile_path(
     *,
     param_regex: str = "[^.]+",
 ) -> tuple[Pattern[str] | None, str]:
+    path = _escape_literal_braces(path)
     path_regex = "^.*?"
     original_path = ""
 
@@ -95,7 +121,12 @@ def compile_path(
     for match in PARAM_REGEX.finditer(path):
         param_name = match.groups("str")[0]
 
-        path_regex += re.escape(path[idx : match.start()])
+        path_regex += (
+            re
+            .escape(path[idx : match.start()])
+            .replace(ESCAPED_LEFT_BRACE, "{")
+            .replace(ESCAPED_RIGHT_BRACE, "}")
+        )
         path_regex += f"(?P<{param_name.replace('+', '')}>{param_regex})"
 
         original_path += path[idx : match.start()]
@@ -117,10 +148,19 @@ def compile_path(
     if idx == 0:
         regex = None
     else:
-        path_regex += re.escape(path[idx:]) + "$"
+        path_regex += (
+            re
+            .escape(path[idx:])
+            .replace(ESCAPED_LEFT_BRACE, "{")
+            .replace(ESCAPED_RIGHT_BRACE, "}")
+            + "$"
+        )
         regex = re.compile(patch_regex(path_regex))
 
     original_path += path[idx:]
+    original_path = original_path.replace(ESCAPED_LEFT_BRACE, "{").replace(
+        ESCAPED_RIGHT_BRACE, "}"
+    )
     return regex, original_path
 
 

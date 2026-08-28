@@ -40,3 +40,11 @@ def test_a_declared_routing_key_keeps_both_reads() -> None:
 
     assert queue.routing_template() == "logs.{level}"
     assert queue.routing() == "logs.*"
+
+
+@pytest.mark.rabbit()
+def test_escaped_braces_are_literal() -> None:
+    queue = RabbitQueue("test", routing_key="cache{{shard}}")
+
+    assert queue.routing_template() == "cache{shard}"
+    assert queue.routing() == "cache{shard}"

@@ -107,3 +107,18 @@ async def base_handler(
 ):
     ...
 ```
+
+### Literal braces
+
+If your routing key legitimately contains `{` or `}` characters, escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
+
+```python
+@broker.subscriber(
+    RabbitQueue("test-queue", routing_key="cache{{shard}}.logs.{level}"),
+    RabbitExchange("test-exchange", type=ExchangeType.TOPIC),
+)
+async def handler(body: str, level: str = Path()):
+    ...
+```
+
+This subscribes to the routing key `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.

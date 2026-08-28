@@ -16,7 +16,7 @@ class MQTTPublisherSpecification(
 ):
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self.config.topic}"
+        return f"{self._outer_config.prefix}{self.config.topic.replace('{{', '{').replace('}}', '}')}"
 
     @property
     def name(self) -> str:

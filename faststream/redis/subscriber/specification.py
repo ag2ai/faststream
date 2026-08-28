@@ -62,7 +62,7 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def channel_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.channel.address.template}"
+        return f"{self._outer_config.prefix}{self.channel.address.declared_address}"
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":

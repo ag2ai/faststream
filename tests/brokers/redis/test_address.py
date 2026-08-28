@@ -35,3 +35,11 @@ def test_pattern_is_a_flag_not_the_template() -> None:
     assert PubSub("logs.*").pattern is True
     assert PubSub("logs", pattern=True).pattern is True
     assert PubSub("logs").pattern is False
+
+
+@pytest.mark.redis()
+def test_escaped_braces_are_literal() -> None:
+    address = PubSub("cache{{shard}}")
+
+    assert address.address.template == "cache{{shard}}"
+    assert address.name == "cache{shard}"
