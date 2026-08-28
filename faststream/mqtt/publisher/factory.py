@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, Any
 
 from zmqtt import QoS
 
+from faststream._internal.utils.path import restore_literal_braces
+
 from .config import MQTTPublisherConfig, MQTTPublisherSpecificationConfig
 from .specification import MQTTPublisherSpecification
 from .usecase import MQTTPublisher
@@ -24,6 +26,11 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> MQTTPublisher:
+    # A Publisher's topic is never compiled — it goes to the wire as it stands —
+    # so the escape has to come off here, the way `compile_mqtt_path` takes it off
+    # for a Subscriber.
+    topic = restore_literal_braces(topic)
+
     publisher_config = MQTTPublisherConfig(
         topic=topic,
         qos=qos,

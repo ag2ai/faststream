@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any
 from zmqtt import QoS
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream._internal.utils.path import restore_literal_braces
 from faststream.mqtt.path import compile_mqtt_path
 
 from .config import MQTTSubscriberConfig, MQTTSubscriberSpecificationConfig
@@ -44,7 +45,9 @@ def create_subscriber(
     )
 
     specification_config = MQTTSubscriberSpecificationConfig(
-        topic=topic,
+        # `mqtt_topic` above is the compiled address; the Specification documents
+        # the declaration, which needs the same escape taken off.
+        topic=restore_literal_braces(topic),
         qos=qos,
         shared=shared,
         title_=title_,

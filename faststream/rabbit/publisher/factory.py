@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
+from faststream._internal.utils.path import restore_literal_braces
+
 from .config import RabbitPublisherConfig, RabbitPublisherSpecificationConfig
 from .specification import RabbitPublisherSpecification
 from .usecase import RabbitPublisher
@@ -25,6 +27,11 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> RabbitPublisher:
+    # A bare `routing_key` never meets the Path parameter parser, so its `{{`
+    # would otherwise reach the wire — where `RabbitQueue`, which does hold an
+    # Address, has already had the escape undone.
+    routing_key = restore_literal_braces(routing_key)
+
     publisher_config = RabbitPublisherConfig(
         routing_key=routing_key,
         message_kwargs=message_kwargs,

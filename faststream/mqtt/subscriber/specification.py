@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
-from faststream._internal.utils.path import restore_literal_braces
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, SubscriberSpec
@@ -30,7 +29,7 @@ class MQTTSubscriberSpecification(
 
     @property
     def topic(self) -> str:
-        base = f"{self._outer_config.prefix}{restore_literal_braces(self.config.topic)}"
+        base = f"{self._outer_config.prefix}{self.config.topic}"
         if self.config.shared:
             return f"$share/{self.config.shared}/{base}"
         return base

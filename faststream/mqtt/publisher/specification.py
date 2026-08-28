@@ -1,5 +1,4 @@
 from faststream._internal.endpoint.publisher import PublisherSpecification
-from faststream._internal.utils.path import restore_literal_braces
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, PublisherSpec
@@ -17,7 +16,7 @@ class MQTTPublisherSpecification(
 ):
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{restore_literal_braces(self.config.topic)}"
+        return f"{self._outer_config.prefix}{self.config.topic}"
 
     @property
     def name(self) -> str:
