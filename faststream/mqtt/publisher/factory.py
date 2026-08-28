@@ -2,6 +2,9 @@ from typing import TYPE_CHECKING, Any
 
 from zmqtt import QoS
 
+from faststream._internal.utils.path import Address
+from faststream.mqtt.path import MQTT_ADDRESS_SYNTAX
+
 from .config import MQTTPublisherConfig, MQTTPublisherSpecificationConfig
 from .specification import MQTTPublisherSpecification
 from .usecase import MQTTPublisher
@@ -24,6 +27,10 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> MQTTPublisher:
+    # A Publisher's topic goes to the wire as it stands, so the declared address
+    # is the only half of it this endpoint has any use for.
+    topic = Address(topic, MQTT_ADDRESS_SYNTAX).template
+
     publisher_config = MQTTPublisherConfig(
         topic=topic,
         qos=qos,

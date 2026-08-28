@@ -63,6 +63,17 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase): ...
 
 **Rule:** new cross-broker behavior goes into a base class in `tests/brokers/base/` so every broker inherits the test. Broker-specific behavior is tested directly in `tests/brokers/<broker>/`.
 
+**Hook surface:** a member of a base testcase earns its place by being overridden in `tests/brokers/<broker>/` — `separator`, `declare_subscriber` and `publish` in `base/address.py` are hooks because MQTT, Kafka and RabbitMQ respell them, and each docstring names who does. What no broker overrides goes inline in the test body, beside the assertion it feeds, with a comment carrying the value it compiles to:
+
+```python
+# subscribe to "queue.{level}"
+subscriber = self.declare_subscriber(
+    broker,
+    f"{queue}{self.separator}{{level}}",
+    queue,
+)
+```
+
 ## Regression tests
 
 A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
@@ -74,6 +85,16 @@ async def test_publisher_without_destination(self) -> None:
 ```
 
 The URL goes on the docstring's own first line, with the explanation of the behavior below it. `xfail`/`skip` reasons take the same URL. Comments inside the test body follow the **code-architecture** rules — two lines, over the line they explain.
+
+A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
+
+```bash
+git show <fix-commit> -- faststream/ | git apply -R -
+uv run pytest tests/... -m "not slow and not connected"
+git checkout -- faststream/
+```
+
+The same run grades the tests already there, and it is how a suite shrinks. Two tests red for one reason are one test: keep the one whose declaration carries more (an escaped brace *beside* a Path parameter over an escaped brace alone), delete the other, and check what a broker already gets from `test_router.py` or `test_path.py` before keeping a third.
 
 ## In-memory vs real broker
 

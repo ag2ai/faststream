@@ -29,7 +29,7 @@ class MQTTSubscriberSpecification(
 
     @property
     def topic(self) -> str:
-        base = f"{self._outer_config.prefix}{self.config.topic.replace('{{', '{').replace('}}', '}')}"
+        base = f"{self._outer_config.prefix}{self.config.topic}"
         if self.config.shared:
             return f"$share/{self.config.shared}/{base}"
         return base

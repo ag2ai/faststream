@@ -25,8 +25,7 @@ class NatsSubscriberSpecification(
         return [
             Address(subject, NATS_ADDRESS_SYNTAX)
             .add_prefix(self._outer_config.prefix)
-            .template.replace("{{", "{")
-            .replace("}}", "}")
+            .template
             for subject in self.config.filter_subjects
         ]
 
@@ -37,7 +36,7 @@ class NatsSubscriberSpecification(
         A JetStream consumer can address a stream through `filter_subjects` alone, leaving
         `subject` empty. Mirrors `LogicSubscriber._resolved_subject_string`.
         """
-        return self.subject.declared_address or ", ".join(self.filter_subjects)
+        return self.subject.template or ", ".join(self.filter_subjects)
 
     @property
     def name(self) -> str:

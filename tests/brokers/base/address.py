@@ -1,56 +1,130 @@
-from abc import abstractmethod
-from typing import Any
+import asyncio
+from typing import Annotated, Any
+from unittest.mock import MagicMock
 
-from faststream._internal.utils.path import Address
+import pytest
+
+from faststream import Path
 
 from .basic import BaseTestcaseConfig
 
 
-class AddressTemplateTestcase(BaseTestcaseConfig):
-    """An Address template and a Broker address are two reads, never one field.
+@pytest.mark.asyncio()
+class AddressDeliveryTestcase(BaseTestcaseConfig):
+    separator = "."
+    """What goes between two address segments; MQTT spells it `/`."""
 
-    Every broker that supports Address templates answers both under the same
-    names, and a Router prefix reaches each of them.
-    """
-
-    template = "logs.{level}"
-    broker_address: str
-
-    @abstractmethod
-    def get_subscriber_address(self, subscriber: Any) -> Address:
-        """Return the Address the Subscriber reads through."""
-        raise NotImplementedError
-
-    def declare_subscriber(self, obj: Any, template: str) -> Any:
-        args, kwargs = self.get_subscriber_params(template)
+    def declare_subscriber(self, obj: Any, declaration: str, queue: str) -> Any:
+        """Kafka respells this with `pattern=`, RabbitMQ with a `RabbitQueue` key."""
+        args, kwargs = self.get_subscriber_params(declaration)
         return obj.subscriber(*args, **kwargs)
 
-    def test_template_and_broker_address_are_separate_reads(self) -> None:
+    def declare_publisher(self, obj: Any, declaration: str, queue: str) -> Any:
+        """Aim a publisher at a declaration; RabbitMQ respells it as a routing key."""
+        return obj.publisher(declaration)
+
+    async def publish(self, broker: Any, address: str, message: str) -> None:
+        """Send to a concrete address; RabbitMQ respells it as a routing key."""
+        await broker.publish(message, address)
+
+    async def test_a_literal_brace_beside_a_parameter_is_not_regex_syntax(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        # subscribe to "queue.{2}.{level}", where `{2}` is literal
+        subscriber = self.declare_subscriber(
+            broker,
+            f"{queue}{self.separator}{{{{2}}}}{self.separator}{{level}}",
+            queue,
+        )
+
+        @subscriber
+        async def handler(
+            body: str,
+            level: Annotated[str, Path()],
+        ) -> None:
+            mock(body, level)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            # publish to "queue.{2}.info"
+            await self.publish(
+                br,
+                f"{queue}{self.separator}{{2}}{self.separator}info",
+                "quantified",
+            )
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with("quantified", "info")
+
+    async def test_a_router_prefix_reaches_the_wire(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
         broker = self.get_broker()
+        router = self.get_router(prefix=f"prefix{self.separator}")
 
-        subscriber = self.declare_subscriber(broker, self.template)
+        # subscribe to literal "prefix.queue.{shard}"
+        subscriber = self.declare_subscriber(
+            router,
+            f"{queue}{self.separator}{{{{shard}}}}",
+            queue,
+        )
 
-        address = self.get_subscriber_address(subscriber)
-        assert address.template == self.template
-        assert address.broker_address == self.broker_address
+        @subscriber
+        async def handler(body: str) -> None:
+            mock(body)
+            event.set()
 
-    def test_router_prefix_reaches_both_reads(self) -> None:
-        broker = self.get_broker()
-        router = self.get_router(prefix="prefix_")
-
-        self.declare_subscriber(router, self.template)
         broker.include_router(router)
 
-        address = self.get_subscriber_address(broker.subscribers[0])
-        assert address.template == f"prefix_{self.template}"
-        assert address.broker_address == f"prefix_{self.broker_address}"
+        async with self.patch_broker(broker) as br:
+            await br.start()
 
-    def test_a_literal_address_is_its_own_broker_address(self) -> None:
+            # publish to "prefix.queue.{shard}"
+            await self.publish(
+                br,
+                f"prefix{self.separator}{queue}{self.separator}{{shard}}",
+                "prefixed",
+            )
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with("prefixed")
+
+
+class AddressPublisherDeliveryTestcase(AddressDeliveryTestcase):
+    async def test_a_publisher_reaches_a_subscriber_declared_the_same_way(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
         broker = self.get_broker()
 
-        subscriber = self.declare_subscriber(broker, "logs.info")
+        # both ends read one declaration of "queue.{shard}"
+        declaration = f"{queue}{self.separator}{{{{shard}}}}"
+        subscriber = self.declare_subscriber(broker, declaration, queue)
 
-        address = self.get_subscriber_address(subscriber)
-        assert address.template == "logs.info"
-        assert address.broker_address == "logs.info"
-        assert address.regex is None
+        @subscriber
+        async def handler(body: str) -> None:
+            mock(body)
+            event.set()
+
+        # the publisher used to send to the declaration verbatim, escape and all,
+        # while the subscriber listened on the restored address
+        publisher = self.declare_publisher(broker, declaration, queue)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await publisher.publish("round-trip")
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with("round-trip")

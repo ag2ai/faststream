@@ -3,35 +3,21 @@ from typing import Any
 import pytest
 from typing_extensions import override
 
-from faststream._internal.utils.path import Address
-from tests.brokers.base.address import AddressTemplateTestcase
+from tests.brokers.base.address import AddressDeliveryTestcase
 
-from .basic import KafkaTestcaseConfig
+from .basic import KafkaMemoryTestcaseConfig
 
 
 @pytest.mark.kafka()
-class TestKafkaAddressTemplate(KafkaTestcaseConfig, AddressTemplateTestcase):
-    broker_address = "logs..*"
+class TestAddressDelivery(KafkaMemoryTestcaseConfig, AddressDeliveryTestcase):
+    """Kafka compiles an address only behind `pattern=`; a topic is a literal.
+
+    `pattern=` is a Subscriber argument, so a Kafka Publisher never holds a
+    template and there is no round trip to assert. The pattern half runs in
+    memory only: a real consumer discovers a pattern's topics on a metadata
+    refresh, which is minutes by default and is not what this is testing.
+    """
 
     @override
-    def declare_subscriber(self, obj: Any, template: str) -> Any:
-        return obj.subscriber(pattern=template)
-
-    @override
-    def get_subscriber_address(self, subscriber: Any) -> Address:
-        return subscriber.pattern
-
-    def test_a_topic_subscriber_has_no_pattern(self) -> None:
-        broker = self.get_broker()
-
-        subscriber = broker.subscriber("topic")
-
-        assert subscriber.pattern is None
-
-    def test_escaped_braces_are_literal(self) -> None:
-        broker = self.get_broker()
-
-        subscriber = broker.subscriber(pattern="cache{{shard}}")
-
-        assert subscriber.pattern.template == "cache{{shard}}"
-        assert subscriber.pattern.broker_address == "cache{shard}"
+    def declare_subscriber(self, obj: Any, declaration: str, queue: str) -> Any:
+        return obj.subscriber(pattern=declaration)

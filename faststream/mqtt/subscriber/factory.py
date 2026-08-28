@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 from zmqtt import QoS
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-from faststream.mqtt.path import compile_mqtt_path
+from faststream.mqtt.path import build_mqtt_address
 
 from .config import MQTTSubscriberConfig, MQTTSubscriberSpecificationConfig
 from .specification import MQTTSubscriberSpecification
@@ -31,20 +31,22 @@ def create_subscriber(
     description_: str | None = None,
     include_in_schema: bool = True,
 ) -> SubscriberType:
-    path_regex, mqtt_topic = compile_mqtt_path(topic)
+    address = build_mqtt_address(topic)
 
     subscriber_config = MQTTSubscriberConfig(
-        topic=mqtt_topic,
+        topic=address.broker_address,
         qos=qos,
         shared=shared,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
-        path_regex=path_regex,
+        path_regex=address.regex,
     )
 
     specification_config = MQTTSubscriberSpecificationConfig(
-        topic=topic,
+        # The Subscriber above listens on the Broker address; the Specification
+        # documents the topic as it was declared.
+        topic=address.template,
         qos=qos,
         shared=shared,
         title_=title_,

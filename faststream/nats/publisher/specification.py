@@ -41,7 +41,7 @@ class NatsPublisherSpecification(
                 ),
                 bindings=ChannelBinding(
                     nats=nats.ChannelBinding(
-                        subject=self.subject.declared_address,
+                        subject=self.subject.template,
                         queue=None,
                     ),
                 ),

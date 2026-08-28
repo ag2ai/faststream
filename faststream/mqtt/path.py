@@ -1,52 +1,37 @@
-from re import Pattern
-
-from faststream._internal.utils.path import (
-    ESCAPED_LEFT_BRACE,
-    ESCAPED_RIGHT_BRACE,
-    PARAM_REGEX,
-    compile_path,
-)
+from faststream._internal.utils.path import PARAM_REGEX, Address, AddressSyntax
 from faststream.exceptions import SetupError
 
-MQTT_TOPIC_BOUNDARIES = {"", "/"}
+MQTT_ADDRESS_SYNTAX = AddressSyntax(
+    replace_symbol="+",
+    patch_regex=lambda x: (
+        x.replace(r"\+", "[^/]+").replace(r"/\#", "(?:/.*)?").replace(r"\#", ".*")
+    ),
+    param_regex="[^/]+",
+)
 
 
-def compile_mqtt_path(path: str) -> tuple[Pattern[str] | None, str]:
-    """Compile an MQTT topic template with named single-level captures.
+def build_mqtt_address(topic: str) -> Address:
+    """Read an MQTT topic template, rejecting a param that shares a topic level.
 
     ``{name}`` captures one complete MQTT topic level and subscribes with the
     native ``+`` wildcard. Multi-level ``#`` captures are intentionally not
     supported; use ``MQTTMessage.raw_message.topic`` when the full topic is
     needed.
     """
-    for match in PARAM_REGEX.finditer(path):
+    for match in PARAM_REGEX.finditer(topic):
         name = match.group(1)
         start, end = match.start(), match.end()
-        before = path[start - 1] if start > 0 else ""
-        after = path[end] if end < len(path) else ""
+        before = topic[start - 1] if start > 0 else ""
+        after = topic[end] if end < len(topic) else ""
 
-        if before not in MQTT_TOPIC_BOUNDARIES or after not in MQTT_TOPIC_BOUNDARIES:
+        if before not in _TOPIC_BOUNDARIES or after not in _TOPIC_BOUNDARIES:
             msg = (
                 f"Param {{{name}}} must occupy a whole topic level "
-                f"(surrounded by '/' or string boundaries) in topic {path!r}"
+                f"(surrounded by '/' or string boundaries) in topic {topic!r}"
             )
             raise SetupError(msg)
 
-    path_regex, mqtt_topic = compile_path(
-        path,
-        replace_symbol="+",
-        patch_regex=_patch_mqtt_regex,
-        param_regex="[^/]+",
-    )
-    return path_regex, mqtt_topic
+    return Address(topic, MQTT_ADDRESS_SYNTAX)
 
 
-def _patch_mqtt_regex(regex: str) -> str:
-    return (
-        regex
-        .replace(ESCAPED_LEFT_BRACE, r"\{")
-        .replace(ESCAPED_RIGHT_BRACE, r"\}")
-        .replace(r"\+", "[^/]+")
-        .replace(r"/\#", "(?:/.*)?")
-        .replace(r"\#", ".*")
-    )
+_TOPIC_BOUNDARIES = {"", "/"}
