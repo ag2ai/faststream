@@ -15,76 +15,47 @@ from .basic import BaseTestcaseConfig
 class AddressDeliveryTestcase(BaseTestcaseConfig):
     """A declaration reaches the wire exactly as written.
 
-    One declaration is read twice — an endpoint subscribes through the compiled
-    Broker address, while a publisher and a Router prefix read the template — and
-    nothing in the type system stops the two reads from disagreeing. These tests
-    never look at either read. They publish to a concrete address and assert what
-    the handler received, which is the only thing a user can observe and the only
-    thing the two reads agreeing actually buys.
+    Every test publishes to a concrete address and asserts what the handler
+    received, never how a declaration was compiled. Addresses are built from the
+    `queue` fixture, because the suite runs parallel against shared brokers.
 
-    `separator` is the one piece of address syntax brokers spell differently.
-    Everything else is derived from it, so most subclasses declare nothing at all.
-
-    Every address is built from the `queue` fixture, because the suite runs
-    parallel against shared brokers and a fixed address would cross-talk.
+    The four members below are the hooks a broker may respell; their examples
+    show what each produces for `queue = "orders"` under the default `separator`.
     """
 
     separator = "."
+    """What this broker writes between two address segments.
 
-    def template(self, queue: str) -> str:
-        """A declaration with one Path parameter."""
-        return f"{queue}{self.separator}{{level}}"
-
-    def matching_address(self, queue: str) -> str:
-        """A concrete address the template stands for."""
-        return f"{queue}{self.separator}info"
-
-    def foreign_address(self, queue: str) -> str:
-        """A concrete address outside the template's family.
-
-        Differs in its first segment: every broker anchors a pattern at the start
-        of an address, so this one is the reliably-unmatched address everywhere.
-        """
-        return f"other{self.separator}{queue}{self.separator}info"
-
-    def escaped_declaration(self, queue: str) -> str:
-        """A declaration asking for a literal brace rather than a parameter."""
-        return f"{queue}{self.separator}{{{{shard}}}}"
-
-    def literal_address(self, queue: str) -> str:
-        """The concrete address `escaped_declaration` asks for."""
-        return f"{queue}{self.separator}{{shard}}"
-
-    def quantifier_declaration(self, queue: str) -> str:
-        """An escaped brace that reads as a regex quantifier, beside a parameter."""
-        return f"{queue}{self.separator}{{{{2}}}}{self.separator}{{level}}"
-
-    def quantifier_address(self, queue: str) -> str:
-        """A concrete address `quantifier_declaration` stands for."""
-        return f"{queue}{self.separator}{{2}}{self.separator}info"
+    Every address in every test is derived from it, so a broker that spells
+    addresses another way usually declares nothing else: MQTT sets
+    `separator = "/"` and gets `orders/{level}` out of the same code.
+    """
 
     def declare_subscriber(self, obj: Any, declaration: str, queue: str) -> Any:
-        """Subscribe `obj` to a declaration, however this broker spells that."""
+        """Subscribe `obj` to a declaration, however this broker spells that.
+
+        `broker.subscriber("orders.{level}")` by default. Kafka takes the
+        declaration behind `pattern=`, and RabbitMQ takes it as the routing key
+        of a `RabbitQueue` named separately — hence `queue` alongside it.
+        """
         args, kwargs = self.get_subscriber_params(declaration)
         return obj.subscriber(*args, **kwargs)
 
     def declare_publisher(self, obj: Any, declaration: str, queue: str) -> Any:
-        """Give `obj` a publisher aimed at a declaration."""
+        """Give `obj` a publisher aimed at a declaration.
+
+        `broker.publisher("orders.{{shard}}")` by default; RabbitMQ spells the
+        same thing `broker.publisher(routing_key=..., exchange=...)`.
+        """
         return obj.publisher(declaration)
 
     async def publish(self, broker: Any, address: str, message: str) -> None:
-        """Send `message` to a concrete address, bypassing every declaration."""
-        await broker.publish(message, address)
+        """Send `message` to a concrete address, bypassing every declaration.
 
-    async def publish_unrouted(self, broker: Any, address: str, message: str) -> None:
-        """Send to an address no endpoint here declared.
-
-        A real broker drops it silently; an in-memory one has nowhere to route it
-        and says so. Both mean the same thing, and neither is what is under test —
-        what matters is that the handler below does not see it.
+        `broker.publish("literal", "orders.{shard}")` by default — the address
+        goes out as written, so nothing on this path reads a template.
         """
-        with suppress(SubscriberNotFound):
-            await self.publish(broker, address, message)
+        await broker.publish(message, address)
 
     async def test_a_template_receives_only_its_own_addresses(
         self,
@@ -93,9 +64,10 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """A template names a family, and the parameter is read off the address."""
+        sep = self.separator
         broker = self.get_broker(apply_types=True)
 
-        subscriber = self.declare_subscriber(broker, self.template(queue), queue)
+        subscriber = self.declare_subscriber(broker, f"{queue}{sep}{{level}}", queue)
 
         @subscriber
         async def handler(body: str, level: str = Path()) -> None:
@@ -104,10 +76,15 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
 
         async with self.patch_broker(broker) as br:
             await br.start()
-            # Published first, so it has had its chance by the time the second
+            # `other.orders.info` differs in its first segment, where every
+            # broker anchors a pattern, so it is unmatched everywhere. A real
+            # broker drops it silently; an in-memory one has nowhere to route it
+            # and says so. Neither is under test — only that it never arrives.
+            # Published first, so it has had its chance by the time the matching
             # message arrives and releases the assertion below.
-            await self.publish_unrouted(br, self.foreign_address(queue), "foreign")
-            await self.publish(br, self.matching_address(queue), "matching")
+            with suppress(SubscriberNotFound):
+                await self.publish(br, f"other{sep}{queue}{sep}info", "foreign")
+            await self.publish(br, f"{queue}{sep}info", "matching")
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         mock.assert_called_once_with("matching", "info")
@@ -119,13 +96,11 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """`{{shard}}` is a brace the endpoint listens for, not a parameter."""
+        sep = self.separator
         broker = self.get_broker()
 
-        subscriber = self.declare_subscriber(
-            broker,
-            self.escaped_declaration(queue),
-            queue,
-        )
+        # `orders.{{shard}}` declares the address `orders.{shard}`.
+        subscriber = self.declare_subscriber(broker, f"{queue}{sep}{{{{shard}}}}", queue)
 
         @subscriber
         async def handler(body: str) -> None:
@@ -134,7 +109,7 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
 
         async with self.patch_broker(broker) as br:
             await br.start()
-            await self.publish(br, self.literal_address(queue), "literal")
+            await self.publish(br, f"{queue}{sep}{{shard}}", "literal")
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         mock.assert_called_once_with("literal")
@@ -151,13 +126,12 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
         message either way; it is the parameter that goes missing, because the
         pattern that reads it off the address stops matching the address.
         """
+        sep = self.separator
         broker = self.get_broker(apply_types=True)
 
-        subscriber = self.declare_subscriber(
-            broker,
-            self.quantifier_declaration(queue),
-            queue,
-        )
+        # `orders.{{2}}.{level}` declares `orders.{2}.info` and friends.
+        declaration = f"{queue}{sep}{{{{2}}}}{sep}{{level}}"
+        subscriber = self.declare_subscriber(broker, declaration, queue)
 
         @subscriber
         async def handler(body: str, level: str = Path()) -> None:
@@ -166,7 +140,7 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
 
         async with self.patch_broker(broker) as br:
             await br.start()
-            await self.publish(br, self.quantifier_address(queue), "quantified")
+            await self.publish(br, f"{queue}{sep}{{2}}{sep}info", "quantified")
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         mock.assert_called_once_with("quantified", "info")
@@ -178,14 +152,11 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         """A prefix decorates the declaration, escape included, before it compiles."""
+        sep = self.separator
         broker = self.get_broker()
-        router = self.get_router(prefix=f"prefix{self.separator}")
+        router = self.get_router(prefix=f"prefix{sep}")
 
-        subscriber = self.declare_subscriber(
-            router,
-            self.escaped_declaration(queue),
-            queue,
-        )
+        subscriber = self.declare_subscriber(router, f"{queue}{sep}{{{{shard}}}}", queue)
 
         @subscriber
         async def handler(body: str) -> None:
@@ -196,11 +167,7 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
 
         async with self.patch_broker(broker) as br:
             await br.start()
-            await self.publish(
-                br,
-                f"prefix{self.separator}{self.literal_address(queue)}",
-                "prefixed",
-            )
+            await self.publish(br, f"prefix{sep}{queue}{sep}{{shard}}", "prefixed")
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         mock.assert_called_once_with("prefixed")
@@ -227,7 +194,7 @@ class AddressPublisherDeliveryTestcase(AddressDeliveryTestcase):
         """
         broker = self.get_broker()
 
-        declaration = self.escaped_declaration(queue)
+        declaration = f"{queue}{self.separator}{{{{shard}}}}"
         subscriber = self.declare_subscriber(broker, declaration, queue)
 
         @subscriber
