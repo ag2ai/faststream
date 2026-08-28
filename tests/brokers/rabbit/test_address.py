@@ -3,48 +3,40 @@ from typing import Any
 import pytest
 from typing_extensions import override
 
-from faststream._internal.utils.path import Address
-from faststream.rabbit import RabbitQueue
-from tests.brokers.base.address import AddressTemplateTestcase
+from faststream.rabbit import ExchangeType, RabbitExchange, RabbitQueue
+from tests.brokers.base.address import AddressPublisherDeliveryTestcase
 
-from .basic import RabbitTestcaseConfig
+from .basic import RabbitMemoryTestcaseConfig, RabbitTestcaseConfig
+
+EXCHANGE = RabbitExchange("address-tests", type=ExchangeType.TOPIC)
 
 
-@pytest.mark.rabbit()
-class TestRabbitAddressTemplate(RabbitTestcaseConfig, AddressTemplateTestcase):
-    broker_address = "logs.*"
+class RabbitAddressDelivery(AddressPublisherDeliveryTestcase):
+    """RabbitMQ addresses a message by routing key, over a topic exchange.
+
+    The queue is named separately from the key it binds with, which is why every
+    declaration here goes through `RabbitQueue` rather than a bare string.
+    """
 
     @override
-    def declare_subscriber(self, obj: Any, template: str) -> Any:
-        return obj.subscriber(RabbitQueue("test", routing_key=template))
+    def declare_subscriber(self, obj: Any, declaration: str, queue: str) -> Any:
+        return obj.subscriber(RabbitQueue(queue, routing_key=declaration), EXCHANGE)
 
     @override
-    def get_subscriber_address(self, subscriber: Any) -> Address:
-        # RabbitMQ composes its prefix at each read site rather than through a
-        # single read layer; ticket 08 introduces one, and this hook follows it.
-        prefix = subscriber._outer_config.prefix
-        return subscriber.queue.add_prefix(prefix).routing_address
+    def declare_publisher(self, obj: Any, declaration: str, queue: str) -> Any:
+        return obj.publisher(routing_key=declaration, exchange=EXCHANGE)
+
+    @override
+    async def publish(self, broker: Any, address: str, message: str) -> None:
+        await broker.publish(message, routing_key=address, exchange=EXCHANGE)
 
 
 @pytest.mark.rabbit()
-def test_both_reads_fall_back_to_the_queue_name() -> None:
-    queue = RabbitQueue("test")
-
-    assert queue.routing_template() == "test"
-    assert queue.routing() == "test"
+class TestAddressDelivery(RabbitMemoryTestcaseConfig, RabbitAddressDelivery):
+    pass
 
 
+@pytest.mark.connected()
 @pytest.mark.rabbit()
-def test_a_declared_routing_key_keeps_both_reads() -> None:
-    queue = RabbitQueue("test", routing_key="logs.{level}")
-
-    assert queue.routing_template() == "logs.{level}"
-    assert queue.routing() == "logs.*"
-
-
-@pytest.mark.rabbit()
-def test_escaped_braces_are_literal() -> None:
-    queue = RabbitQueue("test", routing_key="cache{{shard}}")
-
-    assert queue.routing_template() == "cache{shard}"
-    assert queue.routing() == "cache{shard}"
+class TestAddressDeliveryReal(RabbitTestcaseConfig, RabbitAddressDelivery):
+    pass
