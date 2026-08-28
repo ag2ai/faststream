@@ -37,6 +37,7 @@ class RabbitPublisher(PublisherUsecase):
         super().__init__(config, specification)
 
         self.queue = config.queue
+        self._routing_address = config.routing_address
         self.routing_key = config.routing_address.template
 
         self.exchange = config.exchange
@@ -72,9 +73,15 @@ class RabbitPublisher(PublisherUsecase):
         if not routing_key:
             if q := RabbitQueue.validate(queue):
                 routing_key = q.routing()
+            elif self._routing_address:
+                routing_key = self._routing_address.add_prefix(
+                    self._outer_config.prefix,
+                ).template
+
             else:
-                r = self.routing_key or self.queue.routing()
-                routing_key = f"{self._outer_config.prefix}{r}"
+                routing_key = self.queue.add_prefix(
+                    self._outer_config.prefix,
+                ).routing()
 
         return routing_key
 

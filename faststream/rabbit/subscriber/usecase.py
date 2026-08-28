@@ -65,7 +65,9 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         return self._outer_config.app_id
 
     def routing(self) -> str:
-        return f"{self._outer_config.prefix}{self.queue.routing()}"
+        # The same `add_prefix` `start()` binds through, three lines below: a
+        # prefix decorates the declaration rather than the compiled key.
+        return self.queue.add_prefix(self._outer_config.prefix).routing()
 
     @override
     async def start(self) -> None:

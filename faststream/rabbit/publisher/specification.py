@@ -43,8 +43,12 @@ class RabbitPublisherSpecification(
         exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
         queue_binding = amqp.Queue.from_queue(self.config.queue)
 
-        r = self.config.routing_address.template or self.config.queue.routing_template()
-        routing_key = f"{self._outer_config.prefix}{r}"
+        prefix = self._outer_config.prefix
+        routing_key = (
+            self.config.routing_address.add_prefix(prefix).template
+            if self.config.routing_address
+            else self.config.queue.add_prefix(prefix).routing_template()
+        )
 
         return {
             self.name: PublisherSpec(
