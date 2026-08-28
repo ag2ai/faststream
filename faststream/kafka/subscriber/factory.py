@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream._internal.utils.path import Address
 from faststream.exceptions import SetupError
+from faststream.kafka.path import KAFKA_ADDRESS_SYNTAX
 from faststream.middlewares import AckPolicy
 
 from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
@@ -57,13 +59,15 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
+    address = Address(pattern, KAFKA_ADDRESS_SYNTAX) if pattern else None
+
     subscriber_config = KafkaSubscriberConfig(
         topics=topics,
         partitions=partitions,
         connection_args=connection_args,
         group_id=group_id,
         listener=listener,
-        pattern=pattern,
+        pattern=address,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
@@ -77,7 +81,7 @@ def create_subscriber(
         specification_config=KafkaSubscriberSpecificationConfig(
             topics=topics,
             partitions=partitions,
-            pattern=pattern,
+            pattern=address,
             title_=title_,
             description_=description_,
             include_in_schema=include_in_schema,

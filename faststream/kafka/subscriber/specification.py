@@ -1,7 +1,5 @@
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
-from faststream._internal.utils.path import Address
 from faststream.kafka.configs import KafkaBrokerConfig
-from faststream.kafka.subscriber.usecase import KAFKA_ADDRESS_SYNTAX
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, SubscriberSpec
 from faststream.specification.schema.bindings import ChannelBinding, kafka
@@ -26,9 +24,7 @@ class KafkaSubscriberSpecification(
             # A topic is a literal and takes the prefix as one; a pattern is the
             # one Kafka argument that is compiled, so its prefix is compiled too.
             topics.add(
-                Address(self.config.pattern, KAFKA_ADDRESS_SYNTAX)
-                .add_prefix(self._outer_config.prefix)
-                .template,
+                self.config.pattern.add_prefix(self._outer_config.prefix).template,
             )
 
         return list(topics)

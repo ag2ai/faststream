@@ -7,6 +7,7 @@ from faststream._internal.configs import (
     SubscriberUsecaseConfig,
 )
 from faststream._internal.constants import EMPTY
+from faststream._internal.utils.path import Address
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     topics: Sequence[str] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
-    pattern: str | None = None
+    pattern: Address | None = None
 
 
 @dataclass(kw_only=True)
@@ -30,7 +31,7 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     group_id: str | None = None
     connection_args: dict[str, Any] = field(default_factory=dict)
     listener: Optional["ConsumerRebalanceListener"] = None
-    pattern: str | None = None
+    pattern: Address | None = None
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
     def __post_init__(self) -> None:

@@ -13,7 +13,6 @@ from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, Tas
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -25,16 +24,11 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.utils.path import Address
     from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.message import StreamMessage
 
     from .config import KafkaSubscriberConfig
-
-
-KAFKA_ADDRESS_SYNTAX = AddressSyntax(
-    replace_symbol=".*",
-    patch_regex=lambda x: x.replace(r"\*", ".*"),
-)
 
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
@@ -66,14 +60,12 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self.consumer = None
 
     @property
-    def pattern(self) -> Address | None:
+    def pattern(self) -> Optional["Address"]:
         """The pattern this Subscriber was declared with, and its Broker address."""
         if not self._pattern:
             return None
 
-        return Address(self._pattern, KAFKA_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
-        )
+        return self._pattern.add_prefix(self._outer_config.prefix)
 
     @property
     def topics(self) -> list[str]:
@@ -283,15 +275,9 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[ConsumerRecord]",
     ) -> None:
-        reg = (
-            Address(config.pattern, KAFKA_ADDRESS_SYNTAX).regex
-            if config.pattern
-            else None
-        )
-
         self.parser = AioKafkaParser(
             msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
+            regex=config.pattern.regex if config.pattern else None,
         )
         config.parser = self.parser.parse_message
         config.decoder = self.parser.decode_message
@@ -326,15 +312,9 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         batch_timeout_ms: int,
         max_records: int | None,
     ) -> None:
-        reg = (
-            Address(config.pattern, KAFKA_ADDRESS_SYNTAX).regex
-            if config.pattern
-            else None
-        )
-
         self.parser = AioKafkaBatchParser(
             msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
+            regex=config.pattern.regex if config.pattern else None,
         )
         config.decoder = self.parser.decode_batch
         config.parser = self.parser.parse_batch
