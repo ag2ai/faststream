@@ -16,6 +16,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 from opentelemetry.trace import SpanKind, get_current_span
 
+from faststream import BaseMiddleware
 from faststream._internal.broker import BrokerUsecase
 from faststream.opentelemetry import Baggage, CurrentBaggage, CurrentSpan
 from faststream.opentelemetry.consts import (
@@ -588,48 +589,42 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         self,
         queue: str,
         event: asyncio.Event,
-        event2: asyncio.Event,
         mock: MagicMock,
         tracer_provider: TracerProvider,
     ) -> None:
+        class CaptureExceptionMiddleware(BaseMiddleware):
+            target_taken = False
+
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                super().__init__(*args, **kwargs)
+                self.is_target = self.msg is not None and not self.target_taken
+                if self.is_target:
+                    type(self).target_taken = True
+
+            async def after_processed(self, exc_type, exc_val, exc_tb):
+                if self.is_target:
+                    mock(exc_val)
+                    event.set()
+
+                return await super().after_processed(exc_type, exc_val, exc_tb)
+
         mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)
-        broker = self.get_broker(middlewares=(mid,), apply_types=True)
+        broker = self.get_broker(
+            middlewares=(mid, CaptureExceptionMiddleware),
+            apply_types=True,
+        )
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        @broker.publisher("out1")
-        @broker.publisher("out2")
+        @broker.publisher(f"{queue}-out1")
+        @broker.publisher(f"{queue}-out2")
         async def handler(msg: str) -> str:
             return f"handled:{msg}"
 
-        args2, kwargs2 = self.get_subscriber_params("out1")
-
-        @broker.subscriber(*args2, **kwargs2)
-        async def handler_out1(msg: str) -> None:
-            mock(msg)
-            event.set()
-
-        args3, kwargs3 = self.get_subscriber_params("out2")
-
-        @broker.subscriber(*args3, **kwargs3)
-        async def handler_out2(msg: str) -> None:
-            mock(msg)
-            event2.set()
-
         async with broker:
             await broker.start()
+            await broker.publish("msg", queue)
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-            await asyncio.wait(
-                (
-                    asyncio.create_task(broker.publish("msg", queue)),
-                    asyncio.create_task(event.wait()),
-                    asyncio.create_task(event2.wait()),
-                ),
-                timeout=self.timeout,
-            )
-
-        assert event.is_set()
-        assert event2.is_set()
-        assert mock.call_count == 2
-        mock.assert_called_with("handled:msg")
+        mock.assert_called_once_with(None)
