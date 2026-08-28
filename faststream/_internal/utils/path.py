@@ -46,7 +46,7 @@ def _restore_braces_in_regex(fragment: str) -> str:
     )
 
 
-def restore_literal_braces(path: str) -> str:
+def _restore_literal_braces(path: str) -> str:
     """Undo a declaration's `{{`/`}}` escaping, leaving each `{param}` alone.
 
     Goes through the same scan the parameter parser uses rather than looking for
@@ -62,10 +62,13 @@ class AddressSyntax:
     Attributes:
         replace_symbol: What each `{param}` becomes in the Broker address.
         patch_regex: Broker-specific fixups applied to the compiled capture regex.
+        param_regex: What a `{param}` may capture — one whole segment, which means
+            everything up to whatever this broker separates segments with.
     """
 
     replace_symbol: str
     patch_regex: Callable[[str], str]
+    param_regex: str = "[^.]+"
 
 
 class Address:
@@ -91,7 +94,7 @@ class Address:
         self._declaration = declaration
         """The declaration verbatim, escapes and all: what the parser reads."""
 
-        self.template = restore_literal_braces(declaration)
+        self.template = _restore_literal_braces(declaration)
         """The address as it was declared, e.g. `logs.{level}`."""
 
         self._syntax = syntax
@@ -127,6 +130,7 @@ class Address:
                 self._declaration,
                 replace_symbol=self._syntax.replace_symbol,
                 patch_regex=self._syntax.patch_regex,
+                param_regex=self._syntax.param_regex,
             )
 
         return self._compiled

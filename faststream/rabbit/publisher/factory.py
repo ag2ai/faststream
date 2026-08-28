@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal.utils.path import restore_literal_braces
+from faststream._internal.utils.path import Address
+from faststream.rabbit.schemas.queue import RABBIT_ADDRESS_SYNTAX
 
 from .config import RabbitPublisherConfig, RabbitPublisherSpecificationConfig
 from .specification import RabbitPublisherSpecification
@@ -27,13 +28,12 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> RabbitPublisher:
-    # A bare `routing_key` never meets the Path parameter parser, so its `{{`
-    # would otherwise reach the wire — where `RabbitQueue`, which does hold an
-    # Address, has already had the escape undone.
-    routing_key = restore_literal_braces(routing_key)
+    # A bare `routing_key` is a declaration too — the same one `RabbitQueue`
+    # holds for its own — so it is read as one rather than carried as a string.
+    routing_address = Address(routing_key, RABBIT_ADDRESS_SYNTAX)
 
     publisher_config = RabbitPublisherConfig(
-        routing_key=routing_key,
+        routing_address=routing_address,
         message_kwargs=message_kwargs,
         queue=queue,
         exchange=exchange,
@@ -45,7 +45,7 @@ def create_publisher(
         _outer_config=config,
         specification_config=RabbitPublisherSpecificationConfig(
             message_kwargs=message_kwargs,
-            routing_key=routing_key,
+            routing_address=routing_address,
             queue=queue,
             exchange=exchange,
             # specification options
