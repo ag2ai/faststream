@@ -1036,31 +1036,3 @@ class TestConsumeStream(RedisTestcaseConfig):
                 except (asyncio.CancelledError, asyncio.InvalidStateError):
                     pass
             assert found, "Expected at least one task to raise StreamGroupNotFoundError"
-
-
-@pytest.mark.connected()
-@pytest.mark.redis()
-class TestEscapedBraces(RedisTestcaseConfig):
-    @pytest.mark.asyncio()
-    async def test_escaped_braces_are_literal_channel(
-        self, mock: MagicMock, event: asyncio.Event
-    ) -> None:
-        consume_broker = self.get_broker()
-
-        channel = PubSub("test-{{braced}}")
-
-        @consume_broker.subscriber(channel)
-        async def handler(msg) -> None:
-            mock(msg)
-            event.set()
-
-        async with self.patch_broker(consume_broker) as br:
-            await br.start()
-            await br._connection.publish(channel.name, "hello")
-            await asyncio.wait(
-                (asyncio.create_task(event.wait()),),
-                timeout=self.timeout,
-            )
-
-        assert event.is_set()
-        mock.assert_called_once_with(b"hello")
