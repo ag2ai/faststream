@@ -55,6 +55,14 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
         """The concrete address `escaped_declaration` asks for."""
         return f"{queue}{self.separator}{{shard}}"
 
+    def quantifier_declaration(self, queue: str) -> str:
+        """An escaped brace that reads as a regex quantifier, beside a parameter."""
+        return f"{queue}{self.separator}{{{{2}}}}{self.separator}{{level}}"
+
+    def quantifier_address(self, queue: str) -> str:
+        """A concrete address `quantifier_declaration` stands for."""
+        return f"{queue}{self.separator}{{2}}{self.separator}info"
+
     def declare_subscriber(self, obj: Any, declaration: str, queue: str) -> Any:
         """Subscribe `obj` to a declaration, however this broker spells that."""
         args, kwargs = self.get_subscriber_params(declaration)
@@ -130,6 +138,38 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         mock.assert_called_once_with("literal")
+
+    async def test_a_literal_brace_beside_a_parameter_is_not_regex_syntax(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        """`{2}` put back into a capture regex quantifies what precedes it.
+
+        The endpoint subscribes through its Broker address and receives the
+        message either way; it is the parameter that goes missing, because the
+        pattern that reads it off the address stops matching the address.
+        """
+        broker = self.get_broker(apply_types=True)
+
+        subscriber = self.declare_subscriber(
+            broker,
+            self.quantifier_declaration(queue),
+            queue,
+        )
+
+        @subscriber
+        async def handler(body: str, level: str = Path()) -> None:
+            mock(body, level)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await self.publish(br, self.quantifier_address(queue), "quantified")
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with("quantified", "info")
 
     async def test_a_router_prefix_reaches_the_wire(
         self,

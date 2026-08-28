@@ -1,11 +1,6 @@
 from re import Pattern
 
-from faststream._internal.utils.path import (
-    ESCAPED_LEFT_BRACE,
-    ESCAPED_RIGHT_BRACE,
-    PARAM_REGEX,
-    compile_path,
-)
+from faststream._internal.utils.path import PARAM_REGEX, compile_path
 from faststream.exceptions import SetupError
 
 MQTT_TOPIC_BOUNDARIES = {"", "/"}
@@ -42,11 +37,4 @@ def compile_mqtt_path(path: str) -> tuple[Pattern[str] | None, str]:
 
 
 def _patch_mqtt_regex(regex: str) -> str:
-    return (
-        regex
-        .replace(ESCAPED_LEFT_BRACE, r"\{")
-        .replace(ESCAPED_RIGHT_BRACE, r"\}")
-        .replace(r"\+", "[^/]+")
-        .replace(r"/\#", "(?:/.*)?")
-        .replace(r"\#", ".*")
-    )
+    return regex.replace(r"\+", "[^/]+").replace(r"/\#", "(?:/.*)?").replace(r"\#", ".*")

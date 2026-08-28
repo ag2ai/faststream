@@ -29,17 +29,30 @@ def _escape_literal_braces(path: str) -> str:
     return result
 
 
+def _restore_braces(fragment: str) -> str:
+    """Put a declaration's literal braces back into an address."""
+    return fragment.replace(ESCAPED_LEFT_BRACE, "{").replace(ESCAPED_RIGHT_BRACE, "}")
+
+
+def _restore_braces_in_regex(fragment: str) -> str:
+    """Put a declaration's literal braces back into a capture regex.
+
+    Escaped, unlike an address: a bare `{2}` in a pattern is a quantifier on
+    whatever precedes it, not the two characters somebody wrote.
+    """
+    return fragment.replace(ESCAPED_LEFT_BRACE, r"\{").replace(
+        ESCAPED_RIGHT_BRACE,
+        r"\}",
+    )
+
+
 def restore_literal_braces(path: str) -> str:
     """Undo a declaration's `{{`/`}}` escaping, leaving each `{param}` alone.
 
     Goes through the same scan the parameter parser uses rather than looking for
     the pairs a second time, so one function decides what an escape is.
     """
-    return (
-        _escape_literal_braces(path)
-        .replace(ESCAPED_LEFT_BRACE, "{")
-        .replace(ESCAPED_RIGHT_BRACE, "}")
-    )
+    return _restore_braces(_escape_literal_braces(path))
 
 
 @dataclass(frozen=True)
@@ -136,12 +149,7 @@ def compile_path(
     for match in PARAM_REGEX.finditer(path):
         param_name = match.groups("str")[0]
 
-        path_regex += (
-            re
-            .escape(path[idx : match.start()])
-            .replace(ESCAPED_LEFT_BRACE, "{")
-            .replace(ESCAPED_RIGHT_BRACE, "}")
-        )
+        path_regex += _restore_braces_in_regex(re.escape(path[idx : match.start()]))
         path_regex += f"(?P<{param_name.replace('+', '')}>{param_regex})"
 
         original_path += path[idx : match.start()]
@@ -163,20 +171,11 @@ def compile_path(
     if idx == 0:
         regex = None
     else:
-        path_regex += (
-            re
-            .escape(path[idx:])
-            .replace(ESCAPED_LEFT_BRACE, "{")
-            .replace(ESCAPED_RIGHT_BRACE, "}")
-            + "$"
-        )
+        path_regex += _restore_braces_in_regex(re.escape(path[idx:])) + "$"
         regex = re.compile(patch_regex(path_regex))
 
     original_path += path[idx:]
-    original_path = original_path.replace(ESCAPED_LEFT_BRACE, "{").replace(
-        ESCAPED_RIGHT_BRACE, "}"
-    )
-    return regex, original_path
+    return regex, _restore_braces(original_path)
 
 
 def match_path(pattern: Pattern[str] | None, subject: str) -> dict[str, Any]:
