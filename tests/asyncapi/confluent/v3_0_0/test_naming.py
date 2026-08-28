@@ -1,4 +1,5 @@
 import pytest
+from typing_extensions import override
 
 from faststream.confluent import KafkaBroker
 from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
@@ -7,6 +8,12 @@ from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
 @pytest.mark.confluent()
 class TestNaming(NamingTestCase):
     broker_class = KafkaBroker
+
+    # Confluent has no `pattern=`, so every address it can carry is a topic
+    # name, and every legal topic name is URI-safe already.
+    @pytest.mark.skip(reason="every legal Confluent address is URI-safe")
+    @override
+    def test_path_channel_refs_are_uri_encoded(self) -> None: ...
 
     def test_base(self) -> None:
         broker = self.broker_class()

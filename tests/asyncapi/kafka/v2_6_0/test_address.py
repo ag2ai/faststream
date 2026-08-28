@@ -11,18 +11,19 @@ def test_every_address_is_named_as_declared() -> None:
     @broker.subscriber(pattern="logs.{level}")
     async def handle_logs(body: str) -> None: ...
 
-    broker.publisher("cache{{shard}}")
+    broker.publisher("cache")
 
     schema = get_2_6_0_schema(broker)
 
-    # A Kafka topic is never compiled, so `{{` is not syntax there and nothing
-    # takes it off. Only `pattern=` meets the parameter parser at all.
+    # `pattern=` is the one Kafka argument that meets the parameter parser. A
+    # topic is a literal, and it can hold no brace to escape: Kafka admits ASCII
+    # alphanumerics, '.', '_' and '-' in a topic name and nothing else.
     assert {
         name: channel["bindings"]["kafka"]["topic"]
         for name, channel in schema["channels"].items()
     } == {
         "logs.{level}:HandleLogs": "logs.{level}",
-        "cache{{shard}}:Publisher": "cache{{shard}}",
+        "cache:Publisher": "cache",
     }
 
 

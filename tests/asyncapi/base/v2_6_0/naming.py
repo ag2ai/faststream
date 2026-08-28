@@ -270,10 +270,18 @@ class SubscriberNaming(BaseNaming):
             "title": "custom:Message:Payload",
         }
 
+    def uri_unsafe_subscriber(self, broker: Any) -> Any:
+        """Declare on an address whose channel key needs percent-encoding.
+
+        Kafka reaches one only through `pattern=`: a topic name admits ASCII
+        alphanumerics, '.', '_' and '-', all of which are URI-safe already.
+        """
+        return broker.subscriber("/test/topic/{user_id}")
+
     def test_path_channel_refs_are_uri_encoded(self) -> None:
         broker = self.broker_class()
 
-        @broker.subscriber("/test/topic/{user_id}")
+        @self.uri_unsafe_subscriber(broker)
         async def sub(name: str, age: int) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()

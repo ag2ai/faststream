@@ -1,4 +1,7 @@
+from typing import Any
+
 import pytest
+from typing_extensions import override
 
 from faststream.kafka import KafkaBroker
 from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
@@ -7,6 +10,10 @@ from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
 @pytest.mark.kafka()
 class TestNaming(NamingTestCase):
     broker_class = KafkaBroker
+
+    @override
+    def uri_unsafe_subscriber(self, broker: Any) -> Any:
+        return broker.subscriber(pattern="/test/topic/{user_id}")
 
     def test_base(self) -> None:
         broker = self.broker_class()

@@ -4,6 +4,8 @@ from typing import (
     Any,
 )
 
+from faststream.kafka.path import validate_topic_name
+
 from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
 from .specification import KafkaPublisherSpecification
 from .usecase import BatchPublisher, DefaultPublisher
@@ -31,6 +33,8 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> BatchPublisher | DefaultPublisher:
+    validate_topic_name(topic)
+
     publisher_config = KafkaPublisherConfig(
         key=key,
         topic=topic,

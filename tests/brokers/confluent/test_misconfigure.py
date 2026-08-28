@@ -52,3 +52,33 @@ def test_use_only_confluent_router() -> None:
 
     with pytest.raises(SetupError):
         broker.include_routers(routers)
+
+
+@pytest.mark.confluent()
+@pytest.mark.parametrize(
+    "topic",
+    (
+        pytest.param("cache{{shard}}", id="brace"),
+        pytest.param("logs/errors", id="slash"),
+        pytest.param("orders v2", id="space"),
+        pytest.param("заказы", id="non-ascii"),
+        pytest.param("x" * 250, id="too-long"),
+        pytest.param("..", id="reserved"),
+        pytest.param("", id="empty"),
+    ),
+)
+def test_a_topic_kafka_would_refuse_is_rejected_where_it_is_written(
+    topic: str,
+) -> None:
+    broker = KafkaBroker()
+
+    # Kafka answers such a name with INVALID_TOPIC_EXCEPTION, but only once a
+    # consumer or producer reaches the cluster.
+    with pytest.raises(SetupError):
+        broker.subscriber(topic)
+
+    with pytest.raises(SetupError):
+        broker.publisher(topic)
+
+    with pytest.raises(SetupError):
+        broker.subscriber(partitions=[TopicPartition(topic, 1)])

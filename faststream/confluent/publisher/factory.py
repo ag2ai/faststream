@@ -1,6 +1,7 @@
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Union
 
+from faststream.confluent.path import validate_topic_name
 from faststream.confluent.schemas import Topic
 
 from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
@@ -32,6 +33,7 @@ def create_publisher(
 ) -> BatchPublisher | DefaultPublisher:
     # Publishers never declare topics, so only the name is meaningful here.
     topic_name = Topic.validate(topic).name
+    validate_topic_name(topic_name)
 
     publisher_config = KafkaPublisherConfig(
         key=key,

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.confluent.path import validate_topic_name
 from faststream.confluent.schemas import Topic
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -100,6 +101,12 @@ def _validate_input_for_misconfigure(
     group_id: str | None,
     partitions: Iterable["TopicPartition"],
 ) -> None:
+    for topic in topics:
+        validate_topic_name(topic.name)
+
+    for partition in partitions:
+        validate_topic_name(partition.topic)
+
     effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy
     if effective_ack is AckPolicy.REJECT_ON_ERROR:
         warnings.warn(

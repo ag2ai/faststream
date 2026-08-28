@@ -6,7 +6,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream._internal.utils.path import Address
 from faststream.exceptions import SetupError
-from faststream.kafka.path import KAFKA_ADDRESS_SYNTAX
+from faststream.kafka.path import KAFKA_ADDRESS_SYNTAX, validate_topic_name
 from faststream.middlewares import AckPolicy
 
 from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
@@ -124,6 +124,12 @@ def _validate_input_for_misconfigure(
     pattern: str | None,
     partitions: Iterable["TopicPartition"],
 ) -> None:
+    for topic in topics:
+        validate_topic_name(topic)
+
+    for partition in partitions:
+        validate_topic_name(partition.topic)
+
     effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy
     if effective_ack is AckPolicy.REJECT_ON_ERROR:
         warnings.warn(
