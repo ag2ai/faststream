@@ -41,7 +41,9 @@ class NatsPublisherSpecification(
                 ),
                 bindings=ChannelBinding(
                     nats=nats.ChannelBinding(
-                        subject=self.subject.template,
+                        subject=self.subject.template.replace("{{", "{").replace(
+                            "}}", "}"
+                        ),
                         queue=None,
                     ),
                 ),
