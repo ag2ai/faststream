@@ -37,7 +37,7 @@ class NatsSubscriberSpecification(
         A JetStream consumer can address a stream through `filter_subjects` alone, leaving
         `subject` empty. Mirrors `LogicSubscriber._resolved_subject_string`.
         """
-        return self.subject.template.replace("{{", "{").replace("}}", "}") or ", ".join(
+        return self.subject.declared_address or ", ".join(
             self.filter_subjects
         )
 

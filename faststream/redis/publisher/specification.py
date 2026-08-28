@@ -54,7 +54,7 @@ class ChannelPublisherSpecification(RedisPublisherSpecification):
 
     @property
     def channel_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.channel.address.template.replace('{{', '{').replace('}}', '}')}"
+        return f"{self._outer_config.prefix}{self.channel.address.declared_address}"
 
     @property
     def channel_binding(self) -> redis.ChannelBinding:

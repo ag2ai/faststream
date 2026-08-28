@@ -47,6 +47,11 @@ class Address:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.template!r})"
 
+    @property
+    def declared_address(self) -> str:
+        """The address as the broker sees it, with literal braces restored."""
+        return self.template.replace("{{", "{").replace("}}", "}")
+
     def __bool__(self) -> bool:
         """Whether an address was declared at all."""
         return bool(self.template)
@@ -55,6 +60,11 @@ class Address:
     def broker_address(self) -> str:
         """The address as it reaches the broker, e.g. `logs.*` for `logs.{level}`."""
         return self._compile()[1]
+
+    @property
+    def declared_address(self) -> str:
+        """The declared address with literal braces restored, e.g. `cache{shard}.{level}`."""
+        return self.template.replace("{{", "{").replace("}}", "}")
 
     @property
     def regex(self) -> Pattern[str] | None:
