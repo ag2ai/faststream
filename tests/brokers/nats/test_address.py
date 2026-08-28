@@ -6,7 +6,7 @@ from typing_extensions import override
 from faststream._internal.utils.path import Address
 from tests.brokers.base.address import AddressTemplateTestcase
 
-from .basic import NatsTestcaseConfig
+from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
 @pytest.mark.nats()
@@ -32,5 +32,29 @@ class TestNatsAddressTemplate(NatsTestcaseConfig, AddressTemplateTestcase):
 
         subscriber = broker.subscriber("cache{{shard}}")
 
-        assert subscriber.subject.template == "cache{{shard}}"
+        assert subscriber.subject.template == "cache{shard}"
         assert subscriber.subject.broker_address == "cache{shard}"
+
+
+@pytest.mark.nats()
+class TestEscapedBracesRoundTrip(NatsMemoryTestcaseConfig):
+    @pytest.mark.asyncio()
+    async def test_a_publisher_reaches_a_subscriber_declared_the_same_way(self) -> None:
+        """Two endpoints written with one string used to miss each other.
+
+        The subscriber subscribed to `cache{shard}` and the publisher sent to
+        `cache{{shard}}`, the declaration verbatim.
+        """
+        broker = self.get_broker()
+        received = []
+
+        @broker.subscriber("cache{{shard}}")
+        async def handle(msg: str) -> None:
+            received.append(msg)
+
+        publisher = broker.publisher("cache{{shard}}")
+
+        async with self.patch_broker(broker):
+            await publisher.publish("hello")
+
+        assert received == ["hello"]

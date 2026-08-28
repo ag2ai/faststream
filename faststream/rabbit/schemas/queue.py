@@ -107,7 +107,7 @@ class RabbitQueue(NameRequired):
     def routing_template(self) -> str:
         """Return the Address template of object."""
         if self.routing_address:
-            return self.routing_address.declared_address
+            return self.routing_address.template
         return self.name
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":

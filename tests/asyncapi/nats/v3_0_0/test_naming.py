@@ -9,6 +9,20 @@ from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
 class TestNaming(NamingTestCase):
     broker_class = NatsBroker
 
+    def test_escaped_braces_stay_out_of_the_channel_key(self) -> None:
+        """`{{` is FastStream's own escape, and no reader of the document knows it."""
+        broker = self.broker_class()
+        broker.publisher("out.{{literal}}")
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        (channel_name,) = schema["channels"]
+        assert channel_name == "out.{literal}:Publisher"
+        assert (
+            schema["channels"][channel_name]["bindings"]["nats"]["subject"]
+            == "out.{literal}"
+        )
+
     def test_filter_subjects_without_subject(self) -> None:
         """A JetStream consumer may address a stream through `filter_subjects` and no `subject`."""
         broker = self.broker_class()

@@ -1,4 +1,8 @@
-from faststream._internal.utils.path import Address, AddressSyntax
+from faststream._internal.utils.path import (
+    Address,
+    AddressSyntax,
+    restore_literal_braces,
+)
 
 SYNTAX = AddressSyntax(
     replace_symbol="*",
@@ -49,7 +53,7 @@ def test_an_address_is_falsy_when_nothing_was_declared() -> None:
 def test_escaped_braces_are_literal() -> None:
     address = Address("cache{{shard}}", SYNTAX)
 
-    assert address.template == "cache{{shard}}"
+    assert address.template == "cache{shard}"
     assert address.broker_address == "cache{shard}"
     assert address.regex is None
 
@@ -57,19 +61,27 @@ def test_escaped_braces_are_literal() -> None:
 def test_escaped_braces_with_parameters() -> None:
     address = Address("cache{{shard}}.logs.{level}", SYNTAX)
 
-    assert address.template == "cache{{shard}}.logs.{level}"
+    assert address.template == "cache{shard}.logs.{level}"
     assert address.broker_address == "cache{shard}.logs.*"
     assert address.regex is not None
     assert address.regex.match("cache{shard}.logs.info").groupdict() == {"level": "info"}
 
 
-def test_declared_address_restores_literal_braces() -> None:
-    address = Address("cache{{shard}}.logs.{level}", SYNTAX)
+def test_restore_literal_braces_leaves_parameters_alone() -> None:
+    assert (
+        restore_literal_braces("cache{{shard}}.logs.{level}")
+        == "cache{shard}.logs.{level}"
+    )
 
-    assert address.declared_address == "cache{shard}.logs.{level}"
+
+def test_restore_literal_braces_without_escaped_braces() -> None:
+    assert restore_literal_braces("logs.{level}") == "logs.{level}"
 
 
-def test_declared_address_without_escaped_braces() -> None:
-    address = Address("logs.{level}", SYNTAX)
+def test_a_prefix_decorates_the_declaration_not_the_template() -> None:
+    """Prefixing a restored `{shard}` would let the parser read it as a parameter."""
+    address = Address("cache{{shard}}", SYNTAX).add_prefix("prefix_")
 
-    assert address.declared_address == "logs.{level}"
+    assert address.template == "prefix_cache{shard}"
+    assert address.broker_address == "prefix_cache{shard}"
+    assert address.regex is None

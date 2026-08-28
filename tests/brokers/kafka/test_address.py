@@ -33,5 +33,5 @@ class TestKafkaAddressTemplate(KafkaTestcaseConfig, AddressTemplateTestcase):
 
         subscriber = broker.subscriber(pattern="cache{{shard}}")
 
-        assert subscriber.pattern.template == "cache{{shard}}"
+        assert subscriber.pattern.template == "cache{shard}"
         assert subscriber.pattern.broker_address == "cache{shard}"
