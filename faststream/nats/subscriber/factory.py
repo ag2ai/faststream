@@ -14,8 +14,10 @@ from nats.js.client import (
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream._internal.utils.path import Address
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
+from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 
 from .config import NatsSubscriberConfig, NatsSubscriberSpecificationConfig
 from .specification import NatsSubscriberSpecification, NotIncludeSpecifation
@@ -150,8 +152,10 @@ def create_subscriber(
             "max_msgs": max_msgs,
         }
 
+    address = Address(subject, NATS_ADDRESS_SYNTAX)
+
     subscriber_config = NatsSubscriberConfig(
-        subject=subject,
+        subject=address,
         sub_config=config,
         extra_options=extra_options,
         no_reply=no_reply,
@@ -162,7 +166,7 @@ def create_subscriber(
     calls = CallsCollection[Any]()
 
     specification_config = NatsSubscriberSpecificationConfig(
-        subject=subject,
+        subject=address,
         queue=queue or None,
         filter_subjects=list(config.filter_subjects or ()),
         title_=title_,

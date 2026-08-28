@@ -5,6 +5,7 @@ from faststream._internal.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
+from faststream._internal.utils.path import Address
 from faststream.nats.configs import NatsBrokerConfig
 
 if TYPE_CHECKING:
@@ -13,14 +14,14 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class NatsPublisherSpecificationConfig(PublisherSpecificationConfig):
-    subject: str
+    subject: Address
 
 
 @dataclass(kw_only=True)
 class NatsPublisherConfig(PublisherUsecaseConfig):
     _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 
-    subject: str
+    subject: Address
     reply_to: str
     headers: dict[str, str] | None
     stream: Optional["JStream"]

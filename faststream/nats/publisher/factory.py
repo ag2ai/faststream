@@ -1,5 +1,8 @@
 from typing import TYPE_CHECKING, Any, Optional
 
+from faststream._internal.utils.path import Address
+from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
+
 from .config import NatsPublisherConfig, NatsPublisherSpecificationConfig
 from .specification import NatsPublisherSpecification
 from .usecase import LogicPublisher
@@ -24,8 +27,10 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> LogicPublisher:
+    address = Address(subject, NATS_ADDRESS_SYNTAX)
+
     publisher_config = NatsPublisherConfig(
-        subject=subject,
+        subject=address,
         stream=stream,
         reply_to=reply_to,
         headers=headers,
@@ -36,7 +41,7 @@ def create_publisher(
     specification = NatsPublisherSpecification(
         _outer_config=broker_config,
         specification_config=NatsPublisherSpecificationConfig(
-            subject=subject,
+            subject=address,
             schema_=schema_,
             title_=title_,
             description_=description_,

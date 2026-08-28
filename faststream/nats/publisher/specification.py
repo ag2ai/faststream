@@ -1,12 +1,15 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.endpoint.publisher import PublisherSpecification
-from faststream._internal.utils.path import Address
 from faststream.nats.configs import NatsBrokerConfig
-from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, PublisherSpec
 from faststream.specification.schema.bindings import ChannelBinding, nats
 
 from .config import NatsPublisherSpecificationConfig
+
+if TYPE_CHECKING:
+    from faststream._internal.utils.path import Address
 
 
 class NatsPublisherSpecification(
@@ -15,9 +18,7 @@ class NatsPublisherSpecification(
     @property
     def subject(self) -> "Address":
         """The subject this endpoint was declared with, and its Broker address."""
-        return Address(self.config.subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
-        )
+        return self.config.subject.add_prefix(self._outer_config.prefix)
 
     @property
     def name(self) -> str:

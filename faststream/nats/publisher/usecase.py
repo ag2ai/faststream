@@ -4,9 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream._internal.utils.path import Address
 from faststream.nats.response import NatsPublishCommand
-from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
@@ -14,6 +12,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherSpecification
     from faststream._internal.producer import ProducerProto
     from faststream._internal.types import PublisherMiddleware
+    from faststream._internal.utils.path import Address
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import PubAck
@@ -44,9 +43,7 @@ class LogicPublisher(PublisherUsecase):
     @property
     def subject(self) -> "Address":
         """The subject this Publisher was declared with, and its Broker address."""
-        return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
-        )
+        return self._subject.add_prefix(self._outer_config.prefix)
 
     @overload
     async def publish(

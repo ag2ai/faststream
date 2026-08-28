@@ -6,6 +6,7 @@ from faststream._internal.configs import (
     SubscriberUsecaseConfig,
 )
 from faststream._internal.constants import EMPTY
+from faststream._internal.utils.path import Address
 from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    subject: str
+    subject: Address
     queue: str | None
     # A JetStream consumer may address a stream through `filter_subjects` instead of `subject`,
     # so the specification layer needs them to render a meaningful address.
@@ -26,7 +27,7 @@ class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 class NatsSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 
-    subject: str
+    subject: Address
     sub_config: "ConsumerConfig"
     extra_options: dict[str, Any] | None = field(default_factory=dict)
 

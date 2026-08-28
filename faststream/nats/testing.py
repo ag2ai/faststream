@@ -141,7 +141,7 @@ class FakeProducer(NatsFastProducer):
         self.broker = broker
         self.brokers = brokers
 
-        default = NatsParser(pattern="", is_ack_disabled=True)
+        default = NatsParser(path_regex=None, is_ack_disabled=True)
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()

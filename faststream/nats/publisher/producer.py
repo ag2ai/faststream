@@ -69,7 +69,7 @@ class NatsFastProducerImpl(NatsFastProducer):
         self.serializer: SerializerProto | None = None
         self.codec: CodecProto = DefaultCodec()
 
-        default = NatsParser(pattern="", is_ack_disabled=True)
+        default = NatsParser(path_regex=None, is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
         self._decoder = ParserComposition(decoder, default.decode_message)
 
@@ -136,7 +136,7 @@ class NatsJSFastProducer(NatsFastProducer):
         self.serializer: SerializerProto | None = None
         self.codec: CodecProto = DefaultCodec()
 
-        default = NatsParser(pattern="", is_ack_disabled=True)
+        default = NatsParser(path_regex=None, is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
         self._decoder = ParserComposition(decoder, default.decode_message)
 

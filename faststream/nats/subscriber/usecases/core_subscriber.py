@@ -34,7 +34,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         queue: str,
     ) -> None:
         parser = NatsParser(
-            pattern=config.subject,
+            path_regex=config.subject.regex,
             is_ack_disabled=True,  # core subscriber has no ack policy
         )
         config.parser = parser.parse_message

@@ -15,9 +15,7 @@ class NatsSubscriberSpecification(
     @property
     def subject(self) -> "Address":
         """The subject this endpoint was declared with, and its Broker address."""
-        return Address(self.config.subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
-        )
+        return self.config.subject.add_prefix(self._outer_config.prefix)
 
     @property
     def filter_subjects(self) -> list[str]:

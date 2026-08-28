@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.utils.path import match_path
 from faststream.message import (
@@ -11,9 +11,10 @@ from faststream.nats.message import (
     NatsMessage,
     NatsObjMessage,
 )
-from faststream.nats.schemas.js_stream import compile_nats_wildcard
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from nats.aio.msg import Msg
     from nats.js.api import ObjectInfo
     from nats.js.kv import KeyValue
@@ -27,10 +28,9 @@ class NatsBaseParser:
     def __init__(
         self,
         *,
-        pattern: str,
+        path_regex: Optional["Pattern[str]"],
     ) -> None:
-        path_re, _ = compile_nats_wildcard(pattern)
-        self._path_re = path_re
+        self._path_re = path_regex
 
     async def decode_message(
         self,
@@ -42,8 +42,13 @@ class NatsBaseParser:
 class NatsParser(NatsBaseParser):
     """A class to parse NATS core messages."""
 
-    def __init__(self, *, pattern: str, is_ack_disabled: bool) -> None:
-        super().__init__(pattern=pattern)
+    def __init__(
+        self,
+        *,
+        path_regex: Optional["Pattern[str]"],
+        is_ack_disabled: bool,
+    ) -> None:
+        super().__init__(path_regex=path_regex)
 
         self.is_ack_disabled = is_ack_disabled
 

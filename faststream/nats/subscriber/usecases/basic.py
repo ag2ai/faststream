@@ -8,9 +8,7 @@ from typing import (
 
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address
 from faststream.nats.publisher.fake import NatsFakePublisher
-from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.nats.subscriber.adapters import (
     Unsubscriptable,
 )
@@ -22,6 +20,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.utils.path import Address
     from faststream.message import StreamMessage
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.subscriber.config import NatsSubscriberConfig
@@ -53,9 +52,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     @property
     def subject(self) -> "Address":
         """The subject this Subscriber was declared with, and its Broker address."""
-        return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
-        )
+        return self._subject.add_prefix(self._outer_config.prefix)
 
     @property
     def filter_subjects(self) -> list[str]:
