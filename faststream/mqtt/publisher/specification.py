@@ -16,7 +16,7 @@ class MQTTPublisherSpecification(
 ):
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self.config.topic}"
+        return self.config.address.add_prefix(self._outer_config.prefix).template
 
     @property
     def name(self) -> str:

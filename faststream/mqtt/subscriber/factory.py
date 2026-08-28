@@ -34,19 +34,16 @@ def create_subscriber(
     address = build_mqtt_address(topic)
 
     subscriber_config = MQTTSubscriberConfig(
-        topic=address.broker_address,
+        address=address,
         qos=qos,
         shared=shared,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
-        path_regex=address.regex,
     )
 
     specification_config = MQTTSubscriberSpecificationConfig(
-        # The Subscriber above listens on the Broker address; the Specification
-        # documents the topic as it was declared.
-        topic=address.template,
+        address=address,
         qos=qos,
         shared=shared,
         title_=title_,
