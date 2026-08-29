@@ -37,6 +37,7 @@ class KafkaSubscriberSpecification(
             handler_name = self.config.title_ or f"{t}:{self.call_name}"
 
             channels[handler_name] = SubscriberSpec(
+                address=t,
                 description=self.description,
                 operation=Operation(
                     message=Message(
