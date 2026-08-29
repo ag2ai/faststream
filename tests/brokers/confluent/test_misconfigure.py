@@ -1,8 +1,11 @@
+import re
+
 import pytest
 
 from faststream import AckPolicy
 from faststream.confluent import KafkaBroker, TopicPartition
 from faststream.confluent.broker.router import KafkaRouter
+from faststream.confluent.helpers import AsyncConfluentConsumer
 from faststream.confluent.subscriber.usecase import ConcurrentDefaultSubscriber
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
@@ -52,3 +55,21 @@ def test_use_only_confluent_router() -> None:
 
     with pytest.raises(SetupError):
         broker.include_routers(routers)
+
+
+@pytest.mark.confluent()
+def test_driver_class_annotation_names_the_import_to_use() -> None:
+    expected = (
+        "`handler` parameter `consumer` is annotated with"
+        " `faststream.confluent.helpers.client.AsyncConfluentConsumer`,"
+        " which FastStream cannot inject.\n"
+        "Use the context annotation instead:\n"
+        "\n    from faststream.confluent.annotations import Consumer\n"
+    )
+
+    broker = KafkaBroker()
+
+    with pytest.raises(SetupError, match=re.escape(expected)):
+
+        @broker.subscriber("test")
+        async def handler(consumer: AsyncConfluentConsumer) -> None: ...

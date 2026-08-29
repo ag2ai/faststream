@@ -1,13 +1,16 @@
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
 )
 
+from typing_extensions import override
+
+from faststream._internal.endpoint.subscriber.hints import check_context_annotations
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
-from faststream._internal.types import MsgType
+from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address
 from faststream.nats.publisher.fake import NatsFakePublisher
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
@@ -19,6 +22,7 @@ if TYPE_CHECKING:
     from nats.aio.client import Client
     from nats.js import JetStreamContext
 
+    from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -33,6 +37,22 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     subscription: Unsubscriptable | None
     _fetch_sub: Unsubscriptable | None
     _outer_config: "NatsBrokerConfig"
+
+    @override
+    def _create_call(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        **kwargs: Any,
+    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        from faststream.nats import annotations
+
+        check_context_annotations(
+            func,
+            annotations.CONTEXT_ANNOTATIONS,
+            annotations.__name__,
+        )
+
+        return super()._create_call(func, **kwargs)
 
     def __init__(
         self,

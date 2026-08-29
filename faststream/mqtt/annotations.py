@@ -1,9 +1,10 @@
-from typing import Annotated
+from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Annotated, Any, Final
 
 from zmqtt import MQTTClient
 
 from faststream._internal.context import Context
-from faststream._internal.di import register_context_annotations
 from faststream.annotations import ContextRepo, Logger
 from faststream.mqtt.broker.broker import MQTTBroker as MB  # noqa: N814
 from faststream.mqtt.message import MQTTMessage as MM  # noqa: N814
@@ -23,8 +24,7 @@ MQTTMessage = Annotated[MM, Context("message")]
 MQTTBroker = Annotated[MB, Context("broker")]
 
 
-register_context_annotations(
-    __name__,
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
     {
         MQTTClient: "Client",
         MB: "MQTTBroker",

@@ -1,13 +1,15 @@
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
+from faststream._internal.endpoint.subscriber.hints import check_context_annotations
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -16,6 +18,7 @@ from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITE
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
 
+    from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream._internal.endpoint.subscriber.specification import (
@@ -33,6 +36,22 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
     _outer_config: "RabbitBrokerConfig"
+
+    @override
+    def _create_call(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        **kwargs: Any,
+    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        from faststream.rabbit import annotations
+
+        check_context_annotations(
+            func,
+            annotations.CONTEXT_ANNOTATIONS,
+            annotations.__name__,
+        )
+
+        return super()._create_call(func, **kwargs)
 
     def __init__(
         self,

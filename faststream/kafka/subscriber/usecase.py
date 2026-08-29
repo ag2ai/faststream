@@ -9,10 +9,11 @@ from aiokafka import ConsumerRecord, TopicPartition
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
+from faststream._internal.endpoint.subscriber.hints import check_context_annotations
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import MsgType
+from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
@@ -22,6 +23,7 @@ from faststream.kafka.publisher.fake import KafkaFakePublisher
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
 
+    from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -46,6 +48,22 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     parser: AioKafkaParser
 
     _outer_config: "KafkaBrokerConfig"
+
+    @override
+    def _create_call(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        **kwargs: Any,
+    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        from faststream.kafka import annotations
+
+        check_context_annotations(
+            func,
+            annotations.CONTEXT_ANNOTATIONS,
+            annotations.__name__,
+        )
+
+        return super()._create_call(func, **kwargs)
 
     def __init__(
         self,

@@ -1,9 +1,10 @@
-from typing import Annotated
+from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Annotated, Any, Final
 
 from aio_pika import RobustChannel, RobustConnection
 
 from faststream._internal.context import Context
-from faststream._internal.di import register_context_annotations
 from faststream.annotations import ContextRepo, Logger
 from faststream.params import NoCast
 from faststream.rabbit.broker import RabbitBroker as RB
@@ -29,8 +30,7 @@ Channel = Annotated[RobustChannel, Context("broker._channel")]
 Connection = Annotated[RobustConnection, Context("broker._connection")]
 
 
-register_context_annotations(
-    __name__,
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
     {
         RobustConnection: "Connection",
         RobustChannel: "Channel",

@@ -1,6 +1,8 @@
+import re
 from typing import Any
 
 import pytest
+from aiokafka import AIOKafkaConsumer
 
 from faststream import AckPolicy
 from faststream.exceptions import SetupError
@@ -100,3 +102,21 @@ def test_use_only_kafka_router() -> None:
 
     with pytest.raises(SetupError):
         broker.include_routers(routers)
+
+
+@pytest.mark.kafka()
+def test_driver_class_annotation_names_the_import_to_use() -> None:
+    expected = (
+        "`handler` parameter `consumer` is annotated with"
+        " `aiokafka.consumer.consumer.AIOKafkaConsumer`,"
+        " which FastStream cannot inject.\n"
+        "Use the context annotation instead:\n"
+        "\n    from faststream.kafka.annotations import Consumer\n"
+    )
+
+    broker = KafkaBroker()
+
+    with pytest.raises(SetupError, match=re.escape(expected)):
+
+        @broker.subscriber("test")
+        async def handler(consumer: AIOKafkaConsumer) -> None: ...

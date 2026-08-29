@@ -1,11 +1,12 @@
-from typing import Annotated
+from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Annotated, Any, Final
 
 from nats.aio.client import Client as _NatsClient
 from nats.js.client import JetStreamContext as _JetStream
 from nats.js.object_store import ObjectStore as _ObjectStore
 
 from faststream._internal.context import Context
-from faststream._internal.di import register_context_annotations
 from faststream.annotations import ContextRepo, Logger
 from faststream.nats.broker import NatsBroker as _Broker
 from faststream.nats.message import (
@@ -36,8 +37,7 @@ Client = Annotated[_NatsClient, Context("broker.config.connection_state.connecti
 JsClient = Annotated[_JetStream, Context("broker.config.connection_state.stream")]
 
 
-register_context_annotations(
-    __name__,
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
     {
         _NatsClient: "Client",
         _JetStream: "JsClient",
