@@ -62,7 +62,9 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def channel_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.channel.address.template}"
+        # Through `PubSub`, the way the usecase does it: a prefix decorates the
+        # declaration, so a `{{` of its own comes off with the rest.
+        return self.channel.add_prefix(self._outer_config.prefix).address.template
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":

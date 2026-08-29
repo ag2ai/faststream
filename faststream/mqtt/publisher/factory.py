@@ -27,12 +27,10 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> MQTTPublisher:
-    # A Publisher's topic goes to the wire as it stands, so the declared address
-    # is the only half of it this endpoint has any use for.
-    topic = Address(topic, MQTT_ADDRESS_SYNTAX).template
+    address = Address(topic, MQTT_ADDRESS_SYNTAX)
 
     publisher_config = MQTTPublisherConfig(
-        topic=topic,
+        address=address,
         qos=qos,
         retain=retain,
         headers=headers,
@@ -42,7 +40,7 @@ def create_publisher(
     specification = MQTTPublisherSpecification(
         _outer_config=broker_config,
         specification_config=MQTTPublisherSpecificationConfig(
-            topic=topic,
+            address=address,
             qos=qos,
             retain=retain,
             schema_=schema_,

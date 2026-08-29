@@ -1,6 +1,11 @@
 import pytest
 
-from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
+from faststream.rabbit import (
+    ExchangeType,
+    RabbitBroker,
+    RabbitExchange,
+    RabbitQueue,
+)
 from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
 
 EXCHANGE = RabbitExchange("logs-ex", type=ExchangeType.TOPIC)

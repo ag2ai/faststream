@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.utils.path import Address
     from faststream.message import StreamMessage
     from faststream.mqtt.broker.config import MQTTBrokerConfig
     from faststream.mqtt.message import MQTTMessage
@@ -36,14 +37,13 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[zmqtt.Message]",
     ) -> None:
-        self._path_regex = config.path_regex
+        self._address = config.address
         # version may not be available yet when subscriber is created on a router
         # before include_router is called; default to V5 and re-resolve in start().
         parser = self._make_parser(config._outer_config)
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
-        self._topic = config.topic
         self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
@@ -63,11 +63,17 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
         version = getattr(outer_config, "version", "5.0")
         cls: type[MQTTBaseParser] = MQTTParserV311 if version == "3.1.1" else MQTTParserV5
-        return cls(path_regex=self._path_regex)
+        prefix = getattr(outer_config, "prefix", "")
+        return cls(path_regex=self._address.add_prefix(prefix).regex)
+
+    @property
+    def address(self) -> "Address":
+        """The topic this Subscriber was declared with, and its Broker address."""
+        return self._address.add_prefix(self._outer_config.prefix)
 
     @property
     def topic(self) -> str:
-        full = f"{self._outer_config.prefix}{self._topic}"
+        full = self.address.broker_address
         return f"$share/{self._shared}/{full}" if self._shared else full
 
     def _make_response_publisher(
