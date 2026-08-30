@@ -20,15 +20,17 @@ class RabbitSubscriberSpecification(
     SubscriberSpecification[RabbitBrokerConfig, RabbitSubscriberSpecificationConfig],
 ):
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
+    def channel_labels(self) -> list[str]:
+        """A queue and the exchange it is bound to, which is not the address.
 
+        The address is the routing key; a queue is a place to read from. Both are
+        needed to tell two subscribers apart, so the label carries both.
+        """
         queue_name = self.config.queue.name
 
         exchange_name = getattr(self.config.exchange, "name", None)
 
-        return f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}:{self.call_name}"
+        return [f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}"]
 
     @property
     def address(self) -> str | None:

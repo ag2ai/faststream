@@ -219,7 +219,13 @@ def get_broker_channels(
     ] or None
 
     for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
-        for sub_key, sub_channel in sub.schema().items():
+        sub_schema = sub.schema()
+
+        # A title cannot name the operations of several channels: written once
+        # per channel it leaves one operation and the rest unreferenced.
+        sub_title = sub.specification.config.title_ if len(sub_schema) == 1 else None
+
+        for sub_key, sub_channel in sub_schema.items():
             channel_obj = Channel.from_sub(sub_channel, servers=channel_servers)
 
             channel_key = clear_key(sub_key)
@@ -234,9 +240,8 @@ def get_broker_channels(
 
             operation_key = (
                 f"{channel_key}Subscribe"
-                if sub.specification.config.title_ is None
-                or sub.specification.config.title_ == "/"
-                else sub.specification.config.title_
+                if sub_title is None or sub_title == "/"
+                else sub_title
             )
             if operation_key in operations:
                 warnings.warn(

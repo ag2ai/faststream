@@ -45,10 +45,8 @@ class MQTTSubscriberSpecification(
         return self.address
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-        return f"{self.topic}:{self.call_name}"
+    def channel_labels(self) -> list[str]:
+        return [self.topic]
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()

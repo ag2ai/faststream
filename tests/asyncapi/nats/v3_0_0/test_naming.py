@@ -1,4 +1,5 @@
 import pytest
+from dirty_equals import IsPartialDict
 from nats.js.api import ConsumerConfig
 
 from faststream.nats import JStream, NatsBroker, PullSub
@@ -33,7 +34,6 @@ class TestNaming(NamingTestCase):
         )
 
     def test_multiple_filter_subjects_without_subject(self) -> None:
-        """Several filtered subjects are rendered the same way the runtime reports them."""
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -44,16 +44,20 @@ class TestNaming(NamingTestCase):
         )
         async def handle() -> None: ...
 
-        schema = self.get_spec(broker).to_jsonable()
-
-        (channel_name,) = schema["channels"]
-        assert (
-            schema["channels"][channel_name]["bindings"]["nats"]["subject"]
-            == "logs.info, logs.error"
+        # the runtime joins these to label a log line; `logs.info, logs.error` is
+        # not a subject anybody publishes to, so no channel is addressed with it
+        assert self.get_spec(broker).to_jsonable()["channels"] == IsPartialDict(
+            {
+                "logs.info:Handle": IsPartialDict(
+                    address="logs.info",
+                    bindings=IsPartialDict(nats=IsPartialDict(subject="logs.info")),
+                ),
+                "logs.error:Handle": IsPartialDict(
+                    address="logs.error",
+                    bindings=IsPartialDict(nats=IsPartialDict(subject="logs.error")),
+                ),
+            },
         )
-        # Two filtered subjects, so neither one of them is *the* address, and an
-        # absent address is the only way to say that.
-        assert "address" not in schema["channels"][channel_name]
 
     def test_base(self) -> None:
         broker = self.broker_class()
