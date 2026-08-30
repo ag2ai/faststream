@@ -41,7 +41,11 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
                 timeout=self.timeout,
             )
 
-        assert received == ["a", "b"]
+        # `test.pattern.foo` and `test.pattern.bar` hash to different slots, so the
+        # two publishes reach different nodes and propagate over the cluster bus
+        # independently. Which one arrives first is a race, and not one this test is
+        # about — sorted rather than a set, so a message delivered twice still fails.
+        assert sorted(received) == ["a", "b"]
 
     @pytest.mark.asyncio()
     async def test_multiple_subscribers_same_channel(
