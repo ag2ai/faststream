@@ -985,6 +985,52 @@ class TestConsumeStream(RedisTestcaseConfig):
             calls = [call(msg) for msg in expected_messages]
             mock.assert_has_calls(calls=calls)
 
+    async def test_get_one_group_cursor_advances(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(
+            stream=StreamSub(queue, group="test_group", consumer="test_consumer")
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await br.publish("first", stream=queue)
+            await br.publish("second", stream=queue)
+
+            msg1 = await subscriber.get_one(timeout=3)
+            msg2 = await subscriber.get_one(timeout=3)
+
+            assert msg1 is not None
+            assert msg2 is not None
+            assert await msg1.decode() == "first"
+            assert await msg2.decode() == "second"
+
+    async def test_iterator_group_cursor_advances(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(
+            stream=StreamSub(queue, group="test_group", consumer="test_consumer")
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await br.publish("first", stream=queue)
+            await br.publish("second", stream=queue)
+
+            results = []
+            async for msg in subscriber:
+                results.append(await msg.decode())
+                if len(results) >= 2:
+                    break
+
+            assert results == ["first", "second"]
+
     @pytest.mark.slow()
     async def test_consume_stream_group_deleted(
         self,
