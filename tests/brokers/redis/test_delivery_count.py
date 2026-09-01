@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,14 +16,14 @@ class TestDeliveryCount(RedisTestcaseConfig):
         self,
         queue: str,
         event: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
         group = f"{queue}-workers"
         broker = self.get_broker(apply_types=True)
-        counts: list[int] = []
 
         @broker.subscriber(stream=StreamSub(queue, group=group, consumer="worker-1"))
         async def handler(message: RedisStreamMessage, redis: Redis) -> None:
-            counts.append(await message.get_delivery_count(redis, group))
+            mock(await message.get_delivery_count(redis, group))
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -30,16 +31,17 @@ class TestDeliveryCount(RedisTestcaseConfig):
             await br.publish("hello", stream=queue)
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-        assert counts == [1]
+        mock.assert_called_once_with(1)
 
     async def test_delivery_count_after_xautoclaim_and_ack(
         self,
         queue: str,
         event: asyncio.Event,
+        mock: MagicMock,
+        mock2: MagicMock,
     ) -> None:
         group = f"{queue}-workers"
         broker = self.get_broker(apply_types=True)
-        counts: list[int] = []
 
         @broker.subscriber(
             stream=StreamSub(
@@ -50,9 +52,9 @@ class TestDeliveryCount(RedisTestcaseConfig):
             )
         )
         async def handler(message: RedisStreamMessage, redis: Redis) -> None:
-            counts.append(await message.get_delivery_count(redis, group))
+            mock(await message.get_delivery_count(redis, group))
             await message.ack(redis=redis, group=group)
-            counts.append(await message.get_delivery_count(redis, group))
+            mock2(await message.get_delivery_count(redis, group))
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -67,4 +69,5 @@ class TestDeliveryCount(RedisTestcaseConfig):
             await br.start()
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-        assert counts == [2, 1]
+        mock.assert_called_once_with(2)
+        mock2.assert_called_once_with(1)
