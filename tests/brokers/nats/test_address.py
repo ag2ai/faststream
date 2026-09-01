@@ -1,28 +1,16 @@
-from typing import Any
-
 import pytest
-from typing_extensions import override
 
-from faststream._internal.utils.path import Address
-from tests.brokers.base.address import AddressTemplateTestcase
+from tests.brokers.base.address import AddressPublisherDeliveryTestcase
 
-from .basic import NatsTestcaseConfig
+from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
 @pytest.mark.nats()
-class TestNatsAddressTemplate(NatsTestcaseConfig, AddressTemplateTestcase):
-    broker_address = "logs.*"
+class TestAddressDelivery(NatsMemoryTestcaseConfig, AddressPublisherDeliveryTestcase):
+    pass
 
-    @override
-    def get_subscriber_address(self, subscriber: Any) -> Address:
-        return subscriber.subject
 
-    def test_publisher_reads_through_the_same_address(self) -> None:
-        broker = self.get_broker()
-        router = self.get_router(prefix="prefix_")
-
-        publisher = router.publisher("out.{id}")
-        broker.include_router(router)
-
-        assert publisher.subject.template == "prefix_out.{id}"
-        assert publisher.subject.broker_address == "prefix_out.*"
+@pytest.mark.connected()
+@pytest.mark.nats()
+class TestAddressDeliveryReal(NatsTestcaseConfig, AddressPublisherDeliveryTestcase):
+    pass
