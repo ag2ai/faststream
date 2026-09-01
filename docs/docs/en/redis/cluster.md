@@ -12,7 +12,7 @@ search:
 
 ## Overview
 
-**FastStream** provides a `RedisClusterBroker` for working with [**Redis Cluster**](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/){.external-link target="_blank"}. It is a drop-in replacement for `RedisBroker` with the same constructor API, designed for multi-node cluster deployments.
+**FastStream** provides a `RedisClusterBroker` for working with [**Redis Cluster**](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/){.external-link target="_blank"}. It is a drop-in replacement for `RedisBroker` with the same constructor API, designed for multi-node cluster deployments. It requires `redis-py >= 8.0.0` and uses a single native async cluster client for List, Stream, and Pub/Sub operations.
 
 ## When to Use
 
@@ -50,7 +50,7 @@ broker = RedisClusterBroker(
 |---|---|---|
 | List | ✅ | ✅ |
 | Stream + XAUTOCLAIM | ✅ | ✅ |
-| Pub/Sub | ✅ | ✅ (via sync cluster) |
+| Pub/Sub | ✅ | ✅ (native async) |
 | Pipeline | ✅ | ❌ |
 
 ## Stream Location
@@ -78,7 +78,6 @@ broker = RedisClusterBroker(url="redis://localhost:7000")
 
 - **Pipeline** is not supported in Redis Cluster.
 - **XAUTOCLAIM** with `min_idle_time` requires a consumer group with `group` and `consumer` parameters on `StreamSub`.
-- **Pub/Sub** uses a synchronous `RedisCluster` client (via `ThreadPoolExecutor`) because the async client does not expose `publish`/`pubsub` until `redis-py >= 8.0.0`.
 
 ## References
 

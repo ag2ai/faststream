@@ -300,12 +300,7 @@ class TestClusterPubSub:
         settings_cluster: SettingsCluster,
         event: asyncio.Event,
     ) -> None:
-        """Pub/Sub via sync cluster wrapper."""
-        from redis.cluster import RedisCluster as _SyncRC
-
-        if not hasattr(_SyncRC, "publish"):
-            pytest.skip("sync cluster pubsub not available")
-
+        """Pub/Sub via the native async cluster client."""
         broker = RedisClusterBroker(
             url=settings_cluster.url,
             startup_nodes=settings_cluster.startup_nodes,
@@ -326,5 +321,3 @@ class TestClusterPubSub:
             )
 
         assert received == ["hello"]
-        # a future redis-py version fixes this the test can be written
-        # analogously to test_publish_subscribe with `sharded=True`.

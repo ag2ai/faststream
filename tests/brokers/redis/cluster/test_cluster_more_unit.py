@@ -1,21 +1,37 @@
-from concurrent.futures import ThreadPoolExecutor
+from importlib.metadata import version
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import anyio
 import pytest
+from redis.credentials import CredentialProvider
 
+from faststream.exceptions import IncorrectState
 from faststream.redis import RedisClusterBroker, RedisRouter, TestRedisBroker
-from faststream.redis.configs import ConnectionState, RedisConnectionState
-from faststream.redis.configs.state import RedisClusterConnectionState
-from faststream.redis.exceptions import UnreachablePathError
-from faststream.redis.parser import BinaryMessageFormatV1
-from faststream.redis.publisher.producer import (
-    RedisClusterFastProducer,
-    RedisFastProducer,
+from faststream.redis._compat import REDIS_V720
+from faststream.redis.configs import (
+    ConnectionState,
+    RedisConnectionState,
+    state as state_module,
 )
+from faststream.redis.configs.state import RedisClusterConnectionState
+from faststream.redis.parser import BinaryMessageFormatV1
+from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
+
+
+def test_redis_v720_uses_lexicographic_version_comparison() -> None:
+    major, minor, *_ = version("redis").split(".")
+    assert REDIS_V720 is ((int(major), int(minor)) >= (7, 2))
+
+
+def test_driver_info_avoids_deprecated_kwargs() -> None:
+    kwargs = state_module._get_driver_info()
+    if REDIS_V720:
+        assert set(kwargs) == {"driver_info"}
+    else:
+        assert set(kwargs) == {"lib_name", "lib_version"}
 
 
 class TestRedisClusterConnectionStateUnit:
@@ -35,12 +51,164 @@ class TestRedisClusterConnectionStateUnit:
         state = RedisClusterConnectionState(opts)
         assert state._options == opts
 
-    def test_get_sync_cluster_creates_once(self) -> None:
-        state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
-        # We can't actually connect, but we can verify the method shape
-        # by checking that _sync_cluster starts as None
-        assert state._sync_cluster is None
-        assert state._thread_pool is None
+    def test_bool_reflects_connected(self) -> None:
+        state = RedisClusterConnectionState()
+        assert not state
+        state._connected = True
+        assert state
+
+
+class TestRedisClusterConnectionStateConnect:
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize("available_method", ("publish", "pubsub"))
+    async def test_native_pubsub_guard_runs_before_client_construction(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        available_method: str,
+    ) -> None:
+        constructed = False
+
+        class IncompatibleCluster:
+            def __init__(self, **kwargs: object) -> None:
+                nonlocal constructed
+                constructed = True
+
+        setattr(IncompatibleCluster, available_method, lambda self: None)
+        monkeypatch.setattr(state_module, "RedisCluster", IncompatibleCluster)
+        get_driver_info = MagicMock()
+        monkeypatch.setattr(state_module, "_get_driver_info", get_driver_info)
+
+        state = RedisClusterConnectionState()
+        with pytest.raises(IncorrectState, match=r"redis-py >= 8\.0\.0"):
+            await state.connect()
+
+        assert not constructed
+        get_driver_info.assert_not_called()
+        assert state._client is None
+        assert not state
+
+    @pytest.mark.asyncio()
+    async def test_connect_passes_native_client_options(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        captured: dict[str, object] = {}
+        initialized = False
+
+        class NativeCluster:
+            def __init__(self, **kwargs: object) -> None:
+                captured.update(kwargs)
+
+            async def publish(self) -> None: ...
+
+            def pubsub(self) -> None: ...
+
+            async def initialize(self) -> None:
+                nonlocal initialized
+                initialized = True
+
+        driver_info = object()
+        credential_provider = object()
+        monkeypatch.setattr(state_module, "RedisCluster", NativeCluster)
+        monkeypatch.setattr(
+            state_module,
+            "_get_driver_info",
+            lambda: {"driver_info": driver_info},
+        )
+
+        state = RedisClusterConnectionState({
+            "host": "127.0.0.1",
+            "port": 7000,
+            "credential_provider": credential_provider,
+            "socket_timeout": None,
+        })
+        client = await state.connect()
+
+        assert client is state.client
+        assert captured == {
+            "host": "127.0.0.1",
+            "port": 7000,
+            "credential_provider": credential_provider,
+            "legacy_responses": True,
+            "driver_info": driver_info,
+        }
+        assert "lib_name" not in captured
+        assert "lib_version" not in captured
+        assert initialized
+        assert state
+
+    @pytest.mark.asyncio()
+    async def test_connect_respects_explicit_legacy_responses(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        captured: dict[str, object] = {}
+
+        class NativeCluster:
+            def __init__(self, **kwargs: object) -> None:
+                captured.update(kwargs)
+
+            async def publish(self) -> None: ...
+
+            def pubsub(self) -> None: ...
+
+            async def initialize(self) -> None: ...
+
+        monkeypatch.setattr(state_module, "RedisCluster", NativeCluster)
+        monkeypatch.setattr(state_module, "_get_driver_info", dict)
+
+        state = RedisClusterConnectionState({"legacy_responses": False})
+        await state.connect()
+
+        assert captured["legacy_responses"] is False
+
+    @pytest.mark.asyncio()
+    async def test_connect_closes_client_when_initialize_fails(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        closed = False
+
+        class FailingCluster:
+            def __init__(self, **kwargs: object) -> None: ...
+
+            async def publish(self) -> None: ...
+
+            def pubsub(self) -> None: ...
+
+            async def initialize(self) -> None:
+                msg = "cluster discovery failed"
+                raise RuntimeError(msg)
+
+            async def aclose(self) -> None:
+                nonlocal closed
+                closed = True
+
+        monkeypatch.setattr(state_module, "RedisCluster", FailingCluster)
+        monkeypatch.setattr(state_module, "_get_driver_info", dict)
+
+        state = RedisClusterConnectionState()
+        with pytest.raises(RuntimeError, match="cluster discovery failed"):
+            await state.connect()
+
+        assert closed
+        assert state._client is None
+        assert not state
+
+    @pytest.mark.asyncio()
+    async def test_connect_returns_existing_client_without_reconstruction(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        client = MagicMock()
+        state = RedisClusterConnectionState()
+        state._client = client
+        state._connected = True
+        constructor = MagicMock()
+        monkeypatch.setattr(state_module, "RedisCluster", constructor)
+
+        assert await state.connect() is client
+        constructor.assert_not_called()
 
 
 class TestClusterBrokerWarnings:
@@ -85,6 +253,17 @@ class TestClusterBrokerInheritanceExtra:
         )
         nodes = broker.config.broker_config.connection._options.get("startup_nodes", [])
         assert len(nodes) > 1
+
+    def test_credential_provider_reaches_cluster_connection(self) -> None:
+        credential_provider = MagicMock(spec=CredentialProvider)
+        broker = RedisClusterBroker(
+            credential_provider=credential_provider,
+        )
+
+        assert (
+            broker.config.broker_config.connection._options["credential_provider"]
+            is credential_provider
+        )
 
     def test_router_inclusion_works(self) -> None:
         broker = RedisClusterBroker(routers=[RedisRouter()])
@@ -136,31 +315,21 @@ class TestClusterBrokerInheritanceExtra:
         assert len(broker.subscribers) == 1
 
 
-class TestSyncPubSubProxyUnit:
-    """Unit tests for _SyncPubSubProxy."""
-
-    def test_proxy_stores_pubsub_and_pool(self) -> None:
-        """Verify proxy initialises correctly."""
-        pool = ThreadPoolExecutor(max_workers=1)
-        try:
-            # We need a sync cluster to create pubsub, so just verify
-            # the class structure — actual init tested in integration.
-            pass
-        finally:
-            pool.shutdown(wait=False)
-
-
 class TestRedisClusterConnectionStateDisconnect:
     """Tests for disconnect lifecycle."""
 
     @pytest.mark.asyncio()
-    async def test_disconnect_cleans_thread_pool(self) -> None:
+    async def test_disconnect_closes_async_client(self) -> None:
         state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
-        assert state._thread_pool is None
+        client = AsyncMock()
+        state._client = client
+        state._connected = True
+
         await state.disconnect()
-        assert state._thread_pool is None
-        assert state._sync_cluster is None
+
+        client.aclose.assert_awaited_once()
         assert state._client is None
+        assert not state
 
     @pytest.mark.asyncio()
     async def test_disconnect_before_connect_no_error(self) -> None:
@@ -168,46 +337,42 @@ class TestRedisClusterConnectionStateDisconnect:
         await state.disconnect()  # Should not raise
         assert not bool(state)
 
-    def test_bool_reflects_connected(self) -> None:
-        state = RedisClusterConnectionState()
-        assert not state
-        state._connected = True
-        assert state
 
+class TestClusterNativeProducerUnit:
+    """The cluster broker uses the shared native async producer path."""
 
-class TestClusterFastProducerUnit:
-    """Direct unit tests for RedisClusterFastProducer routing logic."""
+    def test_broker_uses_standard_producer(self) -> None:
+        broker = RedisClusterBroker()
+        assert type(broker.config.broker_config.producer) is RedisFastProducer
 
     @pytest.fixture()
-    def mock_client(self) -> AsyncMock:
-        client = AsyncMock()
+    def mock_client(self) -> MagicMock:
+        client = MagicMock()
+        client.publish = AsyncMock(return_value=1)
         client.rpush = AsyncMock(return_value=1)
         client.xadd = AsyncMock(return_value=b"stream-id")
+        psub = MagicMock()
+        psub.subscribe = AsyncMock()
+        psub.get_message = AsyncMock(side_effect=[None, "resp"])
+        psub.unsubscribe = AsyncMock()
+        psub.aclose = AsyncMock()
+        client.pubsub.return_value = psub
         return client
 
     @pytest.fixture()
-    def mock_connection(self, mock_client: AsyncMock) -> ConnectionState[Any]:
+    def mock_connection(self, mock_client: MagicMock) -> ConnectionState[Any]:
         conn = RedisConnectionState()
         conn._client = mock_client
         conn._connected = True
         return conn
 
     @pytest.fixture()
-    def mock_cluster_state(self) -> AsyncMock:
-        state = AsyncMock(spec=RedisClusterConnectionState)
-        state.sync_publish = AsyncMock(return_value=1)
-        return state
-
-    @pytest.fixture()
     def producer(
         self,
         mock_connection: ConnectionState,
-        mock_cluster_state: AsyncMock,
     ) -> RedisFastProducer:
-
-        return RedisClusterFastProducer(
+        return RedisFastProducer(
             connection=mock_connection,
-            cluster_state=mock_cluster_state,
             parser=None,
             decoder=None,
             message_format=BinaryMessageFormatV1,
@@ -218,7 +383,7 @@ class TestClusterFastProducerUnit:
     async def test_publish_channel(
         self,
         producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
         cmd = RedisPublishCommand(
             b"hello",
@@ -227,13 +392,13 @@ class TestClusterFastProducerUnit:
         )
         result = await producer.publish(cmd)
         assert result == 1
-        mock_cluster_state.sync_publish.assert_awaited_once()
+        mock_client.publish.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_publish_list(
         self,
         producer: RedisFastProducer,
-        mock_client: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
         cmd = RedisPublishCommand(
             b"hello",
@@ -250,7 +415,7 @@ class TestClusterFastProducerUnit:
     async def test_publish_stream(
         self,
         producer: RedisFastProducer,
-        mock_client: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
         cmd = RedisPublishCommand(
             b"hello",
@@ -267,28 +432,22 @@ class TestClusterFastProducerUnit:
         self,
         producer: RedisFastProducer,
     ) -> None:
-        """No matching destination_type → UnreachablePathError."""
         cmd = RedisPublishCommand(
             b"hello",
             channel="ch",
             _publish_type=PublishType.PUBLISH,
         )
         cmd.destination_type = None  # type: ignore[assignment]
-        with pytest.raises(UnreachablePathError):
+        with pytest.raises(AssertionError, match="unreachable"):
             await producer.publish(cmd)
 
     @pytest.mark.asyncio()
     async def test_request_channel(
         self,
         producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
+        psub = mock_client.pubsub.return_value
 
         cmd = RedisPublishCommand(
             b"hello",
@@ -298,21 +457,17 @@ class TestClusterFastProducerUnit:
         )
         result = await producer.request(cmd)
         assert result == "resp"
-        mock_cluster_state.sync_publish.assert_awaited_once()
+        mock_client.publish.assert_awaited_once()
+        psub.unsubscribe.assert_awaited_once()
+        psub.aclose.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_request_list(
         self,
         producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-        mock_client: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
+        psub = mock_client.pubsub.return_value
 
         cmd = RedisPublishCommand(
             b"hello",
@@ -323,20 +478,16 @@ class TestClusterFastProducerUnit:
         result = await producer.request(cmd)
         assert result == "resp"
         mock_client.rpush.assert_awaited_once()
+        psub.unsubscribe.assert_awaited_once()
+        psub.aclose.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_request_stream(
         self,
         producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
-        mock_client: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
+        psub = mock_client.pubsub.return_value
 
         cmd = RedisPublishCommand(
             b"hello",
@@ -348,24 +499,22 @@ class TestClusterFastProducerUnit:
         result = await producer.request(cmd)
         assert result == "resp"
         mock_client.xadd.assert_awaited_once()
+        psub.unsubscribe.assert_awaited_once()
+        psub.aclose.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_request_timeout(
         self,
         producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
         """Timeout inside fail_after raises TimeoutError."""
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
+        psub = mock_client.pubsub.return_value
 
         async def _slow(*args: object, **kwargs: object) -> None:
             await anyio.sleep(10)
 
         psub.get_message = _slow
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
 
         cmd = RedisPublishCommand(
             b"hello",
@@ -375,20 +524,16 @@ class TestClusterFastProducerUnit:
         )
         with pytest.raises(TimeoutError):
             await producer.request(cmd)
+        psub.unsubscribe.assert_awaited_once()
+        psub.aclose.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_request_unreachable(
         self,
         producer: RedisFastProducer,
-        mock_cluster_state: AsyncMock,
+        mock_client: MagicMock,
     ) -> None:
-        """No matching destination_type → UnreachablePathError."""
-        psub = AsyncMock()
-        psub.subscribe = AsyncMock()
-        psub.get_message = AsyncMock(side_effect=[None, "resp"])
-        psub.unsubscribe = AsyncMock()
-        psub.aclose = AsyncMock()
-        mock_cluster_state.pubsub.return_value = psub
+        psub = mock_client.pubsub.return_value
 
         cmd = RedisPublishCommand(
             b"hello",
@@ -397,8 +542,10 @@ class TestClusterFastProducerUnit:
             _publish_type=PublishType.REQUEST,
         )
         cmd.destination_type = None  # type: ignore[assignment]
-        with pytest.raises(UnreachablePathError):
+        with pytest.raises(AssertionError, match="unreachable"):
             await producer.request(cmd)
+        psub.unsubscribe.assert_awaited_once()
+        psub.aclose.assert_awaited_once()
 
 
 class TestClusterBrokerPing:
