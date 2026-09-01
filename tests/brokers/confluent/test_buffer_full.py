@@ -1,13 +1,16 @@
 import asyncio
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from faststream._internal._compat import ExceptionGroup
 from faststream._internal.logger.logger_proxy import EmptyLoggerObject
 from faststream._internal.logger.state import LoggerState
+from faststream.confluent import KafkaBroker
 from faststream.confluent.helpers.client import AsyncConfluentProducer
 from faststream.confluent.helpers.config import ConfluentFastConfig
 
@@ -43,6 +46,11 @@ class _FakeProducer:
 
     def flush(self, *args: Any, **kwargs: Any) -> int:
         self.flush_calls += 1
+        return 0
+
+    def __len__(self) -> int:
+        # Local queue length; the fake delivers everything inline, so it is
+        # always empty by the time ``send_batch`` waits for a drain.
         return 0
 
 
@@ -137,7 +145,51 @@ async def test_send_batch_fails_fast_by_default() -> None:
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_send_batch_chunks_by_queue_size() -> None:
-    """Batches are sent in ``queue.buffering.max.messages`` chunks with a flush between."""
+    """With the opt-in, batches are sent in ``queue.buffering.max.messages`` chunks."""
+
+    class _CountingDrainProducer(AsyncConfluentProducer):
+        drain_waits = 0
+
+        async def _wait_for_queue_drain(self) -> None:
+            _CountingDrainProducer.drain_waits += 1
+            await super()._wait_for_queue_drain()
+
+    fake = _FakeProducer()
+    logger_state = LoggerState()
+    logger_state.logger = EmptyLoggerObject()
+
+    with patch(
+        "faststream.confluent.helpers.client.Producer",
+        return_value=fake,
+    ):
+        producer = _CountingDrainProducer(
+            logger=logger_state,
+            config=ConfluentFastConfig(config={"queue.buffering.max.messages": 2}),
+        )
+
+    try:
+        batch = producer.create_batch()
+        for i in range(5):
+            batch.append(value=f"msg-{i}".encode())
+
+        await producer.send_batch(
+            batch,
+            "topic",
+            partition=None,
+            retry_on_buffer_error=True,
+        )
+
+        assert len(fake.produced) == 5
+        # 5 messages in chunks of 2 -> 3 chunks -> 2 in-between drain waits.
+        assert _CountingDrainProducer.drain_waits == 2
+    finally:
+        await producer.stop()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_send_batch_default_path_does_not_chunk() -> None:
+    """Without the opt-in, ``send_batch`` behaves exactly like before: no chunking."""
     fake = _FakeProducer()
     producer = _make_producer(
         fake,
@@ -152,10 +204,181 @@ async def test_send_batch_chunks_by_queue_size() -> None:
         await producer.send_batch(batch, "topic", partition=None)
 
         assert len(fake.produced) == 5
-        # 5 messages in chunks of 2 -> 3 chunks -> 2 in-between flushes.
-        assert fake.flush_calls == 2
+        assert fake.flush_calls == 0
     finally:
         await producer.stop()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_send_batch_queue_size_zero_means_no_chunking() -> None:
+    """``queue.buffering.max.messages=0`` means "no limit" in librdkafka."""
+    fake = _FakeProducer()
+    producer = _make_producer(
+        fake,
+        ConfluentFastConfig(config={"queue.buffering.max.messages": 0}),
+    )
+
+    try:
+        batch = producer.create_batch()
+        for i in range(3):
+            batch.append(value=f"msg-{i}".encode())
+
+        # Must not raise ``ValueError: range() arg 3 must not be zero``.
+        await producer.send_batch(
+            batch,
+            "topic",
+            partition=None,
+            retry_on_buffer_error=True,
+        )
+
+        assert len(fake.produced) == 3
+        assert fake.flush_calls == 0
+    finally:
+        await producer.stop()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_retry_with_message_timeout_zero_never_gives_up() -> None:
+    """``message.timeout.ms=0`` means "no delivery timeout": retry until drained."""
+    # Several consecutive BufferErrors, spanning more than one retry sleep.
+    fake = _FakeProducer(fail_calls={1, 2, 3})
+    producer = _make_producer(
+        fake,
+        ConfluentFastConfig(config={"message.timeout.ms": 0}),
+    )
+
+    try:
+        batch = producer.create_batch()
+        batch.append(value=b"msg")
+
+        await producer.send_batch(
+            batch,
+            "topic",
+            partition=None,
+            retry_on_buffer_error=True,
+        )
+
+        assert len(fake.produced) == 1
+        assert fake.produce_calls == 4
+    finally:
+        await producer.stop()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_buffer_warning_logged_once_per_batch() -> None:
+    """The BufferError warning fires once per ``send_batch``, not once per message."""
+    # Every message overflows on its first produce call.
+    fake = _FakeProducer(fail_calls={1, 2, 3})
+    producer = _make_producer(fake)
+
+    try:
+        batch = producer.create_batch()
+        for i in range(3):
+            batch.append(value=f"msg-{i}".encode())
+
+        with patch.object(
+            producer, "logger_state", wraps=producer.logger_state
+        ) as log_state:
+            await producer.send_batch(
+                batch,
+                "topic",
+                partition=None,
+                retry_on_buffer_error=True,
+            )
+
+        assert log_state.log.call_count == 1
+        assert len(fake.produced) == 3
+    finally:
+        await producer.stop()
+
+
+@asynccontextmanager
+async def _broker_with_fake_producer(
+    fake: _FakeProducer,
+) -> AsyncIterator[KafkaBroker]:
+    """A connected ``KafkaBroker`` whose underlying confluent ``Producer`` is fake."""
+    broker = KafkaBroker()
+
+    with (
+        patch(
+            "faststream.confluent.helpers.client.Producer",
+            return_value=fake,
+        ),
+        patch(
+            "faststream.confluent.configs.broker.AdminService.connect",
+            new=AsyncMock(),
+        ),
+    ):
+        await broker.connect()
+        try:
+            yield broker
+        finally:
+            await broker.stop()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_broker_publish_batch_retries_on_buffer_full() -> None:
+    """The opt-in flag is reachable through ``broker.publish_batch(...)``."""
+    fake = _FakeProducer(fail_calls={1})
+
+    async with _broker_with_fake_producer(fake) as broker:
+        await broker.publish_batch(
+            "msg-0",
+            "msg-1",
+            "msg-2",
+            topic="topic",
+            retry_on_buffer_error=True,
+        )
+
+        assert len(fake.produced) == 3
+        assert fake.produce_calls == 4
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_broker_publish_batch_fails_fast_by_default() -> None:
+    """``broker.publish_batch(...)`` keeps its fail-fast default."""
+    fake = _FakeProducer(fail_calls={1})
+
+    async with _broker_with_fake_producer(fake) as broker:
+        with pytest.raises(ExceptionGroup) as exc_info:
+            await broker.publish_batch("msg-0", "msg-1", topic="topic")
+
+        assert any(isinstance(exc, BufferError) for exc in exc_info.value.exceptions)
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_batch_publisher_publish_retries_on_buffer_full() -> None:
+    """The opt-in flag is reachable through ``broker.publisher(batch=True).publish(...)``."""
+    fake = _FakeProducer(fail_calls={1})
+
+    async with _broker_with_fake_producer(fake) as broker:
+        publisher = broker.publisher("topic", batch=True)
+
+        await publisher.publish("msg-0", "msg-1", retry_on_buffer_error=True)
+
+        assert len(fake.produced) == 2
+        assert fake.produce_calls == 3
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_batch_publisher_publish_fails_fast_by_default() -> None:
+    """``broker.publisher(batch=True).publish(...)`` keeps its fail-fast default."""
+    fake = _FakeProducer(fail_calls={1})
+
+    async with _broker_with_fake_producer(fake) as broker:
+        publisher = broker.publisher("topic", batch=True)
+
+        with pytest.raises(ExceptionGroup) as exc_info:
+            await publisher.publish("msg-0", "msg-1")
+
+        assert any(isinstance(exc, BufferError) for exc in exc_info.value.exceptions)
 
 
 @pytest.mark.confluent()

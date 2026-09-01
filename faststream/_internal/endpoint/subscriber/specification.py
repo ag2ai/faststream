@@ -50,6 +50,17 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     def call_name(self) -> str:
         return self.calls.name or "Subscriber"
 
+    def _channel_key(self, address: str, *, split: bool) -> str:
+        """The key one address's channel goes under.
+
+        A `title` names one channel, so `split` prefixes it with the address to
+        keep several of them unique.
+        """
+        if not self.config.title_:
+            return f"{address}:{self.call_name}"
+
+        return f"{self.config.title_}:{address}" if split else self.config.title_
+
     def get_payloads(self) -> list[tuple["dict[str, Any]", str]]:
         payloads: list[tuple[dict[str, Any], str]] = []
 
@@ -80,8 +91,20 @@ class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
 
     @property
     @abstractmethod
-    def name(self) -> str:
+    def channel_labels(self) -> list[str]:
+        """The label each of this endpoint's channels is keyed by, one per channel.
+
+        Usually the address, but not always: MQTT keeps the `$share/` prefix its
+        address drops, and RabbitMQ names a queue and an exchange rather than the
+        routing key a message travels by.
+        """
         raise NotImplementedError
+
+    @property
+    def name(self) -> str:
+        """The key of the first channel this endpoint names."""
+        labels = self.channel_labels
+        return self._channel_key(labels[0], split=len(labels) > 1)
 
     @abstractmethod
     def get_schema(self) -> dict[str, "SubscriberSpec"]:

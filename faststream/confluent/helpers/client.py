@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
@@ -10,7 +11,7 @@ import anyio
 from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
 
 from faststream._internal.utils.functions import call_or_await, run_in_executor
-from faststream.confluent.schemas import TopicPartition
+from faststream.confluent.schemas import Topic, TopicPartition
 from faststream.exceptions import SetupError
 
 from . import config as config_module
@@ -96,6 +97,7 @@ class AsyncConfluentProducer:
         headers: list[tuple[str, str | bytes]] | None = None,
         no_confirm: bool = False,
         retry_on_buffer_error: bool = False,
+        _buffer_warning_latch: list[bool] | None = None,
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Sends a single message to a Kafka topic."""
         kwargs: _SendKwargs = {
@@ -168,16 +170,23 @@ class AsyncConfluentProducer:
             # The background `_poll_loop` serves delivery reports every 100 ms,
             # so just sleep and retry until the queue drains, bounded by the
             # producer's own delivery deadline (`message.timeout.ms`).
-            timeout_s = int(self.config.get("message.timeout.ms", 300000)) / 1000
-            deadline = anyio.current_time() + timeout_s
-
-            self.logger_state.log(
-                log_level=logging.WARNING,
-                message=(
-                    "Producer queue is full (BufferError); "
-                    "waiting for it to drain before retrying."
-                ),
+            # `message.timeout.ms=0` means "no delivery timeout" in librdkafka,
+            # so retry until the queue drains in that case.
+            timeout_ms = int(self.config.get("message.timeout.ms", 300000))
+            deadline = (
+                anyio.current_time() + timeout_ms / 1000 if timeout_ms > 0 else math.inf
             )
+
+            if _buffer_warning_latch is None or not _buffer_warning_latch[0]:
+                if _buffer_warning_latch is not None:
+                    _buffer_warning_latch[0] = True
+                self.logger_state.log(
+                    log_level=logging.WARNING,
+                    message=(
+                        "Producer queue is full (BufferError); "
+                        "waiting for it to drain before retrying."
+                    ),
+                )
 
             while True:
                 await anyio.sleep(0.1)
@@ -207,14 +216,36 @@ class AsyncConfluentProducer:
     ) -> None:
         """Sends a batch of messages to a Kafka topic."""
         messages = batch._builder
-        # Send at most `queue.buffering.max.messages` messages at a time so a
-        # large batch can't overflow librdkafka's local produce queue (#2836).
+
+        if not retry_on_buffer_error:
+            # Default path: identical to the pre-#2836 behavior.
+            async with anyio.create_task_group() as tg:
+                for msg in messages:
+                    tg.start_soon(
+                        self.send,
+                        topic,
+                        msg["value"],
+                        msg["key"],
+                        partition,
+                        msg["timestamp_ms"],
+                        msg["headers"],
+                        no_confirm,
+                    )
+            return
+
+        # Opt-in path: send at most `queue.buffering.max.messages` messages at
+        # a time so a large batch can't overflow librdkafka's local produce
+        # queue (#2836).  `0` means "no limit" in librdkafka, so no chunking.
         chunk_size = int(self.config.get("queue.buffering.max.messages", 100000))
+        if chunk_size <= 0:
+            chunk_size = len(messages) or 1
+
+        warning_latch = [False]
 
         for start in range(0, len(messages), chunk_size):
             if start:
                 # wait for the previous chunk to leave the local queue
-                await self.flush()
+                await self._wait_for_queue_drain()
 
             async with anyio.create_task_group() as tg:
                 for msg in messages[start : start + chunk_size]:
@@ -228,7 +259,17 @@ class AsyncConfluentProducer:
                         msg["headers"],
                         no_confirm,
                         retry_on_buffer_error,
+                        warning_latch,
                     )
+
+    async def _wait_for_queue_drain(self) -> None:
+        # Cancellable alternative to `flush()`: `producer.flush()` blocks a
+        # threadpool thread with no timeout, while the background `_poll_loop`
+        # already serves delivery reports, so just poll the queue length.
+        # There is no event to await here: librdkafka drains the queue in a
+        # background thread, so polling is the only cancellable option.
+        while len(self.producer):  # noqa: ASYNC110
+            await anyio.sleep(0.1)
 
     async def ping(
         self,
@@ -255,7 +296,7 @@ class AsyncConfluentConsumer:
 
     def __init__(
         self,
-        *topics: str,
+        *topics: "Topic",
         config: config_module.ConfluentFastConfig,
         logger: "LoggerState",
         admin_service: "AdminService",
@@ -341,8 +382,15 @@ class AsyncConfluentConsumer:
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
 
     @property
-    def topics_to_create(self) -> list[str]:
-        return list({*self.topics, *(p.topic for p in self.partitions)})
+    def topics_to_create(self) -> list["Topic"]:
+        # Conflicting duplicates are reported by `create_subscriber`, the only
+        # public way to get here, so collapsing to the last one is enough.
+        topics: dict[str, Topic] = {t.name: t for t in self.topics}
+
+        for p in self.partitions:
+            topics.setdefault(p.topic, Topic(p.topic, declare=p.declare))
+
+        return [t for t in topics.values() if t.declare]
 
     async def start(self) -> None:
         """Starts the Kafka consumer and subscribes to the specified topics."""
@@ -367,7 +415,7 @@ class AsyncConfluentConsumer:
             )
 
         if self.topics:
-            subscribe_kwargs: dict[str, Any] = {"topics": self.topics}
+            subscribe_kwargs: dict[str, Any] = {"topics": [t.name for t in self.topics]}
             if self._on_assign is not None:
                 subscribe_kwargs["on_assign"] = self._on_assign
             if self._on_revoke is not None:

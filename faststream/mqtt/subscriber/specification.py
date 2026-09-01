@@ -28,23 +28,32 @@ class MQTTSubscriberSpecification(
         super().__init__(_outer_config, specification_config, calls)
 
     @property
-    def topic(self) -> str:
-        base = f"{self._outer_config.prefix}{self.config.topic}"
-        if self.config.shared:
-            return f"$share/{self.config.shared}/{base}"
-        return base
+    def address(self) -> str:
+        """The topic a message actually arrives on.
+
+        A shared subscription is asked for by prefixing the topic with
+        `$share/<group>/`, but no message ever carries that prefix in its topic, so
+        the address does not either. The channel name and the MQTT channel binding
+        both keep it, which is where the group stays visible.
+        """
+        return self.config.address.add_prefix(self._outer_config.prefix).template
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-        return f"{self.topic}:{self.call_name}"
+    def topic(self) -> str:
+        if self.config.shared:
+            return f"$share/{self.config.shared}/{self.address}"
+        return self.address
+
+    @property
+    def channel_labels(self) -> list[str]:
+        return [self.topic]
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
         return {
             self.name: SubscriberSpec(
+                address=self.address,
                 description=self.description,
                 operation=Operation(
                     message=Message(

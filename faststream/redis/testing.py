@@ -539,7 +539,10 @@ class ChannelVisitor(Visitor):
             sub_channel.pattern
             and bool(
                 re.match(
-                    sub_channel.name.replace(".", "\\.").replace("*", ".*"),
+                    # Escaped wholesale and then opened back up at the wildcard,
+                    # the way `REDIS_ADDRESS_SYNTAX` does it: a Broker address may
+                    # hold a literal brace, and `{2}` left bare is a quantifier.
+                    re.escape(sub_channel.name).replace(r"\*", ".*"),
                     channel or "",
                 ),
             )

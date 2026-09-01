@@ -50,7 +50,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated), now shipped as its own package
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated)
 
 That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 

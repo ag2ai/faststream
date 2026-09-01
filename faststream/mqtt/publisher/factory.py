@@ -2,6 +2,9 @@ from typing import TYPE_CHECKING, Any
 
 from zmqtt import QoS
 
+from faststream._internal.utils.path import Address
+from faststream.mqtt.path import MQTT_ADDRESS_SYNTAX
+
 from .config import MQTTPublisherConfig, MQTTPublisherSpecificationConfig
 from .specification import MQTTPublisherSpecification
 from .usecase import MQTTPublisher
@@ -24,8 +27,10 @@ def create_publisher(
     description_: str | None,
     include_in_schema: bool,
 ) -> MQTTPublisher:
+    address = Address(topic, MQTT_ADDRESS_SYNTAX)
+
     publisher_config = MQTTPublisherConfig(
-        topic=topic,
+        address=address,
         qos=qos,
         retain=retain,
         headers=headers,
@@ -35,7 +40,7 @@ def create_publisher(
     specification = MQTTPublisherSpecification(
         _outer_config=broker_config,
         specification_config=MQTTPublisherSpecificationConfig(
-            topic=topic,
+            address=address,
             qos=qos,
             retain=retain,
             schema_=schema_,
