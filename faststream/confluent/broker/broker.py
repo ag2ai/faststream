@@ -470,6 +470,7 @@ class KafkaBroker(
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
+        retry_on_buffer_error: bool = False,
     ) -> None:
         cmd = KafkaPublishCommand(
             *messages,
@@ -479,6 +480,7 @@ class KafkaBroker(
             headers=headers,
             reply_to=reply_to,
             no_confirm=no_confirm,
+            retry_on_buffer_error=retry_on_buffer_error,
             correlation_id=correlation_id or self.config.id_generator(),
             _publish_type=PublishType.PUBLISH,
         )

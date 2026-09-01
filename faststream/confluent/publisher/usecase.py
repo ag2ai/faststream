@@ -234,6 +234,7 @@ class BatchPublisher(LogicPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
+        retry_on_buffer_error: bool = False,
     ) -> None:
         cmd = KafkaPublishCommand(
             *messages,
@@ -245,6 +246,7 @@ class BatchPublisher(LogicPublisher):
             correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
+            retry_on_buffer_error=retry_on_buffer_error,
             _publish_type=PublishType.PUBLISH,
         )
 
