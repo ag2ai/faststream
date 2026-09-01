@@ -1,8 +1,7 @@
-import re
-
 import pytest
 from redis.asyncio.client import Redis
 
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from faststream.redis import RedisBroker, RedisRouter, annotations
@@ -34,10 +33,12 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
 
     broker = RedisBroker()
 
-    with pytest.raises(SetupError, match=re.escape(expected)):
+    with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
         async def handler(redis: Redis) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]
 
 
 @pytest.mark.redis()

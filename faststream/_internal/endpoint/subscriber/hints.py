@@ -1,6 +1,7 @@
 from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING, Any, get_type_hints
 
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
@@ -17,27 +18,31 @@ def check_context_annotations(
     A working argument is `Annotated[...]` rather than a class, so the context
     annotations a broker wraps around these same classes are never matched.
 
+    Raises an `ExceptionGroup` of one `SetupError` per offending argument.
+
     Args:
         call: the decorated handler.
         annotations: driver class to the name of the annotation wrapping it.
         module: where those annotations live.
     """
-    hints = [
-        _format_hint(call, field_name, driver_type, name, module)
+    errors = [
+        SetupError(_format_hint(call, field_name, driver_type, name, module))
         for field_name, driver_type in _iter_class_hints(call)
         if (name := annotations.get(driver_type)) is not None
     ]
 
-    if hints:
-        raise SetupError("\n".join(hints))
+    if errors:
+        call_name = getattr(call, "__name__", str(call))
+        msg = f"`{call_name}` has arguments FastStream cannot inject."
+        raise ExceptionGroup(msg, errors)
 
 
 def _iter_class_hints(call: Callable[..., Any]) -> Iterator[tuple[str, type[Any]]]:
     try:
         hints = get_type_hints(call, include_extras=True)
     except Exception:
-        # Building the call model resolves the same hints and reports the same
-        # failure, so decoration stays silent about it.
+        # A hint that only exists under TYPE_CHECKING with PEP 563 cannot be
+        # resolved here. Building the call model reports it as it does today.
         return
 
     for field_name, hint in hints.items():

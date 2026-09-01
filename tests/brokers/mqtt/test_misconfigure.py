@@ -1,9 +1,7 @@
-import re
-
 import pytest
 from zmqtt import MQTTClient
 
-from faststream.exceptions import SetupError
+from faststream._internal._compat import ExceptionGroup
 from faststream.mqtt import MQTTBroker
 
 
@@ -19,7 +17,9 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
 
     broker = MQTTBroker()
 
-    with pytest.raises(SetupError, match=re.escape(expected)):
+    with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
         async def handler(client: MQTTClient) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]

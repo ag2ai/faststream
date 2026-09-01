@@ -1,10 +1,10 @@
-import re
 from typing import Any
 
 import pytest
 from aiokafka import AIOKafkaConsumer
 
 from faststream import AckPolicy
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition
 from faststream.kafka.subscriber.usecase import (
@@ -116,7 +116,9 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
 
     broker = KafkaBroker()
 
-    with pytest.raises(SetupError, match=re.escape(expected)):
+    with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
         async def handler(consumer: AIOKafkaConsumer) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]

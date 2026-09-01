@@ -1,8 +1,7 @@
-import re
-
 import pytest
 from nats.aio.client import Client
 
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from faststream.nats.broker.broker import NatsBroker
@@ -35,7 +34,9 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
 
     broker = NatsBroker()
 
-    with pytest.raises(SetupError, match=re.escape(expected)):
+    with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
         async def handler(client: Client) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]

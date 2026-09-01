@@ -1,8 +1,7 @@
-import re
-
 import pytest
 
 from faststream import AckPolicy
+from faststream._internal._compat import ExceptionGroup
 from faststream.confluent import KafkaBroker, TopicPartition
 from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.helpers import AsyncConfluentConsumer
@@ -69,7 +68,9 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
 
     broker = KafkaBroker()
 
-    with pytest.raises(SetupError, match=re.escape(expected)):
+    with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
         async def handler(consumer: AsyncConfluentConsumer) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]

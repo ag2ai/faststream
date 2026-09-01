@@ -1,8 +1,7 @@
-import re
-
 import pytest
 from aio_pika import RobustConnection
 
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitBroker, RabbitRouter
@@ -34,7 +33,9 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
 
     broker = RabbitBroker()
 
-    with pytest.raises(SetupError, match=re.escape(expected)):
+    with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
         async def handler(connection: RobustConnection) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]
