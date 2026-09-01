@@ -9,12 +9,13 @@ if TYPE_CHECKING:
 KafkaParserType: TypeAlias = ParserProto["ConsumerRecord[Any, Any]"]
 
 try:
-    from aiokafka import ConsumerRecord, TopicPartition
+    from aiokafka import ConsumerRecord
     from aiokafka.structs import RecordMetadata
 
     from .annotations import KafkaMessage
     from .broker import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
     from .response import KafkaPublishCommand, KafkaPublishMessage, KafkaResponse
+    from .schemas import TopicPartition
     from .testing import TestKafkaBroker
 
 except ImportError as e:
