@@ -12,8 +12,6 @@ from typing_extensions import NotRequired, TypedDict, override
 from faststream.message import StreamMessage as BrokerStreamMessage
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from redis.asyncio import Redis
 
     from faststream._internal.basic_types import DecodedMessage
@@ -148,31 +146,24 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
-    _redis: Optional["Callable[[], Redis[bytes]]"] = None
-    _group: str | None = None
-
-    def _set_delivery_count_context(
+    async def get_delivery_count(
         self,
-        redis: Optional["Callable[[], Redis[bytes]]"],
-        group: str | None,
-    ) -> None:
-        self._redis = redis
-        self._group = group
-
-    async def get_delivery_count(self) -> int:
+        redis: "Redis[bytes]",
+        group: str,
+    ) -> int:
         """Return this message's current delivery count from the Redis PEL.
 
-        The count is queried on every call. Messages without lookup context or
-        a pending entry, including acknowledged messages, return ``1``.
+        The count is queried on every call. Messages without an ID or a pending
+        entry, including acknowledged messages, return ``1``.
         """
         message_ids = self.raw_message["message_ids"]
-        if self._redis is None or not self._group or not message_ids:
+        if not message_ids:
             return 1
 
         message_id = message_ids[0]
-        entries = await self._redis().xpending_range(
+        entries = await redis.xpending_range(
             name=self.raw_message["channel"],
-            groupname=self._group,
+            groupname=group,
             min=message_id,
             max=message_id,
             count=1,

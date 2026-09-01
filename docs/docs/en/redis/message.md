@@ -60,25 +60,25 @@ The `Context` object lets you reference message attributes directly, making your
 ## Redis Stream Delivery Count
 
 For a single stream message consumed through a consumer group, call
-`await message.get_delivery_count()` on `RedisStreamMessage` to read its current
-delivery count from the Redis [Pending Entries List](https://redis.io/docs/latest/develop/data-types/streams/#viewing-pending-messages){.external-link target="_blank"}.
+`await message.get_delivery_count(redis, group)` on `RedisStreamMessage` to read
+its current delivery count from the Redis [Pending Entries List](https://redis.io/docs/latest/develop/data-types/streams/#viewing-pending-messages){.external-link target="_blank"}.
 
 ```python
-from faststream.redis import RedisStreamMessage, StreamSub
+from faststream.redis import Redis, RedisStreamMessage, StreamSub
 
 @broker.subscriber(
     stream=StreamSub("orders", group="workers", consumer="worker-1")
 )
-async def handle_order(message: RedisStreamMessage) -> None:
-    delivery_count = await message.get_delivery_count()
+async def handle_order(message: RedisStreamMessage, redis: Redis) -> None:
+    delivery_count = await message.get_delivery_count(redis, "workers")
 ```
 
 Each call performs an exact-ID `XPENDING RANGE` query, so the value is a live
 snapshot rather than cached message metadata. A newly delivered message returns
 `1`, and `XAUTOCLAIM` increments the count before the claimed message reaches
-the handler. If the message is not associated with a consumer group, has no
-Redis message ID, or is no longer pending after acknowledgment, the method
-returns `1`. Redis errors such as a missing consumer group are propagated.
+the handler. If the message has no Redis message ID or is no longer pending
+after acknowledgment, the method returns `1`. Redis errors such as a missing
+consumer group are propagated.
 
 This method is available on `RedisStreamMessage`, not on batched stream
 messages. It adds one Redis round trip per call.

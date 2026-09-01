@@ -10,7 +10,6 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import AsyncCallable
 from faststream.redis.exceptions import StreamGroupNotFoundError
 from faststream.redis.message import (
     BatchStreamMessage,
@@ -31,7 +30,6 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
-    from faststream._internal.types import CustomCallable
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.schemas import StreamSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
@@ -352,30 +350,6 @@ class StreamSubscriber(_StreamHandlerMixin):
         config.decoder = parser.decode_message
         config.parser = parser.parse_message
         super().__init__(config, specification, calls)
-
-    @override
-    def _get_parser_and_decoder(
-        self,
-        item_parser: Optional["CustomCallable"] = None,
-        item_decoder: Optional["CustomCallable"] = None,
-    ) -> tuple[AsyncCallable, AsyncCallable]:
-        parser, decoder = super()._get_parser_and_decoder(
-            item_parser,
-            item_decoder,
-        )
-
-        async def parse_with_delivery_count_context(
-            message: Any,
-        ) -> "BrokerStreamMessage[Any]":
-            parsed: BrokerStreamMessage[Any] = await parser(message)
-            if isinstance(parsed, RedisStreamMessage):
-                parsed._set_delivery_count_context(
-                    redis=lambda: self._client,
-                    group=self.stream_sub.group,
-                )
-            return parsed
-
-        return parse_with_delivery_count_context, decoder
 
     async def _get_msgs(
         self,
