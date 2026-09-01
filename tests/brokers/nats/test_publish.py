@@ -91,10 +91,10 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
             await broker.start()
 
             await broker.publish(
-                queue,
                 None,
+                queue,
                 msg_ttl=1.0,
-                stream=stream
+                stream=stream.name
             )
 
             stream_context = broker.config.connection_state.stream

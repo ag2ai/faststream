@@ -93,10 +93,10 @@ class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
             await broker.start()
 
             response = await broker.request(
-                queue,
                 None,
+                queue,
                 msg_ttl=1.0,
-                stream=stream
+                stream=stream.name
             )
 
             stream_context = broker.config.connection_state.stream
