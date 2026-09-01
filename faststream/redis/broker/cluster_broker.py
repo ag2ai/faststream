@@ -70,6 +70,9 @@ class RedisClusterBroker(RedisBroker):
         if maxlen is not None:
             publish_kwargs["maxlen"] = maxlen
 
+        if not self._cluster_state:
+            await self._connect()
+
         return cast(
             "int | bytes",
             await super().publish(

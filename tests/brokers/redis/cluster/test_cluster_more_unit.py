@@ -215,11 +215,28 @@ class TestClusterBrokerWarnings:
     """Tests for RuntimeWarning on pipeline usage."""
 
     @pytest.mark.asyncio()
-    async def test_publish_with_pipeline_warns(self) -> None:
+    async def test_publish_with_pipeline_warns(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with TestRedisBroker(broker) as br:
-            with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-                await br.publish("hello", channel="ch", pipeline=None)
+        client = MagicMock()
+        client.publish = AsyncMock(return_value=1)
+
+        async def connect() -> MagicMock:
+            broker._cluster_state._client = client
+            broker._cluster_state._connected = True
+            return client
+
+        connect_mock = AsyncMock(side_effect=connect)
+        monkeypatch.setattr(broker, "_connect", connect_mock)
+
+        with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
+            result = await broker.publish("hello", channel="ch", pipeline=None)
+
+        assert result == 1
+        connect_mock.assert_awaited_once_with()
+        client.publish.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_publish_batch_with_pipeline_warns(self) -> None:
