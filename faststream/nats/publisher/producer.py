@@ -170,6 +170,7 @@ class NatsJSFastProducer(NatsFastProducer):
             headers=headers_to_send,
             stream=cmd.stream,
             timeout=cmd.timeout,
+            msg_ttl=cmd.msg_ttl
         )
 
     @override
@@ -198,6 +199,7 @@ class NatsJSFastProducer(NatsFastProducer):
                 headers=headers_to_send,
                 stream=cmd.stream,
                 timeout=cmd.timeout,
+                msg_ttl=cmd.msg_ttl
             )
 
             msg = await future

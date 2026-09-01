@@ -19,6 +19,7 @@ class NatsResponse(Response):
         correlation_id: str | None = None,
         stream: str | None = None,
         schedule: Optional["Schedule"] = None,
+        msg_ttl: float | None = None,
     ) -> None:
         super().__init__(
             body=body,
@@ -27,6 +28,7 @@ class NatsResponse(Response):
         )
         self.stream = stream
         self.schedule = schedule
+        self.msg_ttl = msg_ttl
 
     @override
     def as_publish_command(self) -> "NatsPublishCommand":
@@ -39,6 +41,7 @@ class NatsResponse(Response):
             subject="",
             stream=self.stream,
             schedule=self.schedule,
+            msg_ttl=self.msg_ttl
         )
 
 
@@ -55,6 +58,7 @@ class NatsPublishCommand(PublishCommand):
         timeout: float = 0.5,
         schedule: Optional["Schedule"] = None,
         _publish_type: PublishType,
+        msg_ttl: float | None = None,
     ) -> None:
         super().__init__(
             body=message,
@@ -68,6 +72,7 @@ class NatsPublishCommand(PublishCommand):
         self.stream = stream
         self.timeout = timeout
         self.schedule = schedule
+        self.msg_ttl = msg_ttl
 
     def headers_to_publish(self, *, js: bool = False) -> dict[str, str]:
         headers = {}
@@ -108,6 +113,8 @@ class NatsPublishCommand(PublishCommand):
             body.append(f"stream={self.stream}")
         if self.reply_to:
             body.append(f"reply_to='{self.reply_to}'")
+        if self.msg_ttl:
+            body.append(f"msg_ttl='{self.msg_ttl}'")
         body.extend((
             f"headers={self.headers}",
             f"correlation_id='{self.correlation_id}'",

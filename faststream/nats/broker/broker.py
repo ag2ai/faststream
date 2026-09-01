@@ -556,6 +556,7 @@ class NatsBroker(
         stream: None = None,
         timeout: float | None = None,
         schedule: Optional["Schedule"] = None,
+        msg_ttl: float | None = None,
     ) -> None: ...
 
     @overload
@@ -569,6 +570,7 @@ class NatsBroker(
         stream: str | None = None,
         timeout: float | None = None,
         schedule: Optional["Schedule"] = None,
+        msg_ttl: float | None = None,
     ) -> "PubAck": ...
 
     @override
@@ -582,6 +584,7 @@ class NatsBroker(
         stream: str | None = None,
         timeout: float | None = None,
         schedule: Optional["Schedule"] = None,
+        msg_ttl: float | None = None,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -626,6 +629,7 @@ class NatsBroker(
             timeout=timeout or 0.5,
             _publish_type=PublishType.PUBLISH,
             schedule=schedule,
+            msg_ttl=msg_ttl
         )
 
         result: PubAck | None
@@ -644,6 +648,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float = 0.5,
+        msg_ttl: float | None = None,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.
 
@@ -678,6 +683,7 @@ class NatsBroker(
             timeout=timeout,
             stream=stream,
             _publish_type=PublishType.REQUEST,
+            msg_ttl=msg_ttl,
         )
 
         producer = self.config.js_producer if stream is not None else self.config.producer

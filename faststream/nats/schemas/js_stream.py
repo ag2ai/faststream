@@ -58,6 +58,7 @@ class JStream(NameRequired):
         mirror_direct: bool | None = None,
         allow_msg_schedules: bool | None = None,
         declare: bool = True,
+        allow_msg_ttl: bool | None = None
     ) -> None:
         """Initialized JSrream.
 
@@ -133,6 +134,8 @@ class JStream(NameRequired):
                 Should allow message schedules.
             declare:
                 Whether to create stream automatically or just connect to it.
+            allow_msg_ttl:
+                Should allow per-message TTL via Nats-TTL header.
         """
         super().__init__(name)
 
@@ -167,6 +170,7 @@ class JStream(NameRequired):
             mirror_direct=mirror_direct,
             allow_msg_schedules=allow_msg_schedules,
             subjects=[],  # use subjects from builder in declaration
+            allow_msg_ttl=allow_msg_ttl
         )
 
 

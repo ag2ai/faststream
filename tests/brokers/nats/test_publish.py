@@ -74,6 +74,73 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
 
             assert await response.decode() == "Hi!", response
 
+    @pytest.mark.asyncio()
+    async def test_broker_publish_with_message_ttl(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        stream = JStream(queue, allow_msg_ttl=True)
+        broker = self.get_broker()
+
+        @broker.subscriber(queue, stream=stream)
+        async def handler(msg):
+            event.set()
+
+        async with self.patch_broker(broker):
+            await broker.start()
+
+            await broker.publish(
+                queue,
+                None,
+                msg_ttl=1.0,
+                stream=stream
+            )
+
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 1
+
+            await asyncio.sleep(2)
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 0
+
+        assert event.is_set()
+
+    @pytest.mark.asyncio()
+    async def test_publish_with_message_ttl(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        stream = JStream(queue, allow_msg_ttl=True)
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue, stream=stream)
+        @broker.subscriber(queue, stream=stream)
+        async def handler(msg):
+            event.set()
+
+        async with self.patch_broker(broker):
+            await broker.start()
+
+            await publisher.publish(
+                None,
+                msg_ttl=1.0
+            )
+
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 1
+
+            await asyncio.sleep(2)
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 0
+
+        assert event.is_set()
+
 
 @pytest.mark.asyncio()
 @pytest.mark.nats()

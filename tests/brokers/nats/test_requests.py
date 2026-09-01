@@ -1,8 +1,10 @@
+import asyncio
+
 import pytest
 
 from faststream import BaseMiddleware
 from tests.brokers.base.requests import RequestsTestcase
-
+from faststream.nats import JStream
 from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 
@@ -73,7 +75,72 @@ class NatsRequestsTestcase(RequestsTestcase):
 @pytest.mark.connected()
 @pytest.mark.nats()
 class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
-    pass
+
+    @pytest.mark.asyncio()
+    async def test_broker_request_with_message_ttl(
+        self,
+        queue: str,
+    ) -> None:
+        stream = JStream(queue, allow_msg_ttl=True)
+        broker = self.get_broker()
+
+
+        @broker.subscriber(queue, stream=stream)
+        async def handler(msg):
+            return "Response"
+
+        async with self.patch_broker(broker):
+            await broker.start()
+
+            response = await broker.request(
+                queue,
+                None,
+                msg_ttl=1.0,
+                stream=stream
+            )
+
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 1
+
+            await asyncio.sleep(2)
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 0
+
+        assert await response.decode() == "Response"
+
+    @pytest.mark.asyncio()
+    async def test_request_with_message_ttl(
+        self,
+        queue: str,
+    ) -> None:
+        stream = JStream(queue, allow_msg_ttl=True)
+        broker = self.get_broker()
+        publisher = broker.publisher(queue, stream=stream)
+
+        @broker.subscriber(queue, stream=stream)
+        async def handler(msg):
+            return "Response"
+
+        async with self.patch_broker(broker):
+            await broker.start()
+
+            response = await publisher.request(
+                None,
+                msg_ttl=1.0
+            )
+
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 1
+
+            await asyncio.sleep(2)
+            stream_context = broker.config.connection_state.stream
+            stream_info = await stream_context.stream_info(stream.name)
+            assert stream_info.state.messages == 0
+
+        assert await response.decode() == "Response"
 
 
 @pytest.mark.nats()

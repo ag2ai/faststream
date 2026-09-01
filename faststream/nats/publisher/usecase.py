@@ -58,6 +58,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: None = None,
         timeout: float | None = None,
+        msg_ttl: float | None = None,
     ) -> None: ...
 
     @overload
@@ -70,6 +71,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        msg_ttl: float | None = None,
     ) -> "PubAck": ...
 
     @override
@@ -82,6 +84,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        msg_ttl: float | None = None,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -104,6 +107,8 @@ class LogicPublisher(PublisherUsecase):
                 Can be omitted without any effect if you doesn't want PubAck frame.
             timeout:
                 Timeout to send message to NATS.
+            msg_ttl:
+                Per-message TTL in seconds.
 
         Returns:
             `None` if you publishes a regular message.
@@ -118,6 +123,7 @@ class LogicPublisher(PublisherUsecase):
             stream=stream or getattr(self.stream, "name", None),
             timeout=timeout or self.timeout,
             _publish_type=PublishType.PUBLISH,
+            msg_ttl=msg_ttl,
         )
 
         response: PubAck | None
@@ -177,6 +183,7 @@ class LogicPublisher(PublisherUsecase):
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float = 0.5,
+        msg_ttl: float | None = None,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.
 
@@ -199,6 +206,8 @@ class LogicPublisher(PublisherUsecase):
                 This allows to make RPC calls over JetStream subjects.
             timeout:
                 Timeout to send message to NATS.
+            msg_ttl:
+                Per-message TTL in seconds.
 
         Returns:
             `faststream.nats.message.NatsMessage` object as an outer subscriber response.
@@ -211,6 +220,7 @@ class LogicPublisher(PublisherUsecase):
             correlation_id=correlation_id or self._outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
             _publish_type=PublishType.REQUEST,
+            msg_ttl=msg_ttl
         )
 
         if cmd.stream:
