@@ -989,7 +989,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         self,
         queue: str,
     ) -> None:
-        broker = self.get_broker(apply_types=True)
+        broker = self.get_broker()
         subscriber = broker.subscriber(
             stream=StreamSub(queue, group="test_group", consumer="test_consumer")
         )
@@ -1012,7 +1012,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         self,
         queue: str,
     ) -> None:
-        broker = self.get_broker(apply_types=True)
+        broker = self.get_broker()
         subscriber = broker.subscriber(
             stream=StreamSub(queue, group="test_group", consumer="test_consumer")
         )
