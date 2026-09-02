@@ -378,6 +378,53 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 assert found, "Expected StreamClaimUnsupportedError to stop the task"
 
     @pytest.mark.slow()
+    async def test_unsupported_server_maps_error_in_get_one(self, queue: str) -> None:
+        """`get_one()` maps a CLAIM rejection to `StreamClaimUnsupportedError`."""
+        broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            subscriber = br.subscriber(
+                stream=StreamSub(
+                    queue,
+                    group="unsupported_get_one_group",
+                    consumer="claimer",
+                    claim_min_idle_time=100,
+                ),
+            )
+
+            reject = AsyncMock(side_effect=ResponseError("syntax error"))
+            with (
+                patch.object(Redis, "xreadgroup", reject),
+                pytest.raises(StreamClaimUnsupportedError),
+            ):
+                await subscriber.get_one(timeout=1)
+
+    @pytest.mark.slow()
+    async def test_unsupported_server_maps_error_in_iterator(self, queue: str) -> None:
+        """The async iterator maps a CLAIM rejection to `StreamClaimUnsupportedError`."""
+        broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            subscriber = br.subscriber(
+                stream=StreamSub(
+                    queue,
+                    group="unsupported_iter_group",
+                    consumer="claimer",
+                    claim_min_idle_time=100,
+                ),
+            )
+
+            reject = AsyncMock(side_effect=ResponseError("syntax error"))
+            with patch.object(Redis, "xreadgroup", reject):
+                iterator = subscriber.__aiter__()
+                with pytest.raises(StreamClaimUnsupportedError):
+                    await anext(iterator)
+
+    @pytest.mark.slow()
     async def test_tombstone_is_not_claimed(
         self,
         queue: str,

@@ -96,6 +96,16 @@ class _StreamHandlerMixin(LogicSubscriber):
             return {}
         return {"claim_min_idle_time": self.claim_min_idle_time}
 
+    def _raise_if_claim_rejected(self, e: "ResponseError") -> None:
+        """Map a pre-8.4 server's rejection of XREADGROUP CLAIM to a clear error."""
+        if self.claim_min_idle_time is not None and "syntax error" in str(e).lower():
+            msg = (
+                "Redis server rejected the XREADGROUP CLAIM option for "
+                f"stream `{self.stream_sub.name}`. `claim_min_idle_time` "
+                "requires Redis server 8.4+."
+            )
+            raise StreamClaimUnsupportedError(msg) from e
+
     def _parse_stream_entry(
         self,
         entry: "StreamEntry",
@@ -173,17 +183,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     )
                     raise StreamGroupNotFoundError(msg) from e
 
-                if (
-                    self.claim_min_idle_time is not None
-                    and "syntax error" in str(e).lower()
-                ):
-                    msg = (
-                        "Redis server rejected the XREADGROUP CLAIM option for "
-                        f"stream `{self.stream_sub.name}`. `claim_min_idle_time` "
-                        "requires Redis server 8.4+. Stopping subscriber."
-                    )
-                    raise StreamClaimUnsupportedError(msg) from e
-
+                self._raise_if_claim_rejected(e)
                 raise
 
             except Exception as e:
@@ -292,14 +292,18 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         if self.stream_sub.group and self.stream_sub.consumer:
             if self.min_idle_time is None:
-                stream_message = await self._client.xreadgroup(  # type: ignore[misc]
-                    groupname=self.stream_sub.group,
-                    consumername=self.stream_sub.consumer,
-                    streams={self.stream_sub.name: self.read_id},
-                    block=math.ceil(timeout * 1000),
-                    count=1,
-                    **self._claim_kwargs,
-                )
+                try:
+                    stream_message = await self._client.xreadgroup(  # type: ignore[misc]
+                        groupname=self.stream_sub.group,
+                        consumername=self.stream_sub.consumer,
+                        streams={self.stream_sub.name: self.read_id},
+                        block=math.ceil(timeout * 1000),
+                        count=1,
+                        **self._claim_kwargs,
+                    )
+                except ResponseError as e:
+                    self._raise_if_claim_rejected(e)
+                    raise
                 if not stream_message:
                     return None
 
@@ -373,14 +377,18 @@ class _StreamHandlerMixin(LogicSubscriber):
 
             if self.stream_sub.group and self.stream_sub.consumer:
                 if self.min_idle_time is None:
-                    stream_message = await self._client.xreadgroup(  # type: ignore[misc]
-                        groupname=self.stream_sub.group,
-                        consumername=self.stream_sub.consumer,
-                        streams={self.stream_sub.name: self.read_id},
-                        block=math.ceil(timeout * 1000),
-                        count=1,
-                        **self._claim_kwargs,
-                    )
+                    try:
+                        stream_message = await self._client.xreadgroup(  # type: ignore[misc]
+                            groupname=self.stream_sub.group,
+                            consumername=self.stream_sub.consumer,
+                            streams={self.stream_sub.name: self.read_id},
+                            block=math.ceil(timeout * 1000),
+                            count=1,
+                            **self._claim_kwargs,
+                        )
+                    except ResponseError as e:
+                        self._raise_if_claim_rejected(e)
+                        raise
                     if not stream_message:
                         continue
 
