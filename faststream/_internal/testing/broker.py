@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import (
     AsyncExitStack,
     asynccontextmanager,
@@ -214,9 +214,24 @@ class TestBroker(Generic[Broker, EnterType]):
                 mock = MagicMock()
                 publisher.set_test(mock=mock, with_fake=False)
                 for h in sub.calls:
+
+                    def create_side_effect(
+                        publisher_mock: MagicMock,
+                        subcriber_mock: MagicMock,
+                    ) -> Callable[..., None]:
+                        def side_effect(*args: Any, **kwargs: Any) -> None:
+                            publisher_mock.body = subcriber_mock.body
+                            publisher_mock.context = subcriber_mock.context
+
+                            publisher_mock(*args, **kwargs)
+
+                        return side_effect
+
                     h.handler.set_test()
                     assert h.handler.mock
-                    h.handler.mock.side_effect = mock
+                    h.handler.mock.side_effect = create_side_effect(
+                        publisher.mock, h.handler.mock
+                    )
 
             else:
                 handler = sub.calls[0].handler

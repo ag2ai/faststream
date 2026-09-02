@@ -6,11 +6,14 @@ from typing import (
 )
 from unittest.mock import MagicMock
 
+from faststream._internal.constants import EMPTY
+from faststream._internal.context import ContextRepo
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
@@ -45,6 +48,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
         self._fake_handler = False
         self.mock = MagicMock()
+        self.is_test = False
 
     async def start(self) -> None:
         pass
@@ -56,13 +60,15 @@ class PublisherUsecase(Endpoint, PublisherProto):
         with_fake: bool,
     ) -> None:
         """Turn publisher to testing mode."""
+        self.is_test = True
         self.mock = mock
         self._fake_handler = with_fake
 
     def reset_test(self) -> None:
         """Turn off publisher's testing mode."""
-        self._fake_handler = False
+        self.is_test = False
         self.mock.reset_mock()
+        self._fake_handler = False
 
     def __call__(
         self,
@@ -140,3 +146,22 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
     def schema(self) -> dict[str, "PublisherSpec"]:
         return self.specification.get_schema()
+
+    async def assert_called_once_with(
+        self,
+        body: Any = EMPTY,
+        context: dict[str, Any] = EMPTY,
+    ) -> None:
+        self.mock.assert_called_once()
+
+        if body != EMPTY:
+            serializer = self._outer_config.fd_config._serializer
+            codec = self._outer_config.broker_codec or DefaultCodec()
+
+            encoded_message, _ = await codec.encode(body, serializer)
+            assert self.mock.body == encoded_message
+
+        if context != EMPTY:
+            context_repo = ContextRepo(self.mock.context)
+            for key, value in context.items():
+                assert context_repo.resolve(key) == value

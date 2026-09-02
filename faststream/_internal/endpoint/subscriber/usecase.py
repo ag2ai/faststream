@@ -379,6 +379,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     result_msg = ensure_response(
                         await h.call(
                             message=message,
+                            context=context,
                             # consumer middlewares
                             _extra_middlewares=(
                                 m.consume_scope for m in middlewares[::-1]

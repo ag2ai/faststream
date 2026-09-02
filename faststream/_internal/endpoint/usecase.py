@@ -21,6 +21,6 @@ class Endpoint:
         func: Callable[P_HandlerParams, T_HandlerReturn],
     ) -> HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]:
         handler: HandlerCallWrapper[P_HandlerParams, T_HandlerReturn] = (
-            ensure_call_wrapper(func)
+            ensure_call_wrapper(func, self._outer_config)
         )
         return handler
