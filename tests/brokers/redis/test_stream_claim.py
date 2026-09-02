@@ -18,7 +18,7 @@ from faststream.redis.annotations import RedisBatchStreamMessage, RedisStreamMes
 
 from .basic import RedisTestcaseConfig
 
-pytestmark = pytest.mark.skipif(
+requires_claim_support = pytest.mark.skipif(
     not REDIS_V710,
     reason="`claim_min_idle_time` requires redis-py 7.1.0+",
 )
@@ -62,6 +62,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         )
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_consume_claimed_and_new_in_one_handler(
         self,
         queue: str,
@@ -112,6 +113,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         assert received[1][1] == 0, "new entry has no previous deliveries"
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_batch_metadata_aligned(
         self,
         queue: str,
@@ -182,6 +184,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         assert len(idles) == 2
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_get_one_with_claim(self, queue: str) -> None:
         """`get_one()` exposes the claim metadata of a reclaimed message."""
         broker = self.get_broker(apply_types=True)
@@ -210,6 +213,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             assert message.raw_message["idle_times"][0] >= 100
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_iterator_with_claim(self, queue: str) -> None:
         """The async iterator exposes the claim metadata of a reclaimed message."""
         broker = self.get_broker(apply_types=True)
@@ -236,6 +240,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 break
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_repeated_get_one_keeps_claiming(self, queue: str) -> None:
         """Repeated `get_one()` calls keep the `>` cursor and keep claiming."""
         broker = self.get_broker(apply_types=True)
@@ -277,6 +282,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_iterator_repeated_messages(self, queue: str) -> None:
         """The async iterator keeps the `>` cursor across messages."""
         broker = self.get_broker(apply_types=True)
@@ -313,6 +319,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_zero_claim_min_idle_time(self, queue: str) -> None:
         """`claim_min_idle_time=0` is a valid value claiming without idle wait."""
         broker = self.get_broker(apply_types=True)
@@ -338,6 +345,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             assert message.raw_message["delivery_counts"][0] >= 1
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_unsupported_server_stops_subscriber(
         self,
         queue: str,
@@ -378,6 +386,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 assert found, "Expected StreamClaimUnsupportedError to stop the task"
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_unsupported_server_maps_error_in_get_one(self, queue: str) -> None:
         """`get_one()` maps a CLAIM rejection to `StreamClaimUnsupportedError`."""
         broker = self.get_broker(apply_types=True)
@@ -402,6 +411,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 await subscriber.get_one(timeout=1)
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_unsupported_server_maps_error_in_iterator(self, queue: str) -> None:
         """The async iterator maps a CLAIM rejection to `StreamClaimUnsupportedError`."""
         broker = self.get_broker(apply_types=True)
@@ -425,6 +435,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                     await anext(iterator)
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_tombstone_is_not_claimed(
         self,
         queue: str,
@@ -471,6 +482,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             assert pending["pending"] == 1, "tombstone stays in the PEL"
 
     @pytest.mark.slow()
+    @requires_claim_support
     async def test_concurrent_subscriber(
         self,
         queue: str,
@@ -512,6 +524,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         assert event.is_set()
         assert set(received) == {"pending_message", "new_message"}
 
+    @requires_claim_support
     async def test_no_metadata_without_option(self, queue: str) -> None:
         """Regression: without the option the raw message stays unchanged."""
         broker = self.get_broker(apply_types=True)
@@ -542,6 +555,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
 
 @pytest.mark.redis()
 @pytest.mark.asyncio()
+@requires_claim_support
 async def test_memory_broker_attaches_claim_metadata(queue: str) -> None:
     """TestRedisBroker exposes the metadata keys the docs reference."""
     broker = RedisBroker(apply_types=True)
