@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
 from redis.exceptions import ResponseError
-from typing_extensions import TypedDict, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
@@ -58,10 +58,6 @@ ReadResponse = tuple[
 ReadCallable = Callable[[str], Awaitable[ReadResponse]]
 
 
-class _ClaimKwargs(TypedDict, total=False):
-    claim_min_idle_time: int
-
-
 class _StreamHandlerMixin(LogicSubscriber):
     def __init__(
         self,
@@ -82,19 +78,6 @@ class _StreamHandlerMixin(LogicSubscriber):
     @property
     def stream_sub(self) -> "StreamSub":
         return self._stream_sub.add_prefix(self._outer_config.prefix)
-
-    @property
-    def _claim_kwargs(self) -> _ClaimKwargs:
-        """`xreadgroup` kwargs enabling the XREADGROUP CLAIM option.
-
-        Passed conditionally: redis-py older than 7.1.0 doesn't accept the
-        `claim_min_idle_time` argument at all. The `type: ignore[misc]` at the
-        call sites is needed because the types-redis stubs (4.6) predate the
-        argument, while redis-py itself accepts it since 7.1.0.
-        """
-        if self.claim_min_idle_time is None:
-            return {}
-        return {"claim_min_idle_time": self.claim_min_idle_time}
 
     def _raise_if_claim_rejected(self, e: "ResponseError") -> None:
         """Map a pre-8.4 server's rejection of XREADGROUP CLAIM to a clear error."""
@@ -233,14 +216,26 @@ class _StreamHandlerMixin(LogicSubscriber):
                 def read(
                     _: str,
                 ) -> Awaitable[ReadResponse]:
-                    return client.xreadgroup(  # type: ignore[misc]
+                    if self.claim_min_idle_time is None:
+                        return client.xreadgroup(
+                            groupname=stream.group,
+                            consumername=stream.consumer,
+                            streams={stream.name: self.read_id},
+                            count=stream.max_records,
+                            block=stream.polling_interval,
+                            noack=stream.no_ack,
+                        )
+                    # redis-py < 7.1.0 does not accept `claim_min_idle_time`;
+                    # StreamSub validation guarantees 7.1.0+ when it is set.
+                    # (`type: ignore`: the types-redis stubs predate the argument.)
+                    return client.xreadgroup(  # type: ignore[call-arg]
                         groupname=stream.group,
                         consumername=stream.consumer,
                         streams={stream.name: self.read_id},
                         count=stream.max_records,
                         block=stream.polling_interval,
                         noack=stream.no_ack,
-                        **self._claim_kwargs,
+                        claim_min_idle_time=self.claim_min_idle_time,
                     )
 
             else:
@@ -293,14 +288,26 @@ class _StreamHandlerMixin(LogicSubscriber):
         if self.stream_sub.group and self.stream_sub.consumer:
             if self.min_idle_time is None:
                 try:
-                    stream_message = await self._client.xreadgroup(  # type: ignore[misc]
-                        groupname=self.stream_sub.group,
-                        consumername=self.stream_sub.consumer,
-                        streams={self.stream_sub.name: self.read_id},
-                        block=math.ceil(timeout * 1000),
-                        count=1,
-                        **self._claim_kwargs,
-                    )
+                    if self.claim_min_idle_time is None:
+                        stream_message = await self._client.xreadgroup(
+                            groupname=self.stream_sub.group,
+                            consumername=self.stream_sub.consumer,
+                            streams={self.stream_sub.name: self.read_id},
+                            block=math.ceil(timeout * 1000),
+                            count=1,
+                        )
+                    else:
+                        # redis-py < 7.1.0 does not accept `claim_min_idle_time`;
+                        # StreamSub validation guarantees 7.1.0+ when it is set.
+                        # (`type: ignore`: the types-redis stubs predate the argument.)
+                        stream_message = await self._client.xreadgroup(  # type: ignore[call-arg]
+                            groupname=self.stream_sub.group,
+                            consumername=self.stream_sub.consumer,
+                            streams={self.stream_sub.name: self.read_id},
+                            block=math.ceil(timeout * 1000),
+                            count=1,
+                            claim_min_idle_time=self.claim_min_idle_time,
+                        )
                 except ResponseError as e:
                     self._raise_if_claim_rejected(e)
                     raise
@@ -378,14 +385,26 @@ class _StreamHandlerMixin(LogicSubscriber):
             if self.stream_sub.group and self.stream_sub.consumer:
                 if self.min_idle_time is None:
                     try:
-                        stream_message = await self._client.xreadgroup(  # type: ignore[misc]
-                            groupname=self.stream_sub.group,
-                            consumername=self.stream_sub.consumer,
-                            streams={self.stream_sub.name: self.read_id},
-                            block=math.ceil(timeout * 1000),
-                            count=1,
-                            **self._claim_kwargs,
-                        )
+                        if self.claim_min_idle_time is None:
+                            stream_message = await self._client.xreadgroup(
+                                groupname=self.stream_sub.group,
+                                consumername=self.stream_sub.consumer,
+                                streams={self.stream_sub.name: self.read_id},
+                                block=math.ceil(timeout * 1000),
+                                count=1,
+                            )
+                        else:
+                            # redis-py < 7.1.0 does not accept `claim_min_idle_time`;
+                            # StreamSub validation guarantees 7.1.0+ when it is set.
+                            # (`type: ignore`: the types-redis stubs predate the argument.)
+                            stream_message = await self._client.xreadgroup(  # type: ignore[call-arg]
+                                groupname=self.stream_sub.group,
+                                consumername=self.stream_sub.consumer,
+                                streams={self.stream_sub.name: self.read_id},
+                                block=math.ceil(timeout * 1000),
+                                count=1,
+                                claim_min_idle_time=self.claim_min_idle_time,
+                            )
                     except ResponseError as e:
                         self._raise_if_claim_rejected(e)
                         raise
