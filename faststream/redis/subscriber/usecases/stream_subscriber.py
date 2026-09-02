@@ -332,11 +332,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
             ((stream_name, ((message_id, raw_message),)),) = stream_message
 
-        # With claiming enabled the group cursor must stay `>`: Redis ignores
-        # the CLAIM option for explicit ids. The plain group-read cursor drift
-        # is a pre-existing behavior, tracked separately in #3050.
-        if self.claim_min_idle_time is None:
-            self.last_id = message_id.decode()
+        self.last_id = message_id.decode()
 
         redis_incoming_msg = DefaultStreamMessage(
             type="stream",
@@ -419,8 +415,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
                 ((stream_name, ((message_id, raw_message),)),) = stream_message
 
-            if self.claim_min_idle_time is None:
-                self.last_id = message_id.decode()
+            self.last_id = message_id.decode()
 
             redis_incoming_msg = DefaultStreamMessage(
                 type="stream",

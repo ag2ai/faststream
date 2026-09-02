@@ -273,8 +273,8 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             for message in (first, second):
                 assert message.raw_message["delivery_counts"][0] >= 1
 
-            # The group cursor survived both reads
-            assert subscriber.last_id == ">"
+            # The group read cursor survived both reads
+            assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
     async def test_iterator_repeated_messages(self, queue: str) -> None:
@@ -310,7 +310,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                     break
 
             assert got == {"first", "second"}
-            assert subscriber.last_id == ">"
+            assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
     async def test_zero_claim_min_idle_time(self, queue: str) -> None:
