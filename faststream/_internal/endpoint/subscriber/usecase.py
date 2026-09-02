@@ -1,3 +1,4 @@
+import warnings
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack
@@ -235,6 +236,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         dependencies_: Iterable["Dependant"],
         codec_: Optional["CodecProto"] = None,
     ) -> Self:
+        if decoder_ is not None:
+            warnings.warn(
+                "`decoder` parameter is deprecated and will be removed in 1.0.0. "
+                "Use `codec` with a custom `encode()`/`decode()` method instead.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+
         self._call_options = _CallOptions(
             parser=parser_,
             decoder=decoder_,
@@ -284,6 +293,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         ],
     ]:
+        if decoder is not None:
+            warnings.warn(
+                "`decoder` parameter is deprecated and will be removed in 1.0.0. "
+                "Use `codec` with a custom `encode()`/`decode()` method instead.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+
         total_deps = (*self._call_options.dependencies, *dependencies)
         async_filter = cast(
             "AsyncFilter[StreamMessage[MsgType]]",

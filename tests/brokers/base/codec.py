@@ -4,8 +4,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import DefaultCodec, EncodedMessage
 from faststream.message.utils import encode_message
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
@@ -103,9 +105,9 @@ class CodecTestcase(BaseTestcaseConfig):
         mock = MagicMock()
 
         class TrackingCodec(DefaultCodec):
-            async def encode(self, msg, serializer=None):
+            async def encode(self, cmd, serializer=None):
                 mock()
-                return await super().encode(msg, serializer)
+                return await super().encode(cmd, serializer)
 
         broker = self.get_broker(codec=TrackingCodec())
 
@@ -131,9 +133,14 @@ class CodecTestcase(BaseTestcaseConfig):
         ]
 
         for msg in test_cases:
-            codec_result = await codec.encode(msg, None)
+            codec_result = await codec.encode(
+                PublishCommand(
+                    body=msg, destination="test", _publish_type=PublishType.PUBLISH
+                ),
+                None,
+            )
             direct_result = encode_message(msg, None)
-            assert codec_result == direct_result, (
+            assert (codec_result.body, codec_result.content_type) == direct_result, (
                 f"DefaultCodec.encode({msg!r}) = {codec_result!r} "
                 f"but encode_message({msg!r}) = {direct_result!r}"
             )
@@ -151,10 +158,22 @@ class BatchCodecTestcase(BaseTestcaseConfig):
         class TrackingBatchCodec(DefaultCodec):
             async def encode_batch(
                 self,
-                msgs: Sequence[Any],
+                cmd,
                 serializer: Any = None,
-            ) -> list[tuple[bytes, str | None]]:
-                return [await DefaultCodec.encode(self, m, serializer) for m in msgs]
+            ) -> list[EncodedMessage]:
+                encoded_messages = []
+                for body in cmd.batch_bodies:
+                    encoded_messages.append(  # noqa: PERF401
+                        await super().encode(
+                            PublishCommand(
+                                body=body,
+                                destination=cmd.destination,
+                                _publish_type=cmd.publish_type,
+                            ),
+                            serializer,
+                        )
+                    )
+                return encoded_messages
 
             async def decode_batch(self, msg: Any) -> list[Any]:
                 decode_batch_mock()
@@ -182,11 +201,23 @@ class BatchCodecTestcase(BaseTestcaseConfig):
         class TrackingBatchCodec(DefaultCodec):
             async def encode_batch(
                 self,
-                msgs: Sequence[Any],
+                cmd,
                 serializer: Any = None,
-            ) -> list[tuple[bytes, str | None]]:
+            ) -> list[EncodedMessage]:
                 encode_batch_mock()
-                return [await DefaultCodec.encode(self, m, serializer) for m in msgs]
+                encoded_messages = []
+                for body in cmd.batch_bodies:
+                    encoded_messages.append(  # noqa: PERF401
+                        await super().encode(
+                            PublishCommand(
+                                body=body,
+                                destination=cmd.destination,
+                                _publish_type=cmd.publish_type,
+                            ),
+                            serializer,
+                        )
+                    )
+                return encoded_messages
 
             async def decode_batch(self, msg: Any) -> list[Any]:
                 return [b.decode() if isinstance(b, bytes) else b for b in msg.body]
@@ -224,7 +255,7 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 self,
                 msgs: Sequence[Any],
                 serializer: Any = None,
-            ) -> list[tuple[bytes, str | None]]:
+            ) -> list[EncodedMessage]:
                 return [await super().encode(m, serializer) for m in msgs]
 
             async def decode_batch(self, msg: Any) -> list[Any]:

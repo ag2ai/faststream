@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
@@ -39,6 +40,15 @@ class BrokerConfig:
     graceful_timeout: float | None = None
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.broker_decoder is not None:
+            warnings.warn(
+                "`decoder` parameter is deprecated and will be removed in 1.0.0. "
+                "Use `codec` with a custom `encode()`/`decode()` method instead.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
