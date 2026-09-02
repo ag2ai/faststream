@@ -1,6 +1,8 @@
-from typing import TYPE_CHECKING, Optional, Protocol, cast
+from copy import deepcopy
+from typing import TYPE_CHECKING, Any, Optional, Protocol, cast
 
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
     import aio_pika
@@ -8,6 +10,41 @@ if TYPE_CHECKING:
     from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
 
     from .channel_manager import ChannelManager
+
+
+def _queue_declaration(queue: "RabbitQueue") -> dict[str, Any]:
+    return {
+        "durable": queue.durable,
+        "exclusive": queue.exclusive,
+        "auto_delete": queue.auto_delete,
+        "arguments": deepcopy(queue.arguments or {}),
+    }
+
+
+def _exchange_declaration(exchange: "RabbitExchange") -> dict[str, Any]:
+    return {
+        "type": exchange.type,
+        "durable": exchange.durable,
+        "auto_delete": exchange.auto_delete,
+        "arguments": deepcopy(exchange.arguments or {}),
+    }
+
+
+def _validate_declaration(
+    object_type: str,
+    name: str,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> None:
+    conflicting = tuple(
+        setting for setting, value in current.items() if previous[setting] != value
+    )
+    if conflicting:
+        msg = (
+            f"{object_type} {name!r} is already declared with conflicting settings: "
+            f"{', '.join(conflicting)}."
+        )
+        raise SetupError(msg)
 
 
 class RabbitDeclarer(Protocol):
@@ -64,8 +101,14 @@ class RabbitDeclarerImpl(RabbitDeclarer):
 
     def __init__(self, channel_manager: "ChannelManager") -> None:
         self.__channel_manager = channel_manager
-        self._queues: dict[RabbitQueue, aio_pika.RobustQueue] = {}
-        self._exchanges: dict[RabbitExchange, aio_pika.RobustExchange] = {}
+        self._queues: dict[
+            str,
+            tuple[dict[str, Any] | None, aio_pika.RobustQueue],
+        ] = {}
+        self._exchanges: dict[
+            str,
+            tuple[dict[str, Any] | None, aio_pika.RobustExchange],
+        ] = {}
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(queues={list(self._queues.keys())}, exchanges={list(self._exchanges.keys())})"
@@ -81,13 +124,16 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         *,
         channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustQueue":
-        if (q := self._queues.get(queue)) is None:
-            if declare is EMPTY:
-                declare = queue.declare
+        if declare is EMPTY:
+            declare = queue.declare
 
+        current = _queue_declaration(queue)
+        cached = self._queues.get(queue.name)
+
+        if cached is None or (declare and cached[0] is None):
             channel_obj = await self.__channel_manager.get_channel(channel)
 
-            self._queues[queue] = q = cast(
+            q = cast(
                 "aio_pika.RobustQueue",
                 await channel_obj.declare_queue(
                     name=queue.name,
@@ -95,11 +141,23 @@ class RabbitDeclarerImpl(RabbitDeclarer):
                     exclusive=queue.exclusive,
                     passive=not declare,
                     auto_delete=queue.auto_delete,
-                    arguments=queue.arguments,
+                    arguments=deepcopy(queue.arguments),
                     timeout=queue.timeout,
                     robust=queue.robust,
                 ),
             )
+            self._queues[queue.name] = (current if declare else None, q)
+
+        else:
+            previous, q = cached
+            if declare:
+                assert previous is not None
+                _validate_declaration(
+                    "RabbitQueue",
+                    queue.name,
+                    previous,
+                    current,
+                )
 
         return q
 
@@ -115,11 +173,14 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         if not exchange.name:
             return channel_obj.default_exchange
 
-        if (exch := self._exchanges.get(exchange)) is None:
-            if declare is EMPTY:
-                declare = exchange.declare
+        if declare is EMPTY:
+            declare = exchange.declare
 
-            self._exchanges[exchange] = exch = cast(
+        current = _exchange_declaration(exchange)
+        cached = self._exchanges.get(exchange.name)
+
+        if cached is None or (declare and cached[0] is None):
+            exch = cast(
                 "aio_pika.RobustExchange",
                 await channel_obj.declare_exchange(
                     name=exchange.name,
@@ -127,11 +188,15 @@ class RabbitDeclarerImpl(RabbitDeclarer):
                     durable=exchange.durable,
                     auto_delete=exchange.auto_delete,
                     passive=not declare,
-                    arguments=exchange.arguments,
+                    arguments=deepcopy(exchange.arguments),
                     timeout=exchange.timeout,
                     robust=exchange.robust,
                     internal=False,  # deprecated RMQ option
                 ),
+            )
+            self._exchanges[exchange.name] = (
+                current if declare else None,
+                exch,
             )
 
             if exchange.bind_to is not None:
@@ -142,6 +207,17 @@ class RabbitDeclarerImpl(RabbitDeclarer):
                     arguments=exchange.bind_arguments,
                     timeout=exchange.timeout,
                     robust=exchange.robust,
+                )
+
+        else:
+            previous, exch = cached
+            if declare:
+                assert previous is not None
+                _validate_declaration(
+                    "RabbitExchange",
+                    exchange.name,
+                    previous,
+                    current,
                 )
 
         return exch
