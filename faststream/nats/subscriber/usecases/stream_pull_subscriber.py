@@ -91,19 +91,76 @@ class PullStreamSubscriber(
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
     @override
-    async def _create_subscription(self) -> None:
-        """Create NATS subscription and start consume task."""
-        if self.subscription:
+    async def _consume_pull(
+        self,
+        cb: Callable[["Msg"], Awaitable["SendableMessage"]],
+    ) -> None:
+        """Consume no more messages than the available worker capacity."""
+        if not self.running:
             return
 
-        self.start_consume_task()
+        assert self.subscription
+        fetch_error: Exception | None = None
 
-        self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.subject.broker_address,
-            config=self.config,
-            **self.extra_options,
-        )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
+        async with anyio.create_task_group() as tg:
+            while self.running:  # pragma: no branch
+                reserved_slots = await self._reserve_worker_slots()
+
+                try:
+                    if not self.running:
+                        continue
+
+                    try:
+                        messages = await self.subscription.fetch(
+                            batch=reserved_slots,
+                            timeout=self.pull_sub.timeout,
+                        )
+                    except (
+                        TimeoutError,
+                        ConnectionClosedError,
+                        ServiceUnavailableError,
+                    ):
+                        continue
+                    except Exception as exc:
+                        fetch_error = exc
+                        break
+
+                    for msg in messages:
+                        tg.start_soon(self._consume_with_release, cb, msg)
+                        reserved_slots -= 1
+
+                finally:
+                    for _ in range(reserved_slots):
+                        self.limiter.release()
+
+        if fetch_error is not None and self.running:
+            raise fetch_error
+
+    async def _reserve_worker_slots(self) -> int:
+        """Reserve the currently available capacity for the next fetch."""
+        max_slots = min(self.pull_sub.batch_size, self.max_workers)
+        if max_slots < 1:
+            return max_slots
+
+        await self.limiter.acquire()
+        reserved_slots = 1
+
+        while reserved_slots < max_slots and self.limiter.value:
+            self.limiter.acquire_nowait()
+            reserved_slots += 1
+
+        return reserved_slots
+
+    async def _consume_with_release(
+        self,
+        cb: Callable[["Msg"], Awaitable["SendableMessage"]],
+        msg: "Msg",
+    ) -> None:
+        """Release reserved capacity only after message processing finishes."""
+        try:
+            await cb(msg)
+        finally:
+            self.limiter.release()
 
 
 class BatchPullStreamSubscriber(
