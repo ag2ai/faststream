@@ -18,7 +18,7 @@ def test_stream_group() -> None:
 
 @pytest.mark.redis()
 @pytest.mark.parametrize(
-    "kwargs",
+    ("kwargs", "match"),
     (
         pytest.param(
             {
@@ -27,10 +27,12 @@ def test_stream_group() -> None:
                 "min_idle_time": 1000,
                 "claim_min_idle_time": 1000,
             },
+            "mutually exclusive",
             id="mutually exclusive with min_idle_time",
         ),
         pytest.param(
             {"claim_min_idle_time": 1000},
+            "requires `group` and `consumer`",
             id="requires group and consumer",
         ),
         pytest.param(
@@ -40,6 +42,7 @@ def test_stream_group() -> None:
                 "last_id": "0",
                 "claim_min_idle_time": 1000,
             },
+            "requires last_id `>`",
             id="requires last_id `>`",
         ),
         pytest.param(
@@ -49,12 +52,13 @@ def test_stream_group() -> None:
                 "no_ack": True,
                 "claim_min_idle_time": 1000,
             },
+            "infinite redelivery",
             id="incompatible with no_ack",
         ),
     ),
 )
-def test_stream_claim_min_idle_time_misconfiguration(kwargs: dict) -> None:
-    with pytest.raises(SetupError):
+def test_stream_claim_min_idle_time_misconfiguration(kwargs: dict, match: str) -> None:
+    with pytest.raises(SetupError, match=match):
         StreamSub("test", **kwargs)
 
 
