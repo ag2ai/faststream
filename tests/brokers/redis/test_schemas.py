@@ -17,6 +17,10 @@ def test_stream_group() -> None:
 
 
 @pytest.mark.redis()
+@pytest.mark.skipif(
+    not REDIS_V710,
+    reason="on redis-py < 7.1.0 the version guard raises before these checks",
+)
 @pytest.mark.parametrize(
     ("kwargs", "match"),
     (
