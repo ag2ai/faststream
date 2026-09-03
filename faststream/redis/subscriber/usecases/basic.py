@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
 
@@ -11,9 +11,7 @@ from faststream._internal.endpoint.subscriber import (
     SubscriberSpecification,
     SubscriberUsecase,
 )
-from faststream._internal.endpoint.subscriber.hints import check_context_annotations
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.redis.message import (
     UnifyRedisDict,
 )
@@ -22,7 +20,6 @@ from faststream.redis.publisher.fake import RedisFakePublisher
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
-    from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
@@ -45,22 +42,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
 
     _outer_config: "RedisBrokerConfig"
-
-    @override
-    def _create_call(
-        self,
-        func: Callable[P_HandlerParams, T_HandlerReturn],
-        **kwargs: Any,
-    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
-        from faststream.redis import annotations
-
-        check_context_annotations(
-            func,
-            annotations.CONTEXT_ANNOTATIONS,
-            annotations.__name__,
-        )
-
-        return super()._create_call(func, **kwargs)
 
     def __init__(
         self,

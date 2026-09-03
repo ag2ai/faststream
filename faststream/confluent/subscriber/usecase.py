@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -13,16 +13,14 @@ from confluent_kafka import KafkaException, Message
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.subscriber.hints import check_context_annotations
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
+from faststream._internal.types import MsgType
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
 
 if TYPE_CHECKING:
-    from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -43,22 +41,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     consumer: Optional["AsyncConfluentConsumer"]
     parser: AsyncConfluentParser
-
-    @override
-    def _create_call(
-        self,
-        func: Callable[P_HandlerParams, T_HandlerReturn],
-        **kwargs: Any,
-    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
-        from faststream.confluent import annotations
-
-        check_context_annotations(
-            func,
-            annotations.CONTEXT_ANNOTATIONS,
-            annotations.__name__,
-        )
-
-        return super()._create_call(func, **kwargs)
 
     def __init__(
         self,

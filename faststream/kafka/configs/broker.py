@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Optional
@@ -21,6 +21,14 @@ from faststream.kafka.schemas.params import (
 )
 
 
+def _context_annotations() -> "Mapping[type[Any], Any]":
+    # `annotations` reaches this module through the broker, so it can only be
+    # imported once the package is built.
+    from faststream.kafka.annotations import CONTEXT_ANNOTATIONS
+
+    return CONTEXT_ANNOTATIONS
+
+
 @dataclass(kw_only=True)
 class KafkaBrokerConfig(BrokerConfig):
     producer: "AioKafkaFastProducer" = field(default_factory=FakeAioKafkaFastProducer)
@@ -31,6 +39,10 @@ class KafkaBrokerConfig(BrokerConfig):
     consumer_only: bool = False
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
+
+    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
+        default_factory=_context_annotations
+    )
 
     @property
     def admin_client(self) -> "aiokafka.admin.client.AIOKafkaAdminClient":

@@ -59,11 +59,11 @@ def test_use_only_confluent_router() -> None:
 @pytest.mark.confluent()
 def test_driver_class_annotation_names_the_import_to_use() -> None:
     expected = (
-        "`handler` parameter `consumer` is annotated with"
+        "`consumer` is annotated with"
         " `faststream.confluent.helpers.client.AsyncConfluentConsumer`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        "\n    from faststream.confluent.annotations import Consumer\n"
+        '\n    Annotated[AsyncConfluentConsumer, Context("handler_.consumer")]\n'
     )
 
     broker = KafkaBroker()

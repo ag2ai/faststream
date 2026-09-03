@@ -15,6 +15,9 @@ from typing import (
 
 from typing_extensions import Self, overload, override
 
+from faststream._internal.endpoint.subscriber.hints import (
+    check_context_annotations,
+)
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto
@@ -315,7 +318,11 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         decoder: Optional["CustomCallable"],
         dependencies: Iterable["Dependant"],
     ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
-        """Register the decorated handler. Brokers override it to validate `func`."""
+        check_context_annotations(
+            func,
+            self._outer_config.underlying_driver_annotations,
+        )
+
         handler = super().__call__(func)
         handler._subscribers.append(self)
 

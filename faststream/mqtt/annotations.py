@@ -24,10 +24,10 @@ MQTTMessage = Annotated[MM, Context("message")]
 MQTTBroker = Annotated[MB, Context("broker")]
 
 
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
     {
-        MQTTClient: "Client",
-        MB: "MQTTBroker",
-        MM: "MQTTMessage",
+        MQTTClient: Client,
+        MB: MQTTBroker,
+        MM: MQTTMessage,
     },
 )

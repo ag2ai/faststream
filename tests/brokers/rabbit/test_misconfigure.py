@@ -24,11 +24,11 @@ def test_use_only_rabbit_router() -> None:
 @pytest.mark.rabbit()
 def test_driver_class_annotation_names_the_import_to_use() -> None:
     expected = (
-        "`handler` parameter `connection` is annotated with"
+        "`connection` is annotated with"
         " `aio_pika.robust_connection.RobustConnection`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        "\n    from faststream.rabbit.annotations import Connection\n"
+        '\n    Annotated[RobustConnection, Context("broker._connection")]\n'
     )
 
     broker = RabbitBroker()

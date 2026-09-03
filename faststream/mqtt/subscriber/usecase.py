@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
@@ -9,16 +9,13 @@ import zmqtt
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.subscriber.hints import check_context_annotations
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.parser import MQTTBaseParser, MQTTParserV5, MQTTParserV311
 from faststream.mqtt.publisher.fake import MQTTFakePublisher
 
 if TYPE_CHECKING:
-    from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
@@ -33,22 +30,6 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     """Base class for all MQTT subscribers."""
 
     _outer_config: "MQTTBrokerConfig"
-
-    @override
-    def _create_call(
-        self,
-        func: Callable[P_HandlerParams, T_HandlerReturn],
-        **kwargs: Any,
-    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
-        from faststream.mqtt import annotations
-
-        check_context_annotations(
-            func,
-            annotations.CONTEXT_ANNOTATIONS,
-            annotations.__name__,
-        )
-
-        return super()._create_call(func, **kwargs)
 
     def __init__(
         self,

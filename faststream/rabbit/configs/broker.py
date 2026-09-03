@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal.configs import BrokerConfig
 from faststream._internal.parser import DefaultCodec
@@ -8,10 +8,20 @@ from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from aio_pika import RobustConnection
 
     from faststream.rabbit.helpers import ChannelManager, RabbitDeclarer
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
+
+
+def _context_annotations() -> "Mapping[type[Any], Any]":
+    # `annotations` reaches this module through the broker, so it can only be
+    # imported once the package is built.
+    from faststream.rabbit.annotations import CONTEXT_ANNOTATIONS
+
+    return CONTEXT_ANNOTATIONS
 
 
 @dataclass(kw_only=True)
@@ -22,6 +32,10 @@ class RabbitBrokerConfig(BrokerConfig):
 
     virtual_host: str = ""
     app_id: str | None = None
+
+    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
+        default_factory=_context_annotations
+    )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

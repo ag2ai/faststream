@@ -67,11 +67,11 @@ def test_use_only_redis_router() -> None:
 @pytest.mark.redis()
 def test_driver_class_annotation_names_the_import_to_use() -> None:
     expected = (
-        "`handler` parameter `redis` is annotated with"
+        "`redis` is annotated with"
         " `redis.asyncio.client.Redis`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        "\n    from faststream.redis.annotations import Redis\n"
+        '\n    Annotated[Redis, Context("broker._connection")]\n'
     )
 
     broker = RedisBroker()

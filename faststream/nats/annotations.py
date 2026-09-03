@@ -37,13 +37,13 @@ Client = Annotated[_NatsClient, Context("broker.config.connection_state.connecti
 JsClient = Annotated[_JetStream, Context("broker.config.connection_state.stream")]
 
 
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
     {
-        _NatsClient: "Client",
-        _JetStream: "JsClient",
-        _ObjectStore: "ObjectStorage",
-        _Broker: "NatsBroker",
-        _Message: "NatsMessage",
-        _KVMessage: "NatsKvMessage",
+        _NatsClient: Client,
+        _JetStream: JsClient,
+        _ObjectStore: ObjectStorage,
+        _Broker: NatsBroker,
+        _Message: NatsMessage,
+        _KVMessage: NatsKvMessage,
     },
 )

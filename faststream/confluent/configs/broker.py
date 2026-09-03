@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -19,6 +19,14 @@ from faststream.confluent.publisher.producer import (
 if TYPE_CHECKING:
     from faststream._internal.logger import LoggerState
     from faststream.confluent.schemas import Topic
+
+
+def _context_annotations() -> "Mapping[type[Any], Any]":
+    # `annotations` reaches this module through the broker, so it can only be
+    # imported once the package is built.
+    from faststream.confluent.annotations import CONTEXT_ANNOTATIONS
+
+    return CONTEXT_ANNOTATIONS
 
 
 @dataclass
@@ -49,6 +57,10 @@ class KafkaBrokerConfig(BrokerConfig):
     builder: Callable[..., AsyncConfluentConsumer] = field(init=False)
     producer: "AsyncConfluentFastProducer" = field(
         default_factory=FakeConfluentFastProducer,
+    )
+
+    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
+        default_factory=_context_annotations
     )
 
     def __post_init__(self) -> None:

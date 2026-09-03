@@ -10,6 +10,8 @@ from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
 from faststream.nats.publisher.producer import FakeNatsFastProducer
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from nats.aio.client import Client
 
     from faststream.nats.publisher.producer import NatsFastProducer
@@ -22,6 +24,14 @@ class JsInitOptions(TypedDict, total=False):
     publish_async_max_pending: int
 
 
+def _context_annotations() -> "Mapping[type[Any], Any]":
+    # `annotations` reaches this module through the broker, so it can only be
+    # imported once the package is built.
+    from faststream.nats.annotations import CONTEXT_ANNOTATIONS
+
+    return CONTEXT_ANNOTATIONS
+
+
 @dataclass(kw_only=True)
 class NatsBrokerConfig(BrokerConfig):
     js_options: JsInitOptions | dict[str, Any] = field(default_factory=dict)
@@ -31,6 +41,10 @@ class NatsBrokerConfig(BrokerConfig):
     connection_state: BrokerState = field(default_factory=BrokerState)
     kv_declarer: KVBucketDeclarer = field(default_factory=KVBucketDeclarer)
     os_declarer: OSBucketDeclarer = field(default_factory=OSBucketDeclarer)
+
+    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
+        default_factory=_context_annotations
+    )
 
     def connect(self, connection: "Client") -> None:
         stream = connection.jetstream(**self.js_options)

@@ -30,12 +30,12 @@ Channel = Annotated[RobustChannel, Context("broker._channel")]
 Connection = Annotated[RobustConnection, Context("broker._connection")]
 
 
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
     {
-        RobustConnection: "Connection",
-        RobustChannel: "Channel",
-        RB: "RabbitBroker",
-        RM: "RabbitMessage",
-        AioPikaFastProducer: "RabbitProducer",
+        RobustConnection: Connection,
+        RobustChannel: Channel,
+        RB: RabbitBroker,
+        RM: RabbitMessage,
+        AioPikaFastProducer: RabbitProducer,
     },
 )

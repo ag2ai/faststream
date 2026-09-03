@@ -57,15 +57,15 @@ async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
 Pipeline = Annotated[RedisPipeline, Depends(get_pipe, cast=False)]
 
 
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
     {
-        _RedisClient: "Redis",
-        _RedisPipeline: "Pipeline",
-        RB: "RedisBroker",
-        Rm: "RedisMessage",
-        Rcm: "RedisChannelMessage",
-        Rsm: "RedisStreamMessage",
-        Rbsm: "RedisBatchStreamMessage",
-        Rlm: "RedisListMessage",
+        _RedisClient: Redis,
+        _RedisPipeline: Pipeline,
+        RB: RedisBroker,
+        Rm: RedisMessage,
+        Rcm: RedisChannelMessage,
+        Rsm: RedisStreamMessage,
+        Rbsm: RedisBatchStreamMessage,
+        Rlm: RedisListMessage,
     },
 )

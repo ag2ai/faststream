@@ -27,11 +27,11 @@ KafkaBroker = Annotated[KB, Context("broker")]
 KafkaProducer = Annotated[AioKafkaFastProducer, Context("broker._producer")]
 
 
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], str]] = MappingProxyType(
+CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
     {
-        AIOKafkaConsumer: "Consumer",
-        KB: "KafkaBroker",
-        KM: "KafkaMessage",
-        AioKafkaFastProducer: "KafkaProducer",
+        AIOKafkaConsumer: Consumer,
+        KB: KafkaBroker,
+        KM: KafkaMessage,
+        AioKafkaFastProducer: KafkaProducer,
     },
 )

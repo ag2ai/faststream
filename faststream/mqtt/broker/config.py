@@ -8,6 +8,8 @@ from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     import zmqtt
 
     from faststream._internal.types import BrokerMiddleware
@@ -20,12 +22,24 @@ if HAS_OPENTELEMETRY:
 MQTTVersionUnset = cast("str", object())
 
 
+def _context_annotations() -> "Mapping[type[Any], Any]":
+    # `annotations` reaches this module through the broker, so it can only be
+    # imported once the package is built.
+    from faststream.mqtt.annotations import CONTEXT_ANNOTATIONS
+
+    return CONTEXT_ANNOTATIONS
+
+
 @dataclass(kw_only=True)
 class MQTTBrokerConfig(BrokerConfig):
     version: Literal["3.1.1", "5.0", "unset"] = "unset"
 
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
+
+    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
+        default_factory=_context_annotations
+    )
 
     def __post_init__(self) -> None:
         for m in self.broker_middlewares:
