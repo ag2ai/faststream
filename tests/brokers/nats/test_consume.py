@@ -58,6 +58,58 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
 
+    async def test_concurrent_pull_respects_worker_capacity(
+        self,
+        queue: str,
+        stream: JStream,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker()
+        release_handlers = asyncio.Event()
+
+        subscriber = broker.subscriber(
+            queue,
+            durable=queue,
+            stream=stream,
+            pull_sub=PullSub(batch_size=2, batch=True),
+            max_workers=2,
+        )
+
+        @subscriber
+        async def handler(msg: str) -> None:
+            if event.is_set():
+                event2.set()
+            else:
+                event.set()
+            await release_handlers.wait()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            try:
+                await asyncio.gather(*(br.publish(i, queue) for i in range(4)))
+                await asyncio.wait_for(
+                    asyncio.gather(event.wait(), event2.wait()),
+                    timeout=3,
+                )
+
+                assert subscriber.subscription
+                max_ack_pending = 0
+
+                for _ in range(20):
+                    consumer_info = await subscriber.subscription.consumer_info()
+                    max_ack_pending = max(
+                        max_ack_pending,
+                        consumer_info.num_ack_pending or 0,
+                    )
+                    await asyncio.sleep(0.05)
+
+                assert max_ack_pending == 2
+
+            finally:
+                release_handlers.set()
+
     async def test_consume_js(
         self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
