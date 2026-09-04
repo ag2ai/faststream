@@ -10,9 +10,15 @@ from faststream._internal._compat import (
     get_model_fields,
     model_schema,
 )
+from faststream.specification.asyncapi._msgspec import (
+    is_struct,
+    struct_payload_schema,
+    struct_schema,
+)
 
 if TYPE_CHECKING:
     from fast_depends.core import CallModel
+    from fast_depends.library.serializer import OptionItem
 
 
 def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
@@ -21,17 +27,62 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
     model = cast("type[BaseModel] | None", getattr(model_container, "model", None))
     assert model
 
+    exclude = tuple(call.custom_fields.keys())
+    params = [p for p in call.flat_params if p.field_name not in exclude]
+
+    if any(is_struct(p.field_type) for p in params):
+        return parse_struct_params(params, model.__name__, prefix=prefix)
+
     body = get_model_schema(
         create_model(
             model.__name__,
             **{p.field_name: (p.field_type, p.default_value) for p in call.flat_params},  # type: ignore[call-overload]
         ),
         prefix=prefix,
-        exclude=tuple(call.custom_fields.keys()),
+        exclude=exclude,
     )
 
     if body is None:
         return {"title": "EmptyPayload", "type": "null"}
+
+    return body
+
+
+def parse_struct_params(
+    params: list["OptionItem"],
+    model_name: str,
+    prefix: str = "",
+) -> dict[str, Any]:
+    """Parse handler parameters when at least one of them is a msgspec Struct.
+
+    Pydantic raises on a Struct rather than degrading, so Structs never reach it:
+    a lone Struct is described by msgspec alone, exactly like a lone Pydantic
+    model is, and in a mixed payload each Struct stands in the model as `Any`
+    until its own schema is merged into the properties Pydantic produced.
+    """
+    if len(params) == 1:
+        return struct_payload_schema(params[0].field_type)
+
+    structs = {p.field_name: p.field_type for p in params if is_struct(p.field_type)}
+
+    model: type[BaseModel] = create_model(
+        model_name,
+        **{  # type: ignore[call-overload]
+            p.field_name: (
+                Any if p.field_name in structs else p.field_type,
+                p.default_value,
+            )
+            for p in params
+        },
+    )
+
+    body = get_model_schema(model, prefix=prefix)
+
+    for field_name, struct in structs.items():
+        body["properties"][field_name], definitions = struct_schema(struct)
+
+        if definitions:
+            body.setdefault(DEF_KEY, {}).update(definitions)
 
     return body
 
