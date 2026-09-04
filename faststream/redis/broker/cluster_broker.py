@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream.redis.configs.state import ConnectionState
     from faststream.redis.schemas.types import RedisClusterParams
     from faststream.security import BaseSecurity
 
@@ -37,7 +38,7 @@ class RedisClusterBroker(RedisBroker):
         self,
         connection_options: dict[str, Any],
         kwargs: dict[str, Any],
-    ) -> RedisClusterConnectionState:
+    ) -> "ConnectionState[Any]":
         return RedisClusterConnectionState(connection_options)
 
     @property
@@ -70,6 +71,8 @@ class RedisClusterBroker(RedisBroker):
         if maxlen is not None:
             publish_kwargs["maxlen"] = maxlen
 
+        # Direct publish may run before start(), while cluster state exposes a client
+        # only after topology initialization.
         if not self._cluster_state:
             await self._connect()
 

@@ -8,7 +8,7 @@ from redis.credentials import CredentialProvider
 
 from faststream.exceptions import IncorrectState
 from faststream.redis import RedisClusterBroker, RedisRouter, TestRedisBroker
-from faststream.redis._compat import REDIS_V720
+from faststream.redis._compat import REDIS_V720, REDIS_V800
 from faststream.redis.configs import (
     ConnectionState,
     RedisConnectionState,
@@ -21,9 +21,11 @@ from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
 
-def test_redis_v720_uses_lexicographic_version_comparison() -> None:
+def test_redis_version_flags_use_lexicographic_comparison() -> None:
     major, minor, *_ = version("redis").split(".")
-    assert REDIS_V720 is ((int(major), int(minor)) >= (7, 2))
+    redis_version = (int(major), int(minor))
+    assert REDIS_V720 is (redis_version >= (7, 2))
+    assert REDIS_V800 is (redis_version >= (8, 0))
 
 
 def test_driver_info_avoids_deprecated_kwargs() -> None:
@@ -60,11 +62,9 @@ class TestRedisClusterConnectionStateUnit:
 
 class TestRedisClusterConnectionStateConnect:
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize("available_method", ("publish", "pubsub"))
-    async def test_native_pubsub_guard_runs_before_client_construction(
+    async def test_redis8_guard_runs_before_client_construction(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        available_method: str,
     ) -> None:
         constructed = False
 
@@ -73,7 +73,7 @@ class TestRedisClusterConnectionStateConnect:
                 nonlocal constructed
                 constructed = True
 
-        setattr(IncompatibleCluster, available_method, lambda self: None)
+        monkeypatch.setattr(state_module, "REDIS_V800", False)
         monkeypatch.setattr(state_module, "RedisCluster", IncompatibleCluster)
         get_driver_info = MagicMock()
         monkeypatch.setattr(state_module, "_get_driver_info", get_driver_info)
@@ -163,7 +163,7 @@ class TestRedisClusterConnectionStateConnect:
         assert captured["legacy_responses"] is False
 
     @pytest.mark.asyncio()
-    async def test_connect_closes_client_when_initialize_fails(
+    async def test_initialize_failure_leaves_state_disconnected(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -191,7 +191,8 @@ class TestRedisClusterConnectionStateConnect:
         with pytest.raises(RuntimeError, match="cluster discovery failed"):
             await state.connect()
 
-        assert closed
+        # RedisCluster.initialize closes partially opened node pools before re-raising.
+        assert not closed
         assert state._client is None
         assert not state
 

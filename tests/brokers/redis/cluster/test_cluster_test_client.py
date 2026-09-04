@@ -1,5 +1,3 @@
-from unittest.mock import AsyncMock
-
 import pytest
 
 from faststream.redis import ListSub, StreamSub
@@ -7,6 +5,7 @@ from faststream.redis.configs import state as state_module
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 from tests.brokers.redis.basic import RedisClusterMemoryTestcaseConfig
+from tests.tools import spy_decorator
 
 
 @pytest.mark.redis_cluster()
@@ -21,15 +20,16 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
+    @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        initialize = AsyncMock()
+        initialize = spy_decorator(state_module.RedisCluster.initialize)
         monkeypatch.setattr(state_module.RedisCluster, "initialize", initialize)
 
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
-        initialize.assert_awaited_once()
+        initialize.mock.assert_awaited_once()
 
     @pytest.mark.connected()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:

@@ -14,6 +14,8 @@ from faststream.redis.response import DestinationType, RedisPublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
+    from redis.asyncio.client import Redis
+    from redis.asyncio.cluster import RedisCluster
 
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
@@ -84,9 +86,11 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
 class RedisFastProducer(BaseRedisFastProducer):
     """Producer for standalone and clustered Redis clients."""
 
+    _connection: "ConnectionState[Redis[bytes] | RedisCluster[bytes]]"
+
     def __init__(
         self,
-        connection: "ConnectionState[Any]",
+        connection: "ConnectionState[Redis[bytes] | RedisCluster[bytes]]",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
         message_format: type["MessageFormat"],
@@ -118,13 +122,14 @@ class RedisFastProducer(BaseRedisFastProducer):
         msg: bytes,
         cmd: "RedisPublishCommand",
     ) -> int | bytes:
-        connection = cmd.pipeline or self._connection.client
+        # RedisCluster exposes the Redis command API dynamically, outside its stubs.
+        connection = cast("Redis[bytes]", cmd.pipeline or self._connection.client)
 
         if cmd.destination_type is DestinationType.Channel:
-            return cast("int", await connection.publish(cmd.destination, msg))
+            return await connection.publish(cmd.destination, msg)
 
         if cmd.destination_type is DestinationType.List:
-            return cast("int", await connection.rpush(cmd.destination, msg))
+            return await connection.rpush(cmd.destination, msg)
 
         if cmd.destination_type is DestinationType.Stream:
             return cast(
@@ -143,7 +148,7 @@ class RedisFastProducer(BaseRedisFastProducer):
     async def request(self, cmd: "RedisPublishCommand") -> "Any":
         nuid = NUID()
         reply_to = str(nuid.next(), "utf-8")
-        psub = self._connection.client.pubsub()
+        psub = cast("Redis[bytes]", self._connection.client).pubsub()
 
         try:
             await psub.subscribe(reply_to)
@@ -180,4 +185,4 @@ class RedisFastProducer(BaseRedisFastProducer):
         finally:
             with suppress(Exception):
                 await psub.unsubscribe()
-                await psub.aclose()
+                await psub.aclose()  # type: ignore[attr-defined]

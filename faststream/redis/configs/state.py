@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
-from contextlib import suppress
 from typing import Any, Generic, TypeVar
 
 from redis.asyncio.client import Redis
@@ -10,7 +9,7 @@ from redis.asyncio.sentinel import Sentinel
 
 from faststream.__about__ import __version__
 from faststream.exceptions import IncorrectState
-from faststream.redis._compat import REDIS_V720
+from faststream.redis._compat import REDIS_V720, REDIS_V800
 
 if REDIS_V720:
     from redis.driver_info import DriverInfo
@@ -34,7 +33,7 @@ def _get_driver_info() -> dict[str, Any]:
 
 
 def _ensure_cluster_pubsub_supported() -> None:
-    if not (hasattr(RedisCluster, "publish") and hasattr(RedisCluster, "pubsub")):
+    if not REDIS_V800:
         msg = (
             "RedisClusterBroker requires redis-py >= 8.0.0 for native async "
             "publish and pubsub support."
@@ -135,21 +134,17 @@ class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):
 
     async def connect(self) -> "RedisCluster[bytes]":
         if self._connected:
-            return self._client  # type: ignore[return-value]
+            return self.client
 
         _ensure_cluster_pubsub_supported()
 
         connection_kwargs = {k: v for k, v in self._options.items() if v is not None}
+        # Keep parser-facing replies RESP2-shaped across redis-py 8 (see issue #3009).
         connection_kwargs.setdefault("legacy_responses", True)
         connection_kwargs |= _get_driver_info()
 
         client: RedisCluster[bytes] = RedisCluster(**connection_kwargs)
-        try:
-            await client.initialize()
-        except BaseException:
-            with suppress(Exception):
-                await client.aclose()  # type: ignore[attr-defined]
-            raise
+        await client.initialize()
 
         self._client = client
         self._connected = True
