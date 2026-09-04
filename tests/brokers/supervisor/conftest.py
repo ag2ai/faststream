@@ -13,6 +13,7 @@ def subscriber_with_task_mixin():
     mock._outer_config = Mock()
     mock.tasks = []
     mock.add_task = MethodType(TasksMixin.add_task, mock)
+    mock.handle_task_exception = MethodType(TasksMixin.handle_task_exception, mock)
 
     return mock
 

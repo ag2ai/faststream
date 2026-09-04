@@ -130,4 +130,9 @@ class TaskCallbackSupervisor:
                 logger.log(message, exc_info=exc, log_level=logging.ERROR)
 
             if self.restart_on_failure:
-                self.subscriber.add_task(self.func, self.args, self.kwargs)
+                self.subscriber.handle_task_exception(
+                    exc,
+                    self.func,
+                    self.args,
+                    self.kwargs,
+                )

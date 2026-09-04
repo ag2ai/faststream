@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 from redis.asyncio import Redis
@@ -10,11 +10,13 @@ from faststream import AckPolicy
 from faststream.redis import (
     ListSub,
     PubSub,
+    RedisBroker,
     RedisMessage,
     RedisStreamMessage,
     StreamSub,
 )
 from faststream.redis.exceptions import StreamGroupNotFoundError
+from faststream.redis.subscriber.usecases.basic import CONSUME_ERROR_BACKOFF_SECONDS
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
 
@@ -1082,3 +1084,54 @@ class TestConsumeStream(RedisTestcaseConfig):
                 except (asyncio.CancelledError, asyncio.InvalidStateError):
                     pass
             assert found, "Expected at least one task to raise StreamGroupNotFoundError"
+
+
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+class TestConsumeErrorHandling:
+    async def test_stream_converts_missing_group_error(self) -> None:
+        subscriber = RedisBroker().subscriber(
+            stream=StreamSub("test-stream", group="test-group", consumer="consumer")
+        )
+
+        with pytest.raises(StreamGroupNotFoundError, match="test-group"):
+            await subscriber.handle_consume_error(ResponseError("NOGROUP missing"))
+
+    async def test_stream_delegates_other_errors_to_redis_handler(self) -> None:
+        subscriber = RedisBroker().subscriber(stream="test-stream")
+        error = ResponseError("connection lost")
+
+        with (
+            patch.object(subscriber, "_log") as log,
+            patch(
+                "faststream.redis.subscriber.usecases.basic.anyio.sleep",
+                new_callable=AsyncMock,
+            ) as sleep,
+        ):
+            await subscriber.handle_consume_error(error)
+
+        log.assert_called_once()
+        sleep.assert_awaited_once_with(CONSUME_ERROR_BACKOFF_SECONDS)
+
+    async def test_task_handler_receives_missing_group_error(self, monkeypatch) -> None:
+        monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")
+
+        subscriber = RedisBroker().subscriber(
+            stream=StreamSub("test-stream", group="test-group", consumer="consumer")
+        )
+        handler = MagicMock()
+        subscriber.handle_task_exception = handler
+
+        async def consume() -> None:
+            await subscriber.handle_consume_error(ResponseError("NOGROUP missing"))
+
+        with patch.object(subscriber._outer_config.logger, "log"):
+            task = subscriber.add_task(consume)
+
+            with pytest.raises(StreamGroupNotFoundError):
+                await task
+
+            await asyncio.sleep(0)
+
+        handler.assert_called_once()
+        assert isinstance(handler.call_args.args[0], StreamGroupNotFoundError)
