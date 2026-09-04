@@ -58,6 +58,15 @@ that handler. It reaches the public `#!python handle_task_exception(...)` hook
 as a `#!python StreamGroupNotFoundError`, so custom subscriber implementations
 can capture it and decide whether the failed task should be restarted.
 
+The following example recreates the consumer group and then restarts the failed
+consume task. It creates the group at `$`, matching the default stream
+subscriber behavior; use `0` instead if the replacement group must read all
+existing stream entries.
+
+```python linenums="1"
+{! docs_src/redis/stream/recreate_group.py !}
+```
+
 ## Publishing a message
 
 Publishing a message is the same as what's defined on [Stream Publishing](./publishing.md).
