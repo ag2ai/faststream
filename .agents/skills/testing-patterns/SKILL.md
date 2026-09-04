@@ -108,6 +108,21 @@ subscriber = self.declare_subscriber(
 )
 ```
 
+## Add a test only when nothing else already breaks on it
+
+Before writing a new test, ask what already goes red if the change is wrong: another test
+in the suite, or `mypy` running over library code that already exercises the path (a
+registrator signature checked through `faststream/<broker>/testing.py`, say). If something
+already catches it, don't add another one — a ticket asking for "a test per case" doesn't
+override this; say which existing check covers the rest instead of writing one that just
+restates it. Never pin language or stdlib behaviour FastStream doesn't own (a `NamedTuple`
+unpacks, `==` on tuples).
+
+Test functions and classes carry no docstring — the name is the behaviour. The one
+exception is the regression pattern below, whose docstring is the issue URL and nothing
+else. When an assertion needs explaining, a single `#` comment sits directly over it, not
+prose in a docstring.
+
 ## Regression tests
 
 A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
@@ -118,7 +133,7 @@ async def test_publisher_without_destination(self) -> None:
     """Fixes https://github.com/ag2ai/faststream/issues/2513."""
 ```
 
-The URL goes on the docstring's own first line, with the explanation of the behavior below it. `xfail`/`skip` reasons take the same URL. Comments inside the test body follow the **code-architecture** rules — two lines, over the line they explain.
+The URL is the whole docstring — no explanation of the behavior underneath it. `xfail`/`skip` reasons take the same URL. A comment inside the test body follows the **code-architecture** rule: one line, directly over the assertion it explains.
 
 A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
 
