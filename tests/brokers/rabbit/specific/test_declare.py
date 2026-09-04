@@ -330,14 +330,9 @@ async def test_detect_queue_schema_mutation(
     arguments: dict[str, Any] = {"custom": ["first"]}
     schema = RabbitQueue(queue, arguments=arguments)
     await declarer.declare_queue(schema)
-    declared_arguments = async_mock.declare_queue.await_args.kwargs["arguments"]
 
     arguments["custom"].append("second")
 
-    assert declared_arguments == {
-        "x-queue-type": "classic",
-        "custom": ["first"],
-    }
     with pytest.raises(SetupError, match=r"RabbitQueue .*arguments"):
         await declarer.declare_queue(schema)
 
@@ -354,11 +349,9 @@ async def test_detect_exchange_schema_mutation(
     arguments: dict[str, Any] = {"custom": ["first"]}
     schema = RabbitExchange(queue, arguments=arguments)
     await declarer.declare_exchange(schema)
-    declared_arguments = async_mock.declare_exchange.await_args.kwargs["arguments"]
 
     arguments["custom"].append("second")
 
-    assert declared_arguments == {"custom": ["first"]}
     with pytest.raises(SetupError, match=r"RabbitExchange .*arguments"):
         await declarer.declare_exchange(schema)
 

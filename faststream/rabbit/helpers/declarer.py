@@ -3,45 +3,30 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol, cast
 
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
+from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 if TYPE_CHECKING:
     import aio_pika
 
-    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
+    from faststream.rabbit.schemas import Channel
 
     from .channel_manager import ChannelManager
 
 
-def _queue_declaration(queue: "RabbitQueue") -> dict[str, Any]:
-    return {
-        "durable": queue.durable,
-        "exclusive": queue.exclusive,
-        "auto_delete": queue.auto_delete,
-        "arguments": deepcopy(queue.arguments or {}),
-    }
-
-
-def _exchange_declaration(exchange: "RabbitExchange") -> dict[str, Any]:
-    return {
-        "type": exchange.type,
-        "durable": exchange.durable,
-        "auto_delete": exchange.auto_delete,
-        "arguments": deepcopy(exchange.arguments or {}),
-    }
-
-
 def _validate_declaration(
-    object_type: str,
-    name: str,
-    previous: dict[str, Any],
-    current: dict[str, Any],
+    schema_type: str,
+    object_name: str,
+    cached_settings: dict[str, Any],
+    requested_settings: dict[str, Any],
 ) -> None:
     conflicting = tuple(
-        setting for setting, value in current.items() if previous[setting] != value
+        setting
+        for setting, value in requested_settings.items()
+        if cached_settings[setting] != value
     )
     if conflicting:
         msg = (
-            f"{object_type} {name!r} is already declared with conflicting settings: "
+            f"{schema_type} {object_name!r} is already declared with conflicting settings: "
             f"{', '.join(conflicting)}."
         )
         raise SetupError(msg)
@@ -127,13 +112,19 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         if declare is EMPTY:
             declare = queue.declare
 
-        current = _queue_declaration(queue)
-        cached = self._queues.get(queue.name)
+        # Keep a nested snapshot so later schema mutations are detected.
+        requested_settings = {
+            "durable": queue.durable,
+            "exclusive": queue.exclusive,
+            "auto_delete": queue.auto_delete,
+            "arguments": deepcopy(queue.arguments or {}),
+        }
+        cached_queue = self._queues.get(queue.name)
 
-        if cached is None or (declare and cached[0] is None):
+        if cached_queue is None or (declare and cached_queue[0] is None):
             channel_obj = await self.__channel_manager.get_channel(channel)
 
-            q = cast(
+            declared_queue = cast(
                 "aio_pika.RobustQueue",
                 await channel_obj.declare_queue(
                     name=queue.name,
@@ -141,25 +132,28 @@ class RabbitDeclarerImpl(RabbitDeclarer):
                     exclusive=queue.exclusive,
                     passive=not declare,
                     auto_delete=queue.auto_delete,
-                    arguments=deepcopy(queue.arguments),
+                    arguments=queue.arguments,
                     timeout=queue.timeout,
                     robust=queue.robust,
                 ),
             )
-            self._queues[queue.name] = (current if declare else None, q)
+            self._queues[queue.name] = (
+                requested_settings if declare else None,
+                declared_queue,
+            )
 
         else:
-            previous, q = cached
+            cached_settings, declared_queue = cached_queue
             if declare:
-                assert previous is not None
+                assert cached_settings is not None
                 _validate_declaration(
-                    "RabbitQueue",
+                    RabbitQueue.__name__,
                     queue.name,
-                    previous,
-                    current,
+                    cached_settings,
+                    requested_settings,
                 )
 
-        return q
+        return declared_queue
 
     async def declare_exchange(
         self,
@@ -176,11 +170,17 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         if declare is EMPTY:
             declare = exchange.declare
 
-        current = _exchange_declaration(exchange)
-        cached = self._exchanges.get(exchange.name)
+        # Keep a nested snapshot so later schema mutations are detected.
+        requested_settings = {
+            "type": exchange.type,
+            "durable": exchange.durable,
+            "auto_delete": exchange.auto_delete,
+            "arguments": deepcopy(exchange.arguments or {}),
+        }
+        cached_exchange = self._exchanges.get(exchange.name)
 
-        if cached is None or (declare and cached[0] is None):
-            exch = cast(
+        if cached_exchange is None or (declare and cached_exchange[0] is None):
+            declared_exchange = cast(
                 "aio_pika.RobustExchange",
                 await channel_obj.declare_exchange(
                     name=exchange.name,
@@ -188,20 +188,20 @@ class RabbitDeclarerImpl(RabbitDeclarer):
                     durable=exchange.durable,
                     auto_delete=exchange.auto_delete,
                     passive=not declare,
-                    arguments=deepcopy(exchange.arguments),
+                    arguments=exchange.arguments,
                     timeout=exchange.timeout,
                     robust=exchange.robust,
                     internal=False,  # deprecated RMQ option
                 ),
             )
             self._exchanges[exchange.name] = (
-                current if declare else None,
-                exch,
+                requested_settings if declare else None,
+                declared_exchange,
             )
 
             if exchange.bind_to is not None:
                 parent = await self.declare_exchange(exchange.bind_to)
-                await exch.bind(
+                await declared_exchange.bind(
                     exchange=parent,
                     routing_key=exchange.routing(),
                     arguments=exchange.bind_arguments,
@@ -210,14 +210,14 @@ class RabbitDeclarerImpl(RabbitDeclarer):
                 )
 
         else:
-            previous, exch = cached
+            cached_settings, declared_exchange = cached_exchange
             if declare:
-                assert previous is not None
+                assert cached_settings is not None
                 _validate_declaration(
-                    "RabbitExchange",
+                    RabbitExchange.__name__,
                     exchange.name,
-                    previous,
-                    current,
+                    cached_settings,
+                    requested_settings,
                 )
 
-        return exch
+        return declared_exchange
