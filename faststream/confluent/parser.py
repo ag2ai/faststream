@@ -38,12 +38,14 @@ class AsyncConfluentParser:
         """Parses a Kafka message."""
         headers = _parse_msg_headers(cast("_HeadersInput", message.headers() or ()))
 
-        body = message.value() or b""
+        value = message.value()
+        body = value or b""
         offset = message.offset()
         _, timestamp = message.timestamp()
 
         return KafkaMessage(
             body=body,
+            tombstone=value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
