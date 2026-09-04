@@ -1,6 +1,7 @@
 from collections.abc import Awaitable, Callable
 
 import prometheus_client
+from redis.asyncio.client import Pipeline
 from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import assert_type
 
@@ -17,6 +18,7 @@ from faststream.redis import (
     RedisPublisher,
     RedisRoute as Route,
     RedisRouter,
+    RedisSentinelBroker,
     RedisStreamMessage,
     StreamSub,
     TestRedisBroker,
@@ -326,8 +328,14 @@ RedisBroker().add_middleware(prometheus_middleware)
 RedisBroker(middlewares=[prometheus_middleware])
 
 
-async def check_broker_publish_result_type(optional_stream: str | None = "test") -> None:
+async def check_broker_publish_result_type(
+    pipe: "Pipeline[bytes]", optional_stream: str | None = "test"
+) -> None:
     broker = RedisBroker()
+    sentinel_broker = RedisSentinelBroker(
+        sentinels=[("localhost", 26379)],
+        sentinel_master_name="mymaster",
+    )
 
     publish_with_confirm = await broker.publish(None)
     assert_type(publish_with_confirm, int)
@@ -341,25 +349,41 @@ async def check_broker_publish_result_type(optional_stream: str | None = "test")
     publish_with_confirm = await broker.publish_batch(None, list="test")
     assert_type(publish_with_confirm, int)
 
+    assert_type(await broker.publish(None, pipeline=pipe), Pipeline[bytes])
+    assert_type(await broker.publish(None, stream="test", pipeline=pipe), Pipeline[bytes])
+    assert_type(
+        await broker.publish_batch(None, list="test", pipeline=pipe), Pipeline[bytes]
+    )
+    assert_type(await sentinel_broker.publish(None, pipeline=pipe), Pipeline[bytes])
+    assert_type(
+        await sentinel_broker.publish_batch(None, list="test", pipeline=pipe),
+        Pipeline[bytes],
+    )
+
 
 async def check_publisher_publish_result_types(
     broker: RedisBroker | RedisRouter | FastAPIRouter,
+    pipe: "Pipeline[bytes]",
 ) -> None:
     p = broker.publisher(channel="test")
     assert_type(p, ChannelPublisher)
     assert_type(await p.publish(None), int)
+    assert_type(await p.publish(None, pipeline=pipe), Pipeline[bytes])
 
     p1 = broker.publisher(list="test")
     assert_type(p1, ListPublisher)
     assert_type(await p1.publish(None), int)
+    assert_type(await p1.publish(None, pipeline=pipe), Pipeline[bytes])
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
     assert_type(p2, ListBatchPublisher | ListPublisher)
     assert_type(await p2.publish(None), int)
+    assert_type(await p2.publish(None, pipeline=pipe), Pipeline[bytes])
 
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher)
     assert_type(await p3.publish(None), bytes)
+    assert_type(await p3.publish(None, pipeline=pipe), Pipeline[bytes])
 
 
 async def check_cluster_pipeline_result_types(pipe: "ClusterPipeline[bytes]") -> None:
@@ -368,25 +392,25 @@ async def check_cluster_pipeline_result_types(pipe: "ClusterPipeline[bytes]") ->
     assert_type(await broker.publish(None, stream="test"), bytes)
     assert_type(
         await broker.publish(None, stream="test", pipeline=pipe),
-        int | bytes | ClusterPipeline[bytes],
+        ClusterPipeline[bytes],
     )
     assert_type(
         await broker.publish_batch(None, list="test", pipeline=pipe),
-        int | ClusterPipeline[bytes],
+        ClusterPipeline[bytes],
     )
     assert_type(
         await broker.publisher(list="test").publish(None, pipeline=pipe),
-        int | ClusterPipeline[bytes],
+        ClusterPipeline[bytes],
     )
     assert_type(
         await broker.publisher(list=ListSub("test", batch=True)).publish(
             None, pipeline=pipe
         ),
-        int | ClusterPipeline[bytes],
+        ClusterPipeline[bytes],
     )
     assert_type(
         await broker.publisher(stream="test").publish(None, pipeline=pipe),
-        bytes | ClusterPipeline[bytes],
+        ClusterPipeline[bytes],
     )
 
 

@@ -205,7 +205,7 @@ class RedisBroker(
         list: str | None = None,
         stream: None = None,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: None = None,
     ) -> int: ...
 
     @overload
@@ -220,7 +220,7 @@ class RedisBroker(
         list: str | None = None,
         stream: str = ...,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: None = None,
     ) -> bytes: ...
 
     @overload
@@ -235,8 +235,8 @@ class RedisBroker(
         list: str | None = None,
         stream: str | None = None,
         maxlen: int | None = None,
-        pipeline: "ClusterPipeline[bytes]",
-    ) -> "int | bytes | ClusterPipeline[bytes]": ...
+        pipeline: "Pipeline[bytes]",
+    ) -> "Pipeline[bytes]": ...
 
     @override
     async def publish(
@@ -251,7 +251,7 @@ class RedisBroker(
         stream: str | None = None,
         maxlen: int | None = None,
         pipeline: Optional["Pipeline[bytes] | ClusterPipeline[bytes]"] = None,
-    ) -> "int | bytes | ClusterPipeline[bytes]":
+    ) -> "int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
         """Publish message directly.
 
         This method allows you to publish a message in a non-AsyncAPI-documented way.
@@ -275,11 +275,11 @@ class RedisBroker(
             maxlen:
                 Redis Stream maxlen publish option. Remove eldest message if maxlen exceeded.
             pipeline:
-                Redis pipeline to use for publishing messages. Cluster pipelines
-                support lists and streams; queued commands run on pipeline.execute().
+                Redis pipeline to use for publishing messages. Queued commands run on
+                pipeline.execute().
 
         Returns:
-            The publish result, or the cluster pipeline when the command is queued.
+            The publish result, or the pipeline when the command is queued.
         """
         cmd = RedisPublishCommand(
             message,
@@ -295,7 +295,9 @@ class RedisBroker(
             message_format=self.message_format,
         )
 
-        result: int | bytes | ClusterPipeline[bytes] = await super()._basic_publish(
+        result: (
+            int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]
+        ) = await super()._basic_publish(
             cmd,
             producer=self.config.producer,
         )
@@ -340,7 +342,7 @@ class RedisBroker(
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: None = None,
     ) -> int: ...
 
     @overload
@@ -351,8 +353,8 @@ class RedisBroker(
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: "ClusterPipeline[bytes]",
-    ) -> "int | ClusterPipeline[bytes]": ...
+        pipeline: "Pipeline[bytes]",
+    ) -> "Pipeline[bytes]": ...
 
     @override
     async def publish_batch(
@@ -363,7 +365,7 @@ class RedisBroker(
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
         pipeline: Optional["Pipeline[bytes] | ClusterPipeline[bytes]"] = None,
-    ) -> "int | ClusterPipeline[bytes]":
+    ) -> "int | Pipeline[bytes] | ClusterPipeline[bytes]":
         """Publish multiple messages to Redis List by one request.
 
         Args:
@@ -375,7 +377,7 @@ class RedisBroker(
             pipeline: Redis pipeline to use for publishing messages.
 
         Returns:
-            The batch publish result, or the cluster pipeline when it is queued.
+            The batch publish result, or the pipeline when it is queued.
         """
         cmd = RedisPublishCommand(
             *messages,
@@ -388,7 +390,9 @@ class RedisBroker(
             message_format=self.message_format,
         )
 
-        result: int | ClusterPipeline[bytes] = await self._basic_publish_batch(
+        result: (
+            int | Pipeline[bytes] | ClusterPipeline[bytes]
+        ) = await self._basic_publish_batch(
             cmd,
             producer=self.config.producer,
         )

@@ -2,6 +2,7 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
+from redis.asyncio.client import Pipeline
 from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import override
 
@@ -59,7 +60,7 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
     @override
     async def publish_batch(
         self, cmd: "RedisPublishCommand"
-    ) -> "int | ClusterPipeline[bytes]":
+    ) -> "int | Pipeline[bytes] | ClusterPipeline[bytes]":
         batch = [
             await cmd.message_format.encode(
                 message=msg,
@@ -76,7 +77,7 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
             cmd.pipeline if cmd.pipeline is not None else self._connection.client
         )
         result = connection.rpush(cmd.destination, *batch)
-        if isinstance(result, ClusterPipeline):
+        if isinstance(result, (Pipeline, ClusterPipeline)):
             return result
         return cast("int", await result)
 
@@ -84,7 +85,7 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
         self,
         msg: bytes,
         cmd: "RedisPublishCommand",
-    ) -> "int | bytes | ClusterPipeline[bytes]":
+    ) -> "int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
         connection: Any = (
             cmd.pipeline if cmd.pipeline is not None else self._connection.client
         )
@@ -102,9 +103,9 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
         else:
             raise UnreachablePathError
 
-        # Awaiting a queued ClusterPipeline clears its commands (see issue #3044).
-        # WATCH-mode commands can instead return a coroutine that must be awaited.
-        if isinstance(result, ClusterPipeline):
+        # Queued commands return their pipeline; WATCH-mode commands can instead
+        # return a coroutine that must be awaited (see issue #3044).
+        if isinstance(result, (Pipeline, ClusterPipeline)):
             return result
         return cast("int | bytes", await result)
 
@@ -147,7 +148,7 @@ class RedisFastProducer(BaseRedisFastProducer):
     @override
     async def publish(
         self, cmd: "RedisPublishCommand"
-    ) -> "int | bytes | ClusterPipeline[bytes]":
+    ) -> "int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
         msg = await cmd.message_format.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -226,7 +227,7 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
     @override
     async def publish(
         self, cmd: "RedisPublishCommand"
-    ) -> "int | bytes | ClusterPipeline[bytes]":
+    ) -> "int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
         msg = await cmd.message_format.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
