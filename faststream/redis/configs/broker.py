@@ -10,17 +10,14 @@ if TYPE_CHECKING:
     from redis.asyncio.cluster import RedisCluster
 
     from faststream.redis.parser import MessageFormat
-    from faststream.redis.publisher.producer import (
-        RedisClusterFastProducer,
-        RedisFastProducer,
-    )
+    from faststream.redis.publisher.producer import RedisFastProducer
 
     from .state import ConnectionState
 
 
 @dataclass(kw_only=True)
 class RedisBrokerConfig(BrokerConfig):
-    producer: "RedisFastProducer | RedisClusterFastProducer"
+    producer: "RedisFastProducer"
     connection: "ConnectionState[Redis[bytes]] | ConnectionState[RedisCluster[bytes]]"
 
     message_format: type["MessageFormat"]

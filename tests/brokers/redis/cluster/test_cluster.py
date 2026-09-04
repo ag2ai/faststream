@@ -4,7 +4,9 @@ import warnings
 import pytest
 
 from faststream.redis import RedisClusterBroker, RedisRouter
+from faststream.redis.configs import state as state_module
 from faststream.security import BaseSecurity, SASLPlaintext
+from tests.tools import spy_decorator
 
 pytestmark = pytest.mark.redis_cluster
 
@@ -245,11 +247,15 @@ class TestClusterBrokerInheritance:
         broker = RedisClusterBroker()
         assert isinstance(broker.config, ConfigComposition)
 
-    def test_start_stop_lifecycle(self) -> None:
+    @pytest.mark.connected()
+    def test_start_stop_lifecycle(self, monkeypatch: pytest.MonkeyPatch) -> None:
         import anyio
 
+        initialize = spy_decorator(state_module.RedisCluster.initialize)
+        monkeypatch.setattr(state_module.RedisCluster, "initialize", initialize)
+
         async def test() -> None:
-            broker = RedisClusterBroker()
+            broker = RedisClusterBroker("redis://127.0.0.1:7001")
             assert broker._connection is None
             await broker.start()
             assert broker._connection is not None
@@ -257,6 +263,7 @@ class TestClusterBrokerInheritance:
             assert broker._connection is None
 
         anyio.run(test)
+        initialize.mock.assert_awaited_once()
 
 
 @pytest.mark.parametrize(

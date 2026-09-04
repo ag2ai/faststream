@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, cast
 
 import prometheus_client
 from typing_extensions import assert_type
@@ -10,6 +11,7 @@ from faststream.redis import (
     Redis,
     RedisBroker,
     RedisChannelMessage,
+    RedisClusterBroker,
     RedisListMessage,
     RedisMessage as Message,
     RedisPublisher,
@@ -38,6 +40,13 @@ from faststream.redis.subscriber.usecases import (
     StreamBatchSubscriber,
     StreamConcurrentSubscriber,
     StreamSubscriber,
+)
+
+if TYPE_CHECKING:
+    from redis.credentials import CredentialProvider
+
+RedisClusterBroker(
+    credential_provider=cast("CredentialProvider", object()),
 )
 
 
