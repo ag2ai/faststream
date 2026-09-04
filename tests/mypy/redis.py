@@ -1,6 +1,7 @@
 from collections.abc import Awaitable, Callable
 
 import prometheus_client
+from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
@@ -10,6 +11,7 @@ from faststream.redis import (
     Redis,
     RedisBroker,
     RedisChannelMessage,
+    RedisClusterBroker,
     RedisListMessage,
     RedisMessage as Message,
     RedisPublisher,
@@ -358,6 +360,34 @@ async def check_publisher_publish_result_types(
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher)
     assert_type(await p3.publish(None), bytes)
+
+
+async def check_cluster_pipeline_result_types(pipe: "ClusterPipeline[bytes]") -> None:
+    broker = RedisClusterBroker()
+    assert_type(await broker.publish(None, list="test"), int)
+    assert_type(await broker.publish(None, stream="test"), bytes)
+    assert_type(
+        await broker.publish(None, stream="test", pipeline=pipe),
+        int | bytes | ClusterPipeline[bytes],
+    )
+    assert_type(
+        await broker.publish_batch(None, list="test", pipeline=pipe),
+        int | ClusterPipeline[bytes],
+    )
+    assert_type(
+        await broker.publisher(list="test").publish(None, pipeline=pipe),
+        int | ClusterPipeline[bytes],
+    )
+    assert_type(
+        await broker.publisher(list=ListSub("test", batch=True)).publish(
+            None, pipeline=pipe
+        ),
+        int | ClusterPipeline[bytes],
+    )
+    assert_type(
+        await broker.publisher(stream="test").publish(None, pipeline=pipe),
+        bytes | ClusterPipeline[bytes],
+    )
 
 
 async def check_request_response_type(
