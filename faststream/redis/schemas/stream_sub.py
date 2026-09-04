@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
+from faststream.redis._compat import REDIS_V710, _REDIS_VERSION
 
 
 class StreamSub(NameRequired):
@@ -41,10 +42,22 @@ class StreamSub(NameRequired):
             https://redis.io/docs/latest/commands/xautoclaim/
         declare:
             Whether to create the stream when creating a consumer group.
+        claim_min_idle_time:
+            Redis 8.4+ `XREADGROUP CLAIM` option (milliseconds). When set, each read
+            also claims messages of the same group that have been pending for at least
+            this duration, so a single subscriber consumes new messages and recovers
+            abandoned ones in one command. Claimed entries arrive first; per-entry
+            metadata is exposed via the `idle_times` / `delivery_counts` keys of the
+            raw message. Requires redis-py 7.1.0+ and Redis server 8.4+ (older servers
+            reject the CLAIM option). Mutually exclusive with `min_idle_time` and
+            `no_ack`.
+
+            https://redis.io/docs/latest/commands/xreadgroup/#the-claim-option
     """
 
     __slots__ = (
         "batch",
+        "claim_min_idle_time",
         "consumer",
         "declare",
         "group",
@@ -70,6 +83,7 @@ class StreamSub(NameRequired):
         max_records: int | None = None,
         min_idle_time: int | None = None,
         declare: bool = True,
+        claim_min_idle_time: int | None = None,
     ) -> None:
         if (group and not consumer) or (not group and consumer):
             msg = "You should specify `group` and `consumer` both"
@@ -108,6 +122,40 @@ class StreamSub(NameRequired):
                     stacklevel=1,
                 )
 
+        if claim_min_idle_time is not None:
+            if not REDIS_V710:
+                msg = (
+                    "`claim_min_idle_time` requires redis-py 7.1.0 or newer "
+                    f"(installed: {_REDIS_VERSION})"
+                )
+                raise SetupError(msg)
+
+            if min_idle_time is not None:
+                msg = (
+                    "`claim_min_idle_time` (XREADGROUP CLAIM) and `min_idle_time` "
+                    "(XAUTOCLAIM) are mutually exclusive"
+                )
+                raise SetupError(msg)
+
+            if no_ack:
+                msg = (
+                    "`claim_min_idle_time` with `no_ack` causes infinite "
+                    "redelivery: claimed entries stay in the PEL and are "
+                    "never acknowledged"
+                )
+                raise SetupError(msg)
+
+            if not group:
+                msg = "`claim_min_idle_time` requires `group` and `consumer`"
+                raise SetupError(msg)
+
+            if last_id != ">":
+                msg = (
+                    "`claim_min_idle_time` requires last_id `>`: Redis ignores "
+                    "the CLAIM option for any other id"
+                )
+                raise SetupError(msg)
+
         super().__init__(stream)
 
         self.group = group
@@ -120,6 +168,7 @@ class StreamSub(NameRequired):
         self.maxlen = maxlen
         self.max_records = max_records
         self.min_idle_time = min_idle_time
+        self.claim_min_idle_time = claim_min_idle_time
 
     def add_prefix(self, prefix: str) -> "StreamSub":
         new_stream = deepcopy(self)
