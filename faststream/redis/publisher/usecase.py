@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from typing_extensions import override
+from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
@@ -13,6 +13,7 @@ from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
+    from redis.asyncio.cluster import ClusterPipeline
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
@@ -81,6 +82,42 @@ class ChannelPublisher(LogicPublisher):
             "stream": None,
         }
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: None = None,
+    ) -> int: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: "Pipeline[bytes]",
+    ) -> "Pipeline[bytes]": ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: "ClusterPipeline[bytes]",
+    ) -> "ClusterPipeline[bytes]": ...
+
     @override
     async def publish(
         self,
@@ -90,8 +127,8 @@ class ChannelPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+        pipeline: Optional["Pipeline[bytes] | ClusterPipeline[bytes]"] = None,
+    ) -> "int | Pipeline[bytes] | ClusterPipeline[bytes]":
         cmd = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
@@ -102,7 +139,9 @@ class ChannelPublisher(LogicPublisher):
             _publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
         )
-        result: int = await self._basic_publish(
+        result: (
+            int | Pipeline[bytes] | ClusterPipeline[bytes]
+        ) = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
@@ -181,6 +220,42 @@ class ListPublisher(LogicPublisher):
             "stream": None,
         }
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        list: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: None = None,
+    ) -> int: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        list: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: "Pipeline[bytes]",
+    ) -> "Pipeline[bytes]": ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        list: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: "ClusterPipeline[bytes]",
+    ) -> "ClusterPipeline[bytes]": ...
+
     @override
     async def publish(
         self,
@@ -190,8 +265,8 @@ class ListPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+        pipeline: Optional["Pipeline[bytes] | ClusterPipeline[bytes]"] = None,
+    ) -> "int | Pipeline[bytes] | ClusterPipeline[bytes]":
         cmd = RedisPublishCommand(
             message,
             list=list or self.list.name,
@@ -203,7 +278,9 @@ class ListPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish(
+        result: (
+            int | Pipeline[bytes] | ClusterPipeline[bytes]
+        ) = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
@@ -259,6 +336,39 @@ class ListPublisher(LogicPublisher):
 
 
 class ListBatchPublisher(ListPublisher):
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        list: str | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        pipeline: None = None,
+    ) -> int: ...
+
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        list: str | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        pipeline: "Pipeline[bytes]",
+    ) -> "Pipeline[bytes]": ...
+
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        list: str | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        pipeline: "ClusterPipeline[bytes]",
+    ) -> "ClusterPipeline[bytes]": ...
+
     @override
     async def publish(
         self,
@@ -267,8 +377,8 @@ class ListBatchPublisher(ListPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+        pipeline: Optional["Pipeline[bytes] | ClusterPipeline[bytes]"] = None,
+    ) -> "int | Pipeline[bytes] | ClusterPipeline[bytes]":
         cmd = RedisPublishCommand(
             *messages,
             list=list or self.list.name,
@@ -280,7 +390,9 @@ class ListBatchPublisher(ListPublisher):
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish_batch(
+        result: (
+            int | Pipeline[bytes] | ClusterPipeline[bytes]
+        ) = await self._basic_publish_batch(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
@@ -339,6 +451,45 @@ class StreamPublisher(LogicPublisher):
             "stream": self.stream.name if name_only else self.stream,
         }
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        stream: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        maxlen: int | None = None,
+        pipeline: None = None,
+    ) -> bytes: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        stream: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        maxlen: int | None = None,
+        pipeline: "Pipeline[bytes]",
+    ) -> "Pipeline[bytes]": ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        stream: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        maxlen: int | None = None,
+        pipeline: "ClusterPipeline[bytes]",
+    ) -> "ClusterPipeline[bytes]": ...
+
     @override
     async def publish(
         self,
@@ -349,8 +500,8 @@ class StreamPublisher(LogicPublisher):
         correlation_id: str | None = None,
         *,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> bytes:
+        pipeline: Optional["Pipeline[bytes] | ClusterPipeline[bytes]"] = None,
+    ) -> "bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
         cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,
@@ -363,7 +514,9 @@ class StreamPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        result: bytes = await self._basic_publish(
+        result: (
+            bytes | Pipeline[bytes] | ClusterPipeline[bytes]
+        ) = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),

@@ -215,10 +215,13 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         async def m(msg: str, pipe: Pipeline) -> None:
             for _ in range(5):
                 # publish 5 messages by publisher
-                await publisher.publish(None, pipeline=pipe)
+                publisher_result = await publisher.publish(None, pipeline=pipe)
 
                 # and 5 by broker
-                await broker.publish(None, **destination, pipeline=pipe)
+                broker_result = await broker.publish(None, **destination, pipeline=pipe)
+
+                assert publisher_result is pipe
+                assert broker_result is pipe
 
             await pipe.execute()
 
@@ -250,7 +253,10 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
         @broker.subscriber(channel=queue)
         async def m(msg: str, pipe: Pipeline) -> None:
-            await broker.publish_batch(*range(5), list=queue + "resp", pipeline=pipe)
+            result = await broker.publish_batch(
+                *range(5), list=queue + "resp", pipeline=pipe
+            )
+            assert result is pipe
             await pipe.execute()
 
         @broker.subscriber(list=ListSub(queue + "resp", batch=True, max_records=5))

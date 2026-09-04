@@ -11,6 +11,7 @@ from faststream.response.response import BatchPublishCommand, PublishCommand, Re
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
+    from redis.asyncio.cluster import ClusterPipeline
 
     from faststream._internal.basic_types import SendableMessage
 
@@ -69,7 +70,7 @@ class RedisPublishCommand(BatchPublishCommand):
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
         timeout: float | None = 30.0,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline[bytes] | ClusterPipeline[bytes]"] = None,
         message_format: type["MessageFormat"] = BinaryMessageFormatV1,
     ) -> None:
         super().__init__(
