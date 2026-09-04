@@ -96,16 +96,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
                 await self._get_msgs(*args)
 
             except Exception as e:  # noqa: PERF203
-                self._log(
-                    log_level=logging.ERROR,
-                    message="Message fetch error",
-                    exc_info=e,
-                )
-
                 if connected:
                     connected = False
 
-                await anyio.sleep(CONSUME_ERROR_BACKOFF_SECONDS)
+                await self.handle_consume_error(e)
 
             else:
                 if not connected:
@@ -115,6 +109,15 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
                 if not start_signal.is_set():
                     with suppress(Exception):
                         start_signal.set()
+
+    async def handle_consume_error(self, error: Exception) -> None:
+        """Log a fetch error and retry after a short backoff."""
+        self._log(
+            log_level=logging.ERROR,
+            message="Message fetch error",
+            exc_info=error,
+        )
+        await anyio.sleep(CONSUME_ERROR_BACKOFF_SECONDS)
 
     @abstractmethod
     async def _get_msgs(self, *args: Any) -> None:

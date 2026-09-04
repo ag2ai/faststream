@@ -214,6 +214,15 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def _post_start(self) -> None:
         self.running = True
 
+    async def handle_consume_error(self, error: Exception) -> None:
+        """Handle an error raised by a subscriber consume loop.
+
+        Subscriber implementations may override this hook to handle
+        broker-specific errors and delegate to the default behavior with
+        ``await super().handle_consume_error(error)``.
+        """
+        raise error
+
     @abstractmethod
     async def stop(self) -> None:
         """Stop message consuming.

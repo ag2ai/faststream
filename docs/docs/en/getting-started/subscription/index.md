@@ -157,6 +157,24 @@ Also, synchronous functions are supported as well:
 
     Such functions run in a ThreadPool using `#!python anyio.to_thread.run_sync()`, so they don't block the event loop.
 
+## Consume-loop errors
+
+Subscribers handle errors raised while fetching messages through the asynchronous
+`#!python handle_consume_error(error)` method. Custom subscriber implementations
+can override this method and use
+`#!python await super().handle_consume_error(error)` to preserve the behavior of
+their parent class.
+
+The default implementation raises the error. Broker-specific subscriber classes
+may provide a different default, such as logging the error and retrying the
+consume loop.
+
+If an error escapes the consume loop, the subscriber calls its public
+`#!python handle_task_exception(...)` method. Its default behavior restarts the
+failed task. Custom subscriber implementations can override this method to
+inspect the exception, decide not to restart, or delegate to
+`#!python super().handle_task_exception(...)` for the default restart behavior.
+
 ## Message Body Serialization
 
 Generally, **FastStream** uses your function type annotation to serialize incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).
