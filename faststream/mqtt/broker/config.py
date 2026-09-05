@@ -1,5 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final, Literal, Optional, cast
 
 from faststream._internal._compat import HAS_OPENTELEMETRY
 from faststream._internal.configs import BrokerConfig
@@ -20,12 +22,25 @@ if HAS_OPENTELEMETRY:
 MQTTVersionUnset = cast("str", object())
 
 
+# Driver class to the context annotation that injects it, both as import
+# paths so this table needs no imports of its own.
+CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "zmqtt.client.MQTTClient": "faststream.mqtt.annotations.Client",
+        "faststream.mqtt.broker.broker.MQTTBroker": "faststream.mqtt.annotations.MQTTBroker",
+        "faststream.mqtt.message.MQTTMessage": "faststream.mqtt.annotations.MQTTMessage",
+    },
+)
+
+
 @dataclass(kw_only=True)
 class MQTTBrokerConfig(BrokerConfig):
     version: Literal["3.1.1", "5.0", "unset"] = "unset"
 
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
+
+    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
 
     def __post_init__(self) -> None:
         for m in self.broker_middlewares:

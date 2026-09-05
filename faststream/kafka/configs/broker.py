@@ -1,7 +1,8 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Optional
+from types import MappingProxyType
+from typing import Any, Final, Optional
 
 import aiokafka
 import aiokafka.admin
@@ -20,6 +21,17 @@ from faststream.kafka.schemas.params import (
     ConsumerConnectionParams,
 )
 
+# Driver class to the context annotation that injects it, both as import
+# paths so this table needs no imports of its own.
+CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "aiokafka.consumer.consumer.AIOKafkaConsumer": "faststream.kafka.annotations.Consumer",
+        "faststream.kafka.broker.broker.KafkaBroker": "faststream.kafka.annotations.KafkaBroker",
+        "faststream.kafka.message.KafkaMessage": "faststream.kafka.annotations.KafkaMessage",
+        "faststream.kafka.publisher.producer.AioKafkaFastProducer": "faststream.kafka.annotations.KafkaProducer",
+    },
+)
+
 
 @dataclass(kw_only=True)
 class KafkaBrokerConfig(BrokerConfig):
@@ -31,6 +43,8 @@ class KafkaBrokerConfig(BrokerConfig):
     consumer_only: bool = False
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
+
+    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
 
     @property
     def admin_client(self) -> "aiokafka.admin.client.AIOKafkaAdminClient":

@@ -1,6 +1,7 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.configs import BrokerConfig
@@ -19,6 +20,18 @@ from faststream.confluent.publisher.producer import (
 if TYPE_CHECKING:
     from faststream._internal.logger import LoggerState
     from faststream.confluent.schemas import Topic
+
+
+# Driver class to the context annotation that injects it, both as import
+# paths so this table needs no imports of its own.
+CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "faststream.confluent.helpers.client.AsyncConfluentConsumer": "faststream.confluent.annotations.Consumer",
+        "faststream.confluent.broker.broker.KafkaBroker": "faststream.confluent.annotations.KafkaBroker",
+        "faststream.confluent.message.KafkaMessage": "faststream.confluent.annotations.KafkaMessage",
+        "faststream.confluent.publisher.producer.AsyncConfluentFastProducer": "faststream.confluent.annotations.KafkaProducer",
+    },
+)
 
 
 @dataclass
@@ -50,6 +63,8 @@ class KafkaBrokerConfig(BrokerConfig):
     producer: "AsyncConfluentFastProducer" = field(
         default_factory=FakeConfluentFastProducer,
     )
+
+    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
 
     def __post_init__(self) -> None:
         self.builder = ConsumerBuilder(

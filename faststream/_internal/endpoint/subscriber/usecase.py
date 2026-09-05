@@ -15,6 +15,9 @@ from typing import (
 
 from typing_extensions import Self, overload, override
 
+from faststream._internal.endpoint.subscriber.hints import (
+    check_context_annotations,
+)
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto
@@ -293,25 +296,47 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         def real_wrapper(
             func: Callable[P_HandlerParams, T_HandlerReturn],
         ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
-            handler = super(SubscriberUsecase, self).__call__(func)
-            handler._subscribers.append(self)
-
-            self.calls.add_call(
-                HandlerItem[MsgType](
-                    handler=handler,
-                    filter=async_filter,
-                    item_parser=parser,
-                    item_decoder=decoder,
-                    dependencies=total_deps,
-                ),
+            return self._create_call(
+                func,
+                filter=async_filter,
+                parser=parser,
+                decoder=decoder,
+                dependencies=total_deps,
             )
-
-            return handler
 
         if func is None:
             return real_wrapper
 
         return real_wrapper(func)
+
+    def _create_call(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "AsyncFilter[StreamMessage[MsgType]]",
+        parser: Optional["CustomCallable"],
+        decoder: Optional["CustomCallable"],
+        dependencies: Iterable["Dependant"],
+    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        check_context_annotations(
+            func,
+            self._outer_config.underlying_driver_annotations,
+        )
+
+        handler = super().__call__(func)
+        handler._subscribers.append(self)
+
+        self.calls.add_call(
+            HandlerItem[MsgType](
+                handler=handler,
+                filter=filter,
+                item_parser=parser,
+                item_decoder=decoder,
+                dependencies=dependencies,
+            ),
+        )
+
+        return handler
 
     async def consume(self, msg: MsgType) -> Any:
         """Consume a message asynchronously."""

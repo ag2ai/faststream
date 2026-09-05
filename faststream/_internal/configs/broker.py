@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
@@ -35,6 +35,7 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
+    underlying_driver_annotations: Mapping[str, str] = field(default_factory=dict)
     broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = None
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)

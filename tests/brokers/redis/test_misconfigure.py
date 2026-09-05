@@ -1,9 +1,11 @@
 import pytest
+from redis.asyncio.client import Pipeline, Redis
 
 from faststream import AckPolicy
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
-from faststream.redis import RedisBroker, RedisRouter, StreamSub
+from faststream.redis import RedisBroker, RedisRouter, StreamSub, annotations
 from faststream.redis.subscriber.usecases import StreamConcurrentSubscriber
 
 
@@ -60,3 +62,56 @@ def test_use_only_redis_router() -> None:
 
     with pytest.raises(SetupError):
         broker.include_routers(routers)
+
+
+@pytest.mark.redis()
+def test_driver_class_annotation_names_the_import_to_use() -> None:
+    expected = (
+        "`redis` is annotated with"
+        " `redis.asyncio.client.Redis`,"
+        " which FastStream cannot inject.\n"
+        "Use the context annotation instead:\n"
+        "\n    from faststream.redis.annotations import Redis\n"
+    )
+
+    broker = RedisBroker()
+
+    with pytest.raises(ExceptionGroup) as excinfo:
+
+        @broker.subscriber("test")
+        async def handler(redis: Redis) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]
+
+
+@pytest.mark.redis()
+def test_context_annotations_are_accepted() -> None:
+    broker = RedisBroker()
+
+    @broker.subscriber("test")
+    async def handler(
+        msg: annotations.RedisStreamMessage,
+        redis: annotations.Redis,
+        pipe: annotations.Pipeline,
+        client: annotations.RedisBroker,
+    ) -> None: ...
+
+
+@pytest.mark.redis()
+def test_annotation_behind_depends_names_its_import() -> None:
+    expected = (
+        "`pipe` is annotated with"
+        " `redis.asyncio.client.Pipeline`,"
+        " which FastStream cannot inject.\n"
+        "Use the context annotation instead:\n"
+        "\n    from faststream.redis.annotations import Pipeline\n"
+    )
+
+    broker = RedisBroker()
+
+    with pytest.raises(ExceptionGroup) as excinfo:
+
+        @broker.subscriber("test")
+        async def handler(pipe: Pipeline) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]
