@@ -63,7 +63,7 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
         " `faststream.confluent.helpers.client.AsyncConfluentConsumer`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        '\n    Annotated[AsyncConfluentConsumer, Context("handler_.consumer")]\n'
+        "\n    from faststream.confluent.annotations import Consumer\n"
     )
 
     broker = KafkaBroker()

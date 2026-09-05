@@ -1,6 +1,4 @@
-from collections.abc import Mapping
-from types import MappingProxyType
-from typing import Annotated, Any, Final
+from typing import Annotated
 
 from aio_pika import RobustChannel, RobustConnection
 
@@ -28,14 +26,3 @@ RabbitProducer = Annotated[AioPikaFastProducer, Context("broker._producer")]
 
 Channel = Annotated[RobustChannel, Context("broker._channel")]
 Connection = Annotated[RobustConnection, Context("broker._connection")]
-
-
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
-    {
-        RobustConnection: Connection,
-        RobustChannel: Channel,
-        RB: RabbitBroker,
-        RM: RabbitMessage,
-        AioPikaFastProducer: RabbitProducer,
-    },
-)

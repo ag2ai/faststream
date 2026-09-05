@@ -1,6 +1,4 @@
-from collections.abc import Mapping
-from types import MappingProxyType
-from typing import Annotated, Any, Final
+from typing import Annotated
 
 from faststream._internal.context import Context
 from faststream.annotations import ContextRepo, Logger
@@ -24,13 +22,3 @@ Consumer = Annotated[AsyncConfluentConsumer, Context("handler_.consumer")]
 KafkaMessage = Annotated[KM, Context("message")]
 KafkaBroker = Annotated[KB, Context("broker")]
 KafkaProducer = Annotated[AsyncConfluentFastProducer, Context("broker._producer")]
-
-
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
-    {
-        AsyncConfluentConsumer: Consumer,
-        KB: KafkaBroker,
-        KM: KafkaMessage,
-        AsyncConfluentFastProducer: KafkaProducer,
-    },
-)

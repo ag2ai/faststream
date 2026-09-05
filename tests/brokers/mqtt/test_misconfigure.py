@@ -12,7 +12,7 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
         " `zmqtt.client.MQTTClient`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        '\n    Annotated[MQTTClient, Context("broker._connection")]\n'
+        "\n    from faststream.mqtt.annotations import Client\n"
     )
 
     broker = MQTTBroker()

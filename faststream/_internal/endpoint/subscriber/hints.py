@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from inspect import unwrap
-from typing import TYPE_CHECKING, Any, get_args, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 from faststream._internal._compat import ExceptionGroup
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 def check_context_annotations(
     call: Callable[..., Any],
-    annotations: "Mapping[type[Any], Any]",
+    annotations: "Mapping[str, str]",
 ) -> None:
     """Reject handler arguments annotated with a broker's own driver class.
 
@@ -21,7 +21,7 @@ def check_context_annotations(
 
     Args:
         call: the decorated handler.
-        annotations: driver class to the context annotation wrapping it.
+        annotations: driver class to context annotation, both as import paths.
     """
     if not annotations:
         return
@@ -33,14 +33,12 @@ def check_context_annotations(
 
     handler = unwrap(call)
 
-    hints = get_type_hints(handler, include_extras=True)
-
     errors = [
         SetupError(_format_hint(field_name, hint, annotation))
-        for field_name, hint in hints.items()
+        for field_name, hint in get_type_hints(handler, include_extras=True).items()
         if field_name != "return"
         and isinstance(hint, type)
-        and (annotation := annotations.get(hint)) is not None
+        and (annotation := annotations.get(_path(hint))) is not None
     ]
 
     if errors:
@@ -49,26 +47,16 @@ def check_context_annotations(
         raise ExceptionGroup(msg, errors)
 
 
-def _format_hint(field_name: str, driver_type: type[Any], annotation: Any) -> str:
-    driver_path = f"{driver_type.__module__}.{driver_type.__qualname__}"
+def _path(driver_type: type[Any]) -> str:
+    return f"{driver_type.__module__}.{driver_type.__qualname__}"
 
-    message = (
-        f"`{field_name}` is annotated with `{driver_path}`, "
+
+def _format_hint(field_name: str, driver_type: type[Any], annotation: str) -> str:
+    module, _, name = annotation.rpartition(".")
+
+    return (
+        f"`{field_name}` is annotated with `{_path(driver_type)}`, "
         "which FastStream cannot inject.\n"
+        "Use the context annotation instead:\n"
+        f"\n    from {module} import {name}\n"
     )
-
-    if context_key := _context_key(annotation):
-        return (
-            f"{message}Use the context annotation instead:\n"
-            f'\n    Annotated[{driver_type.__qualname__}, Context("{context_key}")]\n'
-        )
-
-    return f"{message}Use the context annotation FastStream provides for it instead."
-
-
-def _context_key(annotation: Any) -> str | None:
-    for metadata in get_args(annotation)[1:]:
-        if name := getattr(metadata, "name", None):
-            return str(name)
-
-    return None

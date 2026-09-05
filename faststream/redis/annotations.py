@@ -1,6 +1,5 @@
-from collections.abc import AsyncGenerator, Mapping
-from types import MappingProxyType
-from typing import TYPE_CHECKING, Annotated, Any, Final
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING, Annotated
 
 from redis.asyncio.client import (
     Pipeline as _RedisPipeline,
@@ -55,17 +54,3 @@ async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
 
 
 Pipeline = Annotated[RedisPipeline, Depends(get_pipe, cast=False)]
-
-
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
-    {
-        _RedisClient: Redis,
-        _RedisPipeline: Pipeline,
-        RB: RedisBroker,
-        Rm: RedisMessage,
-        Rcm: RedisChannelMessage,
-        Rsm: RedisStreamMessage,
-        Rbsm: RedisBatchStreamMessage,
-        Rlm: RedisListMessage,
-    },
-)

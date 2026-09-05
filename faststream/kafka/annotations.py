@@ -1,6 +1,4 @@
-from collections.abc import Mapping
-from types import MappingProxyType
-from typing import Annotated, Any, Final
+from typing import Annotated
 
 from aiokafka import AIOKafkaConsumer
 
@@ -25,13 +23,3 @@ Consumer = Annotated[AIOKafkaConsumer, Context("handler_.consumer")]
 KafkaMessage = Annotated[KM, Context("message")]
 KafkaBroker = Annotated[KB, Context("broker")]
 KafkaProducer = Annotated[AioKafkaFastProducer, Context("broker._producer")]
-
-
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
-    {
-        AIOKafkaConsumer: Consumer,
-        KB: KafkaBroker,
-        KM: KafkaMessage,
-        AioKafkaFastProducer: KafkaProducer,
-    },
-)

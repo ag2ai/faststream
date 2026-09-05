@@ -1,5 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Final
 
 from faststream._internal.configs import BrokerConfig
 from faststream._internal.parser import DefaultCodec
@@ -8,20 +10,23 @@ from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from aio_pika import RobustConnection
 
     from faststream.rabbit.helpers import ChannelManager, RabbitDeclarer
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
 
 
-def _context_annotations() -> "Mapping[type[Any], Any]":
-    # `annotations` reaches this module through the broker, so it can only be
-    # imported once the package is built.
-    from faststream.rabbit.annotations import CONTEXT_ANNOTATIONS
-
-    return CONTEXT_ANNOTATIONS
+# Driver class to the context annotation that injects it, both as import
+# paths so this table needs no imports of its own.
+CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "aio_pika.robust_connection.RobustConnection": "faststream.rabbit.annotations.Connection",
+        "aio_pika.robust_channel.RobustChannel": "faststream.rabbit.annotations.Channel",
+        "faststream.rabbit.broker.broker.RabbitBroker": "faststream.rabbit.annotations.RabbitBroker",
+        "faststream.rabbit.message.RabbitMessage": "faststream.rabbit.annotations.RabbitMessage",
+        "faststream.rabbit.publisher.producer.AioPikaFastProducer": "faststream.rabbit.annotations.RabbitProducer",
+    },
+)
 
 
 @dataclass(kw_only=True)
@@ -33,9 +38,7 @@ class RabbitBrokerConfig(BrokerConfig):
     virtual_host: str = ""
     app_id: str | None = None
 
-    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
-        default_factory=_context_annotations
-    )
+    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

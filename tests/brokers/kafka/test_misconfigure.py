@@ -111,7 +111,7 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
         " `aiokafka.consumer.consumer.AIOKafkaConsumer`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        '\n    Annotated[AIOKafkaConsumer, Context("handler_.consumer")]\n'
+        "\n    from faststream.kafka.annotations import Consumer\n"
     )
 
     broker = KafkaBroker()

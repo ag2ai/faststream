@@ -1,6 +1,4 @@
-from collections.abc import Mapping
-from types import MappingProxyType
-from typing import Annotated, Any, Final
+from typing import Annotated
 
 from nats.aio.client import Client as _NatsClient
 from nats.js.client import JetStreamContext as _JetStream
@@ -35,15 +33,3 @@ NatsKvMessage = Annotated[_KVMessage, Context("message")]
 NatsBroker = Annotated[_Broker, Context("broker")]
 Client = Annotated[_NatsClient, Context("broker.config.connection_state.connection")]
 JsClient = Annotated[_JetStream, Context("broker.config.connection_state.stream")]
-
-
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
-    {
-        _NatsClient: Client,
-        _JetStream: JsClient,
-        _ObjectStore: ObjectStorage,
-        _Broker: NatsBroker,
-        _Message: NatsMessage,
-        _KVMessage: NatsKvMessage,
-    },
-)

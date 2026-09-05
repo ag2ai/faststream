@@ -1,5 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final, Literal, Optional, cast
 
 from faststream._internal._compat import HAS_OPENTELEMETRY
 from faststream._internal.configs import BrokerConfig
@@ -8,8 +10,6 @@ from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     import zmqtt
 
     from faststream._internal.types import BrokerMiddleware
@@ -22,12 +22,15 @@ if HAS_OPENTELEMETRY:
 MQTTVersionUnset = cast("str", object())
 
 
-def _context_annotations() -> "Mapping[type[Any], Any]":
-    # `annotations` reaches this module through the broker, so it can only be
-    # imported once the package is built.
-    from faststream.mqtt.annotations import CONTEXT_ANNOTATIONS
-
-    return CONTEXT_ANNOTATIONS
+# Driver class to the context annotation that injects it, both as import
+# paths so this table needs no imports of its own.
+CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "zmqtt.client.MQTTClient": "faststream.mqtt.annotations.Client",
+        "faststream.mqtt.broker.broker.MQTTBroker": "faststream.mqtt.annotations.MQTTBroker",
+        "faststream.mqtt.message.MQTTMessage": "faststream.mqtt.annotations.MQTTMessage",
+    },
+)
 
 
 @dataclass(kw_only=True)
@@ -37,9 +40,7 @@ class MQTTBrokerConfig(BrokerConfig):
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
 
-    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
-        default_factory=_context_annotations
-    )
+    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
 
     def __post_init__(self) -> None:
         for m in self.broker_middlewares:

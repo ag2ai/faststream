@@ -35,7 +35,7 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
-    underlying_driver_annotations: Mapping[type[Any], Any] = field(default_factory=dict)
+    underlying_driver_annotations: Mapping[str, str] = field(default_factory=dict)
     broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = None
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)

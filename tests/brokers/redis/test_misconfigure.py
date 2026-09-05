@@ -1,5 +1,5 @@
 import pytest
-from redis.asyncio.client import Redis
+from redis.asyncio.client import Pipeline, Redis
 
 from faststream import AckPolicy
 from faststream._internal._compat import ExceptionGroup
@@ -71,7 +71,7 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
         " `redis.asyncio.client.Redis`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        '\n    Annotated[Redis, Context("broker._connection")]\n'
+        "\n    from faststream.redis.annotations import Redis\n"
     )
 
     broker = RedisBroker()
@@ -95,3 +95,23 @@ def test_context_annotations_are_accepted() -> None:
         pipe: annotations.Pipeline,
         client: annotations.RedisBroker,
     ) -> None: ...
+
+
+@pytest.mark.redis()
+def test_annotation_behind_depends_names_its_import() -> None:
+    expected = (
+        "`pipe` is annotated with"
+        " `redis.asyncio.client.Pipeline`,"
+        " which FastStream cannot inject.\n"
+        "Use the context annotation instead:\n"
+        "\n    from faststream.redis.annotations import Pipeline\n"
+    )
+
+    broker = RedisBroker()
+
+    with pytest.raises(ExceptionGroup) as excinfo:
+
+        @broker.subscriber("test")
+        async def handler(pipe: Pipeline) -> None: ...
+
+    assert [str(e) for e in excinfo.value.exceptions] == [expected]

@@ -1,6 +1,7 @@
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.configs import BrokerConfig
@@ -21,12 +22,16 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic
 
 
-def _context_annotations() -> "Mapping[type[Any], Any]":
-    # `annotations` reaches this module through the broker, so it can only be
-    # imported once the package is built.
-    from faststream.confluent.annotations import CONTEXT_ANNOTATIONS
-
-    return CONTEXT_ANNOTATIONS
+# Driver class to the context annotation that injects it, both as import
+# paths so this table needs no imports of its own.
+CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "faststream.confluent.helpers.client.AsyncConfluentConsumer": "faststream.confluent.annotations.Consumer",
+        "faststream.confluent.broker.broker.KafkaBroker": "faststream.confluent.annotations.KafkaBroker",
+        "faststream.confluent.message.KafkaMessage": "faststream.confluent.annotations.KafkaMessage",
+        "faststream.confluent.publisher.producer.AsyncConfluentFastProducer": "faststream.confluent.annotations.KafkaProducer",
+    },
+)
 
 
 @dataclass
@@ -59,9 +64,7 @@ class KafkaBrokerConfig(BrokerConfig):
         default_factory=FakeConfluentFastProducer,
     )
 
-    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
-        default_factory=_context_annotations
-    )
+    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
 
     def __post_init__(self) -> None:
         self.builder = ConsumerBuilder(

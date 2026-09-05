@@ -1,5 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any, Final
 
 from typing_extensions import TypedDict
 
@@ -10,8 +12,6 @@ from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
 from faststream.nats.publisher.producer import FakeNatsFastProducer
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from nats.aio.client import Client
 
     from faststream.nats.publisher.producer import NatsFastProducer
@@ -24,12 +24,18 @@ class JsInitOptions(TypedDict, total=False):
     publish_async_max_pending: int
 
 
-def _context_annotations() -> "Mapping[type[Any], Any]":
-    # `annotations` reaches this module through the broker, so it can only be
-    # imported once the package is built.
-    from faststream.nats.annotations import CONTEXT_ANNOTATIONS
-
-    return CONTEXT_ANNOTATIONS
+# Driver class to the context annotation that injects it, both as import
+# paths so this table needs no imports of its own.
+CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "nats.aio.client.Client": "faststream.nats.annotations.Client",
+        "nats.js.client.JetStreamContext": "faststream.nats.annotations.JsClient",
+        "nats.js.object_store.ObjectStore": "faststream.nats.annotations.ObjectStorage",
+        "faststream.nats.broker.broker.NatsBroker": "faststream.nats.annotations.NatsBroker",
+        "faststream.nats.message.NatsMessage": "faststream.nats.annotations.NatsMessage",
+        "faststream.nats.message.NatsKvMessage": "faststream.nats.annotations.NatsKvMessage",
+    },
+)
 
 
 @dataclass(kw_only=True)
@@ -42,9 +48,7 @@ class NatsBrokerConfig(BrokerConfig):
     kv_declarer: KVBucketDeclarer = field(default_factory=KVBucketDeclarer)
     os_declarer: OSBucketDeclarer = field(default_factory=OSBucketDeclarer)
 
-    underlying_driver_annotations: "Mapping[type[Any], Any]" = field(
-        default_factory=_context_annotations
-    )
+    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
 
     def connect(self, connection: "Client") -> None:
         stream = connection.jetstream(**self.js_options)

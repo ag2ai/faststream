@@ -28,7 +28,7 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
         " `aio_pika.robust_connection.RobustConnection`,"
         " which FastStream cannot inject.\n"
         "Use the context annotation instead:\n"
-        '\n    Annotated[RobustConnection, Context("broker._connection")]\n'
+        "\n    from faststream.rabbit.annotations import Connection\n"
     )
 
     broker = RabbitBroker()

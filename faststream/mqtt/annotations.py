@@ -1,6 +1,4 @@
-from collections.abc import Mapping
-from types import MappingProxyType
-from typing import Annotated, Any, Final
+from typing import Annotated
 
 from zmqtt import MQTTClient
 
@@ -22,12 +20,3 @@ __all__ = (
 Client = Annotated[MQTTClient, Context("broker._connection")]
 MQTTMessage = Annotated[MM, Context("message")]
 MQTTBroker = Annotated[MB, Context("broker")]
-
-
-CONTEXT_ANNOTATIONS: Final[Mapping[type[Any], Any]] = MappingProxyType(
-    {
-        MQTTClient: Client,
-        MB: MQTTBroker,
-        MM: MQTTMessage,
-    },
-)
