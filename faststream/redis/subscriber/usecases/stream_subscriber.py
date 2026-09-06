@@ -209,7 +209,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 stream_message = await self._client.xreadgroup(
                     groupname=self.stream_sub.group,
                     consumername=self.stream_sub.consumer,
-                    streams={self.stream_sub.name: self.last_id},
+                    streams={self.stream_sub.name: self.read_id},
                     block=math.ceil(timeout * 1000),
                     count=1,
                 )
@@ -283,7 +283,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     stream_message = await self._client.xreadgroup(
                         groupname=self.stream_sub.group,
                         consumername=self.stream_sub.consumer,
-                        streams={self.stream_sub.name: self.last_id},
+                        streams={self.stream_sub.name: self.read_id},
                         block=math.ceil(timeout * 1000),
                         count=1,
                     )

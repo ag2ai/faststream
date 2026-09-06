@@ -146,7 +146,29 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
-    pass
+    async def get_delivery_count(
+        self,
+        redis: "Redis[bytes]",
+        group: str,
+    ) -> int:
+        """Return this message's current delivery count from the Redis PEL.
+
+        The count is queried on every call. Messages without an ID or a pending
+        entry, including acknowledged messages, return ``1``.
+        """
+        message_ids = self.raw_message["message_ids"]
+        if not message_ids:
+            return 1
+
+        message_id = message_ids[0]
+        entries = await redis.xpending_range(
+            name=self.raw_message["channel"],
+            groupname=group,
+            min=message_id,
+            max=message_id,
+            count=1,
+        )
+        return int(entries[0]["times_delivered"]) if entries else 1
 
 
 class RedisBatchStreamMessage(_RedisStreamMessageMixin[BatchStreamMessage]):
