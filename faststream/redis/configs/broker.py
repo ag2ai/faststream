@@ -1,13 +1,16 @@
-from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any
 
-from faststream._internal.configs import BrokerConfig
+from typing_extensions import override
+
+from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from redis.asyncio.client import Redis
     from redis.asyncio.cluster import RedisCluster
 
@@ -20,20 +23,60 @@ if TYPE_CHECKING:
     from .state import ConnectionState
 
 
-# Driver class to the context annotation that injects it, both as import
-# paths so this table needs no imports of its own.
-CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
-    {
-        "redis.asyncio.client.Redis": "faststream.redis.annotations.Redis",
-        "redis.asyncio.client.Pipeline": "faststream.redis.annotations.Pipeline",
-        "faststream.redis.broker.broker.RedisBroker": "faststream.redis.annotations.RedisBroker",
-        "faststream.redis.message.RedisMessage": "faststream.redis.annotations.RedisMessage",
-        "faststream.redis.message.RedisChannelMessage": "faststream.redis.annotations.RedisChannelMessage",
-        "faststream.redis.message.RedisStreamMessage": "faststream.redis.annotations.RedisStreamMessage",
-        "faststream.redis.message.RedisBatchStreamMessage": "faststream.redis.annotations.RedisBatchStreamMessage",
-        "faststream.redis.message.RedisListMessage": "faststream.redis.annotations.RedisListMessage",
-    },
-)
+def _context_annotations() -> "Mapping[Any, Any]":
+    # `annotations` reaches this module through the broker, so the
+    # objects a row needs only exist once the package is built.
+    from redis.asyncio.client import (
+        Pipeline as PipelineDriver,
+        Redis as RedisDriver,
+    )
+
+    from faststream.redis import annotations
+    from faststream.redis.broker.broker import RedisBroker as RedisBrokerDriver
+    from faststream.redis.message import (
+        RedisBatchStreamMessage as RedisBatchStreamMessageDriver,
+        RedisChannelMessage as RedisChannelMessageDriver,
+        RedisListMessage as RedisListMessageDriver,
+        RedisMessage as RedisMessageDriver,
+        RedisStreamMessage as RedisStreamMessageDriver,
+    )
+
+    return MappingProxyType(
+        {
+            RedisDriver: UnderlyingDriverAnnotation(
+                annotations.Redis, "faststream.redis.annotations", "Redis"
+            ),
+            PipelineDriver: UnderlyingDriverAnnotation(
+                annotations.Pipeline, "faststream.redis.annotations", "Pipeline"
+            ),
+            RedisBrokerDriver: UnderlyingDriverAnnotation(
+                annotations.RedisBroker, "faststream.redis.annotations", "RedisBroker"
+            ),
+            RedisMessageDriver: UnderlyingDriverAnnotation(
+                annotations.RedisMessage, "faststream.redis.annotations", "RedisMessage"
+            ),
+            RedisChannelMessageDriver: UnderlyingDriverAnnotation(
+                annotations.RedisChannelMessage,
+                "faststream.redis.annotations",
+                "RedisChannelMessage",
+            ),
+            RedisStreamMessageDriver: UnderlyingDriverAnnotation(
+                annotations.RedisStreamMessage,
+                "faststream.redis.annotations",
+                "RedisStreamMessage",
+            ),
+            RedisBatchStreamMessageDriver: UnderlyingDriverAnnotation(
+                annotations.RedisBatchStreamMessage,
+                "faststream.redis.annotations",
+                "RedisBatchStreamMessage",
+            ),
+            RedisListMessageDriver: UnderlyingDriverAnnotation(
+                annotations.RedisListMessage,
+                "faststream.redis.annotations",
+                "RedisListMessage",
+            ),
+        },
+    )
 
 
 @dataclass(kw_only=True)
@@ -43,7 +86,9 @@ class RedisBrokerConfig(BrokerConfig):
 
     message_format: type["MessageFormat"]
 
-    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
+    @override
+    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
+        return _context_annotations()
 
     async def connect(self) -> None:
         self.producer.connect(
@@ -57,7 +102,9 @@ class RedisBrokerConfig(BrokerConfig):
 
 @dataclass(kw_only=True)
 class RedisRouterConfig(BrokerConfig):
-    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
+    @override
+    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
+        return _context_annotations()
 
     @property
     def connection(self) -> ConnectionError:

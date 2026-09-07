@@ -1,17 +1,18 @@
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, override
 
-from faststream._internal.configs import BrokerConfig
+from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
 from faststream.nats.broker.state import BrokerState
 from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
 from faststream.nats.publisher.producer import FakeNatsFastProducer
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from nats.aio.client import Client
 
     from faststream.nats.publisher.producer import NatsFastProducer
@@ -24,18 +25,42 @@ class JsInitOptions(TypedDict, total=False):
     publish_async_max_pending: int
 
 
-# Driver class to the context annotation that injects it, both as import
-# paths so this table needs no imports of its own.
-CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
-    {
-        "nats.aio.client.Client": "faststream.nats.annotations.Client",
-        "nats.js.client.JetStreamContext": "faststream.nats.annotations.JsClient",
-        "nats.js.object_store.ObjectStore": "faststream.nats.annotations.ObjectStorage",
-        "faststream.nats.broker.broker.NatsBroker": "faststream.nats.annotations.NatsBroker",
-        "faststream.nats.message.NatsMessage": "faststream.nats.annotations.NatsMessage",
-        "faststream.nats.message.NatsKvMessage": "faststream.nats.annotations.NatsKvMessage",
-    },
-)
+def _context_annotations() -> "Mapping[Any, Any]":
+    # `annotations` reaches this module through the broker, so the
+    # objects a row needs only exist once the package is built.
+    from nats.aio.client import Client as ClientDriver
+    from nats.js.client import JetStreamContext
+    from nats.js.object_store import ObjectStore
+
+    from faststream.nats import annotations
+    from faststream.nats.broker.broker import NatsBroker as NatsBrokerDriver
+    from faststream.nats.message import (
+        NatsKvMessage as NatsKvMessageDriver,
+        NatsMessage as NatsMessageDriver,
+    )
+
+    return MappingProxyType(
+        {
+            ClientDriver: UnderlyingDriverAnnotation(
+                annotations.Client, "faststream.nats.annotations", "Client"
+            ),
+            JetStreamContext: UnderlyingDriverAnnotation(
+                annotations.JsClient, "faststream.nats.annotations", "JsClient"
+            ),
+            ObjectStore: UnderlyingDriverAnnotation(
+                annotations.ObjectStorage, "faststream.nats.annotations", "ObjectStorage"
+            ),
+            NatsBrokerDriver: UnderlyingDriverAnnotation(
+                annotations.NatsBroker, "faststream.nats.annotations", "NatsBroker"
+            ),
+            NatsMessageDriver: UnderlyingDriverAnnotation(
+                annotations.NatsMessage, "faststream.nats.annotations", "NatsMessage"
+            ),
+            NatsKvMessageDriver: UnderlyingDriverAnnotation(
+                annotations.NatsKvMessage, "faststream.nats.annotations", "NatsKvMessage"
+            ),
+        },
+    )
 
 
 @dataclass(kw_only=True)
@@ -48,7 +73,9 @@ class NatsBrokerConfig(BrokerConfig):
     kv_declarer: KVBucketDeclarer = field(default_factory=KVBucketDeclarer)
     os_declarer: OSBucketDeclarer = field(default_factory=OSBucketDeclarer)
 
-    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
+    @override
+    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
+        return _context_annotations()
 
     def connect(self, connection: "Client") -> None:
         stream = connection.jetstream(**self.js_options)

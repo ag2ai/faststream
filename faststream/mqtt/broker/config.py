@@ -1,15 +1,18 @@
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast
+
+from typing_extensions import override
 
 from faststream._internal._compat import HAS_OPENTELEMETRY
-from faststream._internal.configs import BrokerConfig
+from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     import zmqtt
 
     from faststream._internal.types import BrokerMiddleware
@@ -22,15 +25,28 @@ if HAS_OPENTELEMETRY:
 MQTTVersionUnset = cast("str", object())
 
 
-# Driver class to the context annotation that injects it, both as import
-# paths so this table needs no imports of its own.
-CONTEXT_ANNOTATIONS: Final[Mapping[str, str]] = MappingProxyType(
-    {
-        "zmqtt.client.MQTTClient": "faststream.mqtt.annotations.Client",
-        "faststream.mqtt.broker.broker.MQTTBroker": "faststream.mqtt.annotations.MQTTBroker",
-        "faststream.mqtt.message.MQTTMessage": "faststream.mqtt.annotations.MQTTMessage",
-    },
-)
+def _context_annotations() -> "Mapping[Any, Any]":
+    # `annotations` reaches this module through the broker, so the
+    # objects a row needs only exist once the package is built.
+    from zmqtt.client import MQTTClient
+
+    from faststream.mqtt import annotations
+    from faststream.mqtt.broker.broker import MQTTBroker as MQTTBrokerDriver
+    from faststream.mqtt.message import MQTTMessage as MQTTMessageDriver
+
+    return MappingProxyType(
+        {
+            MQTTClient: UnderlyingDriverAnnotation(
+                annotations.Client, "faststream.mqtt.annotations", "Client"
+            ),
+            MQTTBrokerDriver: UnderlyingDriverAnnotation(
+                annotations.MQTTBroker, "faststream.mqtt.annotations", "MQTTBroker"
+            ),
+            MQTTMessageDriver: UnderlyingDriverAnnotation(
+                annotations.MQTTMessage, "faststream.mqtt.annotations", "MQTTMessage"
+            ),
+        },
+    )
 
 
 @dataclass(kw_only=True)
@@ -40,9 +56,13 @@ class MQTTBrokerConfig(BrokerConfig):
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
 
-    underlying_driver_annotations: "Mapping[str, str]" = CONTEXT_ANNOTATIONS
+    @override
+    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
+        return _context_annotations()
 
     def __post_init__(self) -> None:
+        super().__post_init__()
+
         for m in self.broker_middlewares:
             self._validate_middleware(m)
 
