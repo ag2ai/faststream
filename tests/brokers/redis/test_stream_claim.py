@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from dirty_equals import HasLen, IsInstance, IsInt, IsPartialDict
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
@@ -89,13 +90,11 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 timeout=3,
             )
 
-        assert event.is_set()
-        # Claimed entries are reported before incoming ones
-        assert received[0][0] == "pending_message"
-        assert received[0][1] >= 1, "claimed entry counts previous deliveries"
-        assert received[0][2] >= 100, "claimed entry was idle at least the threshold"
-        assert received[1][0] == "new_message"
-        assert received[1][1] == 0, "new entry has no previous deliveries"
+        # Claimed entries come first, with their previous deliveries and idle time
+        assert received[:2] == [
+            ("pending_message", IsInt(ge=1), IsInt(ge=100)),
+            ("new_message", 0, 0),
+        ]
 
     @pytest.mark.slow()
     @require_redis_v710
@@ -142,28 +141,21 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 timeout=3,
             )
 
-        assert event.is_set()
-
-        # Alignment must hold for every delivery our batch loop builds
+        # Metadata is aligned with `message_ids` in every delivery
         for snap in snapshots:
-            assert (
-                len(snap["message_ids"])
-                == len(snap["delivery_counts"])
-                == len(snap["idle_times"])
-            )
+            size = len(snap["message_ids"])
+            assert snap == IsPartialDict({
+                "delivery_counts": HasLen(size),
+                "idle_times": HasLen(size),
+            })
 
-        # Values are only predictable for the first delivery of each entry,
-        # so stop scoring once the two original entries are covered.
-        counts: list[int] = []
-        idles: list[int] = []
-        for snap in snapshots:
-            counts.extend(snap["delivery_counts"])
-            idles.extend(snap["idle_times"])
-            if len(counts) >= 2:
-                break
-
-        assert counts == [1, 1]
-        assert len(idles) == 2
+        # Only the first delivery of each original entry has predictable values
+        entries = [
+            entry
+            for snap in snapshots
+            for entry in zip(snap["delivery_counts"], snap["idle_times"], strict=True)
+        ]
+        assert entries[:2] == [(1, IsInt(ge=300))] * 2
 
     @pytest.mark.slow()
     @require_redis_v710
@@ -191,19 +183,17 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 ),
             )
 
-            first = await subscriber.get_one(timeout=3)
-            second = await subscriber.get_one(timeout=3)
+            got: set[str] = set()
+            for _ in range(2):
+                message = await subscriber.get_one(timeout=3)
+                assert message is not None
+                assert message.raw_message == IsPartialDict({
+                    "delivery_counts": [IsInt(ge=1)],
+                    "idle_times": [IsInt(ge=100)],
+                })
+                got.add(await message.decode())
 
-            assert first is not None
-            assert second is not None
-            assert {await first.decode(), await second.decode()} == {
-                "first",
-                "second",
-            }
-            for message in (first, second):
-                assert message.raw_message["delivery_counts"][0] >= 1
-                assert message.raw_message["idle_times"][0] >= 100
-
+            assert got == {"first", "second"}
             # The group read cursor survived both reads
             assert subscriber.read_id == ">"
 
@@ -235,8 +225,10 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
 
             got: set[str] = set()
             async for message in subscriber:
+                assert message.raw_message == IsPartialDict({
+                    "delivery_counts": [IsInt(ge=1)],
+                })
                 got.add(await message.decode())
-                assert message.raw_message["delivery_counts"][0] >= 1
                 if len(got) >= 2:
                     break
 
@@ -272,15 +264,12 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 # Stopped after the rejection instead of retrying in a hot loop
                 assert reject.call_count == calls_after_stop
 
-                tasks = br.subscribers[0].tasks
-                found = False
-                for t in tasks:
-                    if not t.done():
-                        continue
-                    with suppress(asyncio.CancelledError, asyncio.InvalidStateError):
-                        if isinstance(t.exception(), StreamClaimUnsupportedError):
-                            found = True
-                assert found, "Expected StreamClaimUnsupportedError to stop the task"
+                errors = [
+                    task.exception()
+                    for task in br.subscribers[0].tasks
+                    if task.done() and not task.cancelled()
+                ]
+                assert errors == [IsInstance(StreamClaimUnsupportedError)]
 
     @pytest.mark.slow()
     @require_redis_v710
@@ -321,7 +310,6 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 timeout=3,
             )
 
-        assert event.is_set()
         assert set(received) == {"pending_message", "new_message"}
 
     async def test_no_metadata_without_option(self, queue: str) -> None:
@@ -338,8 +326,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             message = await subscriber.get_one(timeout=3)
 
             assert message is not None
-            assert "idle_times" not in message.raw_message
-            assert "delivery_counts" not in message.raw_message
+            assert set(message.raw_message) == {"type", "channel", "message_ids", "data"}
 
 
 @pytest.mark.redis()
@@ -365,5 +352,4 @@ class TestXReadGroupClaimMemory(RedisMemoryTestcaseConfig):
         async with self.patch_broker(broker) as br:
             await br.publish("hello", stream=queue)
 
-        assert raw["idle_times"] == [0]
-        assert raw["delivery_counts"] == [0]
+        assert raw == IsPartialDict({"idle_times": [0], "delivery_counts": [0]})
