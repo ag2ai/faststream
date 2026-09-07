@@ -10,7 +10,7 @@ from typing import (
     overload,
 )
 
-from faststream import BaseMiddleware
+from faststream._internal.middlewares import BaseMiddleware
 from faststream._internal.utils import apply_types
 from faststream._internal.utils.functions import FakeContext, to_async
 from faststream.exceptions import IgnoredException

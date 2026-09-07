@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
-from faststream import BaseMiddleware
+from faststream._internal.middlewares import BaseMiddleware
 from faststream.exceptions import (
     AckMessage,
     HandlerException,
