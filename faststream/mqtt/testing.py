@@ -18,7 +18,7 @@ from faststream._internal.testing.broker import (
 )
 from faststream.exceptions import SubscriberNotFound
 from faststream.mqtt.broker.broker import MQTTBroker
-from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
+from faststream.mqtt.parser import parser_for
 from faststream.mqtt.publisher.producer import ZmqttBaseProducer
 from faststream.mqtt.response import MQTTPublishCommand
 
@@ -62,12 +62,6 @@ def mqtt_topic_matches(pattern: str, topic: str) -> bool:
 
 def _broker_version(broker: MQTTBroker) -> Literal["3.1.1", "5.0"]:
     return getattr(broker.config.broker_config, "version", "5.0")
-
-
-def _parser_for_version(
-    version: Literal["3.1.1", "5.0"],
-) -> MQTTParserV311 | MQTTParserV5:
-    return MQTTParserV311() if version == "3.1.1" else MQTTParserV5()
 
 
 class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
@@ -186,7 +180,7 @@ class FakeProducer(ZmqttBaseProducer):
         self.serializer: SerializerProto | None = None
 
         version = _broker_version(broker)
-        default = _parser_for_version(version)
+        default = parser_for(version)()
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()

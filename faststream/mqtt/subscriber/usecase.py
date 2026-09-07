@@ -12,7 +12,7 @@ from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.middlewares import AckPolicy
-from faststream.mqtt.parser import MQTTBaseParser, MQTTParserV5, MQTTParserV311
+from faststream.mqtt.parser import MQTTBaseParser, parser_for
 from faststream.mqtt.publisher.fake import MQTTFakePublisher
 
 if TYPE_CHECKING:
@@ -62,9 +62,8 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
     def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
         version = getattr(outer_config, "version", "5.0")
-        cls: type[MQTTBaseParser] = MQTTParserV311 if version == "3.1.1" else MQTTParserV5
         prefix = getattr(outer_config, "prefix", "")
-        return cls(path_regex=self._address.add_prefix(prefix).regex)
+        return parser_for(version)(path_regex=self._address.add_prefix(prefix).regex)
 
     @property
     def address(self) -> "Address":

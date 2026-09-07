@@ -23,3 +23,6 @@ class EmptyPlaceholder:
 
 
 EMPTY: Any = EmptyPlaceholder()
+
+PATH_CONTEXT_PREFIX = "message.path."
+"""Where a `Path()` parameter reads from: the Path parameters an Address captured."""

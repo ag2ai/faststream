@@ -91,3 +91,12 @@ class MQTTParserV5(MQTTBaseParser):
             reply_to=reply_to,
             correlation_id=correlation_id,
         )
+
+
+def parser_for(version: str) -> type[MQTTBaseParser]:
+    """The parser class a Broker version speaks.
+
+    One place says it, because the Subscriber that consumes through a parser and
+    the in-memory test broker that encodes for one have to agree on the version.
+    """
+    return MQTTParserV311 if version == "3.1.1" else MQTTParserV5
