@@ -40,6 +40,16 @@ class TasksMixin(SubscriberUsecase[Any]):
         self.tasks.append(task)
         return task
 
+    def handle_task_exception(
+        self,
+        exc: BaseException,
+        func: Callable[..., Coroutine[Any, Any, Any]],
+        func_args: tuple[Any, ...],
+        func_kwargs: dict[str, Any],
+    ) -> None:
+        """Handle an exception raised by a background subscriber task."""
+        self.add_task(func, func_args, func_kwargs)
+
     async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
         await super().stop()
