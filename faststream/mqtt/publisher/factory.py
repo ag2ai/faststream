@@ -36,11 +36,11 @@ def create_publisher(
         qos=qos,
         retain=retain,
         headers=headers,
-        _outer_config=broker_config,
+        outer_config=broker_config,
     )
 
     specification = MQTTPublisherSpecification(
-        _outer_config=broker_config,
+        outer_config=broker_config,
         specification_config=MQTTPublisherSpecificationConfig(
             topic=topic,
             qos=qos,

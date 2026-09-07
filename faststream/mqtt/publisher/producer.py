@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 
 
 class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
-    _parser: "AsyncCallable"
-    _decoder: "AsyncCallable"
+    parser: "AsyncCallable"
+    decoder: "AsyncCallable"
 
     def __init__(
         self,
@@ -37,8 +37,8 @@ class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
         self.codec: CodecProto = DefaultCodec()
         self.id_generator = id_generator
 
-        self._parser = ParserComposition(parser, default_parser.parse_message)
-        self._decoder = ParserComposition(decoder, default_parser.decode_message)
+        self.parser = ParserComposition(parser, default_parser.parse_message)
+        self.decoder = ParserComposition(decoder, default_parser.decode_message)
 
     def connect(
         self,

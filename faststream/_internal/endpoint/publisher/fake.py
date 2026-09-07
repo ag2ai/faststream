@@ -35,13 +35,13 @@ class FakePublisher(PublisherProto):
         self,
         cmd: "PublishCommand",
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> Any:
         """This method should be called in subscriber flow only."""
         cmd = self.patch_command(cmd)
 
         call: AsyncFunc = self._producer.publish
-        for m in _extra_middlewares:
+        for m in extra_middlewares:
             call = partial(m, call)
 
         return await call(cmd)

@@ -27,7 +27,7 @@ class RedisBrokerConfig(BrokerConfig):
 
     async def connect(self) -> None:
         self.producer.connect(
-            self.fd_config._serializer, codec=self.broker_codec or DefaultCodec()
+            self.fd_config.serializer, codec=self.broker_codec or DefaultCodec()
         )
         await self.connection.connect()
 

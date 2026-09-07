@@ -12,8 +12,8 @@ from typing import (
 from confluent_kafka import Message
 from typing_extensions import override
 
-from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
+from faststream.api.broker import Registrator
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.publisher.factory import create_publisher
 from faststream.confluent.subscriber.factory import create_subscriber
@@ -454,8 +454,8 @@ class KafkaRegistrator(
         subscriber = super().subscriber(subscriber, persistent=persistent)  # type: ignore[assignment]
 
         return subscriber.add_call(
-            parser_=parser or self._parser,
-            decoder_=decoder or self._decoder,
+            parser_=parser or self.parser,
+            decoder_=decoder or self.decoder,
             codec_=codec,
             dependencies_=dependencies,
         )

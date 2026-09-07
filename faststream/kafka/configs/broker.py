@@ -48,7 +48,7 @@ class KafkaBrokerConfig(BrokerConfig):
             producer = aiokafka.AIOKafkaProducer(**connection_kwargs)
             await self.producer.connect(
                 producer,
-                serializer=self.fd_config._serializer,
+                serializer=self.fd_config.serializer,
                 codec=self.broker_codec or DefaultCodec(),
             )
 

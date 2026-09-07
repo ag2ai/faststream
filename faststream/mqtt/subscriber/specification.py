@@ -21,15 +21,15 @@ class MQTTSubscriberSpecification(
 ):
     def __init__(
         self,
-        _outer_config: "MQTTBrokerConfig",
+        outer_config: "MQTTBrokerConfig",
         specification_config: "MQTTSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
     ) -> None:
-        super().__init__(_outer_config, specification_config, calls)
+        super().__init__(outer_config, specification_config, calls)
 
     @property
     def topic(self) -> str:
-        base = f"{self._outer_config.prefix}{self.config.topic}"
+        base = f"{self.outer_config.prefix}{self.config.topic}"
         if self.config.shared:
             return f"$share/{self.config.shared}/{base}"
         return base

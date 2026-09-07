@@ -155,8 +155,8 @@ def create_subscriber(
         sub_config=config,
         extra_options=extra_options,
         no_reply=no_reply,
-        _outer_config=broker_config,
-        _ack_policy=ack_policy,
+        outer_config=broker_config,
+        ack_policy=ack_policy,
     )
 
     calls = CallsCollection[Any]()
@@ -171,13 +171,13 @@ def create_subscriber(
     )
 
     specification = NatsSubscriberSpecification(
-        _outer_config=broker_config,
+        outer_config=broker_config,
         calls=calls,
         specification_config=specification_config,
     )
 
     not_include_spec = NotIncludeSpecifation(
-        _outer_config=broker_config,
+        outer_config=broker_config,
         calls=calls,
         specification_config=specification_config,
     )

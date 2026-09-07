@@ -1,12 +1,12 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from faststream._internal.broker.router import (
+from faststream._internal.constants import EMPTY
+from faststream.api.broker import (
     ArgsContainer,
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.redis.configs.broker import RedisRouterConfig
 from faststream.redis.message import UnifyRedisDict
@@ -16,12 +16,12 @@ from .registrator import RedisRegistrator
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import (
+    from faststream.redis.schemas import ListSub, PubSub, StreamSub
+    from faststream.types import (
         BrokerMiddleware,
         CustomCallable,
+        SendableMessage,
     )
-    from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
 class RedisPublisher(ArgsContainer):

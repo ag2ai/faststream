@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
-    _outer_config: "KafkaBrokerConfig"
+    outer_config: "KafkaBrokerConfig"
 
     group_id: str | None
 
@@ -62,21 +62,21 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def client_id(self) -> str | None:
-        return self._outer_config.client_id
+        return self.outer_config.client_id
 
     @property
     def topics(self) -> list[Topic]:
-        return [t.add_prefix(self._outer_config.prefix) for t in self._topics]
+        return [t.add_prefix(self.outer_config.prefix) for t in self._topics]
 
     @property
     def partitions(self) -> list[TopicPartition]:
-        return [p.add_prefix(self._outer_config.prefix) for p in self._partitions]
+        return [p.add_prefix(self.outer_config.prefix) for p in self._partitions]
 
     @override
     async def start(self) -> None:
         """Start the consumer."""
         await super().start()
-        self.consumer = consumer = self._outer_config.builder(
+        self.consumer = consumer = self.outer_config.builder(
             *self.topics,
             partitions=self.partitions,
             group_id=self.group_id,
@@ -111,7 +111,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         raw_message = await self.consumer.getone(timeout=timeout)
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
 
         async_parser, async_decoder = self._get_parser_and_decoder()
 
@@ -131,7 +131,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             "You can't use iterator if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         timeout = 5.0
@@ -159,7 +159,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     ) -> Sequence["PublisherProto"]:
         return (
             KafkaFakePublisher(
-                self._outer_config.producer,
+                self.outer_config.producer,
                 topic=message.reply_to,
             ),
         )

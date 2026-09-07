@@ -33,7 +33,7 @@ class RedisParamsStorage(DefaultLoggerStorage):
         message_id_ln = 10
 
         # TODO: generate unique logger names to not share between brokers
-        if not (lg := self._get_logger_ref()):
+        if not (lg := self.get_logger_ref()):
             lg = get_broker_logger(
                 name="redis",
                 default_context={
@@ -49,7 +49,7 @@ class RedisParamsStorage(DefaultLoggerStorage):
                 context=context,
                 log_level=self.logger_log_level,
             )
-            self._logger_ref.add(lg)
+            self.logger_ref.add(lg)
 
         return lg
 

@@ -181,19 +181,19 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         test_broker = self.get_broker()
         await test_broker.start()
 
-        old_producer = test_broker._producer
+        old_producer = test_broker.producer
 
         async with self.patch_broker(test_broker) as br:
             assert isinstance(br.start, Mock)
             assert isinstance(br._connect, Mock)
             assert isinstance(br.stop, Mock)
-            assert isinstance(br._producer, fake_producer_cls)
+            assert isinstance(br.producer, fake_producer_cls)
 
         assert not isinstance(br.start, Mock)
         assert not isinstance(br._connect, Mock)
         assert not isinstance(br.stop, Mock)
         assert br._connection is not None
-        assert br._producer == old_producer
+        assert br.producer == old_producer
 
     @pytest.mark.asyncio()
     async def test_broker_with_real_doesnt_get_patched(self) -> None:
@@ -205,7 +205,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             assert not isinstance(br._connect, Mock)
             assert not isinstance(br.stop, Mock)
             assert br._connection is not None
-            assert br._producer is not None
+            assert br.producer is not None
 
     @pytest.mark.asyncio()
     async def test_broker_with_real_patches_publishers_and_subscribers(

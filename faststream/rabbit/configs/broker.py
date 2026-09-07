@@ -29,7 +29,7 @@ class RabbitBrokerConfig(BrokerConfig):
     def connect(self, connection: "RobustConnection") -> None:
         self.channel_manager.connect(connection)
         self.producer.connect(
-            serializer=self.fd_config._serializer,
+            serializer=self.fd_config.serializer,
             codec=self.broker_codec or DefaultCodec(),
         )
 

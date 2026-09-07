@@ -28,18 +28,18 @@ T_BrokerConfig = TypeVar313("T_BrokerConfig", bound=BrokerConfig, default=Broker
 class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     def __init__(
         self,
-        _outer_config: "T_BrokerConfig",
+        outer_config: "T_BrokerConfig",
         specification_config: "T_SpecificationConfig",
         calls: "CallsCollection[Any]",
     ) -> None:
         self.calls = calls
         self.config = specification_config
-        self._outer_config = _outer_config
+        self.outer_config = outer_config
 
     @property
     def include_in_schema(self) -> bool:
         return bool(
-            self._outer_config.include_in_schema and self.config.include_in_schema,
+            self.outer_config.include_in_schema and self.config.include_in_schema,
         )
 
     @property

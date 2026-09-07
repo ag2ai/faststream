@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any, Optional, Union, overload
 from fast_depends.exceptions import ValidationError as FDValidationError
 
 from faststream import apply_types
-from faststream._internal.di.config import FastDependsConfig
 from faststream._internal.utils.functions import to_async
+from faststream.api.di import FastDependsConfig
 
 from .request import AsgiRequest
 from .response import AsgiResponse

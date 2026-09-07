@@ -63,7 +63,7 @@ class ObjStoreWatchSubscriber(
         )
 
         if not self._fetch_sub:
-            self.bucket = await self._outer_config.os_declarer.create_object_store(
+            self.bucket = await self.outer_config.os_declarer.create_object_store(
                 bucket=self.subject.template,
                 declare=self.obj_watch.declare,
             )
@@ -87,7 +87,7 @@ class ObjStoreWatchSubscriber(
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
@@ -107,7 +107,7 @@ class ObjStoreWatchSubscriber(
         )
 
         if not self._fetch_sub:
-            self.bucket = await self._outer_config.os_declarer.create_object_store(
+            self.bucket = await self.outer_config.os_declarer.create_object_store(
                 bucket=self.subject.template,
                 declare=self.obj_watch.declare,
             )
@@ -126,7 +126,7 @@ class ObjStoreWatchSubscriber(
         timeout = 5
         sleep_interval = timeout / 10
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
@@ -157,7 +157,7 @@ class ObjStoreWatchSubscriber(
         if self.subscription:
             return
 
-        self.bucket = await self._outer_config.os_declarer.create_object_store(
+        self.bucket = await self.outer_config.os_declarer.create_object_store(
             bucket=self.subject.template,
             declare=self.obj_watch.declare,
         )
@@ -174,7 +174,7 @@ class ObjStoreWatchSubscriber(
 
         self.subscription = UnsubscribeAdapter["ObjectStore.ObjectWatcher"](obj_watch)
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
 
         while self.running:
             with suppress(TimeoutError):

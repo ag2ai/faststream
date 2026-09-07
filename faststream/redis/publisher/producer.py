@@ -29,8 +29,8 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
     """Shared logic for Redis producers."""
 
     _connection: "ConnectionState[Any]"
-    _decoder: "ParserComposition"
-    _parser: "ParserComposition"
+    decoder: "ParserComposition"
+    parser: "ParserComposition"
 
     def __init__(
         self,
@@ -44,11 +44,11 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
         self._connection = connection
 
         default = RedisPubSubParser(SimpleParserConfig(message_format))
-        self._parser = ParserComposition(
+        self.parser = ParserComposition(
             parser,
             default.parse_message,
         )
-        self._decoder = ParserComposition(
+        self.decoder = ParserComposition(
             decoder,
             default.decode_message,
         )

@@ -5,8 +5,8 @@ from typing import Any, Generic, overload
 
 from typing_extensions import TypeVar
 
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.broker.router import BrokerRouter
+from faststream.api.broker import BrokerUsecase
 
 _BrokerT = TypeVar("_BrokerT", bound=BrokerUsecase[Any, Any], default=Any)
 

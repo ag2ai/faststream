@@ -45,7 +45,7 @@ class NatsParamsStorage(DefaultLoggerStorage):
 
     def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
         # TODO: generate unique logger names to not share between brokers
-        if not (lg := self._get_logger_ref()):
+        if not (lg := self.get_logger_ref()):
             message_id_ln = 10
 
             lg = get_broker_logger(
@@ -75,7 +75,7 @@ class NatsParamsStorage(DefaultLoggerStorage):
                 context=context,
                 log_level=self.logger_log_level,
             )
-            self._logger_ref.add(lg)
+            self.logger_ref.add(lg)
 
         return lg
 

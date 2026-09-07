@@ -48,7 +48,7 @@ class _ListHandlerMixin(LogicSubscriber):
 
     @property
     def list_sub(self) -> "ListSub":
-        return self._list_sub.add_prefix(self._outer_config.prefix)
+        return self._list_sub.add_prefix(self.outer_config.prefix)
 
     def get_log_context(
         self,
@@ -76,7 +76,7 @@ class _ListHandlerMixin(LogicSubscriber):
 
     @override
     async def stop(self) -> None:
-        with anyio.move_on_after(self._outer_config.graceful_timeout):
+        with anyio.move_on_after(self.outer_config.graceful_timeout):
             async with self._read_lock:
                 await super().stop()
 
@@ -108,7 +108,7 @@ class _ListHandlerMixin(LogicSubscriber):
             channel=self.list_sub.name,
         )
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
@@ -131,7 +131,7 @@ class _ListHandlerMixin(LogicSubscriber):
         sleep_interval = timeout / 10
         raw_message = None
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:

@@ -40,14 +40,11 @@ class FastDependsConfig:
     call_decorators: Sequence["Decorator"] = ()
     get_dependent: Callable[..., Any] | None = None
 
-    @property
-    def _serializer(self) -> Optional["SerializerProto"]:
+    def __post_init__(self) -> None:
         if self.serializer is EMPTY:
             from fast_depends.pydantic import PydanticSerializer
 
-            return PydanticSerializer(use_fastdepends_errors=False)
-
-        return self.serializer
+            self.serializer = PydanticSerializer(use_fastdepends_errors=False)
 
     def __or__(self, value: "FastDependsConfig", /) -> "FastDependsConfig":
         use_fd = False if not value.use_fastdepends else self.use_fastdepends
@@ -81,7 +78,7 @@ class FastDependsConfig:
                 wrapped_call,
                 extra_dependencies=dependencies,
                 dependency_provider=self.provider,
-                serializer_cls=self._serializer,
+                serializer_cls=self.serializer,
             )
 
             if self.use_fastdepends:

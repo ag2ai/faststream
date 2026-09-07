@@ -18,7 +18,7 @@ class MQTTPublisherSpecificationConfig(PublisherSpecificationConfig):
 
 @dataclass(kw_only=True)
 class MQTTPublisherConfig(PublisherUsecaseConfig):
-    _outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
+    outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
 
     topic: str
     qos: QoS

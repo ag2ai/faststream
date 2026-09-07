@@ -27,12 +27,12 @@ class RabbitSubscriberSpecification(
 
         exchange_name = getattr(self.config.exchange, "name", None)
 
-        return f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}:{self.call_name}"
+        return f"{self.outer_config.prefix}{queue_name}:{exchange_name or '_'}:{self.call_name}"
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
-        queue = self.config.queue.add_prefix(self._outer_config.prefix)
+        queue = self.config.queue.add_prefix(self.outer_config.prefix)
 
         exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
         queue_binding = amqp.Queue.from_queue(queue)
@@ -62,7 +62,7 @@ class RabbitSubscriberSpecification(
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(
-                        virtual_host=self._outer_config.virtual_host,
+                        virtual_host=self.outer_config.virtual_host,
                         queue=queue_binding,
                         exchange=exchange_binding,
                     ),

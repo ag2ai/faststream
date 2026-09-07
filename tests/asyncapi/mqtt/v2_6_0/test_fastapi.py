@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 from faststream.mqtt.fastapi import MQTTRouter
 from faststream.mqtt.testing import TestMQTTBroker
 from faststream.specification import Specification

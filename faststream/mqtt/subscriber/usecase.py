@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     """Base class for all MQTT subscribers."""
 
-    _outer_config: "MQTTBrokerConfig"
+    outer_config: "MQTTBrokerConfig"
 
     def __init__(
         self,
@@ -39,7 +39,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self._path_regex = config.path_regex
         # version may not be available yet when subscriber is created on a router
         # before include_router is called; default to V5 and re-resolve in start().
-        parser = self._make_parser(config._outer_config)
+        parser = self._make_parser(config.outer_config)
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
@@ -48,7 +48,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
 
-        if config.ack_policy is AckPolicy.NACK_ON_ERROR:
+        if config.resolved_ack_policy is AckPolicy.NACK_ON_ERROR:
             warnings.warn(
                 "MQTT has no nack primitive; with NACK_ON_ERROR, "
                 "on error QoS 1/2 messages will not be acknowledged "
@@ -58,7 +58,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
             )
 
     def _build_parser(self) -> MQTTBaseParser:
-        return self._make_parser(self._outer_config)
+        return self._make_parser(self.outer_config)
 
     def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
         version = getattr(outer_config, "version", "5.0")
@@ -67,7 +67,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
     @property
     def topic(self) -> str:
-        full = f"{self._outer_config.prefix}{self._topic}"
+        full = f"{self.outer_config.prefix}{self._topic}"
         return f"$share/{self._shared}/{full}" if self._shared else full
 
     def _make_response_publisher(
@@ -76,7 +76,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     ) -> Sequence["PublisherProto"]:
         return (
             MQTTFakePublisher(
-                producer=self._outer_config.producer,
+                producer=self.outer_config.producer,
                 topic=message.reply_to,
             ),
         )
@@ -99,7 +99,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
     @override
     async def start(self) -> None:
-        # Re-resolve the parser now that _outer_config is fully composed
+        # Re-resolve the parser now that outer_config is fully composed
         # (i.e. include_router has been called and the broker's MQTTBrokerConfig
         # is reachable through the config chain).
         parser = self._build_parser()
@@ -129,7 +129,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
     async def _create_subscription(self) -> None:
         auto_ack = self.ack_policy is AckPolicy.ACK_FIRST
-        self._subscription = self._outer_config.client.subscribe(
+        self._subscription = self.outer_config.client.subscribe(
             self.topic,
             qos=zmqtt.QoS(self._qos),
             auto_ack=auto_ack,
@@ -148,7 +148,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
         if self._subscription is None:
             auto_ack = self.ack_policy is AckPolicy.ACK_FIRST
-            self._subscription = self._outer_config.client.subscribe(
+            self._subscription = self.outer_config.client.subscribe(
                 self.topic,
                 qos=zmqtt.QoS(self._qos),
                 auto_ack=auto_ack,
@@ -161,7 +161,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         with anyio.move_on_after(timeout):
             raw_msg = await self._subscription.get_message()
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         return await process_msg(
             msg=raw_msg,
             middlewares=(m(raw_msg, context=context) for m in self._broker_middlewares),
@@ -175,7 +175,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
             await self._create_subscription()
 
         assert self._subscription is not None
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
         async for raw_msg in self._subscription:
             msg: MQTTMessage = await process_msg(  # type: ignore[assignment]

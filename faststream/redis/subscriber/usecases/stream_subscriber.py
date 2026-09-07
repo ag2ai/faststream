@@ -72,7 +72,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @property
     def stream_sub(self) -> "StreamSub":
-        return self._stream_sub.add_prefix(self._outer_config.prefix)
+        return self._stream_sub.add_prefix(self.outer_config.prefix)
 
     def get_log_context(
         self,
@@ -253,7 +253,7 @@ class _StreamHandlerMixin(LogicSubscriber):
             data=raw_message,
         )
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
@@ -274,7 +274,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         timeout = 5
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:

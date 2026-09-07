@@ -57,13 +57,13 @@ def create_subscriber(
         group_id=group_id,
         connection_data=connection_data,
         no_reply=no_reply,
-        _outer_config=config,
-        _ack_policy=ack_policy,
+        outer_config=config,
+        ack_policy=ack_policy,
     )
     calls = CallsCollection[Any]()
 
     specification = KafkaSubscriberSpecification(
-        _outer_config=config,
+        outer_config=config,
         calls=calls,
         specification_config=KafkaSubscriberSpecificationConfig(
             topics=declared_topics,

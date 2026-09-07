@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from typing_extensions import override
+
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
@@ -20,7 +22,7 @@ class RedisSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 
 @dataclass(kw_only=True)
 class RedisSubscriberConfig(SubscriberUsecaseConfig):
-    _outer_config: RedisBrokerConfig
+    outer_config: RedisBrokerConfig
 
     list_sub: ListSub | None = field(default=None, repr=False)
     channel_sub: PubSub | None = field(default=None, repr=False)
@@ -30,10 +32,11 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def message_format(self) -> type["MessageFormat"]:
-        return self._message_format or self._outer_config.message_format
+        return self._message_format or self.outer_config.message_format
 
     @property
-    def ack_policy(self) -> AckPolicy:
+    @override
+    def resolved_ack_policy(self) -> AckPolicy:
         if self.list_sub:
             return AckPolicy.MANUAL
 
@@ -43,9 +46,9 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
         if self.stream_sub and (self.stream_sub.no_ack or not self.stream_sub.group):
             return AckPolicy.MANUAL
 
-        if self._ack_policy is EMPTY:
-            if self._outer_config.ack_policy is not EMPTY:
-                return self._outer_config.ack_policy
+        if self.ack_policy is EMPTY:
+            if self.outer_config.ack_policy is not EMPTY:
+                return self.outer_config.ack_policy
             return AckPolicy.REJECT_ON_ERROR
 
-        return self._ack_policy
+        return self.ack_policy

@@ -113,8 +113,8 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
 class AioPikaFastProducerImpl(AioPikaFastProducer):
     """A class for fast producing messages using aio-pika."""
 
-    _decoder: "AsyncCallable"
-    _parser: "AsyncCallable"
+    decoder: "AsyncCallable"
+    parser: "AsyncCallable"
 
     def __init__(
         self,
@@ -132,8 +132,8 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self.codec: CodecProto = DefaultCodec()
 
         default_parser = AioPikaParser()
-        self._parser = ParserComposition(parser, default_parser.parse_message)
-        self._decoder = ParserComposition(decoder, default_parser.decode_message)
+        self.parser = ParserComposition(parser, default_parser.parse_message)
+        self.decoder = ParserComposition(decoder, default_parser.decode_message)
 
     def connect(
         self,

@@ -45,12 +45,12 @@ class RedisSubscriberSpecification(
 class ChannelSubscriberSpecification(RedisSubscriberSpecification):
     def __init__(
         self,
-        _outer_config: "RedisBrokerConfig",
+        outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
         channel: PubSub,
     ) -> None:
-        super().__init__(_outer_config, specification_config, calls)
+        super().__init__(outer_config, specification_config, calls)
         self.channel = channel
 
     @property
@@ -62,7 +62,7 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def channel_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.channel.address.template}"
+        return f"{self.outer_config.prefix}{self.channel.address.template}"
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
@@ -75,12 +75,12 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
 class ListSubscriberSpecification(RedisSubscriberSpecification):
     def __init__(
         self,
-        _outer_config: "RedisBrokerConfig",
+        outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
         list_sub: ListSub,
     ) -> None:
-        super().__init__(_outer_config, specification_config, calls)
+        super().__init__(outer_config, specification_config, calls)
         self.list_sub = list_sub
 
     @property
@@ -92,7 +92,7 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def list_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.list_sub.name}"
+        return f"{self.outer_config.prefix}{self.list_sub.name}"
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
@@ -105,12 +105,12 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
 class StreamSubscriberSpecification(RedisSubscriberSpecification):
     def __init__(
         self,
-        _outer_config: "RedisBrokerConfig",
+        outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
         stream_sub: StreamSub,
     ) -> None:
-        super().__init__(_outer_config, specification_config, calls)
+        super().__init__(outer_config, specification_config, calls)
         self.stream_sub = stream_sub
 
     @property
@@ -122,7 +122,7 @@ class StreamSubscriberSpecification(RedisSubscriberSpecification):
 
     @property
     def stream_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.stream_sub.name}"
+        return f"{self.outer_config.prefix}{self.stream_sub.name}"
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":

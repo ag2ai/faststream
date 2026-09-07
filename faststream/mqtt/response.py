@@ -30,7 +30,7 @@ class MQTTResponse(Response):
             message=self.body,
             headers=self.headers,
             correlation_id=self.correlation_id,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             topic="",
             qos=self.qos,
             retain=self.retain,
@@ -50,7 +50,7 @@ class MQTTPublishCommand(PublishCommand):
         retain: bool = False,
         message_expiry_interval: int | None = None,
         timeout: float | None = 30.0,
-        _publish_type: PublishType,
+        publish_type: PublishType,
     ) -> None:
         super().__init__(
             body=message,
@@ -58,7 +58,7 @@ class MQTTPublishCommand(PublishCommand):
             correlation_id=correlation_id,
             headers=headers,
             reply_to=reply_to,
-            _publish_type=_publish_type,
+            publish_type=publish_type,
         )
         self.qos = qos
         self.retain = retain
@@ -80,7 +80,7 @@ class MQTTPublishCommand(PublishCommand):
             headers=cmd.headers,
             reply_to=cmd.reply_to,
             timeout=getattr(cmd, "timeout", None),
-            _publish_type=cmd.publish_type,
+            publish_type=cmd.publish_type,
         )
 
     def __repr__(self) -> str:

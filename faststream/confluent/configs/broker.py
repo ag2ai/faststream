@@ -65,7 +65,7 @@ class KafkaBrokerConfig(BrokerConfig):
         )
         self.producer.connect(
             native_producer,
-            serializer=self.fd_config._serializer,
+            serializer=self.fd_config.serializer,
             codec=self.broker_codec or DefaultCodec(),
         )
         await self.admin.connect(

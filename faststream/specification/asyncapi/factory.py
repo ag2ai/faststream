@@ -5,7 +5,7 @@ from faststream.specification.base import Specification, SpecificationFactory
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyHttpUrl
-    from faststream._internal.broker import BrokerUsecase
+    from faststream.api.broker import BrokerUsecase
     from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema import Contact, ExternalDocs, License, Tag
 

@@ -139,7 +139,7 @@ class Application(StartAbleApplication):
         self._on_startup_calling: list[AsyncFunc] = [
             apply_types(
                 to_async(x),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             )
             for x in on_startup
@@ -147,7 +147,7 @@ class Application(StartAbleApplication):
         self._after_startup_calling: list[AsyncFunc] = [
             apply_types(
                 to_async(x),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             )
             for x in after_startup
@@ -155,7 +155,7 @@ class Application(StartAbleApplication):
         self._on_shutdown_calling: list[AsyncFunc] = [
             apply_types(
                 to_async(x),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             )
             for x in on_shutdown
@@ -163,7 +163,7 @@ class Application(StartAbleApplication):
         self._after_shutdown_calling: list[AsyncFunc] = [
             apply_types(
                 to_async(x),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             )
             for x in after_shutdown
@@ -172,7 +172,7 @@ class Application(StartAbleApplication):
         if lifespan:
             self.lifespan_context = apply_types(
                 func=lifespan,
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 cast_result=False,
                 context__=self.context,
             )
@@ -300,7 +300,7 @@ class Application(StartAbleApplication):
         self._on_startup_calling.append(
             apply_types(
                 to_async(func),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             ),
         )
@@ -314,7 +314,7 @@ class Application(StartAbleApplication):
         self._on_shutdown_calling.append(
             apply_types(
                 to_async(func),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             ),
         )
@@ -328,7 +328,7 @@ class Application(StartAbleApplication):
         self._after_startup_calling.append(
             apply_types(
                 to_async(func),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             ),
         )
@@ -342,7 +342,7 @@ class Application(StartAbleApplication):
         self._after_shutdown_calling.append(
             apply_types(
                 to_async(func),
-                serializer_cls=self.config._serializer,
+                serializer_cls=self.config.serializer,
                 context__=self.context,
             ),
         )

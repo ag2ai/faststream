@@ -58,7 +58,7 @@ class KeyValueWatchSubscriber(
         )
 
         if not self._fetch_sub:
-            bucket = await self._outer_config.kv_declarer.create_key_value(
+            bucket = await self.outer_config.kv_declarer.create_key_value(
                 bucket=self.kv_watch.name,
                 declare=self.kv_watch.declare,
             )
@@ -83,7 +83,7 @@ class KeyValueWatchSubscriber(
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
@@ -103,7 +103,7 @@ class KeyValueWatchSubscriber(
         )
 
         if not self._fetch_sub:
-            bucket = await self._outer_config.kv_declarer.create_key_value(
+            bucket = await self.outer_config.kv_declarer.create_key_value(
                 bucket=self.kv_watch.name,
                 declare=self.kv_watch.declare,
             )
@@ -123,7 +123,7 @@ class KeyValueWatchSubscriber(
         timeout = 5
         sleep_interval = timeout / 10
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
@@ -154,7 +154,7 @@ class KeyValueWatchSubscriber(
         if self.subscription:
             return
 
-        bucket = await self._outer_config.kv_declarer.create_key_value(
+        bucket = await self.outer_config.kv_declarer.create_key_value(
             bucket=self.kv_watch.name,
             declare=self.kv_watch.declare,
         )

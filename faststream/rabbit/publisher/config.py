@@ -23,7 +23,7 @@ class RabbitPublisherSpecificationConfig(
 
 @dataclass(kw_only=True)
 class RabbitPublisherConfig(RabbitConfig, PublisherUsecaseConfig):
-    _outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
+    outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
 
     routing_address: Address
     message_kwargs: "PublishKwargs"

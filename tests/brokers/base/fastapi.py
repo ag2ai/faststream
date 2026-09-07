@@ -13,11 +13,11 @@ from faststream import (
     Depends as FSDepends,
     Response,
 )
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.broker.router import BrokerRouter
 from faststream._internal.fastapi.context import Context
 from faststream._internal.fastapi.route import StreamMessage
 from faststream._internal.fastapi.router import StreamRouter
+from faststream.api.broker import BrokerUsecase
 from faststream.exceptions import SetupError
 
 from .basic import BaseTestcaseConfig

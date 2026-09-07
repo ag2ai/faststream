@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
+from typing_extensions import override
+
 from faststream._internal.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
@@ -23,24 +25,25 @@ class RabbitSubscriberSpecificationConfig(
 
 @dataclass(kw_only=True)
 class RabbitSubscriberConfig(RabbitConfig, SubscriberUsecaseConfig):
-    _outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
+    outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
 
     consume_args: dict[str, Any] | None = None
     channel: Optional["Channel"] = None
 
     @property
     def ack_first(self) -> bool:
-        return self.ack_policy is AckPolicy.ACK_FIRST
+        return self.resolved_ack_policy is AckPolicy.ACK_FIRST
 
     @property
     def auto_ack_disabled(self) -> bool:
-        return self.ack_policy in {AckPolicy.MANUAL, AckPolicy.ACK_FIRST}
+        return self.resolved_ack_policy in {AckPolicy.MANUAL, AckPolicy.ACK_FIRST}
 
     @property
-    def ack_policy(self) -> AckPolicy:
-        if self._ack_policy is EMPTY:
-            if self._outer_config.ack_policy is not EMPTY:
-                return self._outer_config.ack_policy
+    @override
+    def resolved_ack_policy(self) -> AckPolicy:
+        if self.ack_policy is EMPTY:
+            if self.outer_config.ack_policy is not EMPTY:
+                return self.outer_config.ack_policy
             return AckPolicy.REJECT_ON_ERROR
 
-        return self._ack_policy
+        return self.ack_policy

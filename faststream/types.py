@@ -11,9 +11,13 @@ from faststream._internal.basic_types import (
 )
 from faststream._internal.types import (
     BrokerMiddleware,
+    CustomCallable,
     Filter,
+    IdGenerator,
+    P_HandlerParams,
     PublisherMiddleware,
     SubscriberMiddleware,
+    T_HandlerReturn,
     WrappedHandlerCall,
 )
 
@@ -22,14 +26,18 @@ __all__ = [
     "AsyncFunc",
     "AsyncFuncAny",
     "BrokerMiddleware",
+    "CustomCallable",
     "DecodedMessage",
     "Filter",
+    "IdGenerator",
     "Lifespan",
     "LoggerProto",
     "NoneCallable",
+    "P_HandlerParams",
     "PublisherMiddleware",
     "SendableMessage",
     "SettingField",
     "SubscriberMiddleware",
+    "T_HandlerReturn",
     "WrappedHandlerCall",
 ]

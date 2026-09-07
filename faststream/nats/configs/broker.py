@@ -37,13 +37,13 @@ class NatsBrokerConfig(BrokerConfig):
 
         self.producer.connect(
             connection,
-            serializer=self.fd_config._serializer,
+            serializer=self.fd_config.serializer,
             codec=self.broker_codec or DefaultCodec(),
         )
 
         self.js_producer.connect(
             stream,
-            serializer=self.fd_config._serializer,
+            serializer=self.fd_config.serializer,
             codec=self.broker_codec or DefaultCodec(),
         )
         self.kv_declarer.connect(stream)

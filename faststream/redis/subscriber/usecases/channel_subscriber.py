@@ -51,7 +51,7 @@ class ChannelSubscriber(LogicSubscriber):
 
     @property
     def channel(self) -> "PubSub":
-        return self._channel.add_prefix(self._outer_config.prefix)
+        return self._channel.add_prefix(self.outer_config.prefix)
 
     def get_log_context(
         self,
@@ -103,7 +103,7 @@ class ChannelSubscriber(LogicSubscriber):
             while (raw_message := await self._get_message(self.subscription)) is None:  # noqa: ASYNC110
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisChannelMessage | None = await process_msg(  # type: ignore[assignment]
@@ -128,7 +128,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         raw_message: PubSubMessage | None = None
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:

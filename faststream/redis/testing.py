@@ -238,12 +238,12 @@ class FakeProducer(RedisFastProducer):
 
         default = RedisPubSubParser(config)
 
-        self._parser = ParserComposition(
-            broker._parser,
+        self.parser = ParserComposition(
+            broker.parser,
             default.parse_message,
         )
-        self._decoder = ParserComposition(
-            broker._decoder,
+        self.decoder = ParserComposition(
+            broker.decoder,
             default.decode_message,
         )
         self.codec = broker.config.broker_codec or DefaultCodec()
@@ -269,7 +269,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or self.broker.config.id_generator(),
             headers=cmd.headers,
             message_format=cmd.message_format,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
         )
         destination = _make_destination_kwargs(cmd)
@@ -298,7 +298,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=cmd.correlation_id or self.broker.config.id_generator(),
             headers=cmd.headers,
             message_format=cmd.message_format,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
         )
 
@@ -331,7 +331,7 @@ class FakeProducer(RedisFastProducer):
                 correlation_id=cmd.correlation_id or self.broker.config.id_generator(),
                 headers=cmd.headers,
                 message_format=cmd.message_format,
-                serializer=self.broker.config.fd_config._serializer,
+                serializer=self.broker.config.fd_config.serializer,
                 codec=self.codec,
             )
             for m in cmd.batch_bodies
@@ -372,7 +372,7 @@ class FakeProducer(RedisFastProducer):
                 headers=result.headers,
                 correlation_id=result.correlation_id or "",
                 message_format=handler.config.message_format,
-                serializer=self.broker.config.fd_config._serializer,
+                serializer=self.broker.config.fd_config.serializer,
                 codec=self.codec,
             ),
             channel="",

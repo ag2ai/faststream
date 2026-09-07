@@ -38,8 +38,8 @@ def create_subscriber(
         qos=qos,
         shared=shared,
         no_reply=no_reply,
-        _outer_config=config,
-        _ack_policy=ack_policy,
+        outer_config=config,
+        ack_policy=ack_policy,
         path_regex=address.regex,
     )
 

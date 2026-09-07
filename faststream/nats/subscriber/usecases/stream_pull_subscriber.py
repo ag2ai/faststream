@@ -159,7 +159,7 @@ class BatchPullStreamSubscriber(
         except TimeoutError:
             return None
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
@@ -189,7 +189,7 @@ class BatchPullStreamSubscriber(
         else:
             fetch_sub = self._fetch_sub
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:

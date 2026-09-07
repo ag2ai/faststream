@@ -76,8 +76,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         # NOTE: register default parser to be compatible with request
         default = AioKafkaParser(msg_class=KafkaMessage, regex=None)
-        self._parser = ParserComposition(parser, default.parse_message)
-        self._decoder = ParserComposition(decoder, default.decode_message)
+        self.parser = ParserComposition(parser, default.parse_message)
+        self.decoder = ParserComposition(decoder, default.decode_message)
 
     async def connect(
         self,

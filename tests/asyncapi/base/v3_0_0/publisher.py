@@ -1,7 +1,7 @@
 import pydantic
 
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.fastapi import StreamRouter
+from faststream.api.broker import BrokerUsecase
 
 from .basic import AsyncAPI300Factory
 
@@ -20,7 +20,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
         assert schema["channels"][key]["description"] == "test description"
 
-    def test_basic_publisher(self) -> None:
+    def testbasic_publisher(self) -> None:
         broker = self.broker_class()
 
         @broker.publisher("test")

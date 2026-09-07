@@ -9,12 +9,12 @@ from typing import (
 
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 
-from faststream._internal.broker.router import (
+from faststream._internal.constants import EMPTY
+from faststream.api.broker import (
     ArgsContainer,
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream._internal.constants import EMPTY
 from faststream.kafka.broker.registrator import KafkaRegistrator
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
@@ -25,10 +25,10 @@ if TYPE_CHECKING:
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import (
+    from faststream.types import (
         BrokerMiddleware,
         CustomCallable,
+        SendableMessage,
     )
 
 

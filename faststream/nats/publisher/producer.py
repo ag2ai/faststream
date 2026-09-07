@@ -58,8 +58,8 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
 class NatsFastProducerImpl(NatsFastProducer):
     """A class to represent a NATS producer."""
 
-    _decoder: "AsyncCallable"
-    _parser: "AsyncCallable"
+    decoder: "AsyncCallable"
+    parser: "AsyncCallable"
 
     def __init__(
         self,
@@ -70,8 +70,8 @@ class NatsFastProducerImpl(NatsFastProducer):
         self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
-        self._parser = ParserComposition(parser, default.parse_message)
-        self._decoder = ParserComposition(decoder, default.decode_message)
+        self.parser = ParserComposition(parser, default.parse_message)
+        self.decoder = ParserComposition(decoder, default.decode_message)
 
         self.__state: ConnectionState[Client] = EmptyConnectionState()
 
@@ -124,8 +124,8 @@ class NatsFastProducerImpl(NatsFastProducer):
 class NatsJSFastProducer(NatsFastProducer):
     """A class to represent a NATS JetStream producer."""
 
-    _decoder: "AsyncCallable"
-    _parser: "AsyncCallable"
+    decoder: "AsyncCallable"
+    parser: "AsyncCallable"
 
     def __init__(
         self,
@@ -137,8 +137,8 @@ class NatsJSFastProducer(NatsFastProducer):
         self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
-        self._parser = ParserComposition(parser, default.parse_message)
-        self._decoder = ParserComposition(decoder, default.decode_message)
+        self.parser = ParserComposition(parser, default.parse_message)
+        self.decoder = ParserComposition(decoder, default.decode_message)
 
         self.__state: ConnectionState[JetStreamContext] = EmptyConnectionState()
 

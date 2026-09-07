@@ -130,12 +130,12 @@ class HandlerItem(Generic[MsgType]):
         self,
         /,
         message: "StreamMessage[MsgType]",
-        _extra_middlewares: Iterable["SubscriberMiddleware[Any]"],
+        extra_middlewares: Iterable["SubscriberMiddleware[Any]"],
     ) -> Any:
         """Execute wrapped handler with consume middlewares."""
         call: AsyncFuncAny = self.handler.call_wrapped
 
-        for middleware in _extra_middlewares:
+        for middleware in extra_middlewares:
             call = partial(middleware, call)
 
         try:

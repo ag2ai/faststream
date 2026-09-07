@@ -39,7 +39,7 @@ class LogicPublisher(PublisherUsecase):
 
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self._topic}"
+        return f"{self.outer_config.prefix}{self._topic}"
 
     @override
     async def request(
@@ -84,20 +84,20 @@ class LogicPublisher(PublisherUsecase):
             key=key,
             partition=partition if partition is not None else self.partition,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             timeout=timeout,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
 
-        msg: KafkaMessage = await self._basic_request(
+        msg: KafkaMessage = await self.basic_request(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.outer_config.producer,
         )
         return msg
 
     async def flush(self) -> None:
-        producer = cast("AioKafkaFastProducer", self._outer_config.producer)
+        producer = cast("AioKafkaFastProducer", self.outer_config.producer)
         await producer.flush()
 
 
@@ -212,15 +212,15 @@ class DefaultPublisher(LogicPublisher):
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
-        return await self._basic_publish(
+        return await self.basic_publish(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=(),
+            producer=self.outer_config.producer,
+            extra_middlewares=(),
         )
 
     @override
@@ -228,7 +228,7 @@ class DefaultPublisher(LogicPublisher):
         self,
         cmd: Union["PublishCommand", "KafkaPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = KafkaPublishCommand.from_cmd(cmd)
@@ -240,10 +240,10 @@ class DefaultPublisher(LogicPublisher):
         cmd.partition = cmd.partition if cmd.partition is not None else self.partition
         cmd.key = cmd.key or self.key
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=_extra_middlewares,
+            producer=self.outer_config.producer,
+            extra_middlewares=extra_middlewares,
         )
 
     @override
@@ -400,16 +400,16 @@ class BatchPublisher(LogicPublisher):
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish_batch(
+        return await self.basic_publish_batch(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=(),
+            producer=self.outer_config.producer,
+            extra_middlewares=(),
         )
 
     @override
@@ -417,7 +417,7 @@ class BatchPublisher(LogicPublisher):
         self,
         cmd: Union["PublishCommand", "KafkaPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = KafkaPublishCommand.from_cmd(cmd, batch=True)
@@ -434,8 +434,8 @@ class BatchPublisher(LogicPublisher):
         cmd.partition = cmd.partition if cmd.partition is not None else self.partition
         cmd.key = cmd.key or self.key
 
-        await self._basic_publish_batch(
+        await self.basic_publish_batch(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=_extra_middlewares,
+            producer=self.outer_config.producer,
+            extra_middlewares=extra_middlewares,
         )

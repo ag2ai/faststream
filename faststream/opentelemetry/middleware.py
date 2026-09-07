@@ -12,7 +12,7 @@ from opentelemetry.trace import Link, Span
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from faststream._internal.middlewares import BaseMiddleware
-from faststream._internal.types import BrokerMiddleware, PublishCommandType
+from faststream._internal.types import PublishCommandType
 from faststream.opentelemetry.baggage import Baggage
 from faststream.opentelemetry.consts import (
     ERROR_TYPE,
@@ -23,6 +23,7 @@ from faststream.opentelemetry.consts import (
     WITH_BATCH,
     MessageAction,
 )
+from faststream.types import BrokerMiddleware
 
 if TYPE_CHECKING:
     from contextvars import Token
@@ -32,10 +33,10 @@ if TYPE_CHECKING:
     from opentelemetry.trace import Tracer, TracerProvider
     from opentelemetry.util.types import Attributes
 
-    from faststream._internal.basic_types import AsyncFunc, AsyncFuncAny
-    from faststream._internal.context.repository import ContextRepo
+    from faststream.context import ContextRepo
     from faststream.message import StreamMessage
     from faststream.opentelemetry.provider import TelemetrySettingsProvider
+    from faststream.types import AsyncFunc, AsyncFuncAny
 
 
 _BAGGAGE_PROPAGATOR = W3CBaggagePropagator()

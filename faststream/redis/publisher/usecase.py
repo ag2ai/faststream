@@ -38,18 +38,18 @@ class LogicPublisher(PublisherUsecase):
         self.reply_to = config.reply_to
         self.headers = config.headers or {}
 
-        self.producer = self.config._outer_config.producer
+        self.producer = self.config.outer_config.producer
 
     async def start(self) -> None:
         await super().start()
 
-        broker_producer = self.config._outer_config.producer
+        broker_producer = self.config.outer_config.producer
         self.producer = broker_producer._build_child(
-            connection=self.config._outer_config.connection,
-            parser=broker_producer._parser.custom_func,
-            decoder=broker_producer._decoder.custom_func,
+            connection=self.config.outer_config.connection,
+            parser=broker_producer.parser.custom_func,
+            decoder=broker_producer.decoder.custom_func,
             message_format=self.config.message_format,
-            serializer=self.config._outer_config.fd_config._serializer,
+            serializer=self.config.outer_config.fd_config.serializer,
         )
 
     @abstractmethod
@@ -71,7 +71,7 @@ class ChannelPublisher(LogicPublisher):
 
     @property
     def channel(self) -> "PubSub":
-        return self._channel.add_prefix(self._outer_config.prefix)
+        return self._channel.add_prefix(self.outer_config.prefix)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -97,15 +97,15 @@ class ChannelPublisher(LogicPublisher):
             channel=channel or self.channel.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
         )
-        result: int = await self._basic_publish(
+        result: int = await self.basic_publish(
             cmd,
             producer=self.producer,
-            _extra_middlewares=(),
+            extra_middlewares=(),
         )
         return result
 
@@ -114,7 +114,7 @@ class ChannelPublisher(LogicPublisher):
         self,
         cmd: Union["PublishCommand", "RedisPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.config.message_format)
@@ -124,10 +124,10 @@ class ChannelPublisher(LogicPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
             producer=self.producer,
-            _extra_middlewares=_extra_middlewares,
+            extra_middlewares=extra_middlewares,
         )
 
     @override
@@ -144,13 +144,13 @@ class ChannelPublisher(LogicPublisher):
             message,
             channel=channel or self.channel.name,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             timeout=timeout,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
             message_format=self.config.message_format,
         )
 
-        msg: RedisChannelMessage = await self._basic_request(
+        msg: RedisChannelMessage = await self.basic_request(
             cmd,
             producer=self.producer,
         )
@@ -171,7 +171,7 @@ class ListPublisher(LogicPublisher):
 
     @property
     def list(self) -> "ListSub":
-        return self._list.add_prefix(self._outer_config.prefix)
+        return self._list.add_prefix(self.outer_config.prefix)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -197,16 +197,16 @@ class ListPublisher(LogicPublisher):
             list=list or self.list.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish(
+        result: int = await self.basic_publish(
             cmd,
             producer=self.producer,
-            _extra_middlewares=(),
+            extra_middlewares=(),
         )
         return result
 
@@ -215,7 +215,7 @@ class ListPublisher(LogicPublisher):
         self,
         cmd: Union["PublishCommand", "RedisPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.config.message_format)
@@ -225,10 +225,10 @@ class ListPublisher(LogicPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
             producer=self.producer,
-            _extra_middlewares=_extra_middlewares,
+            extra_middlewares=extra_middlewares,
         )
 
     @override
@@ -245,13 +245,13 @@ class ListPublisher(LogicPublisher):
             message,
             list=list or self.list.name,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             timeout=timeout,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
             message_format=self.config.message_format,
         )
 
-        msg: RedisChannelMessage = await self._basic_request(
+        msg: RedisChannelMessage = await self.basic_request(
             cmd,
             producer=self.producer,
         )
@@ -274,16 +274,16 @@ class ListBatchPublisher(ListPublisher):
             list=list or self.list.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish_batch(
+        result: int = await self.basic_publish_batch(
             cmd,
             producer=self.producer,
-            _extra_middlewares=(),
+            extra_middlewares=(),
         )
         return result
 
@@ -292,7 +292,7 @@ class ListBatchPublisher(ListPublisher):
         self,
         cmd: Union["PublishCommand", "RedisPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = RedisPublishCommand.from_cmd(
@@ -309,10 +309,10 @@ class ListBatchPublisher(ListPublisher):
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
-        await self._basic_publish_batch(
+        await self.basic_publish_batch(
             cmd,
             producer=self.producer,
-            _extra_middlewares=_extra_middlewares,
+            extra_middlewares=extra_middlewares,
         )
 
 
@@ -329,7 +329,7 @@ class StreamPublisher(LogicPublisher):
 
     @property
     def stream(self) -> "StreamSub":
-        return self._stream.add_prefix(self._outer_config.prefix)
+        return self._stream.add_prefix(self.outer_config.prefix)
 
     @override
     def subscriber_property(self, *, name_only: bool) -> dict[str, Any]:
@@ -356,17 +356,17 @@ class StreamPublisher(LogicPublisher):
             stream=stream or self.stream.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             maxlen=maxlen or self.stream.maxlen,
             pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
         )
 
-        result: bytes = await self._basic_publish(
+        result: bytes = await self.basic_publish(
             cmd,
             producer=self.producer,
-            _extra_middlewares=(),
+            extra_middlewares=(),
         )
         return result
 
@@ -375,7 +375,7 @@ class StreamPublisher(LogicPublisher):
         self,
         cmd: Union["PublishCommand", "RedisPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.config.message_format)
@@ -386,10 +386,10 @@ class StreamPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
         cmd.maxlen = self.stream.maxlen
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
             producer=self.producer,
-            _extra_middlewares=_extra_middlewares,
+            extra_middlewares=extra_middlewares,
         )
 
     @override
@@ -407,14 +407,14 @@ class StreamPublisher(LogicPublisher):
             message,
             stream=stream or self.stream.name,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             maxlen=maxlen or self.stream.maxlen,
             timeout=timeout,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
             message_format=self.config.message_format,
         )
 
-        msg: RedisChannelMessage = await self._basic_request(
+        msg: RedisChannelMessage = await self.basic_request(
             cmd,
             producer=self.producer,
         )

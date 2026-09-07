@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 
 class ProducerProto(Protocol[PublishCommandType_contra]):
-    _parser: "AsyncCallable"
-    _decoder: "AsyncCallable"
+    parser: "AsyncCallable"
+    decoder: "AsyncCallable"
     codec: "CodecProto"
 
     @abstractmethod
@@ -46,19 +46,19 @@ class ProducerUnset(ProducerProto):
         return False
 
     @property
-    def _parser(self) -> "AsyncCallable":
+    def parser(self) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
-    @_parser.setter
-    def _parser(self, value: "AsyncCallable", /) -> "AsyncCallable":
+    @parser.setter
+    def parser(self, value: "AsyncCallable", /) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
     @property
-    def _decoder(self) -> "AsyncCallable":
+    def decoder(self) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
-    @_decoder.setter
-    def _decoder(self, value: "AsyncCallable", /) -> "AsyncCallable":
+    @decoder.setter
+    def decoder(self, value: "AsyncCallable", /) -> "AsyncCallable":
         raise IncorrectState(self.msg)
 
     @property

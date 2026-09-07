@@ -32,7 +32,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
     subscription: Unsubscriptable | None
     _fetch_sub: Unsubscriptable | None
-    _outer_config: "NatsBrokerConfig"
+    outer_config: "NatsBrokerConfig"
 
     def __init__(
         self,
@@ -54,21 +54,21 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     def subject(self) -> "Address":
         """The subject this Subscriber was declared with, and its Broker address."""
         return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+            self.outer_config.prefix,
         )
 
     @property
     def filter_subjects(self) -> list[str]:
-        prefix = self._outer_config.prefix
+        prefix = self.outer_config.prefix
         return [f"{prefix}{subject}" for subject in (self.config.filter_subjects or ())]
 
     @property
     def connection(self) -> "Client":
-        return self._outer_config.connection_state.connection
+        return self.outer_config.connection_state.connection
 
     @property
     def jetstream(self) -> "JetStreamContext":
-        return self._outer_config.connection_state.stream
+        return self.outer_config.connection_state.stream
 
     async def start(self) -> None:
         """Create NATS subscription and start consume tasks."""
@@ -127,7 +127,7 @@ class DefaultSubscriber(LogicSubscriber[MsgType]):
         """Create Publisher objects to use it as one of `publishers` in `self.consume` scope."""
         return (
             NatsFakePublisher(
-                producer=self._outer_config.producer,
+                producer=self.outer_config.producer,
                 subject=message.reply_to,
             ),
         )

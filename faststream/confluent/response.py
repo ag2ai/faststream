@@ -58,7 +58,7 @@ class KafkaResponse(Response):
             self.body,
             headers=self.headers,
             correlation_id=self.correlation_id,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             # Kafka specific
             topic="",
             key=self.key,
@@ -73,7 +73,7 @@ class KafkaPublishCommand(BatchPublishCommand):
         /,
         *messages: "SendableMessage",
         topic: str,
-        _publish_type: PublishType,
+        publish_type: PublishType,
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -90,7 +90,7 @@ class KafkaPublishCommand(BatchPublishCommand):
             reply_to=reply_to,
             correlation_id=correlation_id,
             headers=headers,
-            _publish_type=_publish_type,
+            publish_type=publish_type,
         )
 
         self.key = key
@@ -127,7 +127,7 @@ class KafkaPublishCommand(BatchPublishCommand):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             reply_to=cmd.reply_to,
-            _publish_type=cmd.publish_type,
+            publish_type=cmd.publish_type,
         )
 
     def key_for(self, index: int) -> Any | None:

@@ -44,7 +44,7 @@ class RabbitPublisherSpecification(
         queue_binding = amqp.Queue.from_queue(self.config.queue)
 
         r = self.config.routing_address.template or self.config.queue.routing_template()
-        routing_key = f"{self._outer_config.prefix}{r}"
+        routing_key = f"{self.outer_config.prefix}{r}"
 
         return {
             self.name: PublisherSpec(
@@ -73,7 +73,7 @@ class RabbitPublisherSpecification(
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(
-                        virtual_host=self._outer_config.virtual_host,
+                        virtual_host=self.outer_config.virtual_host,
                         queue=queue_binding,
                         exchange=exchange_binding,
                     ),

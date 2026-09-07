@@ -12,11 +12,10 @@ import zmqtt
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
 
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.di import FastDependsConfig
-from faststream._internal.types import IdGenerator
+from faststream.api.broker import BrokerUsecase
+from faststream.api.di import FastDependsConfig
+from faststream.context import ContextRepo
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
@@ -31,6 +30,7 @@ from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
 from faststream.mqtt.utils import build_mqtt_url, parse_mqtt_url
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
+from faststream.types import IdGenerator
 
 from .logging import make_mqtt_logger_state
 from .registrator import MQTTRegistrator
@@ -41,12 +41,16 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import LoggerProto, SendableMessage
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.api.parser import CodecProto
     from faststream.mqtt.message import MQTTMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
+        LoggerProto,
+        SendableMessage,
+    )
 
 
 class MQTTBroker(
@@ -275,10 +279,10 @@ class MQTTBroker(
             headers=headers,
             correlation_id=correlation_id or self.config.id_generator(),
             reply_to=reply_to,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
 
-        await self._basic_publish(cmd, producer=self.config.producer)
+        await self.basic_publish(cmd, producer=self.config.producer)
 
     @override
     async def request(
@@ -300,7 +304,7 @@ class MQTTBroker(
             qos=qos,
             reply_to=reply_to,
             timeout=timeout,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
-        msg: MQTTMessage = await self._basic_request(cmd, producer=self.config.producer)
+        msg: MQTTMessage = await self.basic_request(cmd, producer=self.config.producer)
         return msg

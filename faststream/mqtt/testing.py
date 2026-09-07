@@ -187,8 +187,8 @@ class FakeProducer(ZmqttBaseProducer):
 
         version = _broker_version(broker)
         default = _parser_for_version(version)
-        self._parser = ParserComposition(broker._parser, default.parse_message)
-        self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.parser = ParserComposition(broker.parser, default.parse_message)
+        self.decoder = ParserComposition(broker.decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()
 
     @property
@@ -212,7 +212,7 @@ class FakeProducer(ZmqttBaseProducer):
             reply_to=cmd.reply_to,
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
         )
 
@@ -242,7 +242,7 @@ class FakeProducer(ZmqttBaseProducer):
             retain=cmd.retain,
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
         )
 
@@ -259,7 +259,7 @@ class FakeProducer(ZmqttBaseProducer):
                 version=self._version,
                 correlation_id=result.correlation_id,
                 headers=result.headers,
-                serializer=self.broker.config.fd_config._serializer,
+                serializer=self.broker.config.fd_config.serializer,
                 codec=self.codec,
             )
 

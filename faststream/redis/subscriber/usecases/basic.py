@@ -41,7 +41,7 @@ CONSUME_ERROR_BACKOFF_SECONDS = 5
 class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
 
-    _outer_config: "RedisBrokerConfig"
+    outer_config: "RedisBrokerConfig"
 
     def __init__(
         self,
@@ -54,7 +54,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     @property
     def _client(self) -> "Redis[bytes]":
-        return cast("Redis[bytes]", self._outer_config.connection.client)
+        return cast("Redis[bytes]", self.outer_config.connection.client)
 
     def _make_response_publisher(
         self,
@@ -62,7 +62,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     ) -> Sequence["PublisherProto"]:
         return (
             RedisFakePublisher(
-                self._outer_config.producer,
+                self.outer_config.producer,
                 channel=message.reply_to,
                 message_format=self.config.message_format,
             ),

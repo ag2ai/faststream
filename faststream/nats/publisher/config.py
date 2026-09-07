@@ -18,7 +18,7 @@ class NatsPublisherSpecificationConfig(PublisherSpecificationConfig):
 
 @dataclass(kw_only=True)
 class NatsPublisherConfig(PublisherUsecaseConfig):
-    _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
+    outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 
     subject: str
     reply_to: str

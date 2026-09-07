@@ -107,8 +107,8 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         # NOTE: register default parser to be compatible with request
         default = AsyncConfluentParser()
-        self._parser = ParserComposition(parser, default.parse_message)
-        self._decoder = ParserComposition(decoder, default.decode_message)
+        self.parser = ParserComposition(parser, default.parse_message)
+        self.decoder = ParserComposition(decoder, default.decode_message)
 
     def connect(
         self,

@@ -9,8 +9,8 @@ from faststream.asgi.response import AsgiResponse, JSONResponse
 from faststream.exceptions import SubscriberNotFound
 
 if TYPE_CHECKING:
-    from faststream._internal.broker import BrokerUsecase
-    from faststream._internal.testing.broker import TestBroker
+    from faststream.api.broker import BrokerUsecase
+    from faststream.api.testing import TestBroker
     from faststream.specification.schema import Tag, TagDict
 
 

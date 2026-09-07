@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 from faststream.confluent import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
 from faststream.specification import Specification
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase

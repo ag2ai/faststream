@@ -26,8 +26,8 @@ from faststream.specification.asyncapi.v2_6_0.schema.bindings import (
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyHttpUrl
-    from faststream._internal.broker import BrokerUsecase
     from faststream._internal.types import ConnectionType, MsgType
+    from faststream.api.broker import BrokerUsecase
     from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema.extra import (
         Contact as SpecContact,

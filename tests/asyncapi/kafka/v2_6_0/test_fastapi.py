@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 from faststream.kafka.fastapi import KafkaRouter
 from faststream.kafka.testing import TestKafkaBroker
 from faststream.security import SASLPlaintext
