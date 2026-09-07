@@ -2,7 +2,7 @@ import pytest
 
 from faststream.exceptions import SetupError
 from faststream.redis import StreamSub
-from faststream.redis._compat import REDIS_V710
+from tests.marks import require_redis_v710
 
 
 @pytest.mark.redis()
@@ -17,10 +17,7 @@ def test_stream_group() -> None:
 
 
 @pytest.mark.redis()
-@pytest.mark.skipif(
-    not REDIS_V710,
-    reason="on redis-py < 7.1.0 the version guard raises before these checks",
-)
+@require_redis_v710
 @pytest.mark.parametrize(
     ("kwargs", "match"),
     (
@@ -85,10 +82,7 @@ def test_stream_claim_min_idle_time_requires_redis_py_710(
 
 
 @pytest.mark.redis()
-@pytest.mark.skipif(
-    not REDIS_V710,
-    reason="`claim_min_idle_time` requires redis-py 7.1.0+",
-)
+@require_redis_v710
 def test_stream_claim_min_idle_time() -> None:
     stream = StreamSub(
         "test",

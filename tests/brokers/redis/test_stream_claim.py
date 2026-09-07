@@ -8,15 +8,10 @@ from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
 from faststream.redis import RedisBroker, StreamClaimUnsupportedError, StreamSub
-from faststream.redis._compat import REDIS_V710
 from faststream.redis.annotations import RedisBatchStreamMessage, RedisStreamMessage
+from tests.marks import require_redis_v710
 
 from .basic import RedisMemoryTestcaseConfig, RedisTestcaseConfig
-
-requires_claim_support = pytest.mark.skipif(
-    not REDIS_V710,
-    reason="`claim_min_idle_time` requires redis-py 7.1.0+",
-)
 
 
 async def skip_without_claim_support(broker: RedisBroker) -> None:
@@ -53,7 +48,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         )
 
     @pytest.mark.slow()
-    @requires_claim_support
+    @require_redis_v710
     async def test_consume_claimed_and_new_in_one_handler(
         self,
         queue: str,
@@ -103,7 +98,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         assert received[1][1] == 0, "new entry has no previous deliveries"
 
     @pytest.mark.slow()
-    @requires_claim_support
+    @require_redis_v710
     async def test_batch_metadata_aligned(
         self,
         queue: str,
@@ -171,7 +166,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         assert len(idles) == 2
 
     @pytest.mark.slow()
-    @requires_claim_support
+    @require_redis_v710
     async def test_repeated_get_one_keeps_claiming(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
@@ -213,7 +208,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
-    @requires_claim_support
+    @require_redis_v710
     async def test_iterator_repeated_messages(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
@@ -249,7 +244,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
-    @requires_claim_support
+    @require_redis_v710
     async def test_unsupported_server_stops_subscriber(
         self,
         queue: str,
@@ -288,7 +283,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
                 assert found, "Expected StreamClaimUnsupportedError to stop the task"
 
     @pytest.mark.slow()
-    @requires_claim_support
+    @require_redis_v710
     async def test_concurrent_subscriber(
         self,
         queue: str,
@@ -350,7 +345,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestXReadGroupClaimMemory(RedisMemoryTestcaseConfig):
-    @requires_claim_support
+    @require_redis_v710
     async def test_memory_broker_attaches_claim_metadata(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
