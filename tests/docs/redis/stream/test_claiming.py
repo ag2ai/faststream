@@ -4,7 +4,6 @@ from faststream.redis import TestApp, TestRedisBroker
 from faststream.redis._compat import REDIS_V710
 
 
-@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 async def test_stream_claiming_basic() -> None:
@@ -14,7 +13,6 @@ async def test_stream_claiming_basic() -> None:
         handle.mock.assert_called_once_with("order-123")
 
 
-@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 async def test_stream_claiming_manual_ack() -> None:
