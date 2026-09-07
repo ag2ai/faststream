@@ -15,9 +15,10 @@ app = FastStream(broker)
     )
 )
 async def handle(order_id: str, message: RedisStreamMessage, logger: Logger):
-    # 0 for new messages, 1+ for reclaimed ones
-    if message.raw_message.get("delivery_counts", [0])[0]:
-        logger.info(f"Recovering order: {order_id}")
+    # Previous deliveries: 0 for new messages, 1+ for reclaimed ones
+    if message.raw_message["delivery_counts"][0]:
+        idle_ms = message.raw_message["idle_times"][0]
+        logger.info(f"Recovering order {order_id} after {idle_ms} ms idle")
     else:
         logger.info(f"Processing order: {order_id}")
 

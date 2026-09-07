@@ -97,16 +97,10 @@ Redis 8.4 added the [`CLAIM` option](https://redis.io/docs/latest/commands/xread
 
 ### Claim Metadata
 
-When `claim_min_idle_time` is set, Redis extends every returned entry with two extra fields, which FastStream exposes via the raw message:
+When `claim_min_idle_time` is set, Redis extends every returned entry with two extra fields, which FastStream exposes via the raw message (as in the example above). Both are lists aligned with `message_ids`, so batch subscribers get one value per entry:
 
-```python
-@broker.subscriber(
-    stream=StreamSub("tasks", group="workers", consumer="w1", claim_min_idle_time=30000)
-)
-async def handler(task: str, message: RedisStreamMessage):
-    message.raw_message["idle_times"][0]       # ms since the last delivery
-    message.raw_message["delivery_counts"][0]  # previous deliveries (0 = new message)
-```
+- `message.raw_message["idle_times"]` — milliseconds since the last delivery
+- `message.raw_message["delivery_counts"]` — previous deliveries (`0` for a new message)
 
 This makes retry caps and dead-letter routing possible without an extra `XPENDING` call.
 
