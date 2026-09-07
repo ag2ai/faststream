@@ -266,7 +266,7 @@ class _StreamHandlerMixin(LogicSubscriber):
             message_ids=[message_id],
             data=raw_message,
         )
-        self._attach_claim_metadata(redis_incoming_msg, [claim_meta])
+        _attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
         context = self._outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
@@ -345,7 +345,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 message_ids=[message_id],
                 data=raw_message,
             )
-            self._attach_claim_metadata(redis_incoming_msg, [claim_meta])
+            _attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
             msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
                 msg=redis_incoming_msg,
@@ -426,20 +426,6 @@ class _StreamHandlerMixin(LogicSubscriber):
         )
         raise ValueError(msg)
 
-    def _attach_claim_metadata(
-        self,
-        message: "_StreamMessage",
-        claim_metas: "Sequence[ClaimMeta | None]",
-    ) -> None:
-        # `_parse_stream_entry` yields metadata for every entry or for none,
-        # so plain subscribers leave the message untouched.
-        metas = [m for m in claim_metas if m is not None]
-        if not metas:
-            return
-
-        message["idle_times"] = [m.idle_time for m in metas]
-        message["delivery_counts"] = [m.delivery_count for m in metas]
-
 
 class StreamSubscriber(_StreamHandlerMixin):
     def __init__(
@@ -470,7 +456,7 @@ class StreamSubscriber(_StreamHandlerMixin):
                         message_ids=[message_id],
                         data=raw_msg,
                     )
-                    self._attach_claim_metadata(msg, [claim_meta])
+                    _attach_claim_metadata(msg, [claim_meta])
 
                     await self.consume_one(msg)
 
@@ -510,7 +496,7 @@ class StreamBatchSubscriber(_StreamHandlerMixin):
                     data=data,
                     message_ids=ids,
                 )
-                self._attach_claim_metadata(msg, claim_metas)
+                _attach_claim_metadata(msg, claim_metas)
 
                 await self.consume_one(msg)
 
@@ -525,3 +511,17 @@ class StreamConcurrentSubscriber(
 
     async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
         await self._put_msg(msg)
+
+
+def _attach_claim_metadata(
+    message: "_StreamMessage",
+    claim_metas: "Sequence[ClaimMeta | None]",
+) -> None:
+    # `_parse_stream_entry` yields metadata for every entry or for none,
+    # so plain subscribers leave the message untouched.
+    metas = [m for m in claim_metas if m is not None]
+    if not metas:
+        return
+
+    message["idle_times"] = [m.idle_time for m in metas]
+    message["delivery_counts"] = [m.delivery_count for m in metas]

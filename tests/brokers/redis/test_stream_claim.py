@@ -22,31 +22,31 @@ async def skip_without_claim_support(broker: RedisBroker) -> None:
         pytest.skip("XREADGROUP CLAIM requires Redis server 8.4+")
 
 
+async def make_pending(
+    br: RedisBroker,
+    queue: str,
+    group: str,
+    payloads: tuple[str, ...] = ("pending_message",),
+) -> None:
+    """Publish and read as the `temp` consumer, leaving the entries pending."""
+    for payload in payloads:
+        await br.publish(payload, stream=queue)
+
+    with suppress(Exception):
+        await br._connection.xgroup_create(queue, group, id="0", mkstream=True)
+
+    await br._connection.xreadgroup(
+        groupname=group,
+        consumername="temp",
+        streams={queue: ">"},
+        count=len(payloads) + 10,
+    )
+
+
 @pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestXReadGroupClaim(RedisTestcaseConfig):
-    async def _make_pending(
-        self,
-        br: RedisBroker,
-        queue: str,
-        group: str,
-        payloads: tuple[str, ...] = ("pending_message",),
-    ) -> None:
-        """Publish and read as the `temp` consumer, leaving the entries pending."""
-        for payload in payloads:
-            await br.publish(payload, stream=queue)
-
-        with suppress(Exception):
-            await br._connection.xgroup_create(queue, group, id="0", mkstream=True)
-
-        await br._connection.xreadgroup(
-            groupname=group,
-            consumername="temp",
-            streams={queue: ">"},
-            count=len(payloads) + 10,
-        )
-
     @pytest.mark.slow()
     @require_redis_v710
     async def test_consume_claimed_and_new_in_one_handler(
@@ -78,7 +78,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         async with self.patch_broker(consume_broker) as br:
             await skip_without_claim_support(br)
 
-            await self._make_pending(br, queue, "claim_group")
+            await make_pending(br, queue, "claim_group")
             await asyncio.sleep(0.3)
             await br.publish("new_message", stream=queue)
 
@@ -127,7 +127,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         async with self.patch_broker(consume_broker) as br:
             await skip_without_claim_support(br)
 
-            await self._make_pending(
+            await make_pending(
                 br,
                 queue,
                 "batch_claim_group",
@@ -174,7 +174,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             await skip_without_claim_support(br)
             await br.start()
 
-            await self._make_pending(
+            await make_pending(
                 br,
                 queue,
                 "repeat_claim_group",
@@ -216,7 +216,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
             await skip_without_claim_support(br)
             await br.start()
 
-            await self._make_pending(
+            await make_pending(
                 br,
                 queue,
                 "iter_repeat_group",
@@ -310,7 +310,7 @@ class TestXReadGroupClaim(RedisTestcaseConfig):
         async with self.patch_broker(consume_broker) as br:
             await skip_without_claim_support(br)
 
-            await self._make_pending(br, queue, "concurrent_claim_group")
+            await make_pending(br, queue, "concurrent_claim_group")
             await asyncio.sleep(0.3)
             await br.publish("new_message", stream=queue)
 
