@@ -123,7 +123,7 @@ Additional guidelines:
 
 - The `min_idle_time` sizing warning below applies here as well: set `claim_min_idle_time` greater than your worst-case processing time, with a safety margin. This is especially important with `max_workers`, where the subscriber keeps reading while previous messages are still being processed — a too-low threshold lets it reclaim its own in-flight messages.
 - Claimed entries share the `COUNT` budget with new ones and are returned first, so a large backlog of idle messages can fill whole reads. Consider setting `max_records` to bound a single delivery.
-- Works with Redis Cluster in principle (each stream maps to a single node), but FastStream's cluster CI currently runs Redis 7, so this combination is not covered by tests.
+- Works with Redis Cluster as well: each stream maps to a single node, so the `CLAIM` option needs nothing cluster-specific.
 
 ## Combining with Manual Acknowledgment
 
