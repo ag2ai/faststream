@@ -24,7 +24,6 @@ async def test_stream_claiming_manual_ack() -> None:
         handle.mock.assert_called_once_with("critical-task-1")
 
 
-@pytest.mark.connected()
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 @pytest.mark.skipif(

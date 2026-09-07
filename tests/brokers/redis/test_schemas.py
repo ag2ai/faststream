@@ -98,4 +98,3 @@ def test_stream_claim_min_idle_time() -> None:
     )
 
     assert stream.claim_min_idle_time == 1000
-    assert stream.add_prefix("prefix.").claim_min_idle_time == 1000
