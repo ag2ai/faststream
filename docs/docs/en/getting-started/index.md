@@ -91,7 +91,7 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        docker run -d --rm -p 6379:6379 --name test-mq redis:alpine
+        docker run -d --rm -p 6379:6379 --name test-mq redis:8-alpine
         ```
 
 === "MQTT"
