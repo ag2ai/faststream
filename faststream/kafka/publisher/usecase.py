@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 
 from typing_extensions import override
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream.api.publisher import PublisherUsecase
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -12,11 +12,10 @@ if TYPE_CHECKING:
 
     from aiokafka.structs import RecordMetadata
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.endpoint.publisher import PublisherSpecification
-    from faststream._internal.types import PublisherMiddleware
+    from faststream.api.publisher import PublisherSpecification
     from faststream.kafka.message import KafkaMessage
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware, SendableMessage
 
     from .config import KafkaPublisherConfig
     from .producer import AioKafkaFastProducer

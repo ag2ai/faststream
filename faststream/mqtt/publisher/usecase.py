@@ -4,16 +4,15 @@ from typing import TYPE_CHECKING, Any, Union
 from typing_extensions import override
 from zmqtt import QoS
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream.api.publisher import PublisherUsecase
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.endpoint.publisher import PublisherSpecification
-    from faststream._internal.types import PublisherMiddleware
+    from faststream.api.publisher import PublisherSpecification
     from faststream.mqtt.broker.config import MQTTBrokerConfig
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware, SendableMessage
 
     from .config import MQTTPublisherConfig
 
@@ -30,14 +29,15 @@ class MQTTPublisher(PublisherUsecase):
     ) -> None:
         super().__init__(config, specification)
 
-        self._topic = config.topic
+        self._address = config.address
         self.qos = config.qos
         self.retain = config.retain
         self.headers = config.headers or {}
 
     @property
     def topic(self) -> str:
-        return f"{self.outer_config.prefix}{self._topic}"
+        # A Publisher's topic goes to the wire as it stands, prefix included.
+        return self._address.add_prefix(self.outer_config.prefix).template
 
     @override
     async def publish(

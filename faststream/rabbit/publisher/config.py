@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from faststream._internal.configs import (
+from faststream._internal.utils.path import Address
+from faststream.api.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
-from faststream._internal.utils.path import Address
 from faststream.rabbit.configs import RabbitBrokerConfig, RabbitConfig
 
 if TYPE_CHECKING:

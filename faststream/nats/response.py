@@ -6,8 +6,8 @@ from faststream.response.publish_type import PublishType
 from faststream.response.response import PublishCommand, Response
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
     from faststream.nats.schemas.schedule import Schedule
+    from faststream.types import SendableMessage
 
 
 class NatsResponse(Response):

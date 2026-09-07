@@ -23,11 +23,7 @@ from faststream.middlewares import AckPolicy
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream.api.parser import CodecProto
     from faststream.confluent.publisher.usecase import (
         BatchPublisher,
         DefaultPublisher,
@@ -37,6 +33,10 @@ if TYPE_CHECKING:
         BatchSubscriber,
         ConcurrentDefaultSubscriber,
         DefaultSubscriber,
+    )
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
     )
 
 

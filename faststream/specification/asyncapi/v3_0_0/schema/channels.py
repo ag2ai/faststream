@@ -13,7 +13,8 @@ class Channel(BaseModel):
     """A class to represent a channel.
 
     Attributes:
-        address: A string representation of this channel's address.
+        address: A string representation of this channel's address, absent
+            where there is none to give.
         description : optional description of the channel
         servers : optional list of servers associated with the channel
         bindings : optional channel binding
@@ -24,7 +25,7 @@ class Channel(BaseModel):
         Config : configuration for the class (only applicable for Pydantic version 1)
     """
 
-    address: str
+    address: str | None = None
     description: str | None = None
     servers: list[dict[str, str]] | None = None
     messages: dict[str, Message | Reference]
@@ -44,7 +45,6 @@ class Channel(BaseModel):
     @classmethod
     def from_sub(
         cls,
-        address: str,
         subscriber: SubscriberSpec,
         servers: list[dict[str, str]] | None = None,
     ) -> Self:
@@ -56,7 +56,7 @@ class Channel(BaseModel):
 
         return cls(
             description=subscriber.description,
-            address=address,
+            address=subscriber.address,
             messages={
                 "SubscribeMessage": Message.from_spec(message),
             },
@@ -67,13 +67,12 @@ class Channel(BaseModel):
     @classmethod
     def from_pub(
         cls,
-        address: str,
         publisher: PublisherSpec,
         servers: list[dict[str, str]] | None = None,
     ) -> Self:
         return cls(
             description=publisher.description,
-            address=address,
+            address=publisher.address,
             messages={
                 "Message": Message.from_spec(publisher.operation.message),
             },

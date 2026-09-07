@@ -1,4 +1,4 @@
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.api.subscriber import SubscriberSpecification
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, SubscriberSpec
@@ -12,31 +12,34 @@ class KafkaSubscriberSpecification(
 ):
     @property
     def topics(self) -> list[str]:
-        topics: set[str] = set()
+        """The topics this endpoint reads, in the order they were declared.
 
-        topics.update(f"{self.outer_config.prefix}{t.name}" for t in self.config.topics)
+        Deduped through a dict rather than a set: set order varies per process and
+        would reach the document as the order of its channels.
+        """
+        prefix = self.outer_config.prefix
 
-        topics.update(
-            f"{self.outer_config.prefix}{p.topic}" for p in self.config.partitions
-        )
+        topics = [f"{prefix}{t.name}" for t in self.config.topics]
+        topics.extend(f"{prefix}{p.topic}" for p in self.config.partitions)
 
-        return list(topics)
+        return list(dict.fromkeys(topics))
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{','.join(self.topics)}:{self.call_name}"
+    def channel_labels(self) -> list[str]:
+        return self.topics
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
+        topics = self.topics
+        split = len(topics) > 1
+
         channels = {}
-        for t in self.topics:
-            handler_name = self.config.title_ or f"{t}:{self.call_name}"
+        for t in topics:
+            handler_name = self._channel_key(t, split=split)
 
             channels[handler_name] = SubscriberSpec(
+                address=t,
                 description=self.description,
                 operation=Operation(
                     message=Message(

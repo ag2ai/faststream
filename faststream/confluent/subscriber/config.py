@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING, Any
 
 from typing_extensions import override
 
-from faststream._internal.configs import (
+from faststream._internal.constants import EMPTY
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 

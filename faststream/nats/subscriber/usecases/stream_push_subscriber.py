@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 from nats.aio.msg import Msg
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
+from faststream.api.subscriber import ConcurrentMixin
 
 from .stream_basic import StreamSubscriber
 

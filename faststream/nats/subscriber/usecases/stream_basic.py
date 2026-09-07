@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from nats.errors import ConnectionClosedError, TimeoutError
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
 from faststream.nats.parser import JsParser
 
 from .basic import DefaultSubscriber
@@ -13,8 +13,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import JStream

@@ -8,9 +8,8 @@ from nats.aio.client import NO_RESPONDERS_STATUS
 from nats.js.api import Header
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
-from faststream._internal.producer import ProducerProto
+from faststream.api.parser import DefaultCodec, ParserComposition
+from faststream.api.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.nats.helpers.state import (
     ConnectedState,
@@ -26,12 +25,12 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
+    from faststream.api.parser import CodecProto
+    from faststream.nats.schemas import PubAck
+    from faststream.types import (
         AsyncCallable,
         CustomCallable,
     )
-    from faststream.nats.schemas import PubAck
 
 
 class NatsFastProducer(ProducerProto[NatsPublishCommand]):

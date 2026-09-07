@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.configs import BrokerConfig
-from faststream._internal.parser import DefaultCodec
+from faststream.api.configs import BrokerConfig
+from faststream.api.parser import DefaultCodec
 from faststream.confluent.helpers import (
     AdminService,
     AsyncConfluentConsumer,
@@ -17,7 +17,7 @@ from faststream.confluent.publisher.producer import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.logger import LoggerState
+    from faststream.api.logger import LoggerState
     from faststream.confluent.schemas import Topic
 
 

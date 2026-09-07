@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Union
 
-from faststream._internal.endpoint.publisher.fake import FakePublisher
+from faststream.api.publisher import FakePublisher
 from faststream.nats.response import NatsPublishCommand
 
 if TYPE_CHECKING:
-    from faststream._internal.producer import ProducerProto
+    from faststream.api.producer import ProducerProto
     from faststream.response.response import PublishCommand
 
 

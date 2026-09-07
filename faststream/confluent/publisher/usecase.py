@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 from confluent_kafka import Message
 from typing_extensions import override
 
-from faststream._internal.endpoint.publisher import (
+from faststream.api.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
@@ -13,10 +13,9 @@ from faststream.confluent.response import KafkaPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import PublisherMiddleware
     from faststream.confluent.message import KafkaMessage
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware, SendableMessage
 
     from .config import KafkaPublisherConfig
     from .producer import AsyncConfluentFastProducer

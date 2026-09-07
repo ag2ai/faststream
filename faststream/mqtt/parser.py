@@ -1,8 +1,9 @@
 from contextlib import suppress
 from re import Pattern
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import zmqtt
+from typing_extensions import assert_never
 
 from faststream._internal._compat import json_loads
 from faststream.message import StreamMessage, decode_message
@@ -10,7 +11,11 @@ from faststream.message import StreamMessage, decode_message
 from .message import MQTTMessage
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import DecodedMessage
+    from faststream.types import DecodedMessage
+
+
+MQTTVersion = Literal["3.1.1", "5.0"]
+"""The protocol versions FastStream speaks."""
 
 
 class MQTTBaseParser:
@@ -91,3 +96,16 @@ class MQTTParserV5(MQTTBaseParser):
             reply_to=reply_to,
             correlation_id=correlation_id,
         )
+
+
+def parser_for(version: MQTTVersion) -> type[MQTTBaseParser]:
+    """The parser class a Broker version speaks.
+
+    One place says it, because the Subscriber that consumes through a parser and
+    the in-memory test broker that encodes for one have to agree on the version.
+    """
+    if version == "3.1.1":
+        return MQTTParserV311
+    if version == "5.0":
+        return MQTTParserV5
+    assert_never(version)

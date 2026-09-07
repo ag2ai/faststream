@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import SubscriberUsecase
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -16,9 +16,9 @@ from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITE
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-    from faststream._internal.endpoint.subscriber.specification import (
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection
+    from faststream.api.subscriber.specification import (
         SubscriberSpecification,
     )
     from faststream.message import StreamMessage

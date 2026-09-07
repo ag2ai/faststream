@@ -12,18 +12,16 @@ import anyio
 from confluent_kafka import KafkaException, Message
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin, SubscriberUsecase, TasksMixin
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
 
 if TYPE_CHECKING:
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
     from faststream.confluent.message import KafkaMessage

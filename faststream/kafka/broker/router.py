@@ -20,11 +20,12 @@ from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from aiokafka import ConsumerRecord, TopicPartition
+    from aiokafka import ConsumerRecord
     from aiokafka.abc import ConsumerRebalanceListener
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fast_depends.dependencies import Dependant
 
+    from faststream.kafka.schemas import TopicPartition
     from faststream.types import (
         BrokerMiddleware,
         CustomCallable,

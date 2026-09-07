@@ -4,10 +4,9 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
-from faststream._internal.producer import ProducerProto
 from faststream._internal.utils.nuid import NUID
+from faststream.api.parser import DefaultCodec, ParserComposition
+from faststream.api.producer import ProducerProto
 from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.exceptions import UnreachablePathError
 from faststream.redis.message import DATA_KEY
@@ -19,10 +18,10 @@ if TYPE_CHECKING:
     from redis.asyncio.client import Redis
     from redis.asyncio.cluster import RedisCluster
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import CustomCallable
+    from faststream.api.parser import CodecProto
     from faststream.redis.configs import ConnectionState
     from faststream.redis.parser import MessageFormat
+    from faststream.types import CustomCallable
 
 
 class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):

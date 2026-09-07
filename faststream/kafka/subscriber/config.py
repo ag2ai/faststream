@@ -4,17 +4,18 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from typing_extensions import override
 
-from faststream._internal.configs import (
+from faststream._internal.constants import EMPTY
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
+
+    from faststream.kafka.schemas import TopicPartition
 
 
 @dataclass(kw_only=True)

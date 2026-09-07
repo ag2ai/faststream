@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
     from aiokafka import ConsumerRecord
 
-    from faststream._internal.basic_types import DecodedMessage
     from faststream.message import StreamMessage
+    from faststream.types import DecodedMessage
 
 
 class AioKafkaParser:

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from nats.js.api import ObjectInfo
     from nats.js.kv import KeyValue
 
-    from faststream._internal.basic_types import DecodedMessage
+    from faststream.types import DecodedMessage
 
 
 class NatsBaseParser:

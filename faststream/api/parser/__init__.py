@@ -1,4 +1,15 @@
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import CodecProto, DefaultCodec
+from faststream._internal.parser import (
+    BatchCodecProto,
+    CodecProto,
+    DefaultCodec,
+    ParserProto,
+)
 
-__all__ = ("CodecProto", "DefaultCodec", "ParserComposition")
+__all__ = (
+    "BatchCodecProto",
+    "CodecProto",
+    "DefaultCodec",
+    "ParserComposition",
+    "ParserProto",
+)

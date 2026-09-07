@@ -16,7 +16,7 @@ from faststream.response.response import (
 )
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
+    from faststream.types import SendableMessage
 
 
 class KafkaResponse(Response):

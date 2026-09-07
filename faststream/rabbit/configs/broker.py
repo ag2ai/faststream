@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from faststream._internal.configs import BrokerConfig
-from faststream._internal.parser import DefaultCodec
+from faststream.api.configs import BrokerConfig
+from faststream.api.parser import DefaultCodec
 from faststream.rabbit.helpers.channel_manager import FakeChannelManager
 from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer

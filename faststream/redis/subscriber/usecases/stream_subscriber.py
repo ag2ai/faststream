@@ -8,8 +8,8 @@ import anyio
 from redis.exceptions import ResponseError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin
 from faststream.redis.exceptions import StreamGroupNotFoundError
 from faststream.redis.message import (
     BatchStreamMessage,
@@ -26,9 +26,9 @@ from .basic import CONSUME_ERROR_BACKOFF_SECONDS, LogicSubscriber
 if TYPE_CHECKING:
     from anyio import Event
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import (
+    from faststream.api.subscriber import (
         CallsCollection,
+        SubscriberSpecification,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.schemas import StreamSub
@@ -209,7 +209,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 stream_message = await self._client.xreadgroup(
                     groupname=self.stream_sub.group,
                     consumername=self.stream_sub.consumer,
-                    streams={self.stream_sub.name: self.last_id},
+                    streams={self.stream_sub.name: self.read_id},
                     block=math.ceil(timeout * 1000),
                     count=1,
                 )
@@ -283,7 +283,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     stream_message = await self._client.xreadgroup(
                         groupname=self.stream_sub.group,
                         consumername=self.stream_sub.consumer,
-                        streams={self.stream_sub.name: self.last_id},
+                        streams={self.stream_sub.name: self.read_id},
                         block=math.ceil(timeout * 1000),
                         count=1,
                     )

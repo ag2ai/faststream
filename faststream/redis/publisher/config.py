@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal.configs import (
+from faststream.api.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )

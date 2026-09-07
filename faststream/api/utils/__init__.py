@@ -1,7 +1,6 @@
-from faststream._internal._compat import dump_json
-from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.utils.path import Address, AddressSyntax
 
 __all__ = (
-    "dump_json",
-    "process_msg",
+    "Address",
+    "AddressSyntax",
 )

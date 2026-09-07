@@ -7,8 +7,8 @@ from nats.errors import TimeoutError
 from nats.js.api import ObjectInfo
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import TasksMixin
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import TasksMixin
 from faststream.nats.parser import (
     ObjParser,
 )
@@ -21,9 +21,8 @@ from .basic import LogicSubscriber
 if TYPE_CHECKING:
     from nats.js.object_store import ObjectStore
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsObjMessage
     from faststream.nats.schemas import ObjWatch

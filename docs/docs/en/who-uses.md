@@ -32,6 +32,7 @@ of their own.
 | **CTIC** | CTIC Technology Centre, Spain | [connector-building-blocks](https://github.com/fundacionctic/connector-building-blocks){.external-link target="_blank"} — Eclipse Dataspace Components tooling |
 | **QCrBox** | Quantum Crystallography Toolbox | [QCrBox](https://github.com/QCrBox/QCrBox){.external-link target="_blank"} — small-molecule crystallography |
 | **NERSC** | National Energy Research Scientific Computing Center, US DOE | [interactEM](https://github.com/NERSC/interactEM){.external-link target="_blank"} |
+| **HBB (AI·SW Maestro 17th)** | Dev team in AI·SW Maestro, a software talent programme in Korea | [Kkori-AI](https://github.com/SW-Maestro-17th-HBB/Kkori-AI){.external-link target="_blank"} — AI worker of Kkori, an interview-prep service: analyses uploaded resumes and generates interview reports |
 
 ## Companies
 

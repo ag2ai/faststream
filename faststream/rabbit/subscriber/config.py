@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from typing_extensions import override
 
-from faststream._internal.configs import (
+from faststream._internal.constants import EMPTY
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig, RabbitConfig
 

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
 
-from faststream._internal.endpoint.publisher import (
+from faststream.api.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
@@ -14,11 +14,10 @@ from faststream.response.publish_type import PublishType
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import PublisherMiddleware
     from faststream.redis.message import RedisChannelMessage
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.response import PublishCommand
+    from faststream.types import PublisherMiddleware, SendableMessage
 
     from .config import RedisPublisherConfig
 

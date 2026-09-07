@@ -12,8 +12,7 @@ from nats.js.client import (
 )
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection, SubscriberSpecification
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 

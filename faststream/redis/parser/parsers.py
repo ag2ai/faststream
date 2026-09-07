@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 
 from faststream._internal._compat import dump_json, json_loads
-from faststream._internal.basic_types import DecodedMessage
 from faststream._internal.constants import EMPTY, ContentTypes
 from faststream._internal.utils.path import match_path
 from faststream.message import decode_message, gen_cor_id
@@ -15,6 +14,7 @@ from faststream.redis.message import (
     RedisStreamMessage,
     bDATA_KEY,
 )
+from faststream.types import DecodedMessage
 
 if TYPE_CHECKING:
     from re import Pattern

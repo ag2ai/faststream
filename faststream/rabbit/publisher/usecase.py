@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import Unpack, override
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
+from faststream.api.publisher import PublisherUsecase
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
@@ -14,12 +14,12 @@ from .options import BasicMessageOptions, PublishKwargs, PublishOptions
 if TYPE_CHECKING:
     import aiormq
 
-    from faststream._internal.endpoint.publisher import PublisherSpecification
-    from faststream._internal.types import PublisherMiddleware
+    from faststream.api.publisher import PublisherSpecification
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.types import AioPikaSendableMessage
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware
 
     from .config import RabbitPublisherConfig
 

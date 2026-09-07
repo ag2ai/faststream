@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING, Optional
 from aio_pika import Message
 from aio_pika.abc import DeliveryMode
 
-from faststream._internal.parser import DefaultCodec
-from faststream._internal.types import IdGenerator
 from faststream._internal.utils.path import match_path
+from faststream.api.parser import DefaultCodec
 from faststream.message import (
     StreamMessage,
     decode_message,
     gen_cor_id,
 )
 from faststream.rabbit.message import RabbitMessage
+from faststream.types import IdGenerator
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -21,9 +21,9 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import DecodedMessage
-    from faststream._internal.parser import CodecProto
+    from faststream.api.parser import CodecProto
     from faststream.rabbit.types import AioPikaSendableMessage
+    from faststream.types import DecodedMessage
 
 
 class AioPikaParser:

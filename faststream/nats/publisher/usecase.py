@@ -3,21 +3,20 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from typing_extensions import overload, override
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.path import Address
+from faststream.api.publisher import PublisherUsecase
 from faststream.nats.response import NatsPublishCommand
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.endpoint.publisher import PublisherSpecification
-    from faststream._internal.producer import ProducerProto
-    from faststream._internal.types import PublisherMiddleware
+    from faststream.api.producer import ProducerProto
+    from faststream.api.publisher import PublisherSpecification
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import PubAck
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware, SendableMessage
 
     from .config import NatsPublisherConfig
 

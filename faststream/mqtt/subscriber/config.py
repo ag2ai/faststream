@@ -1,21 +1,21 @@
 from dataclasses import dataclass, field
-from re import Pattern
 
 from typing_extensions import override
 from zmqtt import QoS
 
-from faststream._internal.configs import (
+from faststream._internal.constants import EMPTY
+from faststream._internal.utils.path import Address
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 
 @dataclass(kw_only=True)
 class MQTTSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    topic: str
+    address: Address
     qos: QoS = QoS.AT_MOST_ONCE
     shared: str | None = None
 
@@ -24,10 +24,9 @@ class MQTTSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 class MQTTSubscriberConfig(SubscriberUsecaseConfig):
     outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
 
-    topic: str
+    address: Address
     qos: QoS = QoS.AT_MOST_ONCE
     shared: str | None = None
-    path_regex: Pattern[str] | None = None
 
     @property
     @override

@@ -10,6 +10,7 @@ from faststream._internal.basic_types import (
     SettingField,
 )
 from faststream._internal.types import (
+    AsyncCallable,
     BrokerMiddleware,
     CustomCallable,
     Filter,
@@ -23,6 +24,7 @@ from faststream._internal.types import (
 
 __all__ = [
     "AnyCallable",
+    "AsyncCallable",
     "AsyncFunc",
     "AsyncFuncAny",
     "BrokerMiddleware",

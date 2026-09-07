@@ -1,20 +1,54 @@
 ---
 name: testing-patterns
-description: Use when writing or modifying tests under tests/ — base testcase inheritance, pytest markers, fixtures, in-memory vs real-broker testing, and how to run the suite.
+description: Choosing which tests to run after a change, or writing tests under tests/ — base testcases, markers, in-memory vs connected brokers.
 ---
 
 # FastStream Testing Patterns
 
-## Running tests
+## Run only the test files the change touches
+
+Name the specific test files:
+
+```bash
+uv run pytest tests/brokers/kafka/test_misconfigure.py tests/asyncapi/kafka/v3_0_0/test_address.py -m "not connected"
+```
+
+The set is the files that could see the edit, and it stops there. A directory
+or a bare `tests/` is CI's shape: CI runs everything anyway, so a local run
+exists to answer whether *this* edit works, and every test beyond that is time
+spent not finding out.
+
+To find the files: grep the symbol you changed across `tests/`, and follow the
+naming — a change to `faststream/<broker>/<endpoint>/<thing>.py` is usually
+covered by `tests/brokers/<broker>/test_<thing>.py` and
+`tests/asyncapi/<broker>/v*/test_<thing>.py`.
+
+A shared testcase in `tests/brokers/base/` or `tests/asyncapi/base/` is
+inherited by every broker, so editing one does widen the set — but widen it by
+naming the inheriting files, not by running their directories.
+
+**Reach for `connected` only when the change reaches the wire** — subscribing,
+publishing, acks, bindings, reconnects. A change to a specification, a config,
+or a declaration-time check is decided in memory, in seconds. Broker-backed
+runs take minutes and share state between runs.
+
+When a `connected` run does fail, **re-run the failures alone before believing
+them**. The brokers are shared and accumulate topics, queues and consumer
+groups; a failure that passes in isolation is the container, not the code. To
+tell them apart, run the same set against the committed tree (`git stash`) and
+compare counts.
+
+## Commands
 
 Run pytest directly or via just — **never through the rtk proxy**.
 
-All `just test*` recipes run inside the dev container (`docker compose exec faststream`) — start it with `just up` first.
+Direct pytest needs no container, which is why named files run there. The
+`just test*` recipes run whole suites inside the dev container
+(`docker compose exec faststream`, so `just up` first):
 
-- `just test [path]` — fast suite: `-m "not slow and not connected"`, parallel `-n auto`.
-- `just test-kafka` / `test-rabbit` / `test-nats` / `test-redis` / `test-redis-cluster` / `test-confluent` — per-broker subset excluding `connected` and `slow`; the `-all` variants run every broker-marked test including slow/connected ones (that broker must be up).
-- `just test-all` — the full suite (`-m "all"`).
-- Direct, no container needed: `uv run pytest tests/... -m "not slow and not connected"`.
+- `just test [path]` — fast selection: `-m "not slow and not connected"`, parallel `-n auto`. Takes a path, so it can be pointed at named files.
+- `just test-kafka` / `test-rabbit` / `test-nats` / `test-redis` / `test-redis-cluster` / `test-confluent` — a whole broker, excluding `connected` and `slow`; the `-all` variants add the slow and connected ones (that broker must be up).
+- `just test-all` — everything (`-m "all"`).
 
 Heads-up: the pyproject default addopts exclude only `slow` (`-m 'not slow'`) — bare pytest WILL collect `connected` tests, so pass `-m "not slow and not connected"` explicitly when no broker is running.
 
@@ -74,6 +108,47 @@ subscriber = self.declare_subscriber(
 )
 ```
 
+## Add a test only when nothing else already breaks on it
+
+Before writing a new test, ask what already goes red if the change is wrong: another test
+in the suite, or `mypy` running over library code that already exercises the path (a
+registrator signature checked through `faststream/<broker>/testing.py`, say). If something
+already catches it, don't add another one — a ticket asking for "a test per case" doesn't
+override this; say which existing check covers the rest instead of writing one that just
+restates it. Never pin language or stdlib behaviour FastStream doesn't own (a `NamedTuple`
+unpacks, `==` on tuples).
+
+Test functions and classes carry no docstring — the name is the behaviour. The one
+exception is the regression pattern below, whose docstring is the issue URL and nothing
+else. When an assertion needs explaining, a single `#` comment sits directly over it, not
+prose in a docstring.
+
+## One equality per behaviour
+
+When a test checks one value from several angles — a tuple's fields, a few keys of a
+dict, a length and an element — build the expected shape from `dirty-equals` matchers
+and compare once. The failure then prints the whole shape, and the test reads as a single
+statement of the behaviour:
+
+```python
+# Claimed entries come first, with their previous deliveries and idle time
+assert received[:2] == [
+    ("pending_message", IsInt(ge=1), IsInt(ge=100)),
+    ("new_message", 0, 0),
+]
+
+assert snapshot == IsPartialDict({
+    "delivery_counts": HasLen(size),
+    "idle_times": HasLen(size),
+})
+```
+
+A chain of `assert x[0] ...`, `assert x[1] ...`, or a loop carrying a `found` flag, is this
+shape spelled out one field at a time: collapse it into the one equality. `IsPartialDict`
+takes a dict literal, so dotted keys and enum values read the same as the config they
+mirror. An equality that already fails on a missing delivery stands alone; the
+`assert event.is_set()` in front of it says nothing more.
+
 ## Regression tests
 
 A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
@@ -84,7 +159,7 @@ async def test_publisher_without_destination(self) -> None:
     """Fixes https://github.com/ag2ai/faststream/issues/2513."""
 ```
 
-The URL goes on the docstring's own first line, with the explanation of the behavior below it. `xfail`/`skip` reasons take the same URL. Comments inside the test body follow the **code-architecture** rules — two lines, over the line they explain.
+The URL is the whole docstring — no explanation of the behavior underneath it. `xfail`/`skip` reasons take the same URL. A comment inside the test body follows the **code-architecture** rule: one line, directly over the assertion it explains.
 
 A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
 
@@ -107,7 +182,7 @@ The same run grades the tests already there, and it is how a suite shrinks. Two 
 - `tests/marks.py`: conditional skips — `skip_windows`, `skip_macos`, `pydantic_v1`/`pydantic_v2`, `require_aiokafka`, `require_confluent`, `require_aiopika`, `require_redis`, `require_nats`, `require_mqtt`.
 - `tests/tools.py`: `spy_decorator` — wraps a real method with a mock spy (call assertions via `.mock`) while preserving behavior.
 - `tests/mocks.py`: `mock_pydantic_settings_env` for env-driven settings tests.
-- `dirty-equals` and `freezegun` are available as test deps.
+- `freezegun` is available as a test dep.
 
 **Never import from a `conftest.py`.** pytest loads conftest modules specially (their fixtures are injected into the collected files), so importing from one — `from .conftest import Settings` or `from tests.brokers.redis.conftest import ...` — can produce a duplicated/mismatched module and confusing collection errors. When conftest and a test file need the same object, declare it in a plain helper module next to them (e.g. `tests/brokers/redis/settings.py`, `basic.py`) and import it from both.
 

@@ -12,7 +12,7 @@ from faststream.response.response import BatchPublishCommand, PublishCommand, Re
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
-    from faststream._internal.basic_types import SendableMessage
+    from faststream.types import SendableMessage
 
 
 class DestinationType(str, Enum):

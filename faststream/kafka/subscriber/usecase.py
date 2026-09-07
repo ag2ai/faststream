@@ -5,15 +5,17 @@ from itertools import chain
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
-from aiokafka import ConsumerRecord, TopicPartition
+from aiokafka import (
+    ConsumerRecord,
+    TopicPartition as AIOKafkaTopicPartition,
+)
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
-from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address, AddressSyntax
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin, SubscriberUsecase, TasksMixin
+from faststream.api.utils import Address, AddressSyntax
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -22,9 +24,8 @@ from faststream.kafka.publisher.fake import KafkaFakePublisher
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.message import StreamMessage
 
@@ -80,9 +81,13 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return [f"{self.outer_config.prefix}{t}" for t in self._topics]
 
     @property
-    def partitions(self) -> list[TopicPartition]:
+    def partitions(self) -> list[AIOKafkaTopicPartition]:
+        """The assignment as the consumer receives it: the client library's tuples, prefixed.
+
+        Declared with `faststream.kafka.TopicPartition`; handed to aiokafka as its own.
+        """
         return [
-            TopicPartition(
+            AIOKafkaTopicPartition(
                 topic=f"{self.outer_config.prefix}{p.topic}",
                 partition=p.partition,
             )

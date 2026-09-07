@@ -99,6 +99,42 @@ class AddressDeliveryTestcase(BaseTestcaseConfig):
 
         mock.assert_called_once_with("prefixed")
 
+    async def test_a_router_prefix_is_a_declaration_too(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker()
+        # the escape is in the prefix this time, not in what it decorates
+        router = self.get_router(prefix=f"prefix{{{{v1}}}}{self.separator}")
+
+        subscriber = self.declare_subscriber(
+            router,
+            f"{queue}{self.separator}{{level}}",
+            queue,
+        )
+
+        @subscriber
+        async def handler(body: str) -> None:
+            mock(body)
+            event.set()
+
+        broker.include_router(router)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            # publish to "prefix{v1}.queue.info"
+            await self.publish(
+                br,
+                f"prefix{{v1}}{self.separator}{queue}{self.separator}info",
+                "prefixed",
+            )
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with("prefixed")
+
 
 class AddressPublisherDeliveryTestcase(AddressDeliveryTestcase):
     async def test_a_publisher_reaches_a_subscriber_declared_the_same_way(
@@ -121,6 +157,35 @@ class AddressPublisherDeliveryTestcase(AddressDeliveryTestcase):
         # the publisher used to send to the declaration verbatim, escape and all,
         # while the subscriber listened on the restored address
         publisher = self.declare_publisher(broker, declaration, queue)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await publisher.publish("round-trip")
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with("round-trip")
+
+    async def test_a_router_prefix_reaches_both_ends_of_a_declaration(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker()
+        router = self.get_router(prefix=f"prefix{{{{v1}}}}{self.separator}")
+
+        subscriber = self.declare_subscriber(router, queue, queue)
+
+        @subscriber
+        async def handler(body: str) -> None:
+            mock(body)
+            event.set()
+
+        # the publisher used to prepend the prefix as a string, escape and all,
+        # while the subscriber read it as part of its declaration
+        publisher = self.declare_publisher(router, queue, queue)
+
+        broker.include_router(router)
 
         async with self.patch_broker(broker) as br:
             await br.start()

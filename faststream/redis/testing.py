@@ -20,13 +20,12 @@ from unittest.mock import AsyncMock, MagicMock
 import anyio
 from typing_extensions import TypedDict, override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
     TestBroker,
     change_producer,
 )
+from faststream.api.parser import DefaultCodec, ParserComposition
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.redis.broker.broker import RedisBroker
 from faststream.redis.configs.state import RedisClusterConnectionState
@@ -49,11 +48,11 @@ from faststream.redis.subscriber.usecases.stream_subscriber import _StreamHandle
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.parser import CodecProto
+    from faststream.api.parser import CodecProto
     from faststream.redis.publisher.usecase import LogicPublisher
     from faststream.redis.subscriber.usecases.basic import LogicSubscriber
     from faststream.response import Response
+    from faststream.types import SendableMessage
 
 __all__ = (
     "PEL",

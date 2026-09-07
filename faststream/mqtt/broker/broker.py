@@ -3,14 +3,13 @@ from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     Optional,
 )
 from urllib.parse import urlsplit
 
 import zmqtt
 from fast_depends import Provider, dependency_provider
-from typing_extensions import override
+from typing_extensions import assert_never, override
 
 from faststream._internal.constants import EMPTY
 from faststream.api.broker import BrokerUsecase
@@ -19,6 +18,7 @@ from faststream.context import ContextRepo
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
+from faststream.mqtt.parser import MQTTVersion
 from faststream.mqtt.publisher.producer import (
     ZmqttBaseProducer,
     ZmqttProducerV5,
@@ -69,7 +69,7 @@ class MQTTBroker(
         keepalive: int = 60,
         clean_session: bool = True,
         will: zmqtt.Will | None = None,
-        version: Literal["3.1.1", "5.0"] = "5.0",
+        version: MQTTVersion = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
         on_connection_recovery_failed: Callable[[], Awaitable[None]] | None = None,
         mqtt_connect_timeout: float = 30.0,
@@ -134,14 +134,16 @@ class MQTTBroker(
             connection_kwargs["stripped_prefixes"] = stripped_prefixes
 
         producer: ZmqttBaseProducer
-        if version == "5.0":
+        if version == "3.1.1":
+            producer = ZmqttProducerV311(
+                parser=parser, decoder=decoder, id_generator=id_generator
+            )
+        elif version == "5.0":
             producer = ZmqttProducerV5(
                 parser=parser, decoder=decoder, id_generator=id_generator
             )
         else:
-            producer = ZmqttProducerV311(
-                parser=parser, decoder=decoder, id_generator=id_generator
-            )
+            assert_never(version)
 
         connection_url = build_mqtt_url(
             host=connection_host,

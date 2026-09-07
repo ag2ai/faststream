@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
-from faststream._internal.producer import ProducerProto
+from faststream.api.parser import BatchCodecProto, DefaultCodec, ParserComposition
+from faststream.api.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
@@ -18,9 +17,9 @@ if TYPE_CHECKING:
     from confluent_kafka import Message
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import CustomCallable
+    from faststream.api.parser import CodecProto
     from faststream.confluent.helpers.client import AsyncConfluentProducer
+    from faststream.types import CustomCallable
 
 
 class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):

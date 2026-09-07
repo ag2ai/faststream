@@ -3,7 +3,7 @@ from collections.abc import Collection, Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
@@ -17,10 +17,10 @@ from .usecase import (
 )
 
 if TYPE_CHECKING:
-    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
 
     from faststream.kafka.configs import KafkaBrokerConfig
+    from faststream.kafka.schemas import TopicPartition
 
 
 def create_subscriber(

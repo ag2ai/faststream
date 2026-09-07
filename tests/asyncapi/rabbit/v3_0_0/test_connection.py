@@ -63,7 +63,7 @@ def test_custom() -> None:
         "asyncapi": "3.0.0",
         "channels": {
             "test:_:Publisher": {
-                "address": "test:_:Publisher",
+                "address": "test",
                 "bindings": {
                     "amqp": {
                         "bindingVersion": "0.3.0",

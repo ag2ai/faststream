@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection
 
 from .config import (
     RabbitSubscriberConfig,

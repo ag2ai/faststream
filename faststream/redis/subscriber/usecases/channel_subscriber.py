@@ -7,8 +7,8 @@ from redis.asyncio.client import (
 )
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin
 from faststream.redis.message import (
     PubSubMessage,
     RedisChannelMessage,
@@ -20,9 +20,9 @@ from faststream.redis.parser import (
 from .basic import LogicSubscriber
 
 if TYPE_CHECKING:
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import (
+    from faststream.api.subscriber import (
         CallsCollection,
+        SubscriberSpecification,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.schemas import PubSub

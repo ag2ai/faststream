@@ -6,9 +6,9 @@ from typing import (
     Optional,
 )
 
-from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
 from faststream._internal.utils.path import Address
+from faststream.api.subscriber import SubscriberUsecase
 from faststream.nats.publisher.fake import NatsFakePublisher
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.nats.subscriber.adapters import (
@@ -19,9 +19,8 @@ if TYPE_CHECKING:
     from nats.aio.client import Client
     from nats.js import JetStreamContext
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.message import StreamMessage
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.subscriber.config import NatsSubscriberConfig

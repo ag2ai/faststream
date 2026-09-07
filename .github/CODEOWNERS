@@ -32,3 +32,8 @@
 /faststream/mqtt/ @borisalekseev
 /tests/brokers/mqtt/ @borisalekseev
 /docs/docs/en/mqtt/ @borisalekseev
+
+# Redis
+/faststream/redis/ @powersemmi
+/tests/brokers/redis/ @powersemmi
+/docs/docs/en/redis/ @powersemmi

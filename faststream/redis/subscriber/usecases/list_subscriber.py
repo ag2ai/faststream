@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin
 from faststream.redis.message import (
     BatchListMessage,
     DefaultListMessage,
@@ -21,9 +21,9 @@ from .basic import LogicSubscriber
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import (
+    from faststream.api.subscriber import (
         CallsCollection,
+        SubscriberSpecification,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.schemas import ListSub

@@ -1,3 +1,4 @@
+from faststream._internal.testing.app import TestApp
 from faststream._internal.testing.broker import (
     EnterType,
     TestBroker,
@@ -6,6 +7,7 @@ from faststream._internal.testing.broker import (
 
 __all__ = (
     "EnterType",
+    "TestApp",
     "TestBroker",
     "change_producer",
 )

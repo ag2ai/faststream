@@ -12,8 +12,8 @@ from .request import AsgiRequest
 from .response import AsgiResponse
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import LoggerProto
     from faststream.specification.schema import Tag, TagDict
+    from faststream.types import LoggerProto
 
     from .types import ASGIApp, Receive, Scope, Send, UserApp
 

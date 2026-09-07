@@ -7,14 +7,12 @@ from unittest.mock import AsyncMock, MagicMock
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
-from faststream._internal.testing.broker import (
+from faststream.api.parser import BatchCodecProto, DefaultCodec, ParserComposition
+from faststream.api.testing import (
     EnterType,
     TestBroker,
     change_producer,
 )
-from faststream._internal.types import IdGenerator
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
@@ -23,15 +21,16 @@ from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
+from faststream.types import IdGenerator
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.parser import CodecProto
+    from faststream.api.parser import CodecProto
     from faststream.confluent.publisher.usecase import LogicPublisher
     from faststream.confluent.response import KafkaPublishCommand
     from faststream.confluent.subscriber.usecase import LogicSubscriber
+    from faststream.types import SendableMessage
 
 
 __all__ = ("TestKafkaBroker",)

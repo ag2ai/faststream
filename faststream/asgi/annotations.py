@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from faststream._internal.context import Context
+from faststream.context import Context
 
 from .request import AsgiRequest
 

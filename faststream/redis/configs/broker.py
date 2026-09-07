@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from faststream._internal.configs import BrokerConfig
-from faststream._internal.parser import DefaultCodec
+from faststream.api.configs import BrokerConfig
+from faststream.api.parser import DefaultCodec
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
