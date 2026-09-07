@@ -2,11 +2,11 @@ from dataclasses import dataclass, field
 
 from zmqtt import QoS
 
-from faststream._internal.configs import (
+from faststream._internal.utils.path import Address
+from faststream.api.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
-from faststream._internal.utils.path import Address
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 
@@ -19,7 +19,7 @@ class MQTTPublisherSpecificationConfig(PublisherSpecificationConfig):
 
 @dataclass(kw_only=True)
 class MQTTPublisherConfig(PublisherUsecaseConfig):
-    _outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
+    outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
 
     address: Address
     qos: QoS

@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber import (
+from faststream.api.subscriber import (
+    ConcurrentMixin,
     SubscriberSpecification,
     SubscriberUsecase,
+    TasksMixin,
 )
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream.redis.message import (
     UnifyRedisDict,
 )
@@ -20,8 +21,8 @@ from faststream.redis.publisher.fake import RedisFakePublisher
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber.call_item import (
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import (
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
@@ -41,7 +42,7 @@ CONSUME_ERROR_BACKOFF_SECONDS = 5
 class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
 
-    _outer_config: "RedisBrokerConfig"
+    outer_config: "RedisBrokerConfig"
 
     def __init__(
         self,
@@ -54,7 +55,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     @property
     def _client(self) -> "Redis[bytes]":
-        return cast("Redis[bytes]", self._outer_config.connection.client)
+        return cast("Redis[bytes]", self.outer_config.connection.client)
 
     def _make_response_publisher(
         self,
@@ -62,7 +63,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     ) -> Sequence["PublisherProto"]:
         return (
             RedisFakePublisher(
-                self._outer_config.producer,
+                self.outer_config.producer,
                 channel=message.reply_to,
                 message_format=self.config.message_format,
             ),

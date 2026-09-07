@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 from faststream.nats import TestNatsBroker
 from faststream.nats.fastapi import NatsRouter
 from faststream.specification.base import Specification

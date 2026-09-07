@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any, Optional
 from nats.errors import TimeoutError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin
 from faststream.nats.parser import NatsParser
 
 from .basic import DefaultSubscriber
@@ -14,8 +14,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.aio.subscription import Subscription
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
     from faststream.nats.subscriber.config import NatsSubscriberConfig
@@ -67,7 +66,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         except TimeoutError:
             return None
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
 
         async_parser, async_decoder = self._get_parser_and_decoder()
 
@@ -96,7 +95,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         else:
             fetch_sub = self._fetch_sub
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async for raw_message in fetch_sub.messages:

@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import Unpack, override
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.data import filter_by_dict
+from faststream.api.publisher import PublisherUsecase
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
@@ -14,12 +14,12 @@ from .options import BasicMessageOptions, PublishKwargs, PublishOptions
 if TYPE_CHECKING:
     import aiormq
 
-    from faststream._internal.endpoint.publisher import PublisherSpecification
-    from faststream._internal.types import PublisherMiddleware
+    from faststream.api.publisher import PublisherSpecification
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.types import AioPikaSendableMessage
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware
 
     from .config import RabbitPublisherConfig
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class RabbitPublisher(PublisherUsecase):
     """A class to represent a RabbitMQ publisher."""
 
-    _outer_config: "RabbitBrokerConfig"
+    outer_config: "RabbitBrokerConfig"
 
     def __init__(
         self,
@@ -56,9 +56,9 @@ class RabbitPublisher(PublisherUsecase):
 
     @property
     def message_options(self) -> "BasicMessageOptions":
-        if self._outer_config.app_id and "app_id" not in self._message_options:
+        if self.outer_config.app_id and "app_id" not in self._message_options:
             message_options = self._message_options.copy()
-            message_options["app_id"] = self._outer_config.app_id
+            message_options["app_id"] = self.outer_config.app_id
             return message_options
 
         return self._message_options
@@ -74,13 +74,13 @@ class RabbitPublisher(PublisherUsecase):
                 routing_key = q.routing()
             else:
                 r = self.routing_key or self.queue.routing()
-                routing_key = f"{self._outer_config.prefix}{r}"
+                routing_key = f"{self.outer_config.prefix}{r}"
 
         return routing_key
 
     async def start(self) -> None:
         if self.exchange is not None:
-            await self._outer_config.declarer.declare_exchange(self.exchange)
+            await self.outer_config.declarer.declare_exchange(self.exchange)
         return await super().start()
 
     @override
@@ -99,8 +99,7 @@ class RabbitPublisher(PublisherUsecase):
             headers = self.headers
 
         correlation_id = (
-            publish_kwargs.pop("correlation_id", None)
-            or self._outer_config.id_generator()
+            publish_kwargs.pop("correlation_id", None) or self.outer_config.id_generator()
         )
 
         cmd = RabbitPublishCommand(
@@ -109,14 +108,14 @@ class RabbitPublisher(PublisherUsecase):
             exchange=RabbitExchange.validate(exchange or self.exchange),
             headers=headers,
             correlation_id=correlation_id,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             **(self.publish_options | self.message_options | publish_kwargs),  # type: ignore[operator]
         )
 
-        frame: aiormq.abc.ConfirmationFrameType | None = await self._basic_publish(
+        frame: aiormq.abc.ConfirmationFrameType | None = await self.basic_publish(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=(),
+            producer=self.outer_config.producer,
+            extra_middlewares=(),
         )
         return frame
 
@@ -125,7 +124,7 @@ class RabbitPublisher(PublisherUsecase):
         self,
         cmd: Union["RabbitPublishCommand", "PublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = RabbitPublishCommand.from_cmd(cmd)
@@ -141,10 +140,10 @@ class RabbitPublisher(PublisherUsecase):
         cmd.message_options = {**self.message_options, **cmd.message_options}
         cmd.publish_options = {**self.publish_options, **cmd.publish_options}
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=_extra_middlewares,
+            producer=self.outer_config.producer,
+            extra_middlewares=extra_middlewares,
         )
 
     @override
@@ -163,8 +162,7 @@ class RabbitPublisher(PublisherUsecase):
             headers = self.headers
 
         correlation_id = (
-            publish_kwargs.pop("correlation_id", None)
-            or self._outer_config.id_generator()
+            publish_kwargs.pop("correlation_id", None) or self.outer_config.id_generator()
         )
 
         cmd = RabbitPublishCommand(
@@ -173,12 +171,12 @@ class RabbitPublisher(PublisherUsecase):
             exchange=RabbitExchange.validate(exchange or self.exchange),
             correlation_id=correlation_id,
             headers=headers,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             **(self.publish_options | self.message_options | publish_kwargs),  # type: ignore[operator]
         )
 
-        msg: RabbitMessage = await self._basic_request(
+        msg: RabbitMessage = await self.basic_request(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.outer_config.producer,
         )
         return msg

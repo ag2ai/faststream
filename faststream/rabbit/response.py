@@ -49,7 +49,7 @@ class RabbitResponse(Response):
     def as_publish_command(self) -> "RabbitPublishCommand":
         return RabbitPublishCommand(
             message=self.body,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             routing_key="",
             exchange=self.exchange,
             **self.publish_options,
@@ -64,7 +64,7 @@ class RabbitPublishCommand(PublishCommand):
         self,
         message: "AioPikaSendableMessage",
         *,
-        _publish_type: PublishType,
+        publish_type: PublishType,
         routing_key: str = "",
         exchange: RabbitExchange | None = None,
         # publish kwargs
@@ -83,7 +83,7 @@ class RabbitPublishCommand(PublishCommand):
             correlation_id=correlation_id,
             headers=headers,
             reply_to=reply_to,
-            _publish_type=_publish_type,
+            publish_type=publish_type,
         )
 
         self._exchange = exchange
@@ -121,5 +121,5 @@ class RabbitPublishCommand(PublishCommand):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             reply_to=cmd.reply_to,
-            _publish_type=cmd.publish_type,
+            publish_type=cmd.publish_type,
         )

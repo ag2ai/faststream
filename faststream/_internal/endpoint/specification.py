@@ -23,14 +23,14 @@ class EndpointSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
 
     def __init__(
         self,
-        _outer_config: "T_BrokerConfig",
+        outer_config: "T_BrokerConfig",
         specification_config: "T_SpecificationConfig",
     ) -> None:
         self.config = specification_config
-        self._outer_config = _outer_config
+        self.outer_config = outer_config
 
     @property
     def include_in_schema(self) -> bool:
         return bool(
-            self._outer_config.include_in_schema and self.config.include_in_schema,
+            self.outer_config.include_in_schema and self.config.include_in_schema,
         )

@@ -30,11 +30,11 @@ def create_publisher(
         reply_to=reply_to,
         headers=headers,
         timeout=timeout,
-        _outer_config=broker_config,
+        outer_config=broker_config,
     )
 
     specification = NatsPublisherSpecification(
-        _outer_config=broker_config,
+        outer_config=broker_config,
         specification_config=NatsPublisherSpecificationConfig(
             subject=subject,
             schema_=schema_,

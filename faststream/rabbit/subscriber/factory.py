@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional
 
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection
 
 from .config import (
     RabbitSubscriberConfig,
@@ -37,14 +37,14 @@ def create_subscriber(
         channel=channel,
         queue=queue,
         exchange=exchange,
-        _ack_policy=ack_policy,
-        _outer_config=config,
+        ack_policy=ack_policy,
+        outer_config=config,
     )
 
     calls = CallsCollection[Any]()
 
     specification = RabbitSubscriberSpecification(
-        _outer_config=config,
+        outer_config=config,
         specification_config=RabbitSubscriberSpecificationConfig(
             title_=title_,
             description_=description_,

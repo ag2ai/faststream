@@ -39,11 +39,11 @@ def create_publisher(
         partition=partition,
         headers=headers,
         reply_to=reply_to,
-        _outer_config=config,
+        outer_config=config,
     )
 
     specification = KafkaPublisherSpecification(
-        _outer_config=config,
+        outer_config=config,
         specification_config=KafkaPublisherSpecificationConfig(
             topic=topic_name,
             schema_=schema_,
@@ -56,11 +56,11 @@ def create_publisher(
     publisher: BatchPublisher | DefaultPublisher
     if batch:
         publisher = BatchPublisher(publisher_config, specification)
-        publish_method = "_basic_publish_batch"
+        publish_method = "basic_publish_batch"
 
     else:
         publisher = DefaultPublisher(publisher_config, specification)
-        publish_method = "_basic_publish"
+        publish_method = "basic_publish"
 
     if autoflush:
         default_publish: Callable[..., Awaitable[Any | None]] = getattr(

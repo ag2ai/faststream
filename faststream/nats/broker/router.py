@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from nats.aio.msg import Msg
 from nats.js import api
 
-from faststream._internal.broker.router import (
+from faststream._internal.constants import EMPTY
+from faststream.api.broker import (
     ArgsContainer,
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
 
@@ -18,12 +18,12 @@ from .registrator import NatsRegistrator
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import (
+    from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
+    from faststream.types import (
         BrokerMiddleware,
         CustomCallable,
+        SendableMessage,
     )
-    from faststream.nats.schemas import JStream, KvWatch, ObjWatch, PullSub
 
 
 class NatsPublisher(ArgsContainer):

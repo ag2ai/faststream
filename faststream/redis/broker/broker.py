@@ -17,10 +17,10 @@ from redis.asyncio.connection import (
 from redis.exceptions import ConnectionError
 from typing_extensions import Unpack, overload, override
 
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.di import FastDependsConfig
+from faststream.api.broker import BrokerUsecase
+from faststream.api.di import FastDependsConfig
+from faststream.context import ContextRepo
 from faststream.message import gen_cor_id
 from faststream.redis.configs import (
     ConnectionState,
@@ -44,11 +44,11 @@ if TYPE_CHECKING:
 
     from redis.asyncio.client import Pipeline, Redis
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream.redis.message import RedisChannelMessage
     from faststream.redis.publisher.producer import RedisClusterFastProducer
     from faststream.redis.schemas.types import RedisBrokerParams
     from faststream.security import BaseSecurity
+    from faststream.types import SendableMessage
 
 
 class RedisBroker(
@@ -274,11 +274,11 @@ class RedisBroker(
             reply_to=reply_to,
             headers=headers,
             pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             message_format=self.message_format,
         )
 
-        result: int | bytes = await super()._basic_publish(
+        result: int | bytes = await super().basic_publish(
             cmd,
             producer=self.config.producer,
         )
@@ -306,10 +306,10 @@ class RedisBroker(
             maxlen=maxlen,
             headers=headers,
             timeout=timeout,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
             message_format=self.message_format,
         )
-        msg: RedisChannelMessage = await super()._basic_request(
+        msg: RedisChannelMessage = await super().basic_request(
             cmd,
             producer=self.config.producer,
         )
@@ -345,11 +345,11 @@ class RedisBroker(
             headers=headers,
             correlation_id=correlation_id or self.config.id_generator(),
             pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             message_format=self.message_format,
         )
 
-        result: int = await self._basic_publish_batch(
+        result: int = await self.basic_publish_batch(
             cmd,
             producer=self.config.producer,
         )

@@ -11,7 +11,7 @@ from faststream._internal.constants import ContentTypes
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import DecodedMessage, SendableMessage
+    from faststream.types import DecodedMessage, SendableMessage
 
     from .message import StreamMessage
 

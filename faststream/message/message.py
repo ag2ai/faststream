@@ -11,7 +11,7 @@ from uuid import uuid4
 from .source_type import SourceType
 
 if TYPE_CHECKING:
-    from faststream._internal.types import AsyncCallable
+    from faststream.types import AsyncCallable
 
 # prevent circular imports
 MsgType = TypeVar("MsgType")

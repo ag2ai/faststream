@@ -18,7 +18,7 @@ from . import config as config_module
 if TYPE_CHECKING:
     from typing_extensions import NotRequired, TypedDict
 
-    from faststream._internal.logger import LoggerState
+    from faststream.api.logger import LoggerState
 
     from .admin import AdminService
 

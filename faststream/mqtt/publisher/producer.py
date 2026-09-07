@@ -5,25 +5,24 @@ import zmqtt
 from typing_extensions import override
 from zmqtt import PublishProperties
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
-from faststream._internal.producer import ProducerProto
-from faststream._internal.types import IdGenerator
+from faststream.api.parser import DefaultCodec, ParserComposition
+from faststream.api.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import gen_cor_id
 from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
 from faststream.mqtt.response import MQTTPublishCommand
+from faststream.types import IdGenerator
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import AsyncCallable, CustomCallable
+    from faststream.api.parser import CodecProto
+    from faststream.types import AsyncCallable, CustomCallable
 
 
 class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
-    _parser: "AsyncCallable"
-    _decoder: "AsyncCallable"
+    parser: "AsyncCallable"
+    decoder: "AsyncCallable"
 
     def __init__(
         self,
@@ -37,8 +36,8 @@ class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
         self.codec: CodecProto = DefaultCodec()
         self.id_generator = id_generator
 
-        self._parser = ParserComposition(parser, default_parser.parse_message)
-        self._decoder = ParserComposition(decoder, default_parser.decode_message)
+        self.parser = ParserComposition(parser, default_parser.parse_message)
+        self.decoder = ParserComposition(decoder, default_parser.decode_message)
 
     def connect(
         self,

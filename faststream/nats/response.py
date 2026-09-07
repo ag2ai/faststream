@@ -6,8 +6,8 @@ from faststream.response.publish_type import PublishType
 from faststream.response.response import PublishCommand, Response
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
     from faststream.nats.schemas.schedule import Schedule
+    from faststream.types import SendableMessage
 
 
 class NatsResponse(Response):
@@ -34,7 +34,7 @@ class NatsResponse(Response):
             message=self.body,
             headers=self.headers,
             correlation_id=self.correlation_id,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             # Nats specific
             subject="",
             stream=self.stream,
@@ -54,7 +54,7 @@ class NatsPublishCommand(PublishCommand):
         stream: str | None = None,
         timeout: float = 0.5,
         schedule: Optional["Schedule"] = None,
-        _publish_type: PublishType,
+        publish_type: PublishType,
     ) -> None:
         super().__init__(
             body=message,
@@ -62,7 +62,7 @@ class NatsPublishCommand(PublishCommand):
             correlation_id=correlation_id,
             headers=headers,
             reply_to=reply_to,
-            _publish_type=_publish_type,
+            publish_type=publish_type,
         )
 
         self.stream = stream
@@ -99,7 +99,7 @@ class NatsPublishCommand(PublishCommand):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             reply_to=cmd.reply_to,
-            _publish_type=cmd.publish_type,
+            publish_type=cmd.publish_type,
         )
 
     def __repr__(self) -> str:

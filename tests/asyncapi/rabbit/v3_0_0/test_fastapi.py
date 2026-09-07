@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 from faststream.rabbit.fastapi import RabbitRouter
 from faststream.rabbit.testing import TestRabbitBroker
 from faststream.security import SASLPlaintext

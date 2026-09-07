@@ -2,11 +2,13 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal.configs import (
+from typing_extensions import override
+
+from faststream._internal.constants import EMPTY
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
@@ -22,7 +24,7 @@ class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 
 @dataclass(kw_only=True)
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
-    _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
+    outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 
     topics: Sequence["Topic"] = field(default_factory=list)
     partitions: Sequence["TopicPartition"] = field(default_factory=list)
@@ -35,17 +37,19 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def ack_first(self) -> bool:
-        return self.ack_policy is AckPolicy.ACK_FIRST
+        return self.resolved_ack_policy is AckPolicy.ACK_FIRST
 
     @property
+    @override
     def auto_ack_disabled(self) -> bool:
-        return self.ack_policy in {AckPolicy.MANUAL, AckPolicy.ACK_FIRST}
+        return self.resolved_ack_policy in {AckPolicy.MANUAL, AckPolicy.ACK_FIRST}
 
     @property
-    def ack_policy(self) -> AckPolicy:
-        if self._ack_policy is EMPTY:
-            if self._outer_config.ack_policy is not EMPTY:
-                return self._outer_config.ack_policy
+    @override
+    def resolved_ack_policy(self) -> AckPolicy:
+        if self.ack_policy is EMPTY:
+            if self.outer_config.ack_policy is not EMPTY:
+                return self.outer_config.ack_policy
             return AckPolicy.ACK_FIRST
 
-        return self._ack_policy
+        return self.ack_policy

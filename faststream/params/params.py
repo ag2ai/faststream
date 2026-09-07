@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from faststream._internal.constants import EMPTY, PATH_CONTEXT_PREFIX
-from faststream._internal.context import Context as Context_
+from faststream.context import Context as Context_
 
 
 def Context(  # noqa: N802

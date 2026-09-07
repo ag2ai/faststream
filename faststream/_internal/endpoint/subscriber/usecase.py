@@ -79,7 +79,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         calls: "CallsCollection[MsgType]",
     ) -> None:
         """Initialize a new instance of the class."""
-        super().__init__(config._outer_config)
+        super().__init__(config.outer_config)
 
         self.calls = calls
         self.specification = specification
@@ -88,7 +88,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._parser = config.parser
         self._decoder = config.decoder
 
-        self.ack_policy = config.ack_policy
+        self.ack_policy = config.resolved_ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
 
         self._call_options = _CallOptions(
@@ -107,7 +107,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
-        return self._outer_config.broker_middlewares
+        return self.outer_config.broker_middlewares
 
     async def __aenter__(self) -> Self:
         await self.start()
@@ -127,7 +127,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         self._build_fastdepends_model()
 
-        self._outer_config.logger.log(
+        self.outer_config.logger.log(
             f"`{self.specification.call_name}` waiting for messages",
             extra=self.get_log_context(None),
         )
@@ -156,7 +156,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         >>> ParserComposition(P0_parser or P1_parser or P2_parser, self._parser)
         """
         if parser := (
-            item_parser or self._call_options.parser or self._outer_config.broker_parser
+            item_parser or self._call_options.parser or self.outer_config.broker_parser
         ):
             async_parser: AsyncCallable = ParserComposition(parser, self._parser)
         else:
@@ -164,11 +164,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         # Codec takes priority over legacy decoder.
         # Having both is an error — it's ambiguous which takes effect.
-        codec = self._call_options.codec or self._outer_config.broker_codec
+        codec = self._call_options.codec or self.outer_config.broker_codec
         decoder = (
-            item_decoder
-            or self._call_options.decoder
-            or self._outer_config.broker_decoder
+            item_decoder or self._call_options.decoder or self.outer_config.broker_decoder
         )
 
         if codec and decoder:
@@ -204,8 +202,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             call._setup(
                 parser=async_parser,
                 decoder=async_decoder,
-                config=self._outer_config.fd_config,
-                broker_dependencies=self._outer_config.broker_dependencies,
+                config=self.outer_config.fd_config,
+                broker_dependencies=self.outer_config.broker_dependencies,
                 _call_decorators=self._call_decorators,
             )
 
@@ -225,7 +223,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         # Wait for already consumed messages to be processed
         if isinstance(self.lock, MultiLock):
-            await self.lock.wait_release(self._outer_config.graceful_timeout)
+            await self.lock.wait_release(self.outer_config.graceful_timeout)
 
     def add_call(
         self,
@@ -329,7 +327,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             # Stop handler at `exit()` call
             await self.stop()
 
-            if app := self._outer_config.fd_config.context.get("app"):
+            if app := self.outer_config.fd_config.context.get("app"):
                 app.exit()
 
         except Exception:  # nosec B110
@@ -338,8 +336,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     async def process_message(self, msg: MsgType) -> "Response":
         """Execute all message processing stages."""
-        context = self._outer_config.fd_config.context
-        logger_state = self._outer_config.logger
+        context = self.outer_config.fd_config.context
+        logger_state = self.outer_config.logger
 
         async with AsyncExitStack() as stack:
             stack.enter_context(self.lock)
@@ -347,7 +345,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             # Enter context before middlewares
             stack.enter_context(context.scope("handler_", self))
             stack.enter_context(context.scope("logger", logger_state.logger.logger))
-            for k, v in self._outer_config.extra_context.items():
+            for k, v in self.outer_config.extra_context.items():
                 stack.enter_context(context.scope(k, v))
 
             # enter all middlewares
@@ -380,7 +378,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                         await h.call(
                             message=message,
                             # consumer middlewares
-                            _extra_middlewares=(
+                            extra_middlewares=(
                                 m.consume_scope for m in middlewares[::-1]
                             ),
                         ),
@@ -395,7 +393,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     ):
                         await p._publish(
                             result_msg.as_publish_command(),
-                            _extra_middlewares=(
+                            extra_middlewares=(
                                 m.publish_scope for m in middlewares[::-1]
                             ),
                         )
@@ -419,7 +417,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return ensure_response(None)
 
     def __build__middlewares_stack(self) -> tuple["BrokerMiddleware[MsgType]", ...]:
-        logger_state = self._outer_config.logger
+        logger_state = self.outer_config.logger
 
         if self.__auto_ack_disabled:
             broker_middlewares = (
@@ -484,7 +482,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         extra: dict[str, Any] | None = None,
         exc_info: Exception | None = None,
     ) -> None:
-        self._outer_config.logger.log(
+        self.outer_config.logger.log(
             message,
             log_level,
             extra=extra,

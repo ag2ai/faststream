@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import SubscriberUsecase
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -16,9 +16,9 @@ from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITE
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-    from faststream._internal.endpoint.subscriber.specification import (
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection
+    from faststream.api.subscriber.specification import (
         SubscriberSpecification,
     )
     from faststream.message import StreamMessage
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
-    _outer_config: "RabbitBrokerConfig"
+    outer_config: "RabbitBrokerConfig"
 
     def __init__(
         self,
@@ -62,19 +62,19 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     @property
     def app_id(self) -> str | None:
-        return self._outer_config.app_id
+        return self.outer_config.app_id
 
     def routing(self) -> str:
-        return f"{self._outer_config.prefix}{self.queue.routing()}"
+        return f"{self.outer_config.prefix}{self.queue.routing()}"
 
     @override
     async def start(self) -> None:
         """Starts the consumer for the RabbitMQ queue."""
         await super().start()
 
-        queue_to_bind = self.queue.add_prefix(self._outer_config.prefix)
+        queue_to_bind = self.queue.add_prefix(self.outer_config.prefix)
 
-        declarer = self._outer_config.declarer
+        declarer = self.outer_config.declarer
 
         self._queue_obj = queue = await declarer.declare_queue(
             queue_to_bind,
@@ -148,7 +148,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
@@ -168,7 +168,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             "You can't use iterator method if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async with self._queue_obj.iterator() as queue_iter:
@@ -194,14 +194,14 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                 REPLY_TO_QUEUE_EXCHANGE_DELIMITER, 2
             )
             publisher = RabbitFakePublisher(
-                self._outer_config.producer,
+                self.outer_config.producer,
                 app_id=self.app_id,
                 routing_key=queue_name,
                 exchange=RabbitExchange.validate(exchange_name),
             )
         else:
             publisher = RabbitFakePublisher(
-                self._outer_config.producer,
+                self.outer_config.producer,
                 app_id=self.app_id,
                 routing_key=message.reply_to,
                 exchange=RabbitExchange(),

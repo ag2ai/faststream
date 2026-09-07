@@ -1,5 +1,5 @@
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
 from faststream._internal.utils.path import Address
+from faststream.api.subscriber import SubscriberSpecification
 from faststream.nats.configs import NatsBrokerConfig
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -16,7 +16,7 @@ class NatsSubscriberSpecification(
     def subject(self) -> "Address":
         """The subject this endpoint was declared with, and its Broker address."""
         return Address(self.config.subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+            self.outer_config.prefix,
         )
 
     @property
@@ -24,7 +24,7 @@ class NatsSubscriberSpecification(
         """The subjects a JetStream consumer filters on, and their Broker addresses."""
         return [
             Address(subject, NATS_ADDRESS_SYNTAX)
-            .add_prefix(self._outer_config.prefix)
+            .add_prefix(self.outer_config.prefix)
             .template
             for subject in self.config.filter_subjects
         ]

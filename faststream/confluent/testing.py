@@ -7,14 +7,12 @@ from unittest.mock import AsyncMock, MagicMock
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
-from faststream._internal.testing.broker import (
+from faststream.api.parser import BatchCodecProto, DefaultCodec, ParserComposition
+from faststream.api.testing import (
     EnterType,
     TestBroker,
     change_producer,
 )
-from faststream._internal.types import IdGenerator
 from faststream.confluent.broker import KafkaBroker
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
@@ -23,15 +21,16 @@ from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
+from faststream.types import IdGenerator
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.parser import CodecProto
+    from faststream.api.parser import CodecProto
     from faststream.confluent.publisher.usecase import LogicPublisher
     from faststream.confluent.response import KafkaPublishCommand
     from faststream.confluent.subscriber.usecase import LogicSubscriber
+    from faststream.types import SendableMessage
 
 
 __all__ = ("TestKafkaBroker",)
@@ -149,8 +148,8 @@ class FakeProducer(AsyncConfluentFastProducer):
         self.brokers = brokers
 
         default = AsyncConfluentParser()
-        self._parser = ParserComposition(broker._parser, default.parse_message)
-        self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.parser = ParserComposition(broker.parser, default.parse_message)
+        self.decoder = ParserComposition(broker.decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()
 
     @property
@@ -177,7 +176,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             reply_to=cmd.reply_to,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
         )
@@ -194,7 +193,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     @override
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to the Kafka broker."""
-        serializer = self.broker.config.fd_config._serializer
+        serializer = self.broker.config.fd_config.serializer
 
         if isinstance(self.codec, BatchCodecProto):
             encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
@@ -241,7 +240,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             timestamp_ms=cmd.timestamp_ms,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
         )
@@ -275,7 +274,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
         )

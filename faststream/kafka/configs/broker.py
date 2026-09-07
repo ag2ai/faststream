@@ -7,9 +7,9 @@ import aiokafka
 import aiokafka.admin
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.configs import BrokerConfig
-from faststream._internal.parser import DefaultCodec
 from faststream._internal.utils.data import filter_by_dict
+from faststream.api.configs import BrokerConfig
+from faststream.api.parser import DefaultCodec
 from faststream.exceptions import IncorrectState
 from faststream.kafka.publisher.producer import (
     AioKafkaFastProducer,
@@ -48,7 +48,7 @@ class KafkaBrokerConfig(BrokerConfig):
             producer = aiokafka.AIOKafkaProducer(**connection_kwargs)
             await self.producer.connect(
                 producer,
-                serializer=self.fd_config._serializer,
+                serializer=self.fd_config.serializer,
                 codec=self.broker_codec or DefaultCodec(),
             )
 

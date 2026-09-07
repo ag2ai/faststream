@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING, Any, Union
 
-from faststream._internal.endpoint.publisher.fake import FakePublisher
+from faststream.api.publisher import FakePublisher
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange
 
 if TYPE_CHECKING:
-    from faststream._internal.producer import ProducerProto
+    from faststream.api.producer import ProducerProto
     from faststream.response.response import PublishCommand
 
 

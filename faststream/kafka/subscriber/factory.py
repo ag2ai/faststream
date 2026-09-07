@@ -3,7 +3,7 @@ from collections.abc import Collection, Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
@@ -65,14 +65,14 @@ def create_subscriber(
         listener=listener,
         pattern=pattern,
         no_reply=no_reply,
-        _outer_config=config,
-        _ack_policy=ack_policy,
+        outer_config=config,
+        ack_policy=ack_policy,
     )
 
     calls = CallsCollection[Any]()
 
     specification = KafkaSubscriberSpecification(
-        _outer_config=config,
+        outer_config=config,
         calls=calls,
         specification_config=KafkaSubscriberSpecificationConfig(
             topics=topics,

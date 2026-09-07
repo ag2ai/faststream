@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from typing_extensions import overload, override
 
-from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
+from faststream.api.broker import Registrator
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.redis.configs import RedisBrokerConfig
@@ -15,11 +15,7 @@ from faststream.redis.subscriber.factory import create_subscriber
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream.api.parser import CodecProto
     from faststream.redis.parser import MessageFormat
     from faststream.redis.publisher.usecase import (
         ChannelPublisher,
@@ -39,6 +35,10 @@ if TYPE_CHECKING:
         StreamBatchSubscriber,
         StreamConcurrentSubscriber,
         StreamSubscriber,
+    )
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
     )
 
 
@@ -314,8 +314,8 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         super().subscriber(subscriber, persistent=persistent)
 
         return subscriber.add_call(
-            parser_=parser or self._parser,
-            decoder_=decoder or self._decoder,
+            parser_=parser or self.parser,
+            decoder_=decoder or self.decoder,
             codec_=codec,
             dependencies_=dependencies,
         )

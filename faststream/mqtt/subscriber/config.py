@@ -1,13 +1,14 @@
 from dataclasses import dataclass, field
 
+from typing_extensions import override
 from zmqtt import QoS
 
-from faststream._internal.configs import (
+from faststream._internal.constants import EMPTY
+from faststream._internal.utils.path import Address
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
-from faststream._internal.utils.path import Address
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 
@@ -21,16 +22,17 @@ class MQTTSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 
 @dataclass(kw_only=True)
 class MQTTSubscriberConfig(SubscriberUsecaseConfig):
-    _outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
+    outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
 
     address: Address
     qos: QoS = QoS.AT_MOST_ONCE
     shared: str | None = None
 
     @property
-    def ack_policy(self) -> AckPolicy:
-        if self._ack_policy is EMPTY:
-            if self._outer_config.ack_policy is not EMPTY:
-                return self._outer_config.ack_policy
+    @override
+    def resolved_ack_policy(self) -> AckPolicy:
+        if self.ack_policy is EMPTY:
+            if self.outer_config.ack_policy is not EMPTY:
+                return self.outer_config.ack_policy
             return AckPolicy.ACK
-        return self._ack_policy
+        return self.ack_policy

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from nats.errors import ConnectionClosedError, TimeoutError
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
 from faststream.nats.parser import JsParser
 
 from .basic import DefaultSubscriber
@@ -13,8 +13,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.message import StreamMessage
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import JStream
@@ -89,7 +88,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         except (TimeoutError, ConnectionClosedError):
             return None
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
@@ -124,7 +123,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 **extra_options,
             )
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:

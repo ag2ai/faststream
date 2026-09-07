@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
 from faststream._internal._compat import HAS_OPENTELEMETRY
-from faststream._internal.configs import BrokerConfig
-from faststream._internal.parser import DefaultCodec
+from faststream.api.configs import BrokerConfig
+from faststream.api.parser import DefaultCodec
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.mqtt.parser import MQTTVersion
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
@@ -11,8 +11,8 @@ from faststream.mqtt.publisher.producer import ZmqttFakeProducer
 if TYPE_CHECKING:
     import zmqtt
 
-    from faststream._internal.types import BrokerMiddleware
     from faststream.mqtt.publisher.producer import ZmqttBaseProducer
+    from faststream.types import BrokerMiddleware
 
 if HAS_OPENTELEMETRY:
     from faststream.opentelemetry.middleware import TelemetryMiddleware
@@ -42,7 +42,7 @@ class MQTTBrokerConfig(BrokerConfig):
     def connect(self, client: "zmqtt.MQTTClient") -> None:
         self._client = client
         self.producer.connect(
-            client, self.fd_config._serializer, codec=self.broker_codec or DefaultCodec()
+            client, self.fd_config.serializer, codec=self.broker_codec or DefaultCodec()
         )
 
     def disconnect(self) -> None:

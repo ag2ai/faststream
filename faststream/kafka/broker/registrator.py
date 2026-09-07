@@ -13,8 +13,8 @@ from aiokafka import ConsumerRecord
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 from typing_extensions import override
 
-from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
+from faststream.api.broker import Registrator
 from faststream.exceptions import SetupError
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.kafka.publisher.factory import create_publisher
@@ -26,11 +26,7 @@ if TYPE_CHECKING:
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream.api.parser import CodecProto
     from faststream.kafka.publisher.usecase import (
         BatchPublisher,
         DefaultPublisher,
@@ -41,6 +37,10 @@ if TYPE_CHECKING:
         ConcurrentBetweenPartitionsSubscriber,
         ConcurrentDefaultSubscriber,
         DefaultSubscriber,
+    )
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
     )
 
 

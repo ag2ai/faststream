@@ -38,11 +38,11 @@ def create_publisher(
         queue=queue,
         exchange=exchange,
         # broker
-        _outer_config=config,
+        outer_config=config,
     )
 
     specification = RabbitPublisherSpecification(
-        _outer_config=config,
+        outer_config=config,
         specification_config=RabbitPublisherSpecificationConfig(
             message_kwargs=message_kwargs,
             routing_address=routing_address,

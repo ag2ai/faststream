@@ -6,9 +6,9 @@ from typing import (
     Optional,
 )
 
-from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
 from faststream._internal.utils.path import Address
+from faststream.api.subscriber import SubscriberUsecase
 from faststream.nats.publisher.fake import NatsFakePublisher
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.nats.subscriber.adapters import (
@@ -19,9 +19,8 @@ if TYPE_CHECKING:
     from nats.aio.client import Client
     from nats.js import JetStreamContext
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.message import StreamMessage
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.subscriber.config import NatsSubscriberConfig
@@ -32,7 +31,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
     subscription: Unsubscriptable | None
     _fetch_sub: Unsubscriptable | None
-    _outer_config: "NatsBrokerConfig"
+    outer_config: "NatsBrokerConfig"
 
     def __init__(
         self,
@@ -54,21 +53,21 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     def subject(self) -> "Address":
         """The subject this Subscriber was declared with, and its Broker address."""
         return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+            self.outer_config.prefix,
         )
 
     @property
     def filter_subjects(self) -> list[str]:
-        prefix = self._outer_config.prefix
+        prefix = self.outer_config.prefix
         return [f"{prefix}{subject}" for subject in (self.config.filter_subjects or ())]
 
     @property
     def connection(self) -> "Client":
-        return self._outer_config.connection_state.connection
+        return self.outer_config.connection_state.connection
 
     @property
     def jetstream(self) -> "JetStreamContext":
-        return self._outer_config.connection_state.stream
+        return self.outer_config.connection_state.stream
 
     async def start(self) -> None:
         """Create NATS subscription and start consume tasks."""
@@ -127,7 +126,7 @@ class DefaultSubscriber(LogicSubscriber[MsgType]):
         """Create Publisher objects to use it as one of `publishers` in `self.consume` scope."""
         return (
             NatsFakePublisher(
-                producer=self._outer_config.producer,
+                producer=self.outer_config.producer,
                 subject=message.reply_to,
             ),
         )

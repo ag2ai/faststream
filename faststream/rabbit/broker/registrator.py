@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from aio_pika import IncomingMessage
 from typing_extensions import override
 
-from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
+from faststream.api.broker import Registrator
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig
@@ -22,13 +22,13 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
+    from faststream.api.parser import CodecProto
+    from faststream.rabbit.publisher import RabbitPublisher
+    from faststream.rabbit.subscriber import RabbitSubscriber
+    from faststream.types import (
         BrokerMiddleware,
         CustomCallable,
     )
-    from faststream.rabbit.publisher import RabbitPublisher
-    from faststream.rabbit.subscriber import RabbitSubscriber
 
 
 class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):

@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
-from faststream._internal.producer import ProducerProto
+from faststream.api.parser import BatchCodecProto, DefaultCodec, ParserComposition
+from faststream.api.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
@@ -21,8 +20,8 @@ if TYPE_CHECKING:
     from aiokafka.structs import RecordMetadata
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import CustomCallable
+    from faststream.api.parser import CodecProto
+    from faststream.types import CustomCallable
 
 
 class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
@@ -76,8 +75,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         # NOTE: register default parser to be compatible with request
         default = AioKafkaParser(msg_class=KafkaMessage, regex=None)
-        self._parser = ParserComposition(parser, default.parse_message)
-        self._decoder = ParserComposition(decoder, default.decode_message)
+        self.parser = ParserComposition(parser, default.parse_message)
+        self.decoder = ParserComposition(decoder, default.decode_message)
 
     async def connect(
         self,

@@ -1,11 +1,13 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal.configs import (
+from typing_extensions import override
+
+from faststream._internal.constants import EMPTY
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
 
@@ -24,17 +26,18 @@ class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 
 @dataclass(kw_only=True)
 class NatsSubscriberConfig(SubscriberUsecaseConfig):
-    _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
+    outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 
     subject: str
     sub_config: "ConsumerConfig"
     extra_options: dict[str, Any] | None = field(default_factory=dict)
 
     @property
-    def ack_policy(self) -> AckPolicy:
-        if self._ack_policy is EMPTY:
-            if self._outer_config.ack_policy is not EMPTY:
-                return self._outer_config.ack_policy
+    @override
+    def resolved_ack_policy(self) -> AckPolicy:
+        if self.ack_policy is EMPTY:
+            if self.outer_config.ack_policy is not EMPTY:
+                return self.outer_config.ack_policy
             return AckPolicy.REJECT_ON_ERROR
 
-        return self._ack_policy
+        return self.ack_policy

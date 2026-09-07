@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from faststream._internal.configs import (
+from faststream.api.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
@@ -14,7 +14,7 @@ class KafkaPublisherSpecificationConfig(PublisherSpecificationConfig):
 
 @dataclass(kw_only=True)
 class KafkaPublisherConfig(PublisherUsecaseConfig):
-    _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
+    outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 
     key: bytes | str | None
     topic: str

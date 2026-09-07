@@ -5,14 +5,14 @@ from fast_depends.core import build_call_model
 from fast_depends.pydantic._compat import create_model, get_config_base
 from typing_extensions import TypeVar as TypeVar313
 
-from faststream._internal.configs import BrokerConfig, PublisherSpecificationConfig
-from faststream._internal.endpoint.specification import EndpointSpecification
+from faststream.api.configs import BrokerConfig, PublisherSpecificationConfig
+from faststream.api.endpoint import EndpointSpecification
 from faststream.specification.asyncapi.message import get_model_schema
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import AnyCallable
     from faststream.specification.schema import PublisherSpec
+    from faststream.types import AnyCallable
 
 
 T_SpecificationConfig = TypeVar313(
@@ -28,10 +28,10 @@ class PublisherSpecification(
 ):
     def __init__(
         self,
-        _outer_config: "T_BrokerConfig",
+        outer_config: "T_BrokerConfig",
         specification_config: "T_SpecificationConfig",
     ) -> None:
-        super().__init__(_outer_config, specification_config)
+        super().__init__(outer_config, specification_config)
 
         self.calls: list[AnyCallable] = []
 
@@ -55,13 +55,13 @@ class PublisherSpecification(
                 payloads.append((body, ""))
 
         else:
-            di_state = self._outer_config.fd_config
+            di_state = self.outer_config.fd_config
 
             for call in self.calls:
                 call_model = build_call_model(
                     call,
                     dependency_provider=di_state.provider,
-                    serializer_cls=di_state._serializer,
+                    serializer_cls=di_state.serializer,
                 )
 
                 if call_model.serializer:

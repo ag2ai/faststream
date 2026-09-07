@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 from typing_extensions import override
 from zmqtt import QoS
 
-from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
+from faststream.api.broker import Registrator
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 from faststream.mqtt.publisher.factory import create_publisher
@@ -15,15 +15,15 @@ if TYPE_CHECKING:
     import zmqtt  # noqa: F401
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream.api.parser import CodecProto
     from faststream.mqtt.publisher.usecase import MQTTPublisher
     from faststream.mqtt.subscriber.usecase import (
         MQTTConcurrentSubscriber,
         MQTTDefaultSubscriber,
+    )
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
     )
 
 
@@ -87,8 +87,8 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         super().subscriber(subscriber, persistent=persistent)
 
         return subscriber.add_call(
-            parser_=parser or self._parser,
-            decoder_=decoder or self._decoder,
+            parser_=parser or self.parser,
+            decoder_=decoder or self.decoder,
             codec_=codec,
             dependencies_=dependencies,
         )

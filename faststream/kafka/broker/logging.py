@@ -2,12 +2,15 @@ import logging
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal.logger import DefaultLoggerStorage, make_logger_state
-from faststream._internal.logger.logging import get_broker_logger
+from faststream.api.logger import (
+    DefaultLoggerStorage,
+    get_broker_logger,
+    make_logger_state,
+)
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import LoggerProto
-    from faststream._internal.context import ContextRepo
+    from faststream.context import ContextRepo
+    from faststream.types import LoggerProto
 
 
 class KafkaParamsStorage(DefaultLoggerStorage):
@@ -40,7 +43,7 @@ class KafkaParamsStorage(DefaultLoggerStorage):
         message_id_ln = 10
 
         # TODO: generate unique logger names to not share between brokers
-        if not (lg := self._get_logger_ref()):
+        if not (lg := self.get_logger_ref()):
             lg = get_broker_logger(
                 name="kafka",
                 default_context={
@@ -62,7 +65,7 @@ class KafkaParamsStorage(DefaultLoggerStorage):
                 context=context,
                 log_level=self.logger_log_level,
             )
-            self._logger_ref.add(lg)
+            self.logger_ref.add(lg)
 
         return lg
 

@@ -15,10 +15,10 @@ from .config import AckPolicy
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.basic_types import AsyncFuncAny
-    from faststream._internal.context.repository import ContextRepo
-    from faststream._internal.logger import LoggerState
+    from faststream.api.logger import LoggerState
+    from faststream.context import ContextRepo
     from faststream.message import StreamMessage
+    from faststream.types import AsyncFuncAny
 
 
 class AcknowledgementMiddleware:

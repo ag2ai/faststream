@@ -223,7 +223,7 @@ class TestClusterFastProducerUnit:
         cmd = RedisPublishCommand(
             b"hello",
             channel="ch",
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
         result = await producer.publish(cmd)
         assert result == 1
@@ -238,7 +238,7 @@ class TestClusterFastProducerUnit:
         cmd = RedisPublishCommand(
             b"hello",
             list="lst",
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
         result = await producer.publish(cmd)
         assert result == 1
@@ -256,7 +256,7 @@ class TestClusterFastProducerUnit:
             b"hello",
             stream="strm",
             maxlen=100,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
         result = await producer.publish(cmd)
         assert result == b"stream-id"
@@ -271,7 +271,7 @@ class TestClusterFastProducerUnit:
         cmd = RedisPublishCommand(
             b"hello",
             channel="ch",
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
         cmd.destination_type = None  # type: ignore[assignment]
         with pytest.raises(UnreachablePathError):
@@ -294,7 +294,7 @@ class TestClusterFastProducerUnit:
             b"hello",
             channel="ch",
             timeout=5.0,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
         result = await producer.request(cmd)
         assert result == "resp"
@@ -318,7 +318,7 @@ class TestClusterFastProducerUnit:
             b"hello",
             list="lst",
             timeout=5.0,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
         result = await producer.request(cmd)
         assert result == "resp"
@@ -343,7 +343,7 @@ class TestClusterFastProducerUnit:
             stream="strm",
             maxlen=100,
             timeout=5.0,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
         result = await producer.request(cmd)
         assert result == "resp"
@@ -371,7 +371,7 @@ class TestClusterFastProducerUnit:
             b"hello",
             channel="ch",
             timeout=0.05,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
         with pytest.raises(TimeoutError):
             await producer.request(cmd)
@@ -394,7 +394,7 @@ class TestClusterFastProducerUnit:
             b"hello",
             channel="ch",
             timeout=5.0,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
         cmd.destination_type = None  # type: ignore[assignment]
         with pytest.raises(UnreachablePathError):

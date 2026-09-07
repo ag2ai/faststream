@@ -5,7 +5,7 @@ import pytest
 from dirty_equals import Contains, HasLen, IsPartialDict, IsStr
 from pydantic import create_model
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 
 from .basic import AsyncAPI300Factory
 

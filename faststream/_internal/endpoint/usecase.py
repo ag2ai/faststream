@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class Endpoint:
     def __init__(self, config: "BrokerConfig") -> None:
-        self._outer_config = config
+        self.outer_config = config
 
     def __call__(
         self,

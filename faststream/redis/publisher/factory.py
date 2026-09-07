@@ -48,7 +48,7 @@ def create_publisher(
         reply_to=reply_to,
         headers=headers,
         _message_format=message_format,
-        _outer_config=config,
+        outer_config=config,
     )
 
     specification_config = RedisPublisherSpecificationConfig(

@@ -12,11 +12,10 @@ from aiokafka import (
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
-from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
-from faststream._internal.utils.path import Address, AddressSyntax
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin, SubscriberUsecase, TasksMixin
+from faststream.api.utils import Address, AddressSyntax
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -25,9 +24,8 @@ from faststream.kafka.publisher.fake import KafkaFakePublisher
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
 
-    from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.publisher import PublisherProto
+    from faststream.api.subscriber import CallsCollection, SubscriberSpecification
     from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.message import StreamMessage
 
@@ -48,7 +46,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     batch: bool
     parser: AioKafkaParser
 
-    _outer_config: "KafkaBrokerConfig"
+    outer_config: "KafkaBrokerConfig"
 
     def __init__(
         self,
@@ -75,12 +73,12 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             return None
 
         return Address(self._pattern, KAFKA_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+            self.outer_config.prefix,
         )
 
     @property
     def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+        return [f"{self.outer_config.prefix}{t}" for t in self._topics]
 
     @property
     def partitions(self) -> list[AIOKafkaTopicPartition]:
@@ -90,7 +88,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         """
         return [
             AIOKafkaTopicPartition(
-                topic=f"{self._outer_config.prefix}{p.topic}",
+                topic=f"{self.outer_config.prefix}{p.topic}",
                 partition=p.partition,
             )
             for p in self._partitions
@@ -98,11 +96,11 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def builder(self) -> Callable[..., "AIOKafkaConsumer"]:
-        return self._outer_config.builder
+        return self.outer_config.builder
 
     @property
     def client_id(self) -> str | None:
-        return self._outer_config.client_id
+        return self.outer_config.client_id
 
     async def start(self) -> None:
         """Start the consumer."""
@@ -123,7 +121,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                 pattern=pattern.broker_address if pattern else None,
                 listener=make_logging_listener(
                     consumer=consumer,
-                    logger=self._outer_config.logger.logger.logger,
+                    logger=self.outer_config.logger.logger.logger,
                     log_extra=self.get_log_context(None),
                     listener=self._listener,
                 ),
@@ -168,7 +166,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         ((raw_message,),) = raw_messages.values()
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
 
         async_parser, async_decoder = self._get_parser_and_decoder()
 
@@ -189,7 +187,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             "You can't use `get_one` method if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self.outer_config.fd_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async for raw_message in self.consumer:
@@ -209,7 +207,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     ) -> Sequence["PublisherProto"]:
         return (
             KafkaFakePublisher(
-                self._outer_config.producer,
+                self.outer_config.producer,
                 topic=message.reply_to,
             ),
         )
@@ -439,7 +437,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
                     topics=self.topics,
                     listener=make_logging_listener(
                         consumer=c,
-                        logger=self._outer_config.logger.logger.logger,
+                        logger=self.outer_config.logger.logger.logger,
                         log_extra=self.get_log_context(None),
                         listener=self._listener,
                     ),

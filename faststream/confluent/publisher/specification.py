@@ -1,4 +1,4 @@
-from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.api.publisher import PublisherSpecification
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, PublisherSpec
@@ -12,7 +12,7 @@ class KafkaPublisherSpecification(
 ):
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self.config.topic}"
+        return f"{self.outer_config.prefix}{self.config.topic}"
 
     @property
     def name(self) -> str:

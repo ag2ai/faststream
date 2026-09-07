@@ -7,8 +7,8 @@ from redis.asyncio.client import (
 )
 
 from faststream import Depends
-from faststream._internal.context import Context
 from faststream.annotations import ContextRepo, Logger
+from faststream.context import Context
 from faststream.params import NoCast
 from faststream.redis.broker.broker import RedisBroker as RB
 from faststream.redis.message import (

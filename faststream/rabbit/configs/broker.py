@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from faststream._internal.configs import BrokerConfig
-from faststream._internal.parser import DefaultCodec
+from faststream.api.configs import BrokerConfig
+from faststream.api.parser import DefaultCodec
 from faststream.rabbit.helpers.channel_manager import FakeChannelManager
 from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer
@@ -29,7 +29,7 @@ class RabbitBrokerConfig(BrokerConfig):
     def connect(self, connection: "RobustConnection") -> None:
         self.channel_manager.connect(connection)
         self.producer.connect(
-            serializer=self.fd_config._serializer,
+            serializer=self.fd_config.serializer,
             codec=self.broker_codec or DefaultCodec(),
         )
 

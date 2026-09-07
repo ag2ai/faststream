@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class EndpointConfig:
-    _outer_config: "BrokerConfig"
+    outer_config: "BrokerConfig"
 
 
 @dataclass(kw_only=True)
@@ -21,18 +22,19 @@ class PublisherUsecaseConfig(EndpointConfig):
 
 
 @dataclass(kw_only=True)
-class SubscriberUsecaseConfig(EndpointConfig):
+class SubscriberUsecaseConfig(EndpointConfig, ABC):
     no_reply: bool = False
 
-    _ack_policy: AckPolicy = field(default_factory=lambda: EMPTY, repr=False)
+    ack_policy: AckPolicy = field(default_factory=lambda: EMPTY, repr=False)
 
     parser: "AsyncCallable" = field(init=False)
     decoder: "AsyncCallable" = field(init=False)
 
     @property
-    def auto_ack_disabled(self) -> bool:
-        return self.ack_policy is AckPolicy.MANUAL
+    @abstractmethod
+    def resolved_ack_policy(self) -> AckPolicy:
+        raise NotImplementedError
 
     @property
-    def ack_policy(self) -> AckPolicy:
-        raise NotImplementedError
+    def auto_ack_disabled(self) -> bool:
+        return self.resolved_ack_policy is AckPolicy.MANUAL

@@ -1,11 +1,13 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from faststream._internal.configs import (
+from typing_extensions import override
+
+from faststream._internal.constants import EMPTY
+from faststream.api.configs import (
     SubscriberSpecificationConfig,
     SubscriberUsecaseConfig,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
@@ -20,7 +22,7 @@ class RedisSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 
 @dataclass(kw_only=True)
 class RedisSubscriberConfig(SubscriberUsecaseConfig):
-    _outer_config: RedisBrokerConfig
+    outer_config: RedisBrokerConfig
 
     list_sub: ListSub | None = field(default=None, repr=False)
     channel_sub: PubSub | None = field(default=None, repr=False)
@@ -30,10 +32,11 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
 
     @property
     def message_format(self) -> type["MessageFormat"]:
-        return self._message_format or self._outer_config.message_format
+        return self._message_format or self.outer_config.message_format
 
     @property
-    def ack_policy(self) -> AckPolicy:
+    @override
+    def resolved_ack_policy(self) -> AckPolicy:
         if self.list_sub:
             return AckPolicy.MANUAL
 
@@ -43,9 +46,9 @@ class RedisSubscriberConfig(SubscriberUsecaseConfig):
         if self.stream_sub and (self.stream_sub.no_ack or not self.stream_sub.group):
             return AckPolicy.MANUAL
 
-        if self._ack_policy is EMPTY:
-            if self._outer_config.ack_policy is not EMPTY:
-                return self._outer_config.ack_policy
+        if self.ack_policy is EMPTY:
+            if self.outer_config.ack_policy is not EMPTY:
+                return self.outer_config.ack_policy
             return AckPolicy.REJECT_ON_ERROR
 
-        return self._ack_policy
+        return self.ack_policy
