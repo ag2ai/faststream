@@ -3,7 +3,7 @@ from typing import Annotated
 from pydantic import BaseModel
 import pytest
 
-from faststream import Context, FastStream
+from faststream import FastStream, Header
 from faststream.nats import NatsBroker, TestNatsBroker
 
 broker = NatsBroker()
@@ -18,28 +18,28 @@ class Data(BaseModel):
 @broker.subscriber("test.subject")
 async def handle(
     data: Data,
-    subject: Annotated[str, Context("message.raw_message.subject")],
+    trace_id: Annotated[str, Header("trace-id")],
 ) -> None:
     assert data.name == "John"
     assert data.user_id == 1
-    assert subject == "test.subject"
+    assert trace_id == "42"
 
 
 @pytest.mark.asyncio
 async def test_handle() -> None:
     async with TestNatsBroker(broker) as br:
-        await br.publish(Data(name="John", user_id=1), subject="test.subject")
+        await br.publish(
+            Data(name="John", user_id=1),
+            subject="test.subject",
+            headers={"trace-id": "42"},
+        )
 
         await handle.assert_called_once_with(
             {"name": "John", "user_id": 1},
-            context={
-                "message.raw_message.subject": "test.subject",
-            },
+            headers={"trace-id": "42"},
         )
         # or
         await handle.assert_called_once_with(
             Data(name="John", user_id=1),
-            context={
-                "message.raw_message.subject": "test.subject",
-            },
+            headers={"trace-id": "42"},
         )

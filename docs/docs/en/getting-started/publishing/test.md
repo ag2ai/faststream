@@ -136,10 +136,13 @@ Also, it allows you to check the outgoing message body in the same way as with a
 publisher.mock.assert_called_once_with("Hi!")
 ```
 
-In addition, you can use the `assert_called_once_with` method from the publisher to check the message body through your models.
+In addition, the publisher has the same `assert_called_once_with` method as a [subscriber](../subscription/test.md#advanced-validates-input){.internal-link}. It takes the body as your model and the message fields the outgoing message carried:
 
 ```python
-publisher.assert_called_once_with(AddUser(name="John", age=19))
+await publisher.assert_called_once_with(
+    AddUser(name="John", age=19),
+    headers={"trace-id": "42"},
+)
 ```
 
 

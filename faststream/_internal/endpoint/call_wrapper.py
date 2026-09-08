@@ -6,25 +6,28 @@ from typing import (
     Generic,
     Optional,
 )
-from unittest.mock import MagicMock
 
 import anyio
 
 from faststream._internal.configs import BrokerConfig
 from faststream._internal.constants import EMPTY
-from faststream._internal.context import ContextRepo
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.testing.calls import CallRecorder
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from unittest.mock import MagicMock
+
     from fast_depends.core import CallModel
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import Decorator
+    from faststream._internal.context import ContextRepo
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
+    from faststream._internal.types import AsyncCallable
     from faststream.message import StreamMessage
 
 
@@ -58,13 +61,12 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     __slots__ = (
         "_composed_call",
         "_declared_call",
-        "_outer_config",
         "_publishers",
+        "_recorder",
         "_subscribers",
         "_wrapped_call",
         "future",
         "is_test",
-        "mock",
     )
 
     def __init__(
@@ -80,11 +82,12 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         self._publishers = []
         self._subscribers = []
 
-        self.mock = MagicMock()
+        self._recorder = CallRecorder(
+            getattr(call, "__name__", repr(call)),
+            outer_config,
+        )
         self.future = None
         self.is_test = False
-
-        self._outer_config = outer_config
 
     def __call__(
         self,
@@ -99,16 +102,54 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         """The composed call, under the name it had before the two were kept apart."""
         return self._composed_call
 
+    @property
+    def mock(self) -> "MagicMock":
+        """The mock recording the handler's calls, available under a test broker."""
+        if not self.is_test:
+            msg = (
+                f"`{self._recorder.name}` is not under a test broker: "
+                "wrap the broker with its `Test*Broker` to access the mock."
+            )
+            raise SetupError(msg)
+        return self._recorder.mock
+
+    async def assert_called_once_with(
+        self,
+        body: Any = EMPTY,
+        /,
+        *,
+        headers: Any = EMPTY,
+        correlation_id: Any = EMPTY,
+        reply_to: Any = EMPTY,
+        content_type: Any = EMPTY,
+        path: Any = EMPTY,
+        context: "Mapping[str, Any]" = EMPTY,
+    ) -> None:
+        """Assert the handler was called once, with the message described here.
+
+        Headers match as a subset; every other field matches exactly.
+        """
+        self.mock.assert_called_once()
+        await self._recorder.assert_called_once_with(
+            body,
+            headers=headers,
+            correlation_id=correlation_id,
+            reply_to=reply_to,
+            content_type=content_type,
+            path=path,
+            context=context,
+        )
+
     def call_wrapped(
-        self, context: ContextRepo
+        self,
+        context: "ContextRepo",
+        decoder: "AsyncCallable",
     ) -> Callable[["StreamMessage[Any]"], Awaitable[Any]]:
         async def _call_wrapped(message: "StreamMessage[Any]") -> Any:
             """Calls the wrapped function with the given message."""
             assert self._wrapped_call, "You should use `set_wrapped` first"
             if self.is_test:
-                self.mock.context = context.context
-                self.mock.body = message.body
-                self.mock(await message.decode())
+                await self._recorder.record(message, context=context, decoder=decoder)
 
             return await self._wrapped_call(message)
 
@@ -141,12 +182,12 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     def set_test(self) -> None:
         self.is_test = True
-        self.mock.reset_mock()
         self.refresh(with_mock=True)
 
     def reset_test(self) -> None:
         self.is_test = False
-        self.mock.reset_mock()
+        self._recorder.reset()
+        self._recorder.stop_mirroring()
         self.future = None
 
     def trigger(
@@ -176,24 +217,5 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         if asyncio.events._get_running_loop() is not None:
             self.future = asyncio.Future()
 
-        if with_mock and self.mock is not None:
-            self.mock.reset_mock()
-
-    async def assert_called_once_with(
-        self,
-        body: Any = EMPTY,
-        context: dict[str, Any] = EMPTY,
-    ) -> None:
-        self.mock.assert_called_once()
-
-        if body != EMPTY:
-            serializer = self._outer_config.fd_config._serializer
-            codec = self._outer_config.broker_codec or DefaultCodec()
-
-            encoded_message, _ = await codec.encode(body, serializer)
-            assert self.mock.body == encoded_message
-
-        if context != EMPTY:
-            context_repo = ContextRepo(self.mock.context)
-            for key, value in context.items():
-                assert context_repo.resolve(key) == value
+        if with_mock:
+            self._recorder.reset()

@@ -17,6 +17,21 @@ from .basic import NatsMemoryTestcaseConfig
 @pytest.mark.nats()
 @pytest.mark.asyncio()
 class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
+    async def test_assert_called_once_with_path(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(f"{queue}.{{level}}")
+        async def m(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hi", f"{queue}.info")
+
+            await m.assert_called_once_with("hi", path={"level": "info"})
+
+            # Path matches exactly: a template never leaves stray keys behind
+            with pytest.raises(AssertionError, match="path: expected"):
+                await m.assert_called_once_with(path={})
+
     @pytest.mark.asyncio()
     async def test_stream_publish(
         self,

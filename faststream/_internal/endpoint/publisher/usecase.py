@@ -4,25 +4,27 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-from unittest.mock import MagicMock
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.context import ContextRepo
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.testing.calls import CallRecorder
 from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
+from faststream.exceptions import SetupError
 from faststream.message.source_type import SourceType
 
 from .proto import PublisherProto
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from unittest.mock import MagicMock
+
     from faststream._internal.configs import PublisherUsecaseConfig
     from faststream._internal.producer import ProducerProto
     from faststream._internal.types import (
@@ -47,27 +49,68 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self.specification = specification
 
         self._fake_handler = False
-        self.mock = MagicMock()
+        self._recorder = CallRecorder(specification.name, self._outer_config)
         self.is_test = False
 
     async def start(self) -> None:
         pass
 
+    @property
+    def mock(self) -> "MagicMock":
+        """The mock recording the publisher's calls, available under a test broker."""
+        if not self.is_test:
+            msg = (
+                f"`{self._recorder.name}` is not under a test broker: "
+                "wrap the broker with its `Test*Broker` to access the mock."
+            )
+            raise SetupError(msg)
+        return self._recorder.mock
+
+    async def assert_called_once_with(
+        self,
+        body: Any = EMPTY,
+        /,
+        *,
+        headers: Any = EMPTY,
+        correlation_id: Any = EMPTY,
+        reply_to: Any = EMPTY,
+        content_type: Any = EMPTY,
+        path: Any = EMPTY,
+        context: "Mapping[str, Any]" = EMPTY,
+    ) -> None:
+        """Assert the publisher was called once, with the message described here.
+
+        Headers match as a subset; every other field matches exactly.
+        """
+        self.mock.assert_called_once()
+        await self._recorder.assert_called_once_with(
+            body,
+            headers=headers,
+            correlation_id=correlation_id,
+            reply_to=reply_to,
+            content_type=content_type,
+            path=path,
+            context=context,
+        )
+
     def set_test(
         self,
         *,
-        mock: MagicMock,
+        recorder: CallRecorder | None = None,
         with_fake: bool,
     ) -> None:
-        """Turn publisher to testing mode."""
+        """Turn publisher to testing mode, sharing `recorder` when one is given."""
         self.is_test = True
-        self.mock = mock
+        if recorder is None:
+            self._recorder.reset()
+        else:
+            self._recorder = recorder
         self._fake_handler = with_fake
 
     def reset_test(self) -> None:
         """Turn off publisher's testing mode."""
         self.is_test = False
-        self.mock.reset_mock()
+        self._recorder.reset()
         self._fake_handler = False
 
     def __call__(
@@ -146,22 +189,3 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
     def schema(self) -> dict[str, "PublisherSpec"]:
         return self.specification.get_schema()
-
-    async def assert_called_once_with(
-        self,
-        body: Any = EMPTY,
-        context: dict[str, Any] = EMPTY,
-    ) -> None:
-        self.mock.assert_called_once()
-
-        if body != EMPTY:
-            serializer = self._outer_config.fd_config._serializer
-            codec = self._outer_config.broker_codec or DefaultCodec()
-
-            encoded_message, _ = await codec.encode(body, serializer)
-            assert self.mock.body == encoded_message
-
-        if context != EMPTY:
-            context_repo = ContextRepo(self.mock.context)
-            for key, value in context.items():
-                assert context_repo.resolve(key) == value

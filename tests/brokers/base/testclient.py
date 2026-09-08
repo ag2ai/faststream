@@ -6,8 +6,10 @@ from unittest.mock import Mock
 
 import anyio
 import pytest
+from dirty_equals import IsPartialDict
 from pydantic import BaseModel
 
+from faststream.exceptions import SetupError
 from tests.tools import spy_decorator
 
 from .consume import BrokerConsumeTestcase
@@ -296,7 +298,11 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         @broker.subscriber(*args, **kwargs)
         async def handle() -> None:
-            await publisher2.publish(BodyModel(name="John", age=19))
+            await publisher2.publish(
+                BodyModel(name="John", age=19),
+                headers={"key": "value"},
+                correlation_id="cid",
+            )
 
         args2, kwargs2 = self.get_subscriber_params(queue + "2")
 
@@ -309,13 +315,47 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             await broker.publish("", queue)
 
             assert event.is_set()
-            assert publisher2.is_test
 
-            await publisher2.assert_called_once_with({"name": "John", "age": 19})
+            # The publisher answers with what its subscriber received
+            await publisher2.assert_called_once_with(
+                {"name": "John", "age": 19},
+                headers={"key": "value"},
+                correlation_id="cid",
+            )
             await publisher2.assert_called_once_with(BodyModel(name="John", age=19))
 
-            with pytest.raises(AssertionError):
-                await publisher2.assert_called_once_with({"city": "Moscow"})
+            with pytest.raises(AssertionError, match=r"(?s)body:.*headers:"):
+                await publisher2.assert_called_once_with(
+                    {"city": "Moscow"},
+                    headers={"key": "other"},
+                )
+
+    async def test_mock_is_only_available_under_test_broker(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "2")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle() -> None: ...
+
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            handle.mock.assert_not_called()
+
+        with pytest.raises(SetupError, match="is not under a test broker"):
+            publisher.mock.assert_not_called()
+
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            await handle.assert_called_once_with()
+
+        async with self.patch_broker(broker):
+            handle.mock.assert_not_called()
+            publisher.mock.assert_not_called()
+
+        # Leaving the test broker takes the mock away again
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            handle.mock.assert_not_called()
 
     async def test_subscriber_assert_called_once_with(
         self, queue: str, event: asyncio.Event
@@ -334,14 +374,28 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         async with self.patch_broker(broker) as br:
             await br.start()
-            await broker.publish(BodyModel(name="John", age=19), queue)
+            await broker.publish(
+                BodyModel(name="John", age=19),
+                queue,
+                headers={"key": "value"},
+                correlation_id="cid",
+            )
 
             assert event.is_set()
-            assert handle.is_test
 
-            await handle.assert_called_once_with({"name": "John", "age": 19})
+            # Headers match as a subset: the framework adds its own beside `key`
+            await handle.assert_called_once_with(
+                {"name": "John", "age": 19},
+                headers={"key": "value"},
+                correlation_id="cid",
+                context={"broker": broker},
+            )
             await handle.assert_called_once_with(BodyModel(name="John", age=19))
-            await handle.assert_called_once_with(context={"broker": broker})
+            await handle.assert_called_once_with(IsPartialDict(name="John"))
 
-            with pytest.raises(AssertionError):
-                await handle.assert_called_once_with({"city": "Moscow"})
+            # Every mismatch is reported at once, not just the first one
+            with pytest.raises(AssertionError, match=r"(?s)body:.*headers:"):
+                await handle.assert_called_once_with(
+                    {"city": "Moscow"},
+                    headers={"key": "other"},
+                )

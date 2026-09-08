@@ -143,7 +143,8 @@ class HandlerItem(Generic[MsgType]):
         context: ContextRepo,
     ) -> Any:
         """Execute wrapped handler with consume middlewares."""
-        call: AsyncFuncAny = self.handler.call_wrapped(context)
+        assert self.decoder, "You should setup `HandlerItem` at first."
+        call: AsyncFuncAny = self.handler.call_wrapped(context, self.decoder)
 
         for middleware in _extra_middlewares:
             call = partial(middleware, call)

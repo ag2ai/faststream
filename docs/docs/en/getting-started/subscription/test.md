@@ -236,9 +236,7 @@ Scoping rule: all handles' mock objects will be cleared when the context manager
 
 ### Advanced Validates Input
 
-Also, all handlers have `assert_called_once_with` method for advanced validations input.
-
-Using this method, you can check the message body and context at the time of the application call in a more convenient way.
+Every handler also has an `assert_called_once_with` method. It checks the message body the same way `mock.assert_called_once_with` does, and beside it the message fields the handler saw: `headers`, `correlation_id`, `reply_to`, `content_type` and `path`.
 
 Let's take an example of such an application:
 
@@ -272,45 +270,60 @@ Let's take an example of such an application:
     {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:1-3,6-25] !}
     ```
 
-
-Using `assert_called_once_with` method, you can check the text of the message and the context during the application call in a more convenient way.
+Using `assert_called_once_with`, you can check the body and the headers in one statement. The body may be a plain `dict` or your model: it goes through the broker codec before the comparison, so both spellings mean the same message.
 
 === "AIOKafka"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:4-5,7-8,28-46] !}
     ```
 
 === "Confluent"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:4-5,7-8,28-46] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:4-5,7-8,28-46] !}
     ```
 
 === "NATS"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:4-5,7-8,28-46] !}
     ```
 
 === "Redis"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:4-5,7-8,28-46] !}
     ```
 
 === "MQTT"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:4-5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:4-5,7-8,28-46] !}
+    ```
+
+Headers match as a subset: FastStream adds its own headers (`content-type`, `correlation_id`) beside yours, and they never get in the way. Every other field matches exactly. When several fields differ, the `AssertionError` lists all of them at once.
+
+!!! tip
+    To check only a part of the body, use a [dirty-equals](https://dirty-equals.helpmanual.io/){.external-link target="_blank"} matcher in its place:
+
+    ```python
+    from dirty_equals import IsPartialDict
+
+    await handle.assert_called_once_with(IsPartialDict(name="John"))
     ```
 
 !!! tip
-    You can check the entire context, not just the one that is passed to the handler.
+    Anything the fields above do not cover lives in the context. Check it by the same path you would give to `Context()`:
 
     ```python
-    await handle.assert_called_once_with(context={"broker": broker})
+    await handle.assert_called_once_with(
+        context={"message.raw_message.topic": "test-topic"},
+    )
     ```
+
+!!! note
+    Both `handle.mock` and `assert_called_once_with` exist only inside the test broker. Outside of it they raise a `SetupError` instead of answering for a handler nobody has called.
 
 
 ## Real Broker Testing

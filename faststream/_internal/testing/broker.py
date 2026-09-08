@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncGenerator, Callable, Generator
+from collections.abc import AsyncGenerator, Generator
 from contextlib import (
     AsyncExitStack,
     asynccontextmanager,
@@ -217,33 +217,16 @@ class TestBroker(Generic[Broker, EnterType]):
                     pass
 
             if is_real:
-                mock = MagicMock()
-                publisher.set_test(mock=mock, with_fake=False)
+                # A real subscriber keeps its own record; the publisher gets a copy
+                publisher.set_test(with_fake=False)
                 for h in sub.calls:
-
-                    def create_side_effect(
-                        publisher_mock: MagicMock,
-                        subcriber_mock: MagicMock,
-                    ) -> Callable[..., None]:
-                        def side_effect(*args: Any, **kwargs: Any) -> None:
-                            publisher_mock.body = subcriber_mock.body
-                            publisher_mock.context = subcriber_mock.context
-
-                            publisher_mock(*args, **kwargs)
-
-                        return side_effect
-
                     h.handler.set_test()
-                    assert h.handler.mock
-                    h.handler.mock.side_effect = create_side_effect(
-                        publisher.mock, h.handler.mock
-                    )
+                    h.handler._recorder.mirror_to(publisher._recorder)
 
             else:
                 handler = sub.calls[0].handler
                 handler.set_test()
-                assert handler.mock
-                publisher.set_test(mock=handler.mock, with_fake=True)
+                publisher.set_test(recorder=handler._recorder, with_fake=True)
 
         patch_broker_calls(broker)
 
