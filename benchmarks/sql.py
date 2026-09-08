@@ -5,7 +5,7 @@ import asyncpg
 
 DSN = os.environ.get(
     "BENCHMARK_PG_DSN",
-    "postgresql://postgres:postgres@localhost:5432/postgres",
+    "postgresql://postgres:postgres@localhost:5432/postgres",  # pragma: allowlist secret
 )
 
 

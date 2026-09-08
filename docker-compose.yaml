@@ -45,7 +45,7 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_PASSWORD: "postgres"  # pragma: allowlist secret
       POSTGRES_DB: "postgres"
     ports:
       - "5432:5432"
