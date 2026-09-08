@@ -36,9 +36,7 @@ class Address:
         self._declaration = declaration
         """The declaration verbatim, escapes and all: what the parser reads."""
 
-        self.template = (
-            declaration if syntax.verbatim else _restore_literal_braces(declaration)
-        )
+        self.template = _restore_literal_braces(declaration)
         """The address as it was declared, e.g. `logs.{level}`."""
 
         self._syntax = syntax
@@ -49,11 +47,10 @@ class Address:
         """An Address read as characters: what it says is what it names.
 
         Kafka topics are the case this exists for. A topic is handed to the broker
-        verbatim, so reading one as a template would report capture groups that
-        nothing ever fills. The verbatim syntax travels with the address, so a
-        Router prefix decorating it later leaves it verbatim too.
+        as written, so reading one as a template would report capture groups that
+        nothing ever fills. A Router prefix added later keeps the address literal.
         """
-        return cls(value, VERBATIM_ADDRESS_SYNTAX)
+        return _LiteralAddress(value)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._declaration!r})"
@@ -99,34 +96,20 @@ class AddressSyntax:
         patch_regex: Broker-specific fixups applied to the compiled capture regex.
         param_regex: What a `{param}` may capture — one whole segment, which means
             everything up to whatever this broker separates segments with.
-        verbatim: Whether addresses in this syntax are read as characters rather
-            than as templates, so that a `{` in one is a `{` and nothing more.
     """
 
     replace_symbol: str
     patch_regex: Callable[[str], str]
     param_regex: str = "[^.]+"
-    verbatim: bool = False
 
     def compile(self, declaration: str) -> tuple[Pattern[str] | None, str]:
         """Turn an Address declaration into its capture regex and its Broker address."""
-        if self.verbatim:
-            return None, declaration
-
         return compile_path(
             declaration,
             replace_symbol=self.replace_symbol,
             patch_regex=self.patch_regex,
             param_regex=self.param_regex,
         )
-
-
-VERBATIM_ADDRESS_SYNTAX = AddressSyntax(
-    replace_symbol="",
-    patch_regex=str,
-    verbatim=True,
-)
-"""The syntax of an address that is not a template: what it says is what it names."""
 
 
 def compile_path(
@@ -180,6 +163,26 @@ def match_path(pattern: Pattern[str] | None, subject: str) -> dict[str, Any]:
     if pattern is not None and (match := pattern.match(subject)):
         return match.groupdict()
     return {}
+
+
+class _LiteralAddress(Address):
+    """An Address that is not a template: its declaration is its Broker address.
+
+    Nothing is compiled, so a `{` in it is a character, and `{{` is two of them.
+    """
+
+    __slots__ = ()
+
+    def __init__(self, value: str) -> None:
+        self._declaration = value
+        self.template = value
+        self._compiled = (None, value)
+
+    def add_prefix(self, prefix: str) -> Address:
+        if not prefix:
+            return self
+
+        return _LiteralAddress(f"{prefix}{self._declaration}")
 
 
 def _escape_literal_braces(path: str) -> str:

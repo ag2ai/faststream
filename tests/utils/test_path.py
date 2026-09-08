@@ -3,7 +3,13 @@ from importlib import import_module
 import pytest
 
 from faststream._internal.utils.path import Address, AddressSyntax, compile_path
-from tests.marks import require_aiokafka, require_aiopika, require_nats, require_redis
+from tests.marks import (
+    require_aiokafka,
+    require_aiopika,
+    require_mqtt,
+    require_nats,
+    require_redis,
+)
 
 SYNTAX = AddressSyntax(
     replace_symbol="*",
@@ -46,6 +52,7 @@ SYNTAX = AddressSyntax(
             "faststream.mqtt.path",
             "MQTT_ADDRESS_SYNTAX",
             "logs/{{2}}/{level}",
+            marks=require_mqtt,
             id="mqtt",
         ),
     ),
@@ -66,21 +73,21 @@ def test_a_syntax_compiles_the_way_the_module_function_does(
 
 
 def test_a_literal_address_is_read_as_characters_rather_than_a_template() -> None:
-    address = Address.literal("logs.{level}")
+    address = Address.literal("logs.{{2}}.{level}")
 
     assert (address.template, address.broker_address, address.regex) == (
-        "logs.{level}",
-        "logs.{level}",
+        "logs.{{2}}.{level}",
+        "logs.{{2}}.{level}",
         None,
     )
 
 
 def test_a_router_prefix_leaves_a_literal_address_literal() -> None:
-    address = Address.literal("logs.{level}").add_prefix("prefix_")
+    address = Address.literal("logs.{{2}}.{level}").add_prefix("prefix_")
 
     assert (address.template, address.broker_address, address.regex) == (
-        "prefix_logs.{level}",
-        "prefix_logs.{level}",
+        "prefix_logs.{{2}}.{level}",
+        "prefix_logs.{{2}}.{level}",
         None,
     )
 
