@@ -235,6 +235,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
                 publisher.mock.assert_called_once_with("response: hello")
 
+    @pytest.mark.connected()
     @pytest.mark.asyncio()
     async def test_broker_with_real_stops_fake_subscribers(self, queue: str) -> None:
         test_broker = self.get_broker()
