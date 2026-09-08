@@ -82,12 +82,17 @@ class Address:
 
     def _compile(self) -> tuple[Pattern[str] | None, str]:
         if self._compiled is None:
-            self._compiled = self._syntax.compile(self._declaration)
+            self._compiled = compile_path(
+                self._declaration,
+                replace_symbol=self._syntax.replace_symbol,
+                patch_regex=self._syntax.patch_regex,
+                param_regex=self._syntax.param_regex,
+            )
 
         return self._compiled
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class AddressSyntax:
     """How one broker spells a wildcard where an Address template has a Path parameter.
 
@@ -101,15 +106,6 @@ class AddressSyntax:
     replace_symbol: str
     patch_regex: Callable[[str], str]
     param_regex: str = "[^.]+"
-
-    def compile(self, declaration: str) -> tuple[Pattern[str] | None, str]:
-        """Turn an Address declaration into its capture regex and its Broker address."""
-        return compile_path(
-            declaration,
-            replace_symbol=self.replace_symbol,
-            patch_regex=self.patch_regex,
-            param_regex=self.param_regex,
-        )
 
 
 def compile_path(
