@@ -140,9 +140,8 @@ class TestBroker(Generic[Broker, EnterType]):
 
         finally:
             if self.with_real:
-                # The real `broker.start()` started our fakes too, and we are about to
-                # hide them from `broker.stop()`: stop them here, or their consumers
-                # outlive the test and stall every later member of their group.
+                # The real `broker.start()` started the fakes, and `_fake_close` hides
+                # them from `broker.stop()` (see #3046): stop them here or they leak.
                 for sub in self._fake_subscribers:
                     await sub.stop()
 

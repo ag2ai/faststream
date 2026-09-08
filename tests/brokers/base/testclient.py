@@ -237,11 +237,6 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_broker_with_real_stops_fake_subscribers(self, queue: str) -> None:
-        """A fake started against the real broker is stopped with it.
-
-        A fake left running keeps its consumer alive after the test, and every
-        later subscriber sharing its consumer group waits for it to die.
-        """
         test_broker = self.get_broker()
 
         publisher = test_broker.publisher(queue)  # noqa: F841
@@ -251,6 +246,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             (fake,) = test_client._fake_subscribers
             fake.stop = spy_decorator(fake.stop)
 
+        # A fake left running stays in its consumer group and blocks later members
         fake.stop.mock.assert_awaited_once()
 
     @pytest.mark.asyncio()
