@@ -31,7 +31,7 @@ def check_context_annotations(
     # A publisher decorator applied first hands us its wrapper, and the wrapper
     # class carries annotations of its own that are not the handler's.
     if isinstance(call, HandlerCallWrapper):
-        call = call._original_call
+        call = call._declared_call
 
     handler = unwrap(call)
 
