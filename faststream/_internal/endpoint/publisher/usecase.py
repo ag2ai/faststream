@@ -5,26 +5,21 @@ from typing import (
     Any,
 )
 
-from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.testing.calls import CallRecorder
+from faststream._internal.testing.calls import CallAssertions, CallRecorder
 from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream.exceptions import SetupError
 from faststream.message.source_type import SourceType
 
 from .proto import PublisherProto
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from unittest.mock import MagicMock
-
     from faststream._internal.configs import PublisherUsecaseConfig
     from faststream._internal.producer import ProducerProto
     from faststream._internal.types import (
@@ -36,7 +31,7 @@ if TYPE_CHECKING:
     from .specification import PublisherSpecification
 
 
-class PublisherUsecase(Endpoint, PublisherProto):
+class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
     """A base class for publishers in an asynchronous API."""
 
     def __init__(
@@ -54,44 +49,6 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
     async def start(self) -> None:
         pass
-
-    @property
-    def mock(self) -> "MagicMock":
-        """The mock recording the publisher's calls, available under a test broker."""
-        if not self.is_test:
-            msg = (
-                f"`{self._recorder.name}` is not under a test broker: "
-                "wrap the broker with its `Test*Broker` to access the mock."
-            )
-            raise SetupError(msg)
-        return self._recorder.mock
-
-    async def assert_called_once_with(
-        self,
-        body: Any = EMPTY,
-        /,
-        *,
-        headers: Any = EMPTY,
-        correlation_id: Any = EMPTY,
-        reply_to: Any = EMPTY,
-        content_type: Any = EMPTY,
-        path: Any = EMPTY,
-        context: "Mapping[str, Any]" = EMPTY,
-    ) -> None:
-        """Assert the publisher was called once, with the message described here.
-
-        Headers match as a subset; every other field matches exactly.
-        """
-        self.mock.assert_called_once()
-        await self._recorder.assert_called_once_with(
-            body,
-            headers=headers,
-            correlation_id=correlation_id,
-            reply_to=reply_to,
-            content_type=content_type,
-            path=path,
-            context=context,
-        )
 
     def set_test(
         self,
@@ -111,6 +68,8 @@ class PublisherUsecase(Endpoint, PublisherProto):
         """Turn off publisher's testing mode."""
         self.is_test = False
         self._recorder.reset()
+        # A shared recorder goes back to the handler it belongs to
+        self._recorder = CallRecorder(self.specification.name, self._outer_config)
         self._fake_handler = False
 
     def __call__(

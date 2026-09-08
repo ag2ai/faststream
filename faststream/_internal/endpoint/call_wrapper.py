@@ -10,15 +10,11 @@ from typing import (
 import anyio
 
 from faststream._internal.configs import BrokerConfig
-from faststream._internal.constants import EMPTY
-from faststream._internal.testing.calls import CallRecorder
+from faststream._internal.testing.calls import CallAssertions, CallRecorder
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from unittest.mock import MagicMock
-
     from fast_depends.core import CallModel
     from fast_depends.dependencies import Dependant
 
@@ -41,7 +37,7 @@ def ensure_call_wrapper(
     return HandlerCallWrapper(call, outer_config)
 
 
-class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
+class HandlerCallWrapper(CallAssertions, Generic[P_HandlerParams, T_HandlerReturn]):
     """A generic class to wrap handler calls."""
 
     future: Optional["asyncio.Future[Any]"]
@@ -101,44 +97,6 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     def _original_call(self) -> Callable[P_HandlerParams, T_HandlerReturn]:
         """The composed call, under the name it had before the two were kept apart."""
         return self._composed_call
-
-    @property
-    def mock(self) -> "MagicMock":
-        """The mock recording the handler's calls, available under a test broker."""
-        if not self.is_test:
-            msg = (
-                f"`{self._recorder.name}` is not under a test broker: "
-                "wrap the broker with its `Test*Broker` to access the mock."
-            )
-            raise SetupError(msg)
-        return self._recorder.mock
-
-    async def assert_called_once_with(
-        self,
-        body: Any = EMPTY,
-        /,
-        *,
-        headers: Any = EMPTY,
-        correlation_id: Any = EMPTY,
-        reply_to: Any = EMPTY,
-        content_type: Any = EMPTY,
-        path: Any = EMPTY,
-        context: "Mapping[str, Any]" = EMPTY,
-    ) -> None:
-        """Assert the handler was called once, with the message described here.
-
-        Headers match as a subset; every other field matches exactly.
-        """
-        self.mock.assert_called_once()
-        await self._recorder.assert_called_once_with(
-            body,
-            headers=headers,
-            correlation_id=correlation_id,
-            reply_to=reply_to,
-            content_type=content_type,
-            path=path,
-            context=context,
-        )
 
     def call_wrapped(
         self,

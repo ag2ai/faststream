@@ -14,6 +14,53 @@ if TYPE_CHECKING:
     from faststream._internal.types import AsyncCallable
 
 
+class CallAssertions:
+    """The mock and the assertion an endpoint answers with under a test broker."""
+
+    __slots__ = ()
+
+    is_test: bool
+    _recorder: "CallRecorder"
+
+    @property
+    def mock(self) -> MagicMock:
+        """The mock recording the endpoint's calls, available under a test broker."""
+        if not self.is_test:
+            msg = (
+                f"`{self._recorder.name}` is not under a test broker: "
+                "wrap the broker with its `Test*Broker` to access the mock."
+            )
+            raise SetupError(msg)
+        return self._recorder.mock
+
+    async def assert_called_once_with(
+        self,
+        body: Any = EMPTY,
+        /,
+        *,
+        headers: Any = EMPTY,
+        correlation_id: Any = EMPTY,
+        reply_to: Any = EMPTY,
+        content_type: Any = EMPTY,
+        path: Any = EMPTY,
+        context: Mapping[str, Any] = EMPTY,
+    ) -> None:
+        """Assert the endpoint was called once, with the message described here.
+
+        Headers match as a subset; every other field matches exactly.
+        """
+        self.mock.assert_called_once()
+        await self._recorder.assert_last_call(
+            body,
+            headers=headers,
+            correlation_id=correlation_id,
+            reply_to=reply_to,
+            content_type=content_type,
+            path=path,
+            context=context,
+        )
+
+
 class CallRecorder:
     """Records the messages an endpoint saw under a test broker and asserts on them.
 
@@ -57,7 +104,7 @@ class CallRecorder:
         self.mock.reset_mock()
         self.calls.clear()
 
-    async def assert_called_once_with(
+    async def assert_last_call(
         self,
         body: Any = EMPTY,
         /,
@@ -69,7 +116,6 @@ class CallRecorder:
         path: Any = EMPTY,
         context: Mapping[str, Any] = EMPTY,
     ) -> None:
-        self.mock.assert_called_once()
         call = self.calls[-1]
 
         checks = _Mismatches()
@@ -126,42 +172,21 @@ class CallRecorder:
         serializer = self._outer_config.fd_config._serializer
 
         try:
+            # A batch decoder answers for the whole batch, so items go through the codec
             if call.message.batch_headers:
                 return [
-                    await self._decode_as_received(
+                    await _decode_as_received(
                         call, codec.decode, *await codec.encode(item, serializer)
                     )
                     for item in body
                 ]
 
             encoded, content_type = await codec.encode(body, serializer)
-            return await self._decode_as_received(
-                call, call.decoder, encoded, content_type
-            )
+            return await _decode_as_received(call, call.decoder, encoded, content_type)
 
         # A matcher (dirty-equals and the like) cannot be encoded: compare it as is
         except (TypeError, ValueError):
             return body
-
-    async def _decode_as_received(
-        self,
-        call: "RecordedCall",
-        decoder: "AsyncCallable",
-        encoded: bytes,
-        content_type: str | None,
-    ) -> Any:
-        probe: StreamMessage[Any] = StreamMessage(
-            raw_message=call.message.raw_message,
-            body=encoded,
-            headers=call.message.headers,
-            content_type=content_type,
-            correlation_id=call.message.correlation_id,
-            message_id=call.message.message_id,
-            reply_to=call.message.reply_to,
-            path=call.message.path,
-        )
-        probe.set_decoder(decoder)
-        return await probe.decode()
 
 
 @dataclass(slots=True)
@@ -177,6 +202,26 @@ class _Missing:
 
 
 _MISSING = _Missing()
+
+
+async def _decode_as_received(
+    call: RecordedCall,
+    decoder: "AsyncCallable",
+    encoded: bytes,
+    content_type: str | None,
+) -> Any:
+    probe: StreamMessage[Any] = StreamMessage(
+        raw_message=call.message.raw_message,
+        body=encoded,
+        headers=call.message.headers,
+        content_type=content_type,
+        correlation_id=call.message.correlation_id,
+        message_id=call.message.message_id,
+        reply_to=call.message.reply_to,
+        path=call.message.path,
+    )
+    probe.set_decoder(decoder)
+    return await probe.decode()
 
 
 def _headers_seen_through(expected: Any, actual: dict[str, Any]) -> Any:
