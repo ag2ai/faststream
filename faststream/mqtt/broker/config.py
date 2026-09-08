@@ -8,6 +8,7 @@ from faststream._internal._compat import HAS_OPENTELEMETRY
 from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
+from faststream.mqtt.parser import MQTTVersion
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
 
 if TYPE_CHECKING:
@@ -51,7 +52,7 @@ def _context_annotations() -> "Mapping[Any, Any]":
 
 @dataclass(kw_only=True)
 class MQTTBrokerConfig(BrokerConfig):
-    version: Literal["3.1.1", "5.0", "unset"] = "unset"
+    version: MQTTVersion | Literal["unset"] = "unset"
 
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)

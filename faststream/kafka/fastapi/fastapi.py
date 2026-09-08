@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from asyncio import AbstractEventLoop
     from enum import Enum
 
-    from aiokafka import TopicPartition
     from aiokafka.abc import AbstractTokenProvider, ConsumerRebalanceListener
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fastapi import params
@@ -51,6 +50,7 @@ if TYPE_CHECKING:
         BatchPublisher,
         DefaultPublisher,
     )
+    from faststream.kafka.schemas import TopicPartition
     from faststream.kafka.subscriber.usecase import (
         BatchSubscriber,
         ConcurrentBetweenPartitionsSubscriber,

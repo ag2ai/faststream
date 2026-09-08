@@ -108,6 +108,47 @@ subscriber = self.declare_subscriber(
 )
 ```
 
+## Add a test only when nothing else already breaks on it
+
+Before writing a new test, ask what already goes red if the change is wrong: another test
+in the suite, or `mypy` running over library code that already exercises the path (a
+registrator signature checked through `faststream/<broker>/testing.py`, say). If something
+already catches it, don't add another one — a ticket asking for "a test per case" doesn't
+override this; say which existing check covers the rest instead of writing one that just
+restates it. Never pin language or stdlib behaviour FastStream doesn't own (a `NamedTuple`
+unpacks, `==` on tuples).
+
+Test functions and classes carry no docstring — the name is the behaviour. The one
+exception is the regression pattern below, whose docstring is the issue URL and nothing
+else. When an assertion needs explaining, a single `#` comment sits directly over it, not
+prose in a docstring.
+
+## One equality per behaviour
+
+When a test checks one value from several angles — a tuple's fields, a few keys of a
+dict, a length and an element — build the expected shape from `dirty-equals` matchers
+and compare once. The failure then prints the whole shape, and the test reads as a single
+statement of the behaviour:
+
+```python
+# Claimed entries come first, with their previous deliveries and idle time
+assert received[:2] == [
+    ("pending_message", IsInt(ge=1), IsInt(ge=100)),
+    ("new_message", 0, 0),
+]
+
+assert snapshot == IsPartialDict({
+    "delivery_counts": HasLen(size),
+    "idle_times": HasLen(size),
+})
+```
+
+A chain of `assert x[0] ...`, `assert x[1] ...`, or a loop carrying a `found` flag, is this
+shape spelled out one field at a time: collapse it into the one equality. `IsPartialDict`
+takes a dict literal, so dotted keys and enum values read the same as the config they
+mirror. An equality that already fails on a missing delivery stands alone; the
+`assert event.is_set()` in front of it says nothing more.
+
 ## Regression tests
 
 A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
@@ -118,7 +159,7 @@ async def test_publisher_without_destination(self) -> None:
     """Fixes https://github.com/ag2ai/faststream/issues/2513."""
 ```
 
-The URL goes on the docstring's own first line, with the explanation of the behavior below it. `xfail`/`skip` reasons take the same URL. Comments inside the test body follow the **code-architecture** rules — two lines, over the line they explain.
+The URL is the whole docstring — no explanation of the behavior underneath it. `xfail`/`skip` reasons take the same URL. A comment inside the test body follows the **code-architecture** rule: one line, directly over the assertion it explains.
 
 A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
 
@@ -141,7 +182,7 @@ The same run grades the tests already there, and it is how a suite shrinks. Two 
 - `tests/marks.py`: conditional skips — `skip_windows`, `skip_macos`, `pydantic_v1`/`pydantic_v2`, `require_aiokafka`, `require_confluent`, `require_aiopika`, `require_redis`, `require_nats`, `require_mqtt`.
 - `tests/tools.py`: `spy_decorator` — wraps a real method with a mock spy (call assertions via `.mock`) while preserving behavior.
 - `tests/mocks.py`: `mock_pydantic_settings_env` for env-driven settings tests.
-- `dirty-equals` and `freezegun` are available as test deps.
+- `freezegun` is available as a test dep.
 
 **Never import from a `conftest.py`.** pytest loads conftest modules specially (their fixtures are injected into the collected files), so importing from one — `from .conftest import Settings` or `from tests.brokers.redis.conftest import ...` — can produce a duplicated/mismatched module and confusing collection errors. When conftest and a test file need the same object, declare it in a plain helper module next to them (e.g. `tests/brokers/redis/settings.py`, `basic.py`) and import it from both.
 

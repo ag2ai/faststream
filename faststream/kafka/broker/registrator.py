@@ -22,7 +22,6 @@ from faststream.kafka.subscriber.factory import create_subscriber
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
     from aiokafka.coordinator.assignors.abstract import AbstractPartitionAssignor
     from fast_depends.dependencies import Dependant
@@ -36,6 +35,7 @@ if TYPE_CHECKING:
         BatchPublisher,
         DefaultPublisher,
     )
+    from faststream.kafka.schemas import TopicPartition
     from faststream.kafka.subscriber.usecase import (
         BatchSubscriber,
         ConcurrentBetweenPartitionsSubscriber,

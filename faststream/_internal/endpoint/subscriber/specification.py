@@ -1,11 +1,12 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Generic
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import (
     TypeVar as TypeVar313,
 )
 
 from faststream._internal.configs import BrokerConfig, SubscriberSpecificationConfig
+from faststream._internal.endpoint.specification import EndpointSpecification
 from faststream.exceptions import SetupError
 from faststream.specification.asyncapi.message import parse_handler_params
 from faststream.specification.asyncapi.utils import to_camelcase
@@ -25,22 +26,17 @@ T_SpecificationConfig = TypeVar313(
 T_BrokerConfig = TypeVar313("T_BrokerConfig", bound=BrokerConfig, default=BrokerConfig)
 
 
-class SubscriberSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
+class SubscriberSpecification(
+    EndpointSpecification[T_BrokerConfig, T_SpecificationConfig],
+):
     def __init__(
         self,
         _outer_config: "T_BrokerConfig",
         specification_config: "T_SpecificationConfig",
         calls: "CallsCollection[Any]",
     ) -> None:
+        super().__init__(_outer_config, specification_config)
         self.calls = calls
-        self.config = specification_config
-        self._outer_config = _outer_config
-
-    @property
-    def include_in_schema(self) -> bool:
-        return bool(
-            self._outer_config.include_in_schema and self.config.include_in_schema,
-        )
 
     @property
     def description(self) -> str | None:
