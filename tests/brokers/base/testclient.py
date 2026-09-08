@@ -7,6 +7,8 @@ from unittest.mock import Mock
 import anyio
 import pytest
 
+from tests.tools import spy_decorator
+
 from .consume import BrokerConsumeTestcase
 from .publish import BrokerPublishTestcase
 
@@ -232,6 +234,24 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
                     await asyncio.sleep(0.1)
 
                 publisher.mock.assert_called_once_with("response: hello")
+
+    @pytest.mark.asyncio()
+    async def test_broker_with_real_stops_fake_subscribers(self, queue: str) -> None:
+        """A fake started against the real broker is stopped with it.
+
+        A fake left running keeps its consumer alive after the test, and every
+        later subscriber sharing its consumer group waits for it to die.
+        """
+        test_broker = self.get_broker()
+
+        publisher = test_broker.publisher(queue)  # noqa: F841
+
+        test_client = self.patch_broker(test_broker, with_real=True)
+        async with test_client:
+            (fake,) = test_client._fake_subscribers
+            fake.stop = spy_decorator(fake.stop)
+
+        fake.stop.mock.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_publisher_response_with_model(self, queue: str) -> None:

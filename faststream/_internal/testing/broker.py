@@ -139,6 +139,13 @@ class TestBroker(Generic[Broker, EnterType]):
             yield broker
 
         finally:
+            if self.with_real:
+                # The real `broker.start()` started our fakes too, and we are about to
+                # hide them from `broker.stop()`: stop them here, or their consumers
+                # outlive the test and stall every later member of their group.
+                for sub in self._fake_subscribers:
+                    await sub.stop()
+
             self._fake_close(broker)
 
     @contextmanager
