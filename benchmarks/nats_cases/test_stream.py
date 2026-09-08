@@ -18,7 +18,7 @@ class TestNatsTestCase:
     comment = "Consume from JetStream"
     broker_type = "NATS"
 
-    def setup_method(self) -> None:
+    async def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
         broker = self.broker = NatsBroker(logger=None, graceful_timeout=10)

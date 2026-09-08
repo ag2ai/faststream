@@ -41,6 +41,27 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "postgres"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./benchmarks/seed_db.sql:/docker-entrypoint-initdb.d/seed_db.sql:ro
+    security_opt:
+      - no-new-privileges:true
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    security_opt:
+      - no-new-privileges:true
+
   redis-cluster:
     image: redis:7-alpine
     network_mode: host
