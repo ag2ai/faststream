@@ -6,6 +6,7 @@ from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
 from redis.asyncio.connection import BaseParser, Connection, Encoder
 from redis.asyncio.retry import Retry
+from redis.credentials import CredentialProvider
 from typing_extensions import Required, TypedDict
 
 from faststream._internal.basic_types import LoggerProto
@@ -33,6 +34,10 @@ class RedisConnectionParams(TypedDict, total=False):
         type[Connection], "Connection class. Defaults to ``EMPTY``."
     ]
     client_name: Annotated[str | None, "Redis client name. Defaults to ``None``."]
+    credential_provider: Annotated[
+        CredentialProvider | None,
+        "Credential provider for dynamic authentication. Defaults to ``None``.",
+    ]
     health_check_interval: Annotated[float, "Health check interval. Defaults to ``0``."]
     max_connections: Annotated[
         int | None, "Max connections in pool. Defaults to ``None``."

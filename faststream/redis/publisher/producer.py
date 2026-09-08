@@ -8,8 +8,6 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream._internal.utils.nuid import NUID
-from faststream.redis.configs.state import RedisClusterConnectionState
-from faststream.redis.exceptions import UnreachablePathError
 from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RedisPubSubParser, SimpleParserConfig
 from faststream.redis.response import DestinationType, RedisPublishCommand
@@ -81,20 +79,18 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
         if codec is not None:
             self.codec = codec
 
-    def _build_child(
-        self, **kwargs: Any
-    ) -> "RedisFastProducer | RedisClusterFastProducer":
+    def _build_child(self, **kwargs: Any) -> "RedisFastProducer":
         return self.__class__(**kwargs)  # type: ignore[return-value]
 
 
 class RedisFastProducer(BaseRedisFastProducer):
-    """Producer for a single-node Redis."""
+    """Producer for standalone and clustered Redis clients."""
 
-    _connection: "ConnectionState[Redis[bytes]]"
+    _connection: "ConnectionState[Redis[bytes] | RedisCluster[bytes]]"
 
     def __init__(
         self,
-        connection: "ConnectionState[Redis[bytes]]",
+        connection: "ConnectionState[Redis[bytes] | RedisCluster[bytes]]",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
         message_format: type["MessageFormat"],
@@ -126,7 +122,8 @@ class RedisFastProducer(BaseRedisFastProducer):
         msg: bytes,
         cmd: "RedisPublishCommand",
     ) -> int | bytes:
-        connection = cmd.pipeline or self._connection.client
+        # RedisCluster exposes the Redis command API dynamically, outside its stubs.
+        connection = cast("Redis[bytes]", cmd.pipeline or self._connection.client)
 
         if cmd.destination_type is DestinationType.Channel:
             return await connection.publish(cmd.destination, msg)
@@ -151,7 +148,7 @@ class RedisFastProducer(BaseRedisFastProducer):
     async def request(self, cmd: "RedisPublishCommand") -> "Any":
         nuid = NUID()
         reply_to = str(nuid.next(), "utf-8")
-        psub = self._connection.client.pubsub()
+        psub = cast("Redis[bytes]", self._connection.client).pubsub()
 
         try:
             await psub.subscribe(reply_to)
@@ -189,103 +186,3 @@ class RedisFastProducer(BaseRedisFastProducer):
             with suppress(Exception):
                 await psub.unsubscribe()
                 await psub.aclose()  # type: ignore[attr-defined]
-
-
-class RedisClusterFastProducer(BaseRedisFastProducer):
-    """Producer that routes channel operations through the sync cluster."""
-
-    def __init__(
-        self,
-        connection: "ConnectionState[RedisCluster[bytes]]",
-        cluster_state: RedisClusterConnectionState,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(connection=connection, **kwargs)
-        self._cluster_state = cluster_state
-
-    @property
-    def cluster_state(self) -> RedisClusterConnectionState:
-        return self._cluster_state
-
-    @override
-    def _build_child(self, **kwargs: Any) -> "RedisClusterFastProducer":
-        return RedisClusterFastProducer(cluster_state=self._cluster_state, **kwargs)
-
-    @override
-    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
-        msg = await cmd.message_format.encode(
-            message=cmd.body,
-            reply_to=cmd.reply_to,
-            headers=cmd.headers,
-            correlation_id=cmd.correlation_id or "",
-            serializer=self.serializer,
-            codec=self.codec,
-        )
-
-        if cmd.destination_type is DestinationType.Channel:
-            return await self._cluster_state.sync_publish(cmd.destination, msg)
-
-        if cmd.destination_type is DestinationType.List:
-            return cast("int", await self._connection.client.rpush(cmd.destination, msg))
-        if cmd.destination_type is DestinationType.Stream:
-            return cast(
-                "bytes",
-                await self._connection.client.xadd(
-                    name=cmd.destination,
-                    fields={DATA_KEY: msg},
-                    maxlen=cmd.maxlen,
-                ),
-            )
-        raise UnreachablePathError
-
-    @override
-    async def request(self, cmd: "RedisPublishCommand") -> "Any":
-        nuid = NUID()
-        reply_to = str(nuid.next(), "utf-8")
-        psub = self._cluster_state.pubsub()
-
-        try:
-            await psub.subscribe(reply_to)
-
-            msg = await cmd.message_format.encode(
-                message=cmd.body,
-                reply_to=reply_to,
-                headers=cmd.headers,
-                correlation_id=cmd.correlation_id or "",
-                serializer=self.serializer,
-                codec=self.codec,
-            )
-
-            if cmd.destination_type is DestinationType.Channel:
-                await self._cluster_state.sync_publish(cmd.destination, msg)
-            elif cmd.destination_type is DestinationType.List:
-                await self._connection.client.rpush(cmd.destination, msg)
-            elif cmd.destination_type is DestinationType.Stream:
-                await self._connection.client.xadd(
-                    name=cmd.destination,
-                    fields={DATA_KEY: msg},
-                    maxlen=cmd.maxlen,
-                )
-            else:
-                raise UnreachablePathError
-
-            with anyio.fail_after(cmd.timeout) as scope:
-                await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-                response_msg = await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-            if scope.cancel_called:
-                raise TimeoutError
-
-            return response_msg
-
-        finally:
-            with suppress(Exception):
-                await psub.unsubscribe()
-                await psub.aclose()

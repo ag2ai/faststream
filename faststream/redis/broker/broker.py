@@ -46,7 +46,6 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream.redis.message import RedisChannelMessage
-    from faststream.redis.publisher.producer import RedisClusterFastProducer
     from faststream.redis.schemas.types import RedisBrokerParams
     from faststream.security import BaseSecurity
 
@@ -163,8 +162,8 @@ class RedisBroker(
         self,
         connection_state: "ConnectionState[Any]",
         kwargs: dict[str, Any],
-    ) -> "RedisFastProducer | RedisClusterFastProducer":
-        """Build the producer. Overridden by the Cluster broker."""
+    ) -> "RedisFastProducer":
+        """Build the Redis producer."""
         return RedisFastProducer(
             connection=connection_state,
             parser=kwargs.get("parser"),
