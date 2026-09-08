@@ -317,7 +317,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             with pytest.raises(AssertionError):
                 await publisher2.assert_called_once_with({"city": "Moscow"})
 
-    async def test_subsciber_assert_called_once_with(
+    async def test_subscriber_assert_called_once_with(
         self, queue: str, event: asyncio.Event
     ) -> None:
         class BodyModel(BaseModel):
