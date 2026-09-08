@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
+from typing_extensions import Sentinel
+
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.parser import DefaultCodec
@@ -196,12 +198,7 @@ class RecordedCall:
     decoder: "AsyncCallable"
 
 
-class _Missing:
-    def __repr__(self) -> str:
-        return "<missing>"
-
-
-_MISSING = _Missing()
+_MISSING = Sentinel("MISSING")
 
 
 async def _decode_as_received(
