@@ -156,10 +156,6 @@ def _validate_input_for_misconfigure(
 ) -> None:
     validate_options(channel=channel, list=list, stream=stream)
 
-    if stream and ack_policy is AckPolicy.MANUAL and max_workers > 1:
-        msg = "Max workers not work with manual no_ack mode."
-        raise SetupError(msg)
-
     if ack_policy is not EMPTY:
         if channel:
             warnings.warn(

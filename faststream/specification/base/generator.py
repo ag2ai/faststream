@@ -19,7 +19,7 @@ class SpecificationFactory(Protocol):
     @abstractmethod
     def add_broker(
         self,
-        broker: "BrokerUsecase[Any, Any]",
+        broker: "BrokerUsecase[Any, Any, Any]",
         /,
     ) -> "SpecificationFactory":
         raise NotImplementedError

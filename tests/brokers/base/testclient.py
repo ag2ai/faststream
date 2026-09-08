@@ -8,6 +8,8 @@ import anyio
 import pytest
 from pydantic import BaseModel
 
+from tests.tools import spy_decorator
+
 from .consume import BrokerConsumeTestcase
 from .publish import BrokerPublishTestcase
 
@@ -36,6 +38,34 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         gc.collect()
         assert len(broker.subscribers) == 1, len(broker.subscribers)
+
+    @pytest.mark.asyncio()
+    async def test_fake_subscribers_deregistered_without_gc(self) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2990.
+
+        A second TestBroker must not reuse a fake left behind by the first.
+        """
+        broker = self.get_broker()
+
+        @broker.subscriber("test")
+        async def handler(msg) -> None: ...
+
+        pub = broker.publisher("test2")  # noqa: F841
+
+        async with self.patch_broker(broker):
+            pass
+
+        # No gc.collect() before this line: the leftover fake stayed weakly reachable
+        # until the next collection, which is exactly what hid the bug.
+        assert len(broker.subscribers) == 1, len(broker.subscribers)
+
+        second_client = self.patch_broker(broker)
+        async with second_client as br:
+            # This client owns its own fake, so the collector cannot take it away
+            # mid-test and leave `publish()` raising `SubscriberNotFound`.
+            assert len(second_client._fake_subscribers) == 1
+            gc.collect()
+            assert len(br.subscribers) == 2, len(br.subscribers)
 
     @pytest.mark.asyncio()
     async def test_subscriber_mock(self, queue: str) -> None:
@@ -205,6 +235,21 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
                     await asyncio.sleep(0.1)
 
                 publisher.mock.assert_called_once_with("response: hello")
+
+    @pytest.mark.connected()
+    @pytest.mark.asyncio()
+    async def test_broker_with_real_stops_fake_subscribers(self, queue: str) -> None:
+        test_broker = self.get_broker()
+
+        publisher = test_broker.publisher(queue)  # noqa: F841
+
+        test_client = self.patch_broker(test_broker, with_real=True)
+        async with test_client:
+            (fake,) = test_client._fake_subscribers
+            fake.stop = spy_decorator(fake.stop)
+
+        # A fake left running stays in its consumer group and blocks later members
+        fake.stop.mock.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_publisher_response_with_model(self, queue: str) -> None:

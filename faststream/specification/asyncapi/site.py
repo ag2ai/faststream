@@ -10,11 +10,11 @@ if TYPE_CHECKING:
     from faststream.specification import Specification
 
 ASYNCAPI_JS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@3.0.2/browser/standalone/index.js"
+    "https://unpkg.com/@asyncapi/react-component@3.1.5/browser/standalone/index.js"
 )
 
 ASYNCAPI_CSS_DEFAULT_URL = (
-    "https://unpkg.com/@asyncapi/react-component@3.0.2/styles/default.min.css"
+    "https://unpkg.com/@asyncapi/react-component@3.1.5/styles/default.min.css"
 )
 
 

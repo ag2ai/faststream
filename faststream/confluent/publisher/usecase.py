@@ -264,6 +264,11 @@ class BatchPublisher(LogicPublisher):
         """This method should be called in subscriber flow only."""
         cmd = KafkaPublishCommand.from_cmd(cmd, batch=True)
 
+        if not cmd.batch_bodies:
+            # Match the non-batch publisher: an empty result is one empty message,
+            # not a batch of zero, which no broker can express (see issue #3056).
+            cmd.batch_bodies = (b"",)
+
         cmd.destination = self.topic
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to

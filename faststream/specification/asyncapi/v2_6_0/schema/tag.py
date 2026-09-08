@@ -64,5 +64,5 @@ class Tag(BaseModel):
         return cls(
             name=tag_data.get("name"),
             description=tag_data.get("description"),
-            externalDocs=tag_data.get("external_docs"),
+            externalDocs=ExternalDocs.from_spec(tag_data.get("external_docs")),
         )

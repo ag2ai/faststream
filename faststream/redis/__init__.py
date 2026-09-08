@@ -1,7 +1,13 @@
+from typing import TYPE_CHECKING, TypeAlias
+
 from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
 
-RedisParserType = ParserProto["Mapping[str, Any]"]  # type: ignore[name-defined]
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from typing import Any
+
+RedisParserType: TypeAlias = ParserProto["Mapping[str, Any]"]
 
 try:
     from .annotations import (
@@ -21,7 +27,7 @@ try:
         RedisRouter,
         RedisSentinelBroker,
     )
-    from .exceptions import StreamGroupNotFoundError
+    from .exceptions import StreamClaimUnsupportedError, StreamGroupNotFoundError
     from .parser import BinaryMessageFormatV1
     from .response import RedisPublishCommand, RedisResponse
     from .schemas import ListSub, PubSub, StreamSub
@@ -55,6 +61,7 @@ __all__ = (
     "RedisRouter",
     "RedisSentinelBroker",
     "RedisStreamMessage",
+    "StreamClaimUnsupportedError",
     "StreamGroupNotFoundError",
     "StreamSub",
     "TestApp",

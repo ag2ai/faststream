@@ -164,6 +164,7 @@ def create_subscriber(
     specification_config = NatsSubscriberSpecificationConfig(
         subject=subject,
         queue=queue or None,
+        filter_subjects=list(config.filter_subjects or ()),
         title_=title_,
         description_=description_,
         include_in_schema=include_in_schema,

@@ -64,7 +64,7 @@ class ObjStoreWatchSubscriber(
 
         if not self._fetch_sub:
             self.bucket = await self._outer_config.os_declarer.create_object_store(
-                bucket=self.subject,
+                bucket=self.subject.template,
                 declare=self.obj_watch.declare,
             )
 
@@ -101,14 +101,14 @@ class ObjStoreWatchSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
 
         if not self._fetch_sub:
             self.bucket = await self._outer_config.os_declarer.create_object_store(
-                bucket=self.subject,
+                bucket=self.subject.template,
                 declare=self.obj_watch.declare,
             )
 
@@ -158,7 +158,7 @@ class ObjStoreWatchSubscriber(
             return
 
         self.bucket = await self._outer_config.os_declarer.create_object_store(
-            bucket=self.subject,
+            bucket=self.subject.template,
             declare=self.obj_watch.declare,
         )
 
@@ -209,5 +209,5 @@ class ObjStoreWatchSubscriber(
         """
         return self.build_log_context(
             message=message,
-            subject=self.subject,
+            subject=self.subject.template,
         )

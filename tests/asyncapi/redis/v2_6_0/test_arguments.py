@@ -37,7 +37,7 @@ class TestArguments(ArgumentsTestcase):
         assert schema["channels"][key]["bindings"] == {
             "redis": {
                 "bindingVersion": "custom",
-                "channel": "test.*",
+                "channel": "test.{path}",
                 "method": "psubscribe",
             },
         }

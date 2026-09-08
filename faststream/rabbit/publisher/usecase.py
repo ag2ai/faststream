@@ -37,7 +37,7 @@ class RabbitPublisher(PublisherUsecase):
         super().__init__(config, specification)
 
         self.queue = config.queue
-        self.routing_key = config.routing_key
+        self.routing_key = config.routing_address.template
 
         self.exchange = config.exchange
 

@@ -119,6 +119,11 @@ _static *params:
 mypy *params:
   just _static mypy {{params}}
 
+[doc("Pyright check")]
+[group("static analysis")]
+pyright *params:
+  just _static pyright {{params}}
+
 [doc("Bandit check")]
 [group("static analysis")]
 bandit:
@@ -136,7 +141,7 @@ zizmor:
 
 [doc("Static analysis check")]
 [group("static analysis")]
-static-analysis: mypy bandit semgrep
+static-analysis: mypy pyright bandit semgrep
 
 
 # Pre-commit

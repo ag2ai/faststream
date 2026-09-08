@@ -62,7 +62,7 @@ class PullStreamSubscriber(
             return
 
         self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             config=self.config,
             **self.extra_options,
         )
@@ -99,7 +99,7 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
         self.start_consume_task()
 
         self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             config=self.config,
             **self.extra_options,
         )
@@ -144,7 +144,7 @@ class BatchPullStreamSubscriber(
 
         if not self._fetch_sub:
             fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **self.extra_options,
             )
@@ -175,14 +175,14 @@ class BatchPullStreamSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
 
         if not self._fetch_sub:
             fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **self.extra_options,
             )
@@ -214,7 +214,7 @@ class BatchPullStreamSubscriber(
             return
 
         self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             config=self.config,
             **self.extra_options,
         )

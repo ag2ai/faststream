@@ -70,19 +70,19 @@ If you use **FastStream CLI**, you have the option to use a file to configure yo
 === "JSON"
 
     ```console
-    faststream run serve:app --log-file config.json
+    faststream run serve:app --log-config config.json
     ```
 
 === "TOML"
 
     ```console
-    faststream run serve:app --log-file config.toml
+    faststream run serve:app --log-config config.toml
     ```
 
 === "YAML"
 
     ```console
-    faststream run serve:app --log-file config.yaml
+    faststream run serve:app --log-config config.yaml
     ```
 
 Faststream supported few file formats to logging configure. See examples below:

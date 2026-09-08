@@ -63,7 +63,7 @@ def convert_list_of_dict_to_dict(
 
 
 def get_app_schema(
-    *brokers: "BrokerUsecase[Any, Any]",
+    *brokers: "BrokerUsecase[Any, Any, Any]",
     title: str,
     app_version: str,
     schema_version: str,
@@ -149,14 +149,14 @@ def get_app_schema(
 
 
 def get_broker_server(
-    *brokers: "BrokerUsecase[MsgType, ConnectionType]",
+    *brokers: "BrokerUsecase[MsgType, ConnectionType, Any]",
 ) -> tuple[
     dict[str, Server],
-    dict["BrokerUsecase[Any, Any]", list[str]],
+    dict["BrokerUsecase[Any, Any, Any]", list[str]],
 ]:
     """Get the broker server for an application."""
     servers: list[Server] = []
-    broker_servers: list[tuple[BrokerUsecase[Any, Any], Server]] = []
+    broker_servers: list[tuple[BrokerUsecase[Any, Any, Any], Server]] = []
 
     for broker in brokers:
         specification = broker.specification
@@ -197,7 +197,7 @@ def get_broker_server(
         server_name = "development" if single_server else f"Server{i}"
         servers_by_names[server_name] = server
 
-    broker_server_names: dict[BrokerUsecase[Any, Any], list[str]] = {}
+    broker_server_names: dict[BrokerUsecase[Any, Any, Any], list[str]] = {}
     for name, server in servers_by_names.items():
         for broker, br_server in broker_servers:
             if server == br_server:
@@ -207,7 +207,8 @@ def get_broker_server(
 
 
 def get_broker_channels(
-    broker: "BrokerUsecase[MsgType, ConnectionType]", servers: list[str] | None = None
+    broker: "BrokerUsecase[MsgType, ConnectionType, Any]",
+    servers: list[str] | None = None,
 ) -> tuple[dict[str, Channel], dict[str, Operation]]:
     """Get the broker channels for an application."""
     channels = {}
@@ -218,8 +219,14 @@ def get_broker_channels(
     ] or None
 
     for sub in filter(lambda s: s.specification.include_in_schema, broker.subscribers):
-        for sub_key, sub_channel in sub.schema().items():
-            channel_obj = Channel.from_sub(sub_key, sub_channel, servers=channel_servers)
+        sub_schema = sub.schema()
+
+        # A title cannot name the operations of several channels: written once
+        # per channel it leaves one operation and the rest unreferenced.
+        sub_title = sub.specification.config.title_ if len(sub_schema) == 1 else None
+
+        for sub_key, sub_channel in sub_schema.items():
+            channel_obj = Channel.from_sub(sub_channel, servers=channel_servers)
 
             channel_key = clear_key(sub_key)
             if channel_key in channels:
@@ -233,9 +240,8 @@ def get_broker_channels(
 
             operation_key = (
                 f"{channel_key}Subscribe"
-                if sub.specification.config.title_ is None
-                or sub.specification.config.title_ == "/"
-                else sub.specification.config.title_
+                if sub_title is None or sub_title == "/"
+                else sub_title
             )
             if operation_key in operations:
                 warnings.warn(
@@ -255,7 +261,7 @@ def get_broker_channels(
 
     for pub in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for pub_key, pub_channel in pub.schema().items():
-            channel_obj = Channel.from_pub(pub_key, pub_channel, servers=channel_servers)
+            channel_obj = Channel.from_pub(pub_channel, servers=channel_servers)
 
             channel_key = clear_key(pub_key)
             if channel_key in channels:

@@ -27,6 +27,22 @@ async def test_task_failing(subscriber_with_task_mixin):
 
 
 @pytest.mark.asyncio()
+async def test_task_failing_without_restart(subscriber_with_task_mixin):
+    async def failing_task():
+        raise ValueError
+
+    task = subscriber_with_task_mixin.add_task(
+        failing_task,
+        restart_on_failure=False,
+    )
+    with suppress(ValueError):
+        await task
+    await asyncio.sleep(0)
+
+    assert len(subscriber_with_task_mixin.tasks) == 1
+
+
+@pytest.mark.asyncio()
 async def test_task_successful(subscriber_with_task_mixin):
     async def successful_task():
         return True

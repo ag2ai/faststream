@@ -53,6 +53,33 @@ class CodecTestcase(BaseTestcaseConfig):
 
         mock.assert_called_once_with({"key": "value"})
 
+    async def test_codec_survives_building_the_model_twice(
+        self,
+        mock: MagicMock,
+        queue: str,
+    ) -> None:
+        class TrackingCodec(DefaultCodec):
+            async def decode(self, msg):
+                mock()
+                return await super().decode(msg)
+
+        broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue, codec=TrackingCodec())
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(m) -> None:
+            pass
+
+        # Rendering the schema composes the model once; starting composes it again
+        subscriber = next(iter(broker.subscribers))
+        subscriber.schema()
+
+        async with self.patch_broker(broker) as br:
+            await br.publish(b"hello", queue)
+
+        mock.assert_called_once()
+
     async def test_codec_and_decoder_conflict_raises(
         self,
         queue: str,

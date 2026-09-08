@@ -80,16 +80,30 @@ Afterward, you can access your `secret` field in the usual way:
 
 In this case, the field becomes a global context field: it does not depend on the current message handler (unlike `message`)
 
+Alternatively you can setup global context objects in `FastStream` object constructor:
+
+```python
+from faststream import FastStream
+from faststream.context import ContextRepo
+
+context = ContextRepo({"secret_str": "my-perfect-secret"})
+app = FastStream(context=context)
+```
+
 !!! tip
-    Alternatively you can setup global context objects in `FastStream` object constructor:
+    It is important to keep in mind that the broker context takes precedence over the FastStream context.
 
     ```python
-    from faststream import FastStream
-    from faststream.context import ContextRepo
+    from typing import Annotated
+    from faststream import FastStream, ContextRepo, Context
+    from faststream.nats import NatsBroker
 
-    app = FastStream(context=ContextRepo({
-        "secret_str": "my-perfect-secret"
-    }))
+    broker = NatsBroker(context=ContextRepo({"data": "BROKER"}))
+    app = FastStream(broker, context=ContextRepo({"data": "APP"}))
+
+    @broker.subscriber("queue")
+    async def handle(data: Annotated[str, Context()]) -> None:
+        assert data == "BROKER"
     ```
 
 To remove a field from the context use the `reset_global` method:

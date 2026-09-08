@@ -1,3 +1,4 @@
+from collections import Counter
 from collections.abc import Sequence
 from typing import Any
 
@@ -228,4 +229,4 @@ class BatchKeysTestcase:
                 *(self.publish_message_cls(body, key=key) for body, key in pairs),
                 topic=queue,
             )
-        assert set(received) == set(expected)
+        assert Counter(received) == Counter(expected)

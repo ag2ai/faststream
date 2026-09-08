@@ -61,7 +61,7 @@ T_HookReturn = TypeVar("T_HookReturn")
 class StartAbleApplication:
     def __init__(
         self,
-        *brokers: "BrokerUsecase[Any, Any]",
+        *brokers: "BrokerUsecase[Any, Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
@@ -77,13 +77,13 @@ class StartAbleApplication:
 
     def _init_setupable_(  # noqa: PLW3201
         self,
-        *brokers: "BrokerUsecase[Any, Any]",
+        *brokers: "BrokerUsecase[Any, Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:
         self.config = config or FastDependsConfig()
         self.config.context.set_global("app", self)
-        self.brokers: list[BrokerUsecase[Any, Any]] = []
+        self.brokers: list[BrokerUsecase[Any, Any, Any]] = []
 
         self.schema: SpecificationFactory = specification or AsyncAPI()
 
@@ -96,20 +96,20 @@ class StartAbleApplication:
             await b.start()
 
     @property
-    def broker(self) -> Optional["BrokerUsecase[Any, Any]"]:
+    def broker(self) -> Optional["BrokerUsecase[Any, Any, Any]"]:
         return self.brokers[0] if self.brokers else None
 
     @deprecated(
         "This method is deprecated and will be removed in 0.8.0 Use `add_broker` instead."
     )
-    def set_broker(self, broker: "BrokerUsecase[Any, Any]") -> None:
+    def set_broker(self, broker: "BrokerUsecase[Any, Any, Any]") -> None:
         """Set already existed App object broker.
 
         Useful then you create/init broker in `on_startup` hook.
         """
         self.add_broker(broker)
 
-    def add_broker(self, broker: "BrokerUsecase[Any, Any]") -> None:
+    def add_broker(self, broker: "BrokerUsecase[Any, Any, Any]") -> None:
         if broker in self.brokers:
             msg = f"Broker {broker} is already added"
             raise SetupError(msg)
@@ -122,7 +122,7 @@ class StartAbleApplication:
 class Application(StartAbleApplication):
     def __init__(
         self,
-        *brokers: "BrokerUsecase[Any, Any]",
+        *brokers: "BrokerUsecase[Any, Any, Any]",
         config: Optional["FastDependsConfig"] = None,
         logger: Optional["LoggerProto"] = logger,
         lifespan: Optional["Lifespan"] = None,

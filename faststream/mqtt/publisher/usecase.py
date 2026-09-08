@@ -30,14 +30,15 @@ class MQTTPublisher(PublisherUsecase):
     ) -> None:
         super().__init__(config, specification)
 
-        self._topic = config.topic
+        self._address = config.address
         self.qos = config.qos
         self.retain = config.retain
         self.headers = config.headers or {}
 
     @property
     def topic(self) -> str:
-        return f"{self._outer_config.prefix}{self._topic}"
+        # A Publisher's topic goes to the wire as it stands, prefix included.
+        return self._address.add_prefix(self._outer_config.prefix).template
 
     @override
     async def publish(

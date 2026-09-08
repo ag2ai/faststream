@@ -210,7 +210,7 @@ class RabbitRoute(SubscriberRoute):
         )
 
 
-class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage]):
+class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBrokerConfig]):
     """Includable to RabbitBroker router."""
 
     def __init__(

@@ -30,7 +30,7 @@ class TestNaming(NamingTestCase):
             },
             "channels": {
                 "test:Handle": {
-                    "address": "test:Handle",
+                    "address": "test",
                     "servers": [{"$ref": "#/servers/development"}],
                     "messages": {
                         "SubscribeMessage": {

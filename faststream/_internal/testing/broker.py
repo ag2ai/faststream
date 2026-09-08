@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
 
 
-Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
+Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any, Any])
 
 # ``__aenter__`` return type. Each concrete ``TestBroker`` subclass binds it to a
 # single broker or a ``tuple`` of brokers via its overloaded ``__init__``.
@@ -139,6 +139,12 @@ class TestBroker(Generic[Broker, EnterType]):
             yield broker
 
         finally:
+            if self.with_real:
+                # The real `broker.start()` started the fakes, and `_fake_close` hides
+                # them from `broker.stop()` (see #3046): stop them here or they leak.
+                for sub in self._fake_subscribers:
+                    await sub.stop()
+
             self._fake_close(broker)
 
     @contextmanager
@@ -255,6 +261,11 @@ class TestBroker(Generic[Broker, EnterType]):
             if getattr(p, "_fake_handler", None):
                 p.reset_test()
 
+        # Fakes are registered with `persistent=False`, so the broker holds them weakly
+        # and they outlive us until the next collection (see issue #2990).
+        for sub in self._fake_subscribers:
+            broker._subscribers.discard(sub)
+
         self._fake_subscribers.clear()
 
         for sub in broker.subscribers:
@@ -275,7 +286,7 @@ class TestBroker(Generic[Broker, EnterType]):
         raise NotImplementedError
 
 
-def patch_broker_calls(broker: "BrokerUsecase[Any, Any]") -> None:
+def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
     """Patch broker calls."""
     for sub in broker.subscribers:
         sub._build_fastdepends_model()

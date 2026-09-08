@@ -1,4 +1,4 @@
-from zmqtt import QoS, ReconnectConfig
+from zmqtt import QoS, ReconnectConfig, Will, WillProperties
 
 from faststream.mqtt.annotations import MQTTMessage
 from faststream.mqtt.broker.broker import MQTTBroker
@@ -14,4 +14,6 @@ __all__ = (
     "QoS",
     "ReconnectConfig",
     "TestMQTTBroker",
+    "Will",
+    "WillProperties",
 )

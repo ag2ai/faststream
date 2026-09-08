@@ -196,7 +196,7 @@ UNRECOVERABLE_CONNECT_ERRORS = (
 
 class NatsBroker(
     NatsRegistrator,
-    BrokerUsecase[Msg, Client],
+    BrokerUsecase[Msg, Client, NatsBrokerConfig],
 ):
     """A class to represent a NATS broker."""
 

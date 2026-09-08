@@ -20,7 +20,7 @@ Such a contribution can be:
 * Suggestions for editing specific sections
 * Making additions
 
-You can report all this in [discussions](https://github.com/ag2ai/faststream/discussions){.external-link target="_blank"} on GitHub, start [issue](https://github.com/ag2ai/faststream/issues){.external-link target="_blank"}, or write about it in our [discord](https://discord.gg/qFm6aSqq59){.external-link target="_blank"} group.
+You can report all this in [discussions](https://github.com/ag2ai/faststream/discussions){.external-link target="_blank"} on GitHub, or start an [issue](https://github.com/ag2ai/faststream/issues){.external-link target="_blank"}.
 
 !!! note
     Special thanks to those who are ready to offer help with the case and help in **developing documentation**, as well as translating it into **other languages**.
@@ -60,9 +60,9 @@ After making all the changes, you can issue a `PR` with them - and we will gladl
 
     (e.g [**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"} - `[**Propan**](https://github.com/lancetnik/propan){.external-link target="_blank"}`)
 
-- Internal links need to mark `{.internal-link}`
+- Internal links need to mark `{.internal-link}` and point to a relative path of the target `.md` file (root-absolute paths like `/getting-started/...` break, because the site is served under a version prefix such as `/latest/`)
 
-    (e.g [contribution page](/getting-started/contributing/contributing){.internal-link} - `[contribution page](/getting-started/contributing/contributing){.internal-link}`)
+    (e.g [contribution page](./CONTRIBUTING.md){.internal-link} - `[contribution page](./CONTRIBUTING.md){.internal-link}`)
 
 - A lot of links going in a row doesn't need to mark both `{.external_link}` and `{.internal_link}`. In this case use only `{target="_blank"}` for external links
 

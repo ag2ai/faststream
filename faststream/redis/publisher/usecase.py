@@ -260,10 +260,10 @@ class ListPublisher(LogicPublisher):
 
 class ListBatchPublisher(ListPublisher):
     @override
-    async def publish(  # type: ignore[override]
+    async def publish(
         self,
         *messages: "SendableMessage",
-        list: str,
+        list: str | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
@@ -298,6 +298,11 @@ class ListBatchPublisher(ListPublisher):
         cmd = RedisPublishCommand.from_cmd(
             cmd, batch=True, message_format=self.config.message_format
         )
+
+        if not cmd.batch_bodies:
+            # Match the non-batch publisher: an empty result is one empty message,
+            # not a batch of zero, which no broker can express (see issue #3056).
+            cmd.batch_bodies = (b"",)
 
         cmd.set_destination(list=self.list.name)
 

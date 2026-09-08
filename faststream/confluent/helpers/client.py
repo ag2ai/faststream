@@ -10,7 +10,7 @@ import anyio
 from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
 
 from faststream._internal.utils.functions import call_or_await, run_in_executor
-from faststream.confluent.schemas import TopicPartition
+from faststream.confluent.schemas import Topic, TopicPartition
 from faststream.exceptions import SetupError
 
 from . import config as config_module
@@ -205,7 +205,7 @@ class AsyncConfluentConsumer:
 
     def __init__(
         self,
-        *topics: str,
+        *topics: "Topic",
         config: config_module.ConfluentFastConfig,
         logger: "LoggerState",
         admin_service: "AdminService",
@@ -291,8 +291,15 @@ class AsyncConfluentConsumer:
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
 
     @property
-    def topics_to_create(self) -> list[str]:
-        return list({*self.topics, *(p.topic for p in self.partitions)})
+    def topics_to_create(self) -> list["Topic"]:
+        # Conflicting duplicates are reported by `create_subscriber`, the only
+        # public way to get here, so collapsing to the last one is enough.
+        topics: dict[str, Topic] = {t.name: t for t in self.topics}
+
+        for p in self.partitions:
+            topics.setdefault(p.topic, Topic(p.topic, declare=p.declare))
+
+        return [t for t in topics.values() if t.declare]
 
     async def start(self) -> None:
         """Starts the Kafka consumer and subscribes to the specified topics."""
@@ -317,7 +324,7 @@ class AsyncConfluentConsumer:
             )
 
         if self.topics:
-            subscribe_kwargs: dict[str, Any] = {"topics": self.topics}
+            subscribe_kwargs: dict[str, Any] = {"topics": [t.name for t in self.topics]}
             if self._on_assign is not None:
                 subscribe_kwargs["on_assign"] = self._on_assign
             if self._on_revoke is not None:

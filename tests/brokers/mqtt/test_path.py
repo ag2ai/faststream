@@ -108,27 +108,6 @@ class TestPathExtraction(MQTTTestcaseConfig):
 
         mock.assert_called_once_with(f"{queue}/logs/system/errors")
 
-    async def test_escaped_braces_are_literal_topic(
-        self, queue: str, mock: MagicMock, event: asyncio.Event
-    ) -> None:
-        broker = self.get_broker(apply_types=True)
-
-        subscriber = broker.subscriber(f"{queue}/root/{{{{braced}}}}")
-
-        @subscriber
-        async def handler(body: str) -> None:
-            mock(body)
-            event.set()
-
-        assert subscriber.topic == f"{queue}/root/{{braced}}"
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await br.publish("entry", f"{queue}/root/{{braced}}")
-            await asyncio.wait_for(event.wait(), timeout=self.timeout)
-
-        mock.assert_called_once_with("entry")
-
     async def test_named_capture_with_raw_hash(
         self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:

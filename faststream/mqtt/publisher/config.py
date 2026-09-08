@@ -6,12 +6,13 @@ from faststream._internal.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
+from faststream._internal.utils.path import Address
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 
 @dataclass(kw_only=True)
 class MQTTPublisherSpecificationConfig(PublisherSpecificationConfig):
-    topic: str
+    address: Address
     qos: QoS = QoS.AT_MOST_ONCE
     retain: bool = False
 
@@ -20,7 +21,7 @@ class MQTTPublisherSpecificationConfig(PublisherSpecificationConfig):
 class MQTTPublisherConfig(PublisherUsecaseConfig):
     _outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
 
-    topic: str
+    address: Address
     qos: QoS
     retain: bool
     headers: dict[str, str] | None

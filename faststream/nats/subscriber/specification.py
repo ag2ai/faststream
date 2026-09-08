@@ -1,5 +1,7 @@
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream._internal.utils.path import Address
 from faststream.nats.configs import NatsBrokerConfig
+from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, SubscriberSpec
 from faststream.specification.schema.bindings import ChannelBinding, nats
@@ -11,37 +13,67 @@ class NatsSubscriberSpecification(
     SubscriberSpecification[NatsBrokerConfig, NatsSubscriberSpecificationConfig],
 ):
     @property
-    def subject(self) -> str:
-        return f"{self._outer_config.prefix}{self.config.subject}"
+    def subject(self) -> "Address":
+        """The subject this endpoint was declared with, and its Broker address."""
+        return Address(self.config.subject, NATS_ADDRESS_SYNTAX).add_prefix(
+            self._outer_config.prefix,
+        )
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
+    def filter_subjects(self) -> list[str]:
+        """The subjects a JetStream consumer filters on, and their Broker addresses."""
+        return [
+            Address(subject, NATS_ADDRESS_SYNTAX)
+            .add_prefix(self._outer_config.prefix)
+            .template
+            for subject in self.config.filter_subjects
+        ]
 
-        return f"{self.subject}:{self.call_name}"
+    @property
+    def subjects(self) -> list[str]:
+        """The subjects this endpoint reads, one channel each.
+
+        A JetStream consumer with no `subject` reaches its stream through
+        `filter_subjects`, and each of those is an address in its own right.
+        """
+        if subject := self.subject.template:
+            return [subject]
+
+        return self.filter_subjects
+
+    @property
+    def channel_labels(self) -> list[str]:
+        return self.subjects
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
-        return {
-            self.name: SubscriberSpec(
+        subjects = self.subjects
+        split = len(subjects) > 1
+
+        channels = {}
+        for subject in subjects:
+            name = self._channel_key(subject, split=split)
+
+            channels[name] = SubscriberSpec(
+                address=subject,
                 description=self.description,
                 operation=Operation(
                     message=Message(
-                        title=f"{self.name}:Message",
+                        title=f"{name}:Message",
                         payload=resolve_payloads(payloads),
                     ),
                     bindings=None,
                 ),
                 bindings=ChannelBinding(
                     nats=nats.ChannelBinding(
-                        subject=self.subject,
+                        subject=subject,
                         queue=self.config.queue,
                     ),
                 ),
-            ),
-        }
+            )
+
+        return channels
 
 
 class NotIncludeSpecifation(SubscriberSpecification):
@@ -50,7 +82,7 @@ class NotIncludeSpecifation(SubscriberSpecification):
         return False
 
     @property
-    def name(self) -> str:
+    def channel_labels(self) -> list[str]:
         raise NotImplementedError
 
     def get_schema(self) -> dict[str, "SubscriberSpec"]:

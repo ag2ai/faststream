@@ -2,10 +2,53 @@ import asyncio
 from unittest.mock import MagicMock
 
 import pytest
+import zmqtt
 
+from faststream.mqtt import MQTTBroker
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 
 from .basic import MQTTTestcaseConfig
+
+
+class _FailingSubscription:
+    async def start(self) -> None:
+        pass
+
+    async def stop(self) -> None:
+        pass
+
+    def __aiter__(self) -> "_FailingSubscription":
+        return self
+
+    async def __anext__(self) -> zmqtt.Message:
+        msg = "Connection recovery failed"
+        raise zmqtt.MQTTDisconnectedError(msg)
+
+
+@pytest.mark.mqtt()
+@pytest.mark.asyncio()
+async def test_terminal_subscription_failure_is_not_restarted(monkeypatch) -> None:
+    monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")
+    broker = MQTTBroker()
+    subscriber = broker.subscriber("test")
+
+    @subscriber
+    async def handle() -> None:
+        pass
+
+    broker._setup_logger()
+
+    async def create_subscription() -> None:
+        subscriber._subscription = _FailingSubscription()  # type: ignore[assignment]
+
+    monkeypatch.setattr(subscriber, "_create_subscription", create_subscription)
+
+    await subscriber.start()
+    await asyncio.gather(*subscriber.tasks, return_exceptions=True)
+    await asyncio.sleep(0)
+
+    assert len(subscriber.tasks) == 1
+    await subscriber.stop()
 
 
 @pytest.mark.connected()

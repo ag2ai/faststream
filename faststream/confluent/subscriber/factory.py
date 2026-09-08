@@ -1,9 +1,10 @@
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.confluent.schemas import Topic
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
 
 def create_subscriber(
-    *topics: str,
+    *topics: Union[str, "Topic"],
     partitions: Sequence["TopicPartition"],
     polling_interval: float,
     batch: bool,
@@ -39,8 +40,10 @@ def create_subscriber(
     description_: str | None,
     include_in_schema: bool,
 ) -> BatchSubscriber | ConcurrentDefaultSubscriber | DefaultSubscriber:
+    declared_topics = [Topic.validate(t) for t in topics]
+
     _validate_input_for_misconfigure(
-        *topics,
+        *declared_topics,
         group_id=group_id,
         partitions=partitions,
         ack_policy=ack_policy,
@@ -48,7 +51,7 @@ def create_subscriber(
     )
 
     subscriber_config = KafkaSubscriberConfig(
-        topics=topics,
+        topics=declared_topics,
         partitions=partitions,
         polling_interval=polling_interval,
         group_id=group_id,
@@ -63,7 +66,7 @@ def create_subscriber(
         _outer_config=config,
         calls=calls,
         specification_config=KafkaSubscriberSpecificationConfig(
-            topics=topics,
+            topics=declared_topics,
             partitions=partitions,
             title_=title_,
             description_=description_,
@@ -91,7 +94,7 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
-    *topics: str,
+    *topics: "Topic",
     ack_policy: "AckPolicy",
     max_workers: int,
     group_id: str | None,
@@ -121,3 +124,17 @@ def _validate_input_for_misconfigure(
     if not group_id and effective_ack is not AckPolicy.ACK_FIRST:
         msg = "You must use `group_id` with manual commit mode."
         raise SetupError(msg)
+
+    declared: dict[str, Topic] = {}
+    for topic in topics:
+        # One name declared twice with different settings is a contradiction
+        # only the caller can resolve, so name both and keep the last one.
+        if (previous := declared.get(topic.name)) is not None and previous != topic:
+            warnings.warn(
+                f"Topic {topic.name!r} is declared with conflicting settings: "
+                f"{previous!r} and {topic!r}. The last one wins.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
+
+        declared[topic.name] = topic

@@ -91,7 +91,7 @@ class AsgiFastStream(Application):
 
     def __init__(
         self,
-        *brokers: "BrokerUsecase[Any, Any]",
+        *brokers: "BrokerUsecase[Any, Any, Any]",
         asgi_routes: Sequence[tuple[str, "ASGIApp"]] = (),
         logger: Optional["LoggerProto"] = logger,
         provider: Provider | None = None,
@@ -157,7 +157,7 @@ class AsgiFastStream(Application):
 
     def _init_setupable_(  # noqa: PLW3201
         self,
-        *brokers: "BrokerUsecase[Any, Any]",
+        *brokers: "BrokerUsecase[Any, Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
         config: Optional["FastDependsConfig"] = None,
     ) -> None:

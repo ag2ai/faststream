@@ -1,10 +1,12 @@
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from typing import Any
+from typing import Any, TypeVar
 
 from faststream._internal.constants import EMPTY
 from faststream.exceptions import ContextError
+
+T = TypeVar("T")
 
 
 class ContextRepo:
@@ -50,7 +52,7 @@ class ContextRepo:
         """
         self._global_context.pop(key, None)
 
-    def set_local(self, key: str, value: Any) -> "Token[Any]":
+    def set_local(self, key: str, value: T) -> "Token[T]":
         """Set a local context variable.
 
         Args:

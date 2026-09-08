@@ -3,14 +3,16 @@ from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
 
+from faststream._internal.kafka import (
+    extract_per_message_keys_and_bodies,
+    key_for_index,
+    realign_keys,
+)
 from faststream.response.publish_type import PublishType
 from faststream.response.response import (
     BatchPublishCommand,
     PublishCommand,
     Response,
-    extract_per_message_keys_and_bodies,
-    key_for_index,
-    realign_keys,
 )
 
 if TYPE_CHECKING:
@@ -101,9 +103,9 @@ class KafkaPublishCommand(BatchPublishCommand):
 
         # per-message keys support
         keys, normalized = extract_per_message_keys_and_bodies(self.batch_bodies)
-        self._per_message_keys = keys
         if normalized is not None:
             self.batch_bodies = normalized
+        self._per_message_keys = keys
 
     @classmethod
     def from_cmd(
@@ -154,7 +156,9 @@ class KafkaPublishCommand(BatchPublishCommand):
 
     def _align_keys(self, value: Sequence["Any"]) -> None:
         """Align the per-message keys with the batch_bodies."""
-        if not self._per_message_keys:
+        if not hasattr(self, "_per_message_keys"):
+            return
+        if len(self._per_message_keys) == 0:
             return
         self._per_message_keys = realign_keys(
             self._per_message_keys, self.batch_bodies, value

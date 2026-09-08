@@ -43,7 +43,11 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     future: Optional["asyncio.Future[Any]"]
     _wrapped_call: Callable[..., Awaitable[Any]] | None
-    _original_call: Callable[P_HandlerParams, T_HandlerReturn]
+    # The handler as it was written, kept as written so that composing it again
+    # from an unchanged declaration produces an unchanged result.
+    _declared_call: Callable[P_HandlerParams, T_HandlerReturn]
+    # What the last composition made of it, decorators applied.
+    _composed_call: Callable[P_HandlerParams, T_HandlerReturn]
 
     _publishers: list["PublisherProto[Any]"]
 
@@ -52,7 +56,8 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
     _subscribers: list["SubscriberUsecase[Any]"]
 
     __slots__ = (
-        "_original_call",
+        "_composed_call",
+        "_declared_call",
         "_outer_config",
         "_publishers",
         "_subscribers",
@@ -68,7 +73,8 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         outer_config: BrokerConfig,
     ) -> None:
         """Initialize a handler."""
-        self._original_call = call
+        self._declared_call = call
+        self._composed_call = call
         self._wrapped_call = None
 
         self._publishers = []
@@ -86,7 +92,12 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         **kwargs: P_HandlerParams.kwargs,
     ) -> T_HandlerReturn:
         """Calls the object as a function."""
-        return self._original_call(*args, **kwargs)
+        return self._composed_call(*args, **kwargs)
+
+    @property
+    def _original_call(self) -> Callable[P_HandlerParams, T_HandlerReturn]:
+        """The composed call, under the name it had before the two were kept apart."""
+        return self._composed_call
 
     def call_wrapped(
         self, context: ContextRepo
@@ -110,12 +121,15 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         _call_decorators: Reversible["Decorator"],
         config: "FastDependsConfig",
     ) -> "CallModel":
+        # Composed from the declaration rather than from the last composition:
+        # `build_call` answers with the call it decorated, so reading that back
+        # as the input would decorate it again, one more layer per build.
         dependent = config.build_call(
-            self._original_call,
+            self._declared_call,
             dependencies=dependencies,
             call_decorators=_call_decorators,
         )
-        self._original_call = dependent.original_call
+        self._composed_call = dependent.original_call
         self._wrapped_call = dependent.wrapped_call
         return dependent.dependent
 

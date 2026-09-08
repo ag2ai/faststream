@@ -46,10 +46,10 @@ class TryItOutForm(TypedDict):
 class TryItOutProcessor:
     """Dispatch try-it-out requests by the exact AsyncAPI channel when possible."""
 
-    def __init__(self, *brokers: "BrokerUsecase[Any, Any]") -> None:
+    def __init__(self, *brokers: "BrokerUsecase[Any, Any, Any]") -> None:
         registry = _get_broker_registry()
         self._entries: list[
-            tuple[BrokerUsecase[Any, Any], type[TestBroker[Any, Any]]]
+            tuple[BrokerUsecase[Any, Any, Any], type[TestBroker[Any, Any]]]
         ] = []
         for broker in brokers:
             for br_cls, test_broker_cls in registry.items():
@@ -136,7 +136,7 @@ class TryItOutProcessor:
 
 
 def make_try_it_out_handler(
-    brokers: Iterable["BrokerUsecase[Any, Any]"],
+    brokers: Iterable["BrokerUsecase[Any, Any, Any]"],
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
@@ -163,7 +163,7 @@ def make_try_it_out_handler(
     return try_it_out
 
 
-def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any]") -> set[str]:
+def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any, Any]") -> set[str]:
     """Destinations declared on the broker (``schema()`` key before ``:``)."""
     destinations: set[str] = set()
 
@@ -178,7 +178,7 @@ def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any]") -> set[str]:
     return destinations
 
 
-def _iter_broker_channels(broker: "BrokerUsecase[Any, Any]") -> set[str]:
+def _iter_broker_channels(broker: "BrokerUsecase[Any, Any, Any]") -> set[str]:
     """Full AsyncAPI channel keys declared on the broker."""
     channels: set[str] = set()
 
@@ -195,10 +195,10 @@ def _iter_broker_channels(broker: "BrokerUsecase[Any, Any]") -> set[str]:
 
 @lru_cache(maxsize=1)
 def _get_broker_registry() -> dict[
-    type["BrokerUsecase[Any, Any]"],
+    type["BrokerUsecase[Any, Any, Any]"],
     type["TestBroker[Any, Any]"],
 ]:
-    registry: dict[type[BrokerUsecase[Any, Any]], type[TestBroker[Any, Any]]] = {}
+    registry: dict[type[BrokerUsecase[Any, Any, Any]], type[TestBroker[Any, Any]]] = {}
 
     with suppress(ImportError):
         from faststream.confluent import (

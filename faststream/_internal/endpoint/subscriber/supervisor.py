@@ -55,7 +55,7 @@ class TaskCallbackSupervisor:
         "func",
         "ignored_exceptions",
         "kwargs",
-        "max_attempts",
+        "restart_on_failure",
         "subscriber",
     )
 
@@ -70,12 +70,14 @@ class TaskCallbackSupervisor:
         subscriber: TasksMixin,
         *,
         ignored_exceptions: tuple[type[BaseException], ...] = (CancelledError,),
+        restart_on_failure: bool = True,
     ) -> None:
         self.subscriber = subscriber
         self.func = func
         self.args = func_args or ()
         self.kwargs = func_kwargs or {}
         self.ignored_exceptions = ignored_exceptions
+        self.restart_on_failure = restart_on_failure
 
     @staticmethod
     def _get_exception_identifier(
@@ -112,12 +114,20 @@ class TaskCallbackSupervisor:
             identifier = self._get_exception_identifier(exc)
             if identifier not in self.__cache:
                 self.__cache.add(identifier)
-                logger.log(
-                    f"{task.get_name()} raised an exception, retrying...\n"
-                    "If this behavior causes issues, you can disable it via setting the FASTSTREAM_SUPERVISOR_DISABLED env to 1. "
-                    "Also, please consider opening issue on the repository: https://github.com/ag2ai/faststream.",
-                    exc_info=exc,
-                    log_level=logging.ERROR,
-                )
+                if self.restart_on_failure:
+                    message = (
+                        f"{task.get_name()} raised an exception, retrying...\n"
+                        "If this behavior causes issues, you can disable it via setting "
+                        "the FASTSTREAM_SUPERVISOR_DISABLED env to 1. Also, please "
+                        "consider opening issue on the repository: "
+                        "https://github.com/ag2ai/faststream."
+                    )
+                else:
+                    message = (
+                        f"{task.get_name()} raised an exception and won't be restarted."
+                    )
 
-            self.subscriber.add_task(self.func, self.args, self.kwargs)
+                logger.log(message, exc_info=exc, log_level=logging.ERROR)
+
+            if self.restart_on_failure:
+                self.subscriber.add_task(self.func, self.args, self.kwargs)

@@ -162,7 +162,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:
         assert self._queue_obj, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator method if subscriber has registered handlers."

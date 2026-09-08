@@ -6,10 +6,13 @@ from typing_extensions import assert_type
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
     ListSub,
+    PubSub,
+    Redis,
     RedisBroker,
     RedisChannelMessage,
     RedisListMessage,
     RedisMessage as Message,
+    RedisPublisher,
     RedisRoute as Route,
     RedisRouter,
     RedisStreamMessage,
@@ -396,11 +399,14 @@ async def check_channel_subscriber_message_type(
 
 async def check_stream_subscriber_message_type(
     broker: RedisBroker | RedisRouter | FastAPIRouter,
+    redis: Redis,
 ) -> None:
     subscriber = broker.subscriber(stream=StreamSub("test"))
 
     message = await subscriber.get_one()
     assert_type(message, RedisStreamMessage | None)
+    if message is not None:
+        assert_type(await message.get_delivery_count(redis, "group"), int)
 
     async for msg in subscriber:
         assert_type(msg, RedisStreamMessage)
@@ -461,3 +467,20 @@ RedisBroker().include_routers(RedisRouter())
 RedisRouter(routers=[RedisRouter()])
 RedisRouter().include_router(RedisRouter())
 RedisRouter().include_routers(RedisRouter())
+
+
+# `RedisPublisher` is documented as a copy of `RedisRegistrator.publisher(...)`
+# arguments, so it must accept the same schema objects that method does.
+RedisRouter(
+    handlers=(
+        Route(
+            async_handler,
+            channel=PubSub("test"),
+            publishers=(
+                RedisPublisher(channel=PubSub("test")),
+                RedisPublisher(list=ListSub("test")),
+                RedisPublisher(stream=StreamSub("test")),
+            ),
+        ),
+    ),
+)

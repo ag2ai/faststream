@@ -55,7 +55,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
         if self._fetch_sub is None:
             fetch_sub = self._fetch_sub = await self.connection.subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 queue=self.queue,
                 **self.extra_options,
             )
@@ -82,14 +82,14 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
 
         if self._fetch_sub is None:
             fetch_sub = self._fetch_sub = await self.connection.subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 queue=self.queue,
                 **self.extra_options,
             )
@@ -116,7 +116,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
             return
 
         self.subscription = await self.connection.subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             queue=self.queue,
             cb=self.consume,
             **self.extra_options,
@@ -133,7 +133,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         """
         return self.build_log_context(
             message=message,
-            subject=self.subject,
+            subject=self.subject.template,
             queue=self.queue,
         )
 
@@ -148,7 +148,7 @@ class ConcurrentCoreSubscriber(ConcurrentMixin["Msg"], CoreSubscriber):
         self.start_consume_task()
 
         self.subscription = await self.connection.subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             queue=self.queue,
             cb=self._put_msg,
             **self.extra_options,

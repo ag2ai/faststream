@@ -60,7 +60,7 @@ def convert_list_of_dict_to_dict(
 
 
 def get_app_schema(
-    *brokers: "BrokerUsecase[Any, Any]",
+    *brokers: "BrokerUsecase[Any, Any, Any]",
     title: str,
     app_version: str,
     schema_version: str,
@@ -153,14 +153,14 @@ def resolve_channel_messages(
 
 
 def get_broker_server(
-    *brokers: "BrokerUsecase[Any, Any]",
+    *brokers: "BrokerUsecase[Any, Any, Any]",
 ) -> tuple[
     dict[str, Server],
-    dict["BrokerUsecase[Any, Any]", list[str]],
+    dict["BrokerUsecase[Any, Any, Any]", list[str]],
 ]:
     """Get the broker server for an application."""
     servers: list[Server] = []
-    broker_servers: list[tuple[BrokerUsecase[Any, Any], Server]] = []
+    broker_servers: list[tuple[BrokerUsecase[Any, Any, Any], Server]] = []
 
     for broker in brokers:
         specification = broker.specification
@@ -191,7 +191,7 @@ def get_broker_server(
         server_name = "development" if single_server else f"Server{i}"
         servers_by_names[server_name] = server
 
-    broker_server_names: dict[BrokerUsecase[Any, Any], list[str]] = {}
+    broker_server_names: dict[BrokerUsecase[Any, Any, Any], list[str]] = {}
     for name, server in servers_by_names.items():
         for broker, br_server in broker_servers:
             if server == br_server:
@@ -201,7 +201,8 @@ def get_broker_server(
 
 
 def get_broker_channels(
-    broker: "BrokerUsecase[MsgType, ConnectionType]", servers: list[str] | None = None
+    broker: "BrokerUsecase[MsgType, ConnectionType, Any]",
+    servers: list[str] | None = None,
 ) -> dict[str, Channel]:
     """Get the broker channels for an application."""
     channels = {}
@@ -241,7 +242,7 @@ def get_asgi_routes(
             channel = Channel(
                 description=asgi_app.description,
                 subscribe=Operation(
-                    tags=asgi_app.tags,
+                    tags=[Tag.from_spec(tag) for tag in asgi_app.tags or ()] or None,
                     operationId=asgi_app.unique_id,
                     bindings=OperationBinding(
                         http=http_bindings.OperationBinding(

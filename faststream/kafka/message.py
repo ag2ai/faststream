@@ -39,15 +39,15 @@ class FakeConsumer:
 FAKE_CONSUMER = FakeConsumer()
 
 
-class KafkaRawMessage(ConsumerRecord):  # type: ignore[misc]
+class KafkaRawMessage(ConsumerRecord[Any, Any]):  # type: ignore[misc]
     consumer: AIOKafkaConsumer
 
 
 class KafkaMessage(
     StreamMessage[
         Union[
-            "ConsumerRecord",
-            tuple["ConsumerRecord", ...],
+            "ConsumerRecord[Any, Any]",
+            tuple["ConsumerRecord[Any, Any]", ...],
         ]
     ],
 ):
