@@ -1,4 +1,12 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.rabbit.address import (
+    as_declared,
+    broker_exchange,
+    broker_queue,
+    broker_routing_key,
+)
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.utils import is_routing_exchange
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -15,65 +23,78 @@ from faststream.specification.schema.bindings import (
 
 from .config import RabbitPublisherSpecificationConfig
 
+if TYPE_CHECKING:
+    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+
 
 class RabbitPublisherSpecification(
     PublisherSpecification[RabbitBrokerConfig, RabbitPublisherSpecificationConfig],
 ):
     @property
+    def queue(self) -> "RabbitQueue":
+        return broker_queue(self._outer_config, self.config.queue)
+
+    @property
+    def exchange(self) -> "RabbitExchange":
+        return broker_exchange(self._outer_config, self.config.exchange)
+
+    @property
+    def routing_key(self) -> str:
+        return broker_routing_key(self._outer_config, self.config.routing_address)
+
+    @property
+    def declared_queue(self) -> "RabbitQueue":
+        return as_declared(self._outer_config, self.config.queue)
+
+    @property
+    def declared_routing_key(self) -> str:
+        return as_declared(self._outer_config, self.config.routing_address).template
+
+    @property
     def routing(self) -> str | None:
-        """The routing key this publisher was declared with, as the name reads it.
+        """The routing key as declared, for the channel name; `address` is the prefixed one."""
+        # An explicit key names the channel whatever the exchange does with it.
+        if routing_key := self.declared_routing_key:
+            return routing_key
 
-        This is the channel name's question, not the address's: an explicit
-        `routing_key` names the channel whatever the exchange does with it. See
-        `address` for the string a message actually travels by.
-        """
-        if self.config.routing_address:
-            return self.config.routing_address.template
-
-        if is_routing_exchange(self.config.exchange):
-            return self.config.queue.routing_template()
+        if is_routing_exchange(self.exchange):
+            return self.declared_queue.routing_template()
 
         return None
 
     @property
     def address(self) -> str | None:
-        """The routing key a message published here travels by, prefixed.
-
-        The exchange decides first, not the declaration: a fanout reaches every
-        queue bound to it and ignores any routing key handed to it, so one declared
-        anyway still addresses nothing. The subscriber gates on the same question,
-        which is what keeps both ends of an address showing one string.
-
-        `None` rather than `""` for that case: AsyncAPI reads an absent address as
-        unknown, and an empty one as an address zero characters long.
-        """
-        if not is_routing_exchange(self.config.exchange):
+        """The routing key a message published here travels by, with the Router prefix."""
+        # The exchange decides first: a fanout ignores routing keys, so one declared
+        # anyway addresses nothing. The subscriber gates on the same question.
+        if not is_routing_exchange(self.exchange):
             return None
 
-        routing = self.routing
-        return f"{self._outer_config.prefix}{routing}" if routing else None
+        # `None` rather than `""`: AsyncAPI reads an absent address as unknown and an
+        # empty one as an address zero characters long.
+        if not self.routing:
+            return None
+
+        return self.routing_key or self.queue.routing_template()
 
     @property
     def name(self) -> str:
         if self.config.title_:
             return self.config.title_
 
-        exchange_name = getattr(self.config.exchange, "name", None)
+        exchange_name = getattr(self.exchange, "name", None)
 
         return f"{self.routing or '_'}:{exchange_name or '_'}:Publisher"
 
     def get_schema(self) -> dict[str, "PublisherSpec"]:
         payloads = self.get_payloads()
 
-        exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
-        queue_binding = amqp.Queue.from_queue(self.config.queue)
+        exchange_binding = amqp.Exchange.from_exchange(self.exchange)
+        queue_binding = amqp.Queue.from_queue(self.declared_queue)
 
-        # deliberately not `self.address`: the binding hands the routing key over
-        # whatever the exchange type, and the renderer is what drops it where the
-        # exchange ignores one. `address` answers for the document instead, so it
-        # has to make that call itself.
-        r = self.config.routing_address.template or self.config.queue.routing_template()
-        routing_key = f"{self._outer_config.prefix}{r}"
+        # Not `self.address`: the binding hands the key over whatever the exchange
+        # type, and the renderer is what drops it where the exchange ignores one.
+        routing_key = self.routing_key or self.queue.routing_template()
 
         return {
             self.name: PublisherSpec(
