@@ -17,6 +17,7 @@ from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.broker import MQTTBroker
+from faststream.mqtt.parser import MQTTVersion
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -56,7 +57,7 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         keepalive: int = 60,
         clean_session: bool = True,
         will: zmqtt.Will | None = None,
-        version: Literal["3.1.1", "5.0"] = "5.0",
+        version: MQTTVersion = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
         on_connection_recovery_failed: Callable[[], Awaitable[None]] | None = None,
         session_expiry_interval: int = 0,
