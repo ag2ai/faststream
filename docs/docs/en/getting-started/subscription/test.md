@@ -205,36 +205,36 @@ Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.
 Scoping rule: the mock exists only inside the context manager. Once it exits, `handle.mock` raises a `SetupError` instead of answering for calls nobody made.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="6 8"
+    ```python linenums="1" hl_lines="6 8-9"
     {!> docs_src/getting_started/subscription/kafka/testing.py [ln:10-18] !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="6 8"
+    ```python linenums="1" hl_lines="6 8-9"
     {!> docs_src/getting_started/subscription/confluent/testing.py [ln:10-18] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="6 8"
+    ```python linenums="1" hl_lines="6 8-9"
     {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:10-18] !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="6 8"
+    ```python linenums="1" hl_lines="6 8-9"
     {!> docs_src/getting_started/subscription/nats/testing.py [ln:10-18] !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="6 8"
+    ```python linenums="1" hl_lines="6 8-9"
     {!> docs_src/getting_started/subscription/redis/testing.py [ln:10-18] !}
     ```
 
 === "MQTT"
-    ```python linenums="1" hl_lines="6 8"
+    ```python linenums="1" hl_lines="6 8-9"
     {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:10-18] !}
     ```
 
-### Advanced Validates Input
+### Validates Message Fields
 
 Every handler also has an `assert_called_once_with` method. It checks the message body the same way `mock.assert_called_once_with` does, and beside it the message fields the handler saw: `headers`, `correlation_id`, `reply_to`, `content_type` and `path`.
 
@@ -242,64 +242,64 @@ Let's take an example of such an application:
 
 === "AIOKafka"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:1-3,6-25] !}
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:1-2,4-25] !}
     ```
 
 === "Confluent"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:1-3,6-25] !}
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:1-2,4-25] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:1-3,6-25] !}
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:1-2,4-25] !}
     ```
 
 === "NATS"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:1-3,6-25] !}
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:1-2,4-25] !}
     ```
 
 === "Redis"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:1-3,6-25] !}
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:1-2,4-25] !}
     ```
 
 === "MQTT"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:1-3,6-25] !}
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:1-2,4-25] !}
     ```
 
 Using `assert_called_once_with`, you can check the body and the headers in one statement. The body may be a plain `dict` or your model: it goes through the broker codec before the comparison, so both spellings mean the same message.
 
 === "AIOKafka"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:4-5,7-8,28-46] !}
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3,5,7-8,28-45] !}
     ```
 
 === "Confluent"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:4-5,7-8,28-46] !}
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5,7-8,28-45] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:4-5,7-8,28-46] !}
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5,7-8,28-45] !}
     ```
 
 === "NATS"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:4-5,7-8,28-46] !}
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3,5,7-8,28-45] !}
     ```
 
 === "Redis"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:4-5,7-8,28-46] !}
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5,7-8,28-45] !}
     ```
 
 === "MQTT"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:4-5,7-8,28-46] !}
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5,7-8,28-45] !}
     ```
 
 Headers match as a subset: FastStream adds its own headers (`content-type`, `correlation_id`) beside yours, and they never get in the way. Every other field matches exactly. When several fields differ, the `AssertionError` lists all of them at once.
@@ -331,32 +331,32 @@ Headers match as a subset: FastStream adds its own headers (`content-type`, `cor
 If you want to test your application in a real environment, you shouldn't have to rewrite all your tests: just pass `with_real` optional parameter to your `TestClient` context manager. This way, `TestClient` supports all the testing features but uses an unpatched broker to send and consume messages.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
+    ```python linenums="1" hl_lines="5 9 11 19 22"
     {!> docs_src/getting_started/subscription/kafka/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
+    ```python linenums="1" hl_lines="5 9 11 19 22"
     {!> docs_src/getting_started/subscription/confluent/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
+    ```python linenums="1" hl_lines="5 9 11 19 22"
     {!> docs_src/getting_started/subscription/rabbit/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
+    ```python linenums="1" hl_lines="5 9 11 19 22"
     {!> docs_src/getting_started/subscription/nats/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
+    ```python linenums="1" hl_lines="5 9 11 19 22"
     {!> docs_src/getting_started/subscription/redis/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "MQTT"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
+    ```python linenums="1" hl_lines="5 9 11 19 22"
     {!> docs_src/getting_started/subscription/mqtt/real_testing.py [ln:1-6,10-27] !}
     ```
 

@@ -241,8 +241,7 @@ class TestBroker(Generic[Broker, EnterType]):
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         for p in broker.publishers:
-            if getattr(p, "_fake_handler", None):
-                p.reset_test()
+            p.reset_test()
 
         # Fakes are registered with `persistent=False`, so the broker holds them weakly
         # and they outlive us until the next collection (see issue #2990).

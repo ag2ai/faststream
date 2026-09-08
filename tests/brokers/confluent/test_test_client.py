@@ -8,6 +8,7 @@ from faststream import AckPolicy, BaseMiddleware, Context
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
+from faststream.exceptions import SetupError
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 from tests.tools import spy_decorator
 
@@ -141,6 +142,22 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         async with self.patch_broker(broker) as br:
             await br.publish_batch("hello", topic=queue)
             m.mock.assert_called_once_with(["hello"])
+
+    async def test_batch_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue, batch=True)
+        async def m(msg) -> None:
+            pass
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch({"n": 1}, {"n": 2}, topic=queue)
+
+            await m.assert_called_once_with([{"n": 1}, {"n": 2}])
+
+            # A batch has one header set per message, so there is no single answer
+            with pytest.raises(SetupError, match="received a batch"):
+                await m.assert_called_once_with(headers={"key": "value"})
 
     async def test_batch_publisher_mock(self, queue: str) -> None:
         broker = self.get_broker()

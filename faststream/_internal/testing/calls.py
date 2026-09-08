@@ -49,7 +49,14 @@ class CallAssertions:
     ) -> None:
         """Assert the endpoint was called once, with the message described here.
 
-        Headers match as a subset; every other field matches exactly.
+        Args:
+            body: The body as a dict, a model or a matcher; it goes through the codec.
+            headers: Headers the message must carry; the rest may carry more.
+            correlation_id: The exact correlation id.
+            reply_to: The exact reply-to destination.
+            content_type: The exact content type.
+            path: The exact path parameters the subject template matched.
+            context: Context paths, as given to `Context()`, mapped to their values.
         """
         self.mock.assert_called_once()
         await self._recorder.assert_last_call(
@@ -64,11 +71,7 @@ class CallAssertions:
 
 
 class CallRecorder:
-    """Records the messages an endpoint saw under a test broker and asserts on them.
-
-    A subscriber handler owns one; a publisher shares the recorder of the fake
-    subscriber that receives its messages, or mirrors a real one into its own.
-    """
+    """Records the messages an endpoint saw under a test broker and asserts on them."""
 
     def __init__(self, name: str, outer_config: "BrokerConfig") -> None:
         self.name = name
@@ -76,6 +79,7 @@ class CallRecorder:
         self.calls: list[RecordedCall] = []
 
         self._outer_config = outer_config
+        # A publisher shares its fake subscriber's recorder, or mirrors a real one
         self._mirrors: list[CallRecorder] = []
 
     async def record(
@@ -173,22 +177,22 @@ class CallRecorder:
         codec = self._outer_config.broker_codec or DefaultCodec()
         serializer = self._outer_config.fd_config._serializer
 
+        decoder: AsyncCallable
         try:
             # A batch decoder answers for the whole batch, so items go through the codec
             if call.message.batch_headers:
-                return [
-                    await _decode_as_received(
-                        call, codec.decode, *await codec.encode(item, serializer)
-                    )
-                    for item in body
-                ]
-
-            encoded, content_type = await codec.encode(body, serializer)
-            return await _decode_as_received(call, call.decoder, encoded, content_type)
+                encoded = [await codec.encode(item, serializer) for item in body]
+                decoder = codec.decode
+            else:
+                encoded = [await codec.encode(body, serializer)]
+                decoder = call.decoder
 
         # A matcher (dirty-equals and the like) cannot be encoded: compare it as is
         except (TypeError, ValueError):
             return body
+
+        decoded = [await _decode_as_received(call, decoder, *item) for item in encoded]
+        return decoded if call.message.batch_headers else decoded[0]
 
 
 @dataclass(slots=True)
@@ -222,13 +226,10 @@ async def _decode_as_received(
 
 
 def _headers_seen_through(expected: Any, actual: dict[str, Any]) -> Any:
-    """Project the received headers onto the expected keys.
-
-    Headers match as a subset because the framework and the broker add their
-    own beside the ones a test cares about.
-    """
+    """Project the received headers onto the expected keys."""
     if not isinstance(expected, Mapping):
         return actual
+    # Headers match as a subset: the framework and the broker add their own
     return {key: actual.get(key, _MISSING) for key in expected}
 
 

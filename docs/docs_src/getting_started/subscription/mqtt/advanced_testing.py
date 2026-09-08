@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from pydantic import BaseModel
 import pytest
+from pydantic import BaseModel
 
 from faststream import FastStream, Header
 from faststream.mqtt import MQTTBroker, TestMQTTBroker
