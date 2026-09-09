@@ -16,6 +16,11 @@ from .consume import BrokerConsumeTestcase
 from .publish import BrokerPublishTestcase
 
 
+class BodyModel(BaseModel):
+    name: str
+    age: int
+
+
 class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
     @abstractmethod
     def get_fake_producer_class(self) -> type:
@@ -284,10 +289,6 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             assert json.loads(data.body) == {"param2": 1}, data.body
 
     async def test_publisher_assert_called_once_with(self, queue: str) -> None:
-        class BodyModel(BaseModel):
-            name: str
-            age: int
-
         broker = self.get_broker(apply_types=True)
 
         publisher2 = broker.publisher(queue + "2")
@@ -356,11 +357,9 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         with pytest.raises(SetupError, match="`handle` is not under a test broker"):
             handle.mock.assert_not_called()
 
-    async def test_subscriber_assert_called_once_with(self, queue: str) -> None:
-        class BodyModel(BaseModel):
-            name: str
-            age: int
-
+    async def test_subscriber_assertion_checks_body_fields_and_context(
+        self, queue: str
+    ) -> None:
         broker = self.get_broker(apply_types=True)
 
         args, kwargs = self.get_subscriber_params(queue)

@@ -138,8 +138,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg) -> None:
-            pass
+        async def m(msg) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish_batch({"n": 1}, {"n": 2}, list=queue)
