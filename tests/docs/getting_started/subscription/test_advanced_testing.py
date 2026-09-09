@@ -16,9 +16,11 @@ from tests.marks import (
 async def test_handle_kafka() -> None:
     from docs.docs_src.getting_started.subscription.kafka.advanced_testing import (
         test_handle,
+        test_message_context,
     )
 
     await test_handle()
+    await test_message_context()
 
 
 @pytest.mark.confluent()
@@ -27,9 +29,11 @@ async def test_handle_kafka() -> None:
 async def test_handle_confluent() -> None:
     from docs.docs_src.getting_started.subscription.confluent.advanced_testing import (
         test_handle,
+        test_message_context,
     )
 
     await test_handle()
+    await test_message_context()
 
 
 @pytest.mark.rabbit()
@@ -38,9 +42,11 @@ async def test_handle_confluent() -> None:
 async def test_handle_rabbit() -> None:
     from docs.docs_src.getting_started.subscription.rabbit.advanced_testing import (
         test_handle,
+        test_message_context,
     )
 
     await test_handle()
+    await test_message_context()
 
 
 @pytest.mark.nats()
@@ -49,9 +55,11 @@ async def test_handle_rabbit() -> None:
 async def test_handle_nats() -> None:
     from docs.docs_src.getting_started.subscription.nats.advanced_testing import (
         test_handle,
+        test_message_context,
     )
 
     await test_handle()
+    await test_message_context()
 
 
 @pytest.mark.redis()
@@ -60,9 +68,11 @@ async def test_handle_nats() -> None:
 async def test_handle_redis() -> None:
     from docs.docs_src.getting_started.subscription.redis.advanced_testing import (
         test_handle,
+        test_message_context,
     )
 
     await test_handle()
+    await test_message_context()
 
 
 @pytest.mark.mqtt()
@@ -71,6 +81,8 @@ async def test_handle_redis() -> None:
 async def test_handle_mqtt() -> None:
     from docs.docs_src.getting_started.subscription.mqtt.advanced_testing import (
         test_handle,
+        test_message_context,
     )
 
     await test_handle()
+    await test_message_context()

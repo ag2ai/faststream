@@ -242,85 +242,102 @@ Let's take an example of such an application:
 
 === "AIOKafka"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:1-2,4-25] !}
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:1-2,5-26] !}
     ```
 
 === "Confluent"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:1-2,4-25] !}
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:1-2,5-26] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:1-2,4-25] !}
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:1-2,5-26] !}
     ```
 
 === "NATS"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:1-2,4-25] !}
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:1-2,5-26] !}
     ```
 
 === "Redis"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:1-2,4-25] !}
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:1-2,5-26] !}
     ```
 
 === "MQTT"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:1-2,4-25] !}
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:1-2,5-26] !}
     ```
 
 Using `assert_called_once_with`, you can check the body and the headers in one statement. The body may be a plain `dict` or your model: it goes through the broker codec before the comparison, so both spellings mean the same message.
 
 === "AIOKafka"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3,5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3,5,7-8,29-46] !}
     ```
 
 === "Confluent"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5,7-8,29-46] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5,7-8,29-46] !}
     ```
 
 === "NATS"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3,5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3,5,7-8,29-46] !}
     ```
 
 === "Redis"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5,7-8,29-46] !}
     ```
 
 === "MQTT"
     ```python linenums="1"
-    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5,7-8,28-45] !}
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5,7-8,29-46] !}
     ```
 
 Headers match as a subset: FastStream adds its own headers (`content-type`, `correlation_id`) beside yours, and they never get in the way. Every other field matches exactly. When several fields differ, the `AssertionError` lists all of them at once.
 
-!!! tip
-    To check only a part of the body, use a [dirty-equals](https://dirty-equals.helpmanual.io/){.external-link target="_blank"} matcher in its place:
+To check only a part of the body, put a [dirty-equals](https://dirty-equals.helpmanual.io/){.external-link target="_blank"} matcher in its place. Anything the fields above do not cover, such as the Kafka message key, lives in the context: check it through `context` by the same path you would give to `Context()`, walking attributes and dict keys from a context name.
 
-    ```python
-    from dirty_equals import IsPartialDict
-
-    await handle.assert_called_once_with(IsPartialDict(name="John"))
+=== "AIOKafka"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3-4,7-8,49-62] !}
     ```
 
-!!! tip
-    Anything the fields above do not cover lives in the context. Check it by the same path you would give to `Context()`:
-
-    ```python
-    await handle.assert_called_once_with(
-        context={"message.raw_message.topic": "test-topic"},
-    )
+=== "Confluent"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3-4,7-8,49-61] !}
     ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```
+
+!!! note
+    A context path reads attributes and keys, it never calls. Where a raw message answers with methods, as the Confluent one does, reach for what **FastStream** put in the context beside it, such as `log_context`.
 
 !!! note
     Both `handle.mock` and `assert_called_once_with` exist only inside the test broker. Outside of it they raise a `SetupError` instead of answering for a handler nobody has called.

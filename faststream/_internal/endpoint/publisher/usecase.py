@@ -118,7 +118,7 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
 
         published_msg = await request(cmd)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         response_msg: Any = await process_msg(
             msg=published_msg,
@@ -136,7 +136,7 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
         self,
         extra_middlewares: Iterable["PublisherMiddleware"] = (),
     ) -> Generator["PublisherMiddleware", None, None]:
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         yield from (
             extra_middlewares

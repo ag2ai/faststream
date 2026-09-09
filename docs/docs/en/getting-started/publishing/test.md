@@ -136,14 +136,37 @@ Also, it allows you to check the outgoing message body in the same way as with a
 publisher.mock.assert_called_once_with("Hi!")
 ```
 
-In addition, the publisher has the same `assert_called_once_with` method as a [subscriber](../subscription/test.md#validates-message-fields){.internal-link}. It takes the body as your model and the message fields the outgoing message carried:
+In addition, the publisher has the same `assert_called_once_with` method as a [subscriber](../subscription/test.md#validates-message-fields){.internal-link}. It takes the body as a `dict`, your model or a matcher, and the message fields the outgoing message carried. Here the publisher inherits the `correlation_id` of the message the handler consumed:
 
-```python
-await publisher.assert_called_once_with(
-    AddUser(name="John", age=19),
-    headers={"trace-id": "42"},
-)
-```
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="10"
+    {!> docs_src/getting_started/publishing/kafka/object_testing.py [ln:1-4,16-21] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="10"
+    {!> docs_src/getting_started/publishing/confluent/object_testing.py [ln:1-4,16-21] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="10"
+    {!> docs_src/getting_started/publishing/rabbit/object_testing.py [ln:1-4,16-21] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="10"
+    {!> docs_src/getting_started/publishing/nats/object_testing.py [ln:1-4,16-21] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="10"
+    {!> docs_src/getting_started/publishing/redis/object_testing.py [ln:1-4,16-21] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="10"
+    {!> docs_src/getting_started/publishing/mqtt/object_testing.py [ln:1-4,16-21] !}
+    ```
 
 
 !!! note

@@ -14,6 +14,7 @@ from faststream.message import gen_cor_id
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.context import ContextRepo
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.middlewares import AckPolicy
@@ -50,6 +51,10 @@ class BrokerConfig:
             or self.broker_dependencies
             or self.prefix,
         )
+
+    @property
+    def context(self) -> "ContextRepo":
+        return self.fd_config.context
 
     def add_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
         self.broker_middlewares = (*self.broker_middlewares, middleware)
@@ -101,6 +106,10 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
     @fd_config.setter
     def fd_config(self, value: "FastDependsConfig") -> None:
         self.broker_config.fd_config = value
+
+    @property
+    def context(self) -> "ContextRepo":
+        return self.broker_config.context
 
     @property
     def graceful_timeout(self) -> float | None:

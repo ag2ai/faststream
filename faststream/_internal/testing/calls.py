@@ -85,7 +85,7 @@ class CallRecorder:
     async def record(self, message: "StreamMessage[Any]") -> None:
         # The context is scoped to this call, so it has to be captured now
         # rather than resolved when the assertion runs.
-        context = self._outer_config.fd_config.context.context
+        context = self._outer_config.context.context
         call = RecordedCall(message, context)
         decoded = await message.decode()
 

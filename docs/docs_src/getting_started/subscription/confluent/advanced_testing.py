@@ -1,6 +1,7 @@
 from typing import Annotated
 
 import pytest
+from dirty_equals import IsPartialDict
 from pydantic import BaseModel
 
 from faststream import FastStream, Header
@@ -42,4 +43,19 @@ async def test_handle() -> None:
         await handle.assert_called_once_with(
             Data(name="John", user_id=1),
             headers={"trace-id": "42"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_message_context() -> None:
+    async with TestKafkaBroker(broker) as br:
+        await br.publish(
+            Data(name="John", user_id=1),
+            topic="test-topic",
+            headers={"trace-id": "42"},
+        )
+
+        await handle.assert_called_once_with(
+            IsPartialDict(name="John"),
+            context={"log_context.topic": "test-topic"},
         )
