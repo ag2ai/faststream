@@ -1,4 +1,3 @@
-from copy import copy
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
@@ -73,13 +72,12 @@ class StreamMessage(Generic[MsgType]):
     def clear_cache(self) -> None:
         self.__decoded_caches.clear()
 
-    def with_body(self, body: bytes, *, content_type: str | None) -> Self:
-        """A copy of the message carrying another body, decoded the same way."""
-        probe = copy(self)
-        probe.body = body
-        probe.content_type = content_type
-        probe.__decoded_caches = {}
-        return probe
+    def __copy__(self) -> Self:
+        message = self.__class__.__new__(self.__class__)
+        message.__dict__.update(self.__dict__)
+        # A copy answers for its own body, so it must not share the decode cache
+        message.__decoded_caches = {}
+        return message
 
     def __repr__(self) -> str:
         inner = ", ".join(

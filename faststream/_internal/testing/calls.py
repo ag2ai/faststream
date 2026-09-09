@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from copy import copy
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
@@ -181,7 +182,9 @@ class CallRecorder:
         except (TypeError, ValueError):
             return body
 
-        probes = [message.with_body(data, content_type=ct) for data, ct in encoded]
+        probes = [
+            _with_body(message, data, content_type) for data, content_type in encoded
+        ]
         if not message.batch_headers:
             return await probes[0].decode()
 
@@ -198,6 +201,18 @@ class RecordedCall:
 
 
 _MISSING = Sentinel("MISSING")
+
+
+def _with_body(
+    message: "StreamMessage[Any]",
+    body: bytes,
+    content_type: str | None,
+) -> "StreamMessage[Any]":
+    """A copy of the message carrying another body, decoded the same way."""
+    probe = copy(message)
+    probe.body = body
+    probe.content_type = content_type
+    return probe
 
 
 def _headers_seen_through(expected: Any, actual: dict[str, Any]) -> Any:
