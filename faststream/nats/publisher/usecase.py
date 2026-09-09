@@ -220,7 +220,7 @@ class LogicPublisher(PublisherUsecase):
             correlation_id=correlation_id or self._outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
             _publish_type=PublishType.REQUEST,
-            msg_ttl=msg_ttl
+            msg_ttl=msg_ttl,
         )
 
         if cmd.stream:

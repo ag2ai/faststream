@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -914,3 +915,51 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
                     break
 
                 await bucket.put(queue, expected_messages[index_message])
+
+    async def test_consume_pause_by_api(self, queue: str, stream: JStream):
+        consumer_name = "PAUSEAPI"
+        broker = self.get_broker()
+        pause_until = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+
+        @broker.subscriber(queue, stream=stream, name=consumer_name)
+        def handler():
+            pass
+
+        async with self.patch_broker(broker):
+            await broker.start()
+            stream_context = broker.config.connection_state.stream
+            pause_resp = await stream_context.pause_consumer(
+                stream.name, consumer_name, pause_until
+            )
+
+            assert pause_resp.paused is True
+
+            resume_resp = await stream_context.resume_consumer(stream.name, consumer_name)
+
+            assert resume_resp.paused is False
+
+    async def test_consume_pause_by_init_params(self, queue: str, stream: JStream):
+        consumer_name = "PAUSEINIT"
+        broker = self.get_broker()
+        pause_until = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+
+        @broker.subscriber(
+            queue, stream=stream, name=consumer_name, pause_until=pause_until
+        )
+        def handler():
+            pass
+
+        async with self.patch_broker(broker):
+            await broker.start()
+            stream_context = broker.config.connection_state.stream
+            consumer = await stream_context.consumer_info(stream.name, consumer_name)
+
+            assert consumer.paused is True
+
+            resume_resp = await stream_context.resume_consumer(stream.name, consumer_name)
+
+            assert resume_resp.paused is False

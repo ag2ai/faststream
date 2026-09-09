@@ -614,6 +614,8 @@ class NatsBroker(
                 Timeout to send message to NATS.
             schedule:
                 Schedule to publish message at a specific time.
+            msg_ttl:
+                Per-message TTL in seconds.
 
         Returns:
             `None` if you publishes a regular message.
@@ -629,7 +631,7 @@ class NatsBroker(
             timeout=timeout or 0.5,
             _publish_type=PublishType.PUBLISH,
             schedule=schedule,
-            msg_ttl=msg_ttl
+            msg_ttl=msg_ttl,
         )
 
         result: PubAck | None
@@ -671,6 +673,8 @@ class NatsBroker(
                 JetStream name. This option is required if your target subscriber listens for events using JetStream.
             timeout:
                 Timeout to send message to NATS.
+            msg_ttl:
+                Per-message TTL in seconds.
 
         Returns:
             `faststream.nats.message.NatsMessage` object as an outer subscriber response.

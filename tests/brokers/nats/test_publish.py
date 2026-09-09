@@ -90,12 +90,7 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
         async with self.patch_broker(broker):
             await broker.start()
 
-            await broker.publish(
-                None,
-                queue,
-                msg_ttl=1.0,
-                stream=stream.name
-            )
+            await broker.publish(None, queue, msg_ttl=1.0, stream=stream.name)
 
             stream_context = broker.config.connection_state.stream
             stream_info = await stream_context.stream_info(stream.name)
@@ -118,6 +113,7 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue, stream=stream)
+
         @broker.subscriber(queue, stream=stream)
         async def handler(msg):
             event.set()
@@ -125,10 +121,7 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
         async with self.patch_broker(broker):
             await broker.start()
 
-            await publisher.publish(
-                None,
-                msg_ttl=1.0
-            )
+            await publisher.publish(None, msg_ttl=1.0)
 
             stream_context = broker.config.connection_state.stream
             stream_info = await stream_context.stream_info(stream.name)

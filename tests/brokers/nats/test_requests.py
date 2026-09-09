@@ -92,12 +92,7 @@ class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
         async with self.patch_broker(broker):
             await broker.start()
 
-            response = await broker.request(
-                None,
-                queue,
-                msg_ttl=1.0,
-                stream=stream.name
-            )
+            response = await broker.request(None, queue, msg_ttl=1.0, stream=stream.name)
 
             stream_context = broker.config.connection_state.stream
             stream_info = await stream_context.stream_info(stream.name)
@@ -126,10 +121,7 @@ class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
         async with self.patch_broker(broker):
             await broker.start()
 
-            response = await publisher.request(
-                None,
-                msg_ttl=1.0
-            )
+            response = await publisher.request(None, msg_ttl=1.0)
 
             stream_context = broker.config.connection_state.stream
             stream_info = await stream_context.stream_info(stream.name)

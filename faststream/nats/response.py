@@ -41,7 +41,7 @@ class NatsResponse(Response):
             subject="",
             stream=self.stream,
             schedule=self.schedule,
-            msg_ttl=self.msg_ttl
+            msg_ttl=self.msg_ttl,
         )
 
 

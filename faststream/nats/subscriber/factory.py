@@ -73,6 +73,8 @@ def create_subscriber(
     ack_policy: "AckPolicy",
     no_reply: bool,
     broker_config: "NatsBrokerConfig",
+    pause_until: str | None,
+    name: str | None,
     # Specification information
     title_: str | None,
     description_: str | None,
@@ -108,6 +110,10 @@ def create_subscriber(
         config.headers_only = headers_only
     if config.deliver_policy is DeliverPolicy.ALL:
         config.deliver_policy = deliver_policy or DeliverPolicy.ALL
+    if config.pause_until is None:
+        config.pause_until = pause_until
+    if config.name is None:
+        config.name = name
 
     if stream:
         # Both JS Subscribers

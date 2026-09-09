@@ -79,6 +79,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -118,6 +120,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -157,6 +161,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -196,6 +202,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -235,6 +243,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -274,6 +284,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -313,6 +325,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -352,6 +366,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -391,6 +407,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -430,6 +448,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -469,6 +489,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        pause_until: str | None = None,
+        name: str | None = None,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -516,6 +538,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             description: AsyncAPI subscriber object description. Uses decorated docstring as default.
             include_in_schema: Whetever to include operation in AsyncAPI schema or not.
             persistent: Whether to make the subscriber persistent or not.
+            pause_until: Consumer pause until timestamp.
+            name: Consumer name.
 
         Returns:
             LogicSubscriber[Any]: The created subscriber object.
@@ -544,6 +568,8 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             inbox_prefix=inbox_prefix,
             ack_policy=ack_policy,
             no_reply=no_reply,
+            pause_until=pause_until,
+            name=name,
             broker_config=cast("NatsBrokerConfig", self.config),
             # AsyncAPI
             title_=title,
