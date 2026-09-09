@@ -193,6 +193,25 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             await publisher.assert_called_with(key=b"k")
             await publisher.assert_any_call(partition=1)
 
+    async def test_kafka_fields_refuse_another_brokers_message(self, queue: str) -> None:
+        from faststream.rabbit import RabbitBroker, TestRabbitBroker
+
+        broker = self.get_broker()
+        rabbit = RabbitBroker()
+
+        # The first decorator decides the wrapper class: Kafka's here
+        @rabbit.subscriber(queue)
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker), TestRabbitBroker(rabbit):
+            await rabbit.publish("hello", queue)
+
+            await handle.assert_called_once_with("hello")
+
+            with pytest.raises(SetupError, match="`key` is a Kafka field"):
+                await handle.assert_called_once_with("hello", key=b"k")
+
     async def test_batch_publisher_mock(self, queue: str) -> None:
         broker = self.get_broker()
 
