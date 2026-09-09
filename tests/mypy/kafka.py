@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from typing import Any
 
 import prometheus_client
@@ -15,6 +15,7 @@ from faststream.kafka import (
     RecordMetadata,
     TestKafkaBroker,
 )
+from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.fastapi import KafkaRouter as FastAPIRouter
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
@@ -418,6 +419,28 @@ def check_publisher_instance_type(
 
     pub2 = broker.publisher("test", batch=True)
     assert_type(pub2, BatchPublisher)
+
+
+async def check_call_assertions_take_the_kafka_fields(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    @broker.subscriber("test")
+    async def handle() -> None: ...
+
+    assert_type(handle, KafkaHandlerCallWrapper[[], Coroutine[Any, Any, None]])
+    await handle.assert_called_once_with(None, key=b"k", partition=0)
+    await handle.assert_called_with(key=b"k")
+    await handle.assert_any_call(partition=0)
+
+    publisher = broker.publisher("test")
+
+    @publisher
+    async def published() -> None: ...
+
+    assert_type(published, KafkaHandlerCallWrapper[[], Coroutine[Any, Any, None]])
+    await publisher.assert_called_once_with(None, key=b"k", partition=0)
+    await publisher.assert_called_with(key=b"k")
+    await publisher.assert_any_call(partition=0)
 
 
 def fake_bool() -> bool:

@@ -1,29 +1,35 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    Union,
     cast,
 )
 
 import anyio
 from confluent_kafka import KafkaException, Message
-from typing_extensions import override
+from typing_extensions import overload, override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
+from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import MsgType
+from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
+from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
 
 if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
+
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.types import CustomCallable, Filter
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
     from faststream.confluent.message import KafkaMessage
@@ -36,6 +42,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
     _outer_config: "KafkaBrokerConfig"
+    _call_wrapper_class = KafkaHandlerCallWrapper
 
     group_id: str | None
 
@@ -59,6 +66,61 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.consumer = None
         self.polling_interval = config.polling_interval
+
+    @overload
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
+
+    @overload
+    def __call__(
+        self,
+        func: None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Callable[
+        [Callable[P_HandlerParams, T_HandlerReturn]],
+        "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+    ]: ...
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn] | None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Union[
+        "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        Callable[
+            [Callable[P_HandlerParams, T_HandlerReturn]],
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        ],
+    ]:
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn] | Callable["
+            "[Callable[P_HandlerParams, T_HandlerReturn]], "
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]]",
+            super().__call__(
+                func,
+                filter=filter,
+                parser=parser,
+                decoder=decoder,
+                dependencies=dependencies,
+            ),
+        )
 
     @property
     def client_id(self) -> str | None:

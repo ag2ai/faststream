@@ -158,6 +158,41 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             with pytest.raises(SetupError, match="received a batch"):
                 await m.assert_called_once_with(headers={"key": "value"})
 
+            with pytest.raises(SetupError, match=r"received a batch.*key, partition"):
+                await m.assert_called_once_with(key=b"k", partition=0)
+
+    async def test_assertions_take_the_kafka_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue, key=b"k", partition=1)
+
+            await handle.assert_called_once_with("hello", key=b"k", partition=1)
+            await handle.assert_called_with(key=b"k")
+            await handle.assert_any_call(partition=1)
+
+            with pytest.raises(AssertionError, match="key: expected b'other', got b'k'"):
+                await handle.assert_called_once_with("hello", key=b"other")
+
+    async def test_publisher_assertions_take_the_kafka_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "2")
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None:
+            await publisher.publish("response", key=b"k", partition=1)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            await publisher.assert_called_once_with("response", key=b"k", partition=1)
+            await publisher.assert_called_with(key=b"k")
+            await publisher.assert_any_call(partition=1)
+
     async def test_batch_publisher_mock(self, queue: str) -> None:
         broker = self.get_broker()
 
