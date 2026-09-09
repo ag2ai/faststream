@@ -14,7 +14,6 @@ from faststream.redis import (
     RedisStreamMessage,
     StreamSub,
 )
-from faststream.redis.exceptions import StreamGroupNotFoundError
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
 
@@ -1037,8 +1036,13 @@ class TestConsumeStream(RedisTestcaseConfig):
         queue: str,
         mock: MagicMock,
         event: asyncio.Event,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Subscriber stops when the consumer group is deleted (NOGROUP)."""
+        """Subscriber stops the app when the consumer group is deleted (NOGROUP)."""
+        # The global conftest disables the task supervisor; this test is about
+        # not entering its restart loop, so turn it back on.
+        monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")
+
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -1049,6 +1053,9 @@ class TestConsumeStream(RedisTestcaseConfig):
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
+            fake_app = MagicMock()
+            br.context.set_global("app", fake_app)
+
             await br.start()
 
             # Publish a message so the subscriber reads and starts consuming
@@ -1069,16 +1076,6 @@ class TestConsumeStream(RedisTestcaseConfig):
             with pytest.raises(asyncio.TimeoutError):
                 await asyncio.wait_for(event.wait(), timeout=1)
 
-            # The subscriber task should have finished with StreamGroupNotFoundError
-            tasks = br.subscribers[0].tasks
-            assert all(t.done() for t in tasks)
-            found = False
-            for t in tasks:
-                try:
-                    exc = t.exception()
-                    if isinstance(exc, StreamGroupNotFoundError):
-                        found = True
-                        break
-                except (asyncio.CancelledError, asyncio.InvalidStateError):
-                    pass
-            assert found, "Expected at least one task to raise StreamGroupNotFoundError"
+            # Stopped instead of restarting in a hot loop, and asked the app to exit
+            assert not br.subscribers[0].running
+            fake_app.exit.assert_called_once()
