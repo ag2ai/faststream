@@ -261,10 +261,9 @@ class CallRecorder:
                     actual = EMPTY
                 checks.compare(f"context[{key!r}]", value, actual)
 
-        if expected.read_field is not None:
-            for name, value in expected.broker_fields.items():
-                if value is not EMPTY:
-                    checks.compare(name, value, expected.read_field(name, call.message))
+        if (fields := expected.broker_fields) is not None:
+            for name, value in fields.values.items():
+                checks.compare(name, value, fields.read(name, call.message))
 
         return checks.lines
 
@@ -306,10 +305,7 @@ class ExpectedCall:
     content_type: Any
     path: Any
     context: Mapping[str, Any]
-    # A broker's own fields under the names its `publish()` takes, and the reader
-    # its wrapper hands over to take each one off the raw message
-    broker_fields: Mapping[str, Any] = field(default_factory=dict)
-    read_field: FieldReader | None = None
+    broker_fields: "BrokerFields | None" = None
 
     def message_fields(self) -> list[str]:
         """The names asked of the message beside its body."""
@@ -323,8 +319,17 @@ class ExpectedCall:
         )
         return [
             *(name for name in named if getattr(self, name) is not EMPTY),
-            *(name for name, value in self.broker_fields.items() if value is not EMPTY),
+            *(self.broker_fields.values if self.broker_fields else ()),
         ]
+
+
+@dataclass(slots=True)
+class BrokerFields:
+    """A broker's own fields a Call assertion asks for, and the reader that answers them."""
+
+    # Under the names the broker's `publish()` takes; a field not asked for is absent
+    values: Mapping[str, Any]
+    read: FieldReader
 
 
 @dataclass(slots=True)

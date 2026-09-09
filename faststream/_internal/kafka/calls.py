@@ -2,7 +2,11 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.testing.calls import CallAssertions, ExpectedCall
+from faststream._internal.testing.calls import (
+    BrokerFields,
+    CallAssertions,
+    ExpectedCall,
+)
 
 if TYPE_CHECKING:
     from faststream.message import StreamMessage
@@ -41,7 +45,7 @@ class KafkaCallAssertions(CallAssertions):
             partition: The exact partition the record was read from.
         """
         await self._assert_called_once_with(
-            self._describe(
+            self._expected_call(
                 body,
                 headers=headers,
                 correlation_id=correlation_id,
@@ -82,7 +86,7 @@ class KafkaCallAssertions(CallAssertions):
             partition: The exact partition the record was read from.
         """
         await self._assert_called_with(
-            self._describe(
+            self._expected_call(
                 body,
                 headers=headers,
                 correlation_id=correlation_id,
@@ -123,7 +127,7 @@ class KafkaCallAssertions(CallAssertions):
             partition: The exact partition the record was read from.
         """
         await self._assert_any_call(
-            self._describe(
+            self._expected_call(
                 body,
                 headers=headers,
                 correlation_id=correlation_id,
@@ -141,7 +145,7 @@ class KafkaCallAssertions(CallAssertions):
         """Take a Kafka field off the raw message; each Kafka package knows its client's."""
         raise NotImplementedError
 
-    def _describe(
+    def _expected_call(
         self,
         body: Any = EMPTY,
         /,
@@ -163,6 +167,12 @@ class KafkaCallAssertions(CallAssertions):
             content_type=content_type,
             path=path,
             context=context,
-            broker_fields={"key": key, "partition": partition},
-            read_field=self._read_field,
+            broker_fields=BrokerFields(
+                {
+                    name: value
+                    for name, value in (("key", key), ("partition", partition))
+                    if value is not EMPTY
+                },
+                self._read_field,
+            ),
         )
