@@ -19,11 +19,9 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import Decorator
-    from faststream._internal.context import ContextRepo
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
-    from faststream._internal.types import AsyncCallable
     from faststream.message import StreamMessage
 
 
@@ -98,20 +96,12 @@ class HandlerCallWrapper(CallAssertions, Generic[P_HandlerParams, T_HandlerRetur
         """The composed call, under the name it had before the two were kept apart."""
         return self._composed_call
 
-    def call_wrapped(
-        self,
-        context: "ContextRepo",
-        decoder: "AsyncCallable",
-    ) -> Callable[["StreamMessage[Any]"], Awaitable[Any]]:
-        async def _call_wrapped(message: "StreamMessage[Any]") -> Any:
-            """Calls the wrapped function with the given message."""
-            assert self._wrapped_call, "You should use `set_wrapped` first"
-            if self.is_test:
-                await self._recorder.record(message, context=context, decoder=decoder)
-
-            return await self._wrapped_call(message)
-
-        return _call_wrapped
+    async def call_wrapped(self, message: "StreamMessage[Any]") -> Any:
+        """Calls the wrapped function with the given message."""
+        assert self._wrapped_call, "You should use `set_wrapped` first"
+        if self.is_test:
+            await self._recorder.record(message)
+        return await self._wrapped_call(message)
 
     def set_wrapped(
         self,

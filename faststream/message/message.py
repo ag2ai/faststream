@@ -1,3 +1,4 @@
+from copy import copy
 from enum import Enum
 from typing import (
     TYPE_CHECKING,
@@ -7,6 +8,8 @@ from typing import (
     TypeVar,
 )
 from uuid import uuid4
+
+from typing_extensions import Self
 
 from .source_type import SourceType
 
@@ -69,6 +72,14 @@ class StreamMessage(Generic[MsgType]):
 
     def clear_cache(self) -> None:
         self.__decoded_caches.clear()
+
+    def with_body(self, body: bytes, *, content_type: str | None) -> Self:
+        """A copy of the message carrying another body, decoded the same way."""
+        probe = copy(self)
+        probe.body = body
+        probe.content_type = content_type
+        probe.__decoded_caches = {}
+        return probe
 
     def __repr__(self) -> str:
         inner = ", ".join(

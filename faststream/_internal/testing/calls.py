@@ -9,11 +9,10 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import ContextError, SetupError
-from faststream.message import StreamMessage
 
 if TYPE_CHECKING:
     from faststream._internal.configs import BrokerConfig
-    from faststream._internal.types import AsyncCallable
+    from faststream.message import StreamMessage
 
 
 class CallAssertions:
@@ -82,21 +81,16 @@ class CallRecorder:
         # A publisher shares its fake subscriber's recorder, or mirrors a real one
         self._mirrors: list[CallRecorder] = []
 
-    async def record(
-        self,
-        message: "StreamMessage[Any]",
-        *,
-        context: "ContextRepo",
-        decoder: "AsyncCallable",
-    ) -> None:
+    async def record(self, message: "StreamMessage[Any]") -> None:
         # The context is scoped to this call, so it has to be captured now
         # rather than resolved when the assertion runs.
-        call = RecordedCall(message, context.context, decoder)
-        self.calls.append(call)
-        self.mock(await message.decode())
+        context = self._outer_config.fd_config.context.context
+        call = RecordedCall(message, context)
+        decoded = await message.decode()
 
-        for mirror in self._mirrors:
-            await mirror.record(message, context=context, decoder=decoder)
+        for recorder in (self, *self._mirrors):
+            recorder.calls.append(call)
+            recorder.mock(decoded)
 
     def mirror_to(self, other: "CallRecorder") -> None:
         # The test broker may start more than once inside one context
@@ -129,7 +123,7 @@ class CallRecorder:
         if body is not EMPTY:
             checks.compare(
                 "body",
-                await self._expected_body(body, call),
+                await self._expected_body(body, call.message),
                 await call.message.decode(),
             )
 
@@ -172,57 +166,38 @@ class CallRecorder:
 
         checks.raise_for(self.name)
 
-    async def _expected_body(self, body: Any, call: "RecordedCall") -> Any:
+    async def _expected_body(self, body: Any, message: "StreamMessage[Any]") -> Any:
         """Run the expected body through the path the received one took."""
         codec = self._outer_config.broker_codec or DefaultCodec()
         serializer = self._outer_config.fd_config._serializer
 
-        decoder: AsyncCallable
         try:
-            # A batch decoder answers for the whole batch, so items go through the codec
-            if call.message.batch_headers:
+            if message.batch_headers:
                 encoded = [await codec.encode(item, serializer) for item in body]
-                decoder = codec.decode
             else:
                 encoded = [await codec.encode(body, serializer)]
-                decoder = call.decoder
 
         # A matcher (dirty-equals and the like) cannot be encoded: compare it as is
         except (TypeError, ValueError):
             return body
 
-        decoded = [await _decode_as_received(call, decoder, *item) for item in encoded]
-        return decoded if call.message.batch_headers else decoded[0]
+        probes = [message.with_body(data, content_type=ct) for data, ct in encoded]
+        if not message.batch_headers:
+            return await probes[0].decode()
+
+        # A batch decoder answers for the whole batch, so items go through the codec
+        for probe in probes:
+            probe.set_decoder(codec.decode)
+        return [await probe.decode() for probe in probes]
 
 
 @dataclass(slots=True)
 class RecordedCall:
     message: "StreamMessage[Any]"
     context: dict[str, Any]
-    decoder: "AsyncCallable"
 
 
 _MISSING = Sentinel("MISSING")
-
-
-async def _decode_as_received(
-    call: RecordedCall,
-    decoder: "AsyncCallable",
-    encoded: bytes,
-    content_type: str | None,
-) -> Any:
-    probe: StreamMessage[Any] = StreamMessage(
-        raw_message=call.message.raw_message,
-        body=encoded,
-        headers=call.message.headers,
-        content_type=content_type,
-        correlation_id=call.message.correlation_id,
-        message_id=call.message.message_id,
-        reply_to=call.message.reply_to,
-        path=call.message.path,
-    )
-    probe.set_decoder(decoder)
-    return await probe.decode()
 
 
 def _headers_seen_through(expected: Any, actual: dict[str, Any]) -> Any:
