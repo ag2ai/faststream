@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream._internal.kafka.calls import KafkaCallAssertions
+from faststream._internal.kafka import KafkaCallAssertions
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
-from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper, read_field
+from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.response import KafkaPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -29,7 +29,7 @@ class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
 
     _call_wrapper_class = KafkaHandlerCallWrapper
-    _read_field = staticmethod(read_field)
+    _read_field = KafkaHandlerCallWrapper._read_field
 
     def __init__(
         self,

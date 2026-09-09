@@ -1,6 +1,6 @@
 from collections.abc import Callable, Mapping
 from copy import copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any, TypeAlias
 from unittest.mock import MagicMock
 
@@ -309,14 +309,7 @@ class ExpectedCall:
 
     def message_fields(self) -> list[str]:
         """The names asked of the message beside its body."""
-        named = (
-            "headers",
-            "correlation_id",
-            "reply_to",
-            "content_type",
-            "path",
-            "context",
-        )
+        named = (f.name for f in fields(self) if f.name not in {"body", "broker_fields"})
         return [
             *(name for name in named if getattr(self, name) is not EMPTY),
             *(self.broker_fields.values if self.broker_fields else ()),

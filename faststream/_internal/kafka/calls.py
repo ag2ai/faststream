@@ -1,12 +1,14 @@
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.testing.calls import (
     BrokerFields,
     CallAssertions,
     ExpectedCall,
+    FieldReader,
 )
+from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
     from faststream.message import StreamMessage
@@ -16,6 +18,9 @@ class KafkaCallAssertions(CallAssertions):
     """The Call assertions of a Kafka endpoint: the message fields, `key` and `partition`."""
 
     __slots__ = ()
+
+    # Each Kafka package binds the reader of its client's record, see `field_reader`
+    _read_field: ClassVar[FieldReader]
 
     async def assert_called_once_with(
         self,
@@ -140,11 +145,6 @@ class KafkaCallAssertions(CallAssertions):
             )
         )
 
-    @staticmethod
-    def _read_field(name: str, message: "StreamMessage[Any]") -> Any:
-        """Take a Kafka field off the raw message; each Kafka package knows its client's."""
-        raise NotImplementedError
-
     def _expected_call(
         self,
         body: Any = EMPTY,
@@ -173,6 +173,30 @@ class KafkaCallAssertions(CallAssertions):
                     for name, value in (("key", key), ("partition", partition))
                     if value is not EMPTY
                 },
-                self._read_field,
+                type(self)._read_field,
             ),
         )
+
+
+def field_reader(
+    record: type,
+    read: Callable[[Any, str], Any],
+) -> FieldReader:
+    """The reader of a Kafka client's record: `read(raw, name)` once the record is its.
+
+    Args:
+        record: The client's record class; a raw message of another class is refused.
+        read: Takes the field off the record, under the name `publish()` gives it.
+    """
+
+    def read_field(name: str, message: "StreamMessage[Any]") -> Any:
+        raw = message.raw_message
+        if not isinstance(raw, record):
+            msg = (
+                f"`{name}` is a Kafka field, and this "
+                f"`{type(message).__name__}` did not come from Kafka."
+            )
+            raise SetupError(msg)
+        return read(raw, name)
+
+    return read_field
