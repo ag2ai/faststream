@@ -273,33 +273,33 @@ Let's take an example of such an application:
 Using `assert_called_once_with`, you can check the body and the headers in one statement. The body may be a plain `dict` or your model: it goes through the broker codec before the comparison, so both spellings mean the same message.
 
 === "AIOKafka"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3,5,7-8,29-46] !}
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3,5-8,28-46] !}
     ```
 
 === "Confluent"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5,7-8,29-46] !}
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5-8,28-46] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5,7-8,29-46] !}
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5-8,28-46] !}
     ```
 
 === "NATS"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3,5,7-8,29-46] !}
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3,5-8,28-46] !}
     ```
 
 === "Redis"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5,7-8,29-46] !}
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5-8,28-46] !}
     ```
 
 === "MQTT"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5,7-8,29-46] !}
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5-8,28-46] !}
     ```
 
 Headers match as a subset: FastStream adds its own headers (`content-type`, `correlation_id`) beside yours, and they never get in the way. Every other field matches exactly. When several fields differ, the `AssertionError` lists all of them at once.
@@ -307,33 +307,33 @@ Headers match as a subset: FastStream adds its own headers (`content-type`, `cor
 To check only a part of the body, put a [dirty-equals](https://dirty-equals.helpmanual.io/){.external-link target="_blank"} matcher in its place. Anything the fields above do not cover, such as the Kafka message key, lives in the context: check it through `context` by the same path you would give to `Context()`, walking attributes and dict keys from a context name.
 
 === "AIOKafka"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3-4,7-8,49-62] !}
+    ```python linenums="1" hl_lines="2 15 19-20"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3-8,48-62] !}
     ```
 
 === "Confluent"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3-8,48-61] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3-8,48-61] !}
     ```
 
 === "NATS"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3-8,48-61] !}
     ```
 
 === "Redis"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3-8,48-61] !}
     ```
 
 === "MQTT"
-    ```python linenums="1"
-    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3-4,7-8,49-61] !}
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3-8,48-61] !}
     ```
 
 !!! note
