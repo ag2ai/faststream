@@ -1,27 +1,8 @@
-from typing import TYPE_CHECKING, Any
-
 from confluent_kafka import Message
 
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
-from faststream._internal.kafka.calls import KafkaCallAssertions
+from faststream._internal.kafka import KafkaCallAssertions, field_reader
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
-from faststream.exceptions import SetupError
-
-if TYPE_CHECKING:
-    from faststream.message import StreamMessage
-
-
-def read_field(name: str, message: "StreamMessage[Any]") -> Any:
-    """Take a Kafka field off a confluent message, under the name `publish()` gives it."""
-    raw = message.raw_message
-    if not isinstance(raw, Message):
-        msg = (
-            f"`{name}` is a Kafka field, and this message did not come from Kafka: "
-            f"its raw message is a `{type(raw).__name__}`."
-        )
-        raise SetupError(msg)
-    # The confluent client answers with methods where aiokafka has attributes
-    return getattr(raw, name)()
 
 
 class KafkaHandlerCallWrapper(
@@ -32,4 +13,5 @@ class KafkaHandlerCallWrapper(
 
     __slots__ = ()
 
-    _read_field = staticmethod(read_field)
+    # The confluent client answers with methods where aiokafka has attributes
+    _read_field = field_reader(Message, lambda raw, name: getattr(raw, name)())

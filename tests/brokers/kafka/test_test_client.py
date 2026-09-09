@@ -11,6 +11,7 @@ from faststream.kafka.annotations import KafkaMessage
 from faststream.kafka.message import FAKE_CONSUMER
 from faststream.kafka.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiopika
 from tests.tools import spy_decorator
 
 from .basic import KafkaMemoryTestcaseConfig
@@ -245,6 +246,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
             await publisher.assert_called_with(key=b"k")
             await publisher.assert_any_call(partition=1)
 
+    @require_aiopika
     async def test_kafka_fields_refuse_another_brokers_message(self, queue: str) -> None:
         from faststream.rabbit import RabbitBroker, TestRabbitBroker
 

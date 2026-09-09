@@ -138,6 +138,8 @@ async def check_call_assertions_take_the_kafka_fields(
     await handle.assert_called_with(key=b"k")
     await handle.assert_any_call(partition=0)
 
+    # The publisher's own type is pinned in `check_publisher_instance_type`; here its
+    # methods take the two fields, which only the Kafka mixin gives them
     publisher = broker.publisher("test")
 
     @publisher

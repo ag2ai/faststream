@@ -10,6 +10,7 @@ from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
 from faststream.exceptions import SetupError
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiopika
 from tests.tools import spy_decorator
 
 from .basic import ConfluentMemoryTestcaseConfig
@@ -193,6 +194,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             await publisher.assert_called_with(key=b"k")
             await publisher.assert_any_call(partition=1)
 
+    @require_aiopika
     async def test_kafka_fields_refuse_another_brokers_message(self, queue: str) -> None:
         from faststream.rabbit import RabbitBroker, TestRabbitBroker
 
