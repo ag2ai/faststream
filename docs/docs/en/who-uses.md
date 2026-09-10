@@ -89,6 +89,7 @@ Packages built on top of **FastStream** by the community:
 * [`litestar-faststream`](https://github.com/hasansezertasan/litestar-faststream){.external-link target="_blank"} - **Litestar** integration for **FastStream** message brokers
 * [`fast-healthchecks`](https://github.com/ZYLVEXT/fast-healthchecks){.external-link target="_blank"} - framework-agnostic health checks
 * [`awesome-faststream`](https://github.com/lesnik512/awesome-faststream){.external-link target="_blank"} - curated list of libraries, tools, templates and resources
+* [`faststream-celery`](https://github.com/C3EQUALZz/faststream-celery){.external-link target="_blank"} - connects **FastStream** to the **Celery (kombu)** broker. 
 
 ## Add Your Project
 
