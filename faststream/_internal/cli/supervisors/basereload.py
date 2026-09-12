@@ -1,9 +1,9 @@
 import os
-import threading
 from multiprocessing.context import SpawnProcess
 from typing import TYPE_CHECKING
 
 from faststream._internal.cli.supervisors.utils import (
+    ExitEvent,
     get_subprocess,
     set_exit,
     stop_process,
@@ -20,7 +20,7 @@ class BaseReload:
     _process: SpawnProcess
 
     reload_delay: float | None
-    should_exit: threading.Event
+    should_exit: ExitEvent
     pid: int
     reloader_name: str = ""
 
@@ -33,7 +33,7 @@ class BaseReload:
         self._target = target
         self._args = args
 
-        self.should_exit = threading.Event()
+        self.should_exit = ExitEvent()
         self.pid = os.getpid()
         self.reload_delay = reload_delay
 

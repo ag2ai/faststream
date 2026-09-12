@@ -24,6 +24,6 @@ def test_stop_process_kills_worker_deaf_to_sigterm() -> None:
     process.start()
     assert ready.wait(timeout=10)
 
-    stop_process(process, timeout=0.5)
+    stop_process(process, timeout=0.1)
 
     assert process.exitcode == -signal.SIGKILL
