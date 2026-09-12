@@ -57,7 +57,7 @@ async def base_handler(
 ## Message Fields Access
 
 In most cases, you don't need all message fields; you need to know just a part of them.
-You can use [Context Fields access](../getting-started/context.md#existing_fields) feature for this.
+You can use [Context Fields access](../getting-started/context.md#existing-fields) feature for this.
 
 For example, you can get access to the `headers` like this:
 

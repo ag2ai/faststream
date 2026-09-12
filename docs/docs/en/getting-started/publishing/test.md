@@ -176,3 +176,5 @@ In addition, the publisher has the same `assert_called_once_with` method as a [s
     In order for publishers to be properly patched by the test broker, you need to create them before running the test broker
 
 Additionally, *TestBroker* can be used with a real external broker to make your tests end-to-end suitable. For more information, please visit the [subscriber testing page](../subscription/test.md#real-broker-testing){.internal-link}.
+
+If a publisher is triggered from a lifespan hook rather than from a subscriber, the hooks have to run inside the test as well. **TestApp** does that: see [Events Testing](../lifespan/test.md){.internal-link}.

@@ -392,3 +392,9 @@ WITH_REAL=True/False pytest ...
 ```
 
 To learn more about managing your application configuration visit [this page](../config/index.md){.internal-link}.
+
+## What's Next
+
+The same patched broker also captures what your handlers publish, so you can assert on outgoing messages without a real broker. See [Publisher Testing](../publishing/test.md){.internal-link}.
+
+If your test needs the `on_startup` / `on_shutdown` hooks or the `lifespan` context to run, wrap the application in **TestApp**. See [Events Testing](../lifespan/test.md){.internal-link}.
