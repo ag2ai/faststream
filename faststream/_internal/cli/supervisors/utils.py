@@ -19,6 +19,10 @@ multiprocessing.allow_connection_pickling()
 spawn = multiprocessing.get_context("spawn")
 
 
+# Matches gunicorn's graceful timeout: long enough for a worker to drain, short
+# enough that a stuck one cannot hold the supervisor hostage.
+SHUTDOWN_TIMEOUT = 30.0
+
 HANDLED_SIGNALS: tuple[int, ...] = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
@@ -70,6 +74,17 @@ def get_subprocess(
         args=args,
         kwargs={"t": target, "stdin_fileno": stdin_fileno},
     )
+
+
+def stop_process(process: "SpawnProcess", timeout: float = SHUTDOWN_TIMEOUT) -> None:
+    """Terminate a worker, escalating to SIGKILL if it outlives the timeout."""
+    process.terminate()
+    process.join(timeout)
+
+    if process.is_alive():
+        # An unbounded join hangs the supervisor forever on a worker deaf to SIGTERM.
+        process.kill()
+        process.join()
 
 
 def subprocess_started(
