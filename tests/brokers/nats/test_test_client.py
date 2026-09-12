@@ -1,15 +1,20 @@
 import asyncio
 
 import pytest
+from nats.js.api import ObjectInfo
+from nats.js.kv import KeyValue
 
 from faststream import BaseMiddleware
+from faststream.exceptions import SetupError
 from faststream.nats import (
     ConsumerConfig,
     JStream,
+    ObjWatch,
     PullSub,
 )
 from faststream.nats.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiopika
 
 from .basic import NatsMemoryTestcaseConfig
 
@@ -247,6 +252,126 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish(1, f"{queue}.b")
             await br.publish(2, f"{queue}.a")
             subscriber.mock.assert_called_once_with(2)
+
+    async def test_assertions_take_the_nats_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(f"{queue}.*")
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", f"{queue}.info")
+
+            await handle.assert_called_once_with("hello", subject=f"{queue}.info")
+            await handle.assert_called_with(subject=f"{queue}.info")
+            await handle.assert_any_call(subject=f"{queue}.info")
+
+            with pytest.raises(
+                AssertionError,
+                match=f"subject: expected '{queue}.error', got '{queue}.info'",
+            ):
+                await handle.assert_called_once_with("hello", subject=f"{queue}.error")
+
+    async def test_publisher_assertions_take_the_nats_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(f"{queue}.out")
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None:
+            await publisher.publish("response")
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            await publisher.assert_called_once_with("response", subject=f"{queue}.out")
+            await publisher.assert_called_with(subject=f"{queue}.out")
+            await publisher.assert_any_call(subject=f"{queue}.out")
+
+    async def test_batch_assert_called_once_with(
+        self,
+        queue: str,
+        stream: JStream,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue, stream=stream, pull_sub=PullSub(1, batch=True))
+        async def m(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            await m.assert_called_once_with(["hello"])
+
+            # A batch has one subject per message, so there is no single answer
+            with pytest.raises(SetupError, match=r"received a batch.*subject"):
+                await m.assert_called_once_with(subject=queue)
+
+    async def test_subject_is_not_a_key_value_field(self, queue: str) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(queue, kv_watch=queue)
+
+        @subscriber
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker):
+            # The test broker publishes core messages only: an entry goes in by hand
+            await subscriber.process_message(
+                KeyValue.Entry(
+                    bucket=queue,
+                    key=queue,
+                    value=b"hello",
+                    revision=1,
+                    delta=0,
+                    created=0,
+                    operation=None,
+                )
+            )
+
+            await handle.assert_called_once_with(b"hello")
+
+            with pytest.raises(SetupError, match="not a field of a key-value message"):
+                await handle.assert_called_once_with(subject=queue)
+
+    async def test_subject_is_not_an_object_store_field(self, queue: str) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(queue, obj_watch=ObjWatch())
+
+        @subscriber
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker):
+            # The test broker publishes core messages only: an object goes in by hand
+            await subscriber.process_message(
+                ObjectInfo(name="file", bucket=queue, nuid="1"),
+            )
+
+            await handle.assert_called_once_with("file")
+
+            with pytest.raises(
+                SetupError, match="not a field of an object-store message"
+            ):
+                await handle.assert_called_once_with(subject=queue)
+
+    @require_aiopika
+    async def test_nats_fields_refuse_another_brokers_message(self, queue: str) -> None:
+        from faststream.rabbit import RabbitBroker, TestRabbitBroker
+
+        broker = self.get_broker()
+        rabbit = RabbitBroker()
+
+        # The first decorator decides the wrapper class: NATS's here
+        @rabbit.subscriber(queue)
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker), TestRabbitBroker(rabbit):
+            await rabbit.publish("hello", queue)
+
+            await handle.assert_called_once_with("hello")
+
+            with pytest.raises(SetupError, match="`subject` is a NATS field"):
+                await handle.assert_called_once_with("hello", subject=queue)
 
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:

@@ -68,12 +68,14 @@ async def test_handle_nats() -> None:
     from docs.docs_src.getting_started.subscription.nats.advanced_testing import (
         test_handle,
         test_message_context,
+        test_nats_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_nats_fields()
 
 
 @pytest.mark.redis()
