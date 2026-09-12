@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.testing.broker import TestBroker
+from faststream.exceptions import SetupError
 from tests.marks import (
     require_aiokafka,
     require_aiopika,
@@ -31,7 +32,9 @@ class BaseCase:
             await br.publish({"name": "John", "user_id": 1}, "test")
             handle.mock.assert_called_once_with({"name": "John", "user_id": 1})
 
-        assert not handle.mock.called  # mock is reset
+        # The mock leaves with the test broker
+        with pytest.raises(SetupError):
+            handle.mock.assert_not_called()
 
     async def test_validation_error(self, setup: Setup) -> None:
         broker, handle, test_class = setup

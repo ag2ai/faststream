@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from faststream._internal.configs import BrokerConfig
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 
@@ -17,7 +18,7 @@ async def test_handler_exception_does_not_leak_to_event_loop(
     async def handler() -> None:
         return None
 
-    wrapper = HandlerCallWrapper(handler)
+    wrapper = HandlerCallWrapper(handler, BrokerConfig())
     wrapper.set_test()
     error = ValueError("handler failed")
 
@@ -31,7 +32,7 @@ async def test_handler_exception_remains_available_to_wait_call() -> None:
     async def handler() -> None:
         return None
 
-    wrapper = HandlerCallWrapper(handler)
+    wrapper = HandlerCallWrapper(handler, BrokerConfig())
     wrapper.set_test()
     error = ValueError("handler failed")
 
@@ -55,7 +56,7 @@ def test_composing_twice_decorates_once() -> None:
         wrapped.layers = getattr(call, "layers", 0) + 1  # type: ignore[attr-defined]
         return wrapped
 
-    wrapper = HandlerCallWrapper(handler)
+    wrapper = HandlerCallWrapper(handler, BrokerConfig())
     for _ in range(2):
         wrapper.set_wrapped(
             dependencies=(),

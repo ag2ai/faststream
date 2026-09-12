@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 
 from faststream import BaseMiddleware
+from faststream.exceptions import SetupError
 from faststream.redis import ListSub, StreamSub
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
@@ -132,6 +133,21 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         async with self.patch_broker(broker) as br:
             await br.publish_batch("hello", list=queue)
             m.mock.assert_called_once_with(["hello"])
+
+    async def test_batch_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(list=ListSub(queue, batch=True))
+        async def m(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch({"n": 1}, {"n": 2}, list=queue)
+
+            await m.assert_called_once_with([{"n": 1}, {"n": 2}])
+
+            # A batch has one header set per message, so there is no single answer
+            with pytest.raises(SetupError, match="received a batch"):
+                await m.assert_called_once_with(headers={"key": "value"})
 
     async def test_batch_publisher_mock(
         self,

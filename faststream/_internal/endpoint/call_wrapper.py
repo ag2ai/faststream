@@ -6,10 +6,11 @@ from typing import (
     Generic,
     Optional,
 )
-from unittest.mock import MagicMock
 
 import anyio
 
+from faststream._internal.configs import BrokerConfig
+from faststream._internal.testing.calls import CallAssertions, CallRecorder
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.exceptions import SetupError
 
@@ -26,14 +27,15 @@ if TYPE_CHECKING:
 
 def ensure_call_wrapper(
     call: Callable[P_HandlerParams, T_HandlerReturn],
+    outer_config: BrokerConfig,
 ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
     if isinstance(call, HandlerCallWrapper):
         return call
 
-    return HandlerCallWrapper(call)
+    return HandlerCallWrapper(call, outer_config)
 
 
-class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
+class HandlerCallWrapper(CallAssertions, Generic[P_HandlerParams, T_HandlerReturn]):
     """A generic class to wrap handler calls."""
 
     future: Optional["asyncio.Future[Any]"]
@@ -54,16 +56,17 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         "_composed_call",
         "_declared_call",
         "_publishers",
+        "_recorder",
         "_subscribers",
         "_wrapped_call",
         "future",
         "is_test",
-        "mock",
     )
 
     def __init__(
         self,
         call: Callable[P_HandlerParams, T_HandlerReturn],
+        outer_config: BrokerConfig,
     ) -> None:
         """Initialize a handler."""
         self._declared_call = call
@@ -73,7 +76,10 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         self._publishers = []
         self._subscribers = []
 
-        self.mock = MagicMock()
+        self._recorder = CallRecorder(
+            getattr(call, "__name__", repr(call)),
+            outer_config,
+        )
         self.future = None
         self.is_test = False
 
@@ -90,14 +96,11 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         """The composed call, under the name it had before the two were kept apart."""
         return self._composed_call
 
-    async def call_wrapped(
-        self,
-        message: "StreamMessage[Any]",
-    ) -> Any:
+    async def call_wrapped(self, message: "StreamMessage[Any]") -> Any:
         """Calls the wrapped function with the given message."""
         assert self._wrapped_call, "You should use `set_wrapped` first"
         if self.is_test:
-            self.mock(await message.decode())
+            await self._recorder.record(message)
         return await self._wrapped_call(message)
 
     def set_wrapped(
@@ -127,12 +130,12 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
 
     def set_test(self) -> None:
         self.is_test = True
-        self.mock.reset_mock()
         self.refresh(with_mock=True)
 
     def reset_test(self) -> None:
         self.is_test = False
-        self.mock.reset_mock()
+        self._recorder.reset()
+        self._recorder.stop_mirroring()
         self.future = None
 
     def trigger(
@@ -162,5 +165,5 @@ class HandlerCallWrapper(Generic[P_HandlerParams, T_HandlerReturn]):
         if asyncio.events._get_running_loop() is not None:
             self.future = asyncio.Future()
 
-        if with_mock and self.mock is not None:
-            self.mock.reset_mock()
+        if with_mock:
+            self._recorder.reset()

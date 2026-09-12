@@ -168,7 +168,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         ((raw_message,),) = raw_messages.values()
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         async_parser, async_decoder = self._get_parser_and_decoder()
 
@@ -189,7 +189,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             "You can't use `get_one` method if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async for raw_message in self.consumer:

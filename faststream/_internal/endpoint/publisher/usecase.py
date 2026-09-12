@@ -4,13 +4,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-from unittest.mock import MagicMock
 
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.testing.calls import CallAssertions, CallRecorder
 from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from .specification import PublisherSpecification
 
 
-class PublisherUsecase(Endpoint, PublisherProto):
+class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
     """A base class for publishers in an asynchronous API."""
 
     def __init__(
@@ -44,7 +44,8 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self.specification = specification
 
         self._fake_handler = False
-        self.mock = MagicMock()
+        self._recorder = CallRecorder(specification.name, self._outer_config)
+        self.is_test = False
 
     async def start(self) -> None:
         pass
@@ -52,17 +53,24 @@ class PublisherUsecase(Endpoint, PublisherProto):
     def set_test(
         self,
         *,
-        mock: MagicMock,
+        recorder: CallRecorder | None = None,
         with_fake: bool,
     ) -> None:
-        """Turn publisher to testing mode."""
-        self.mock = mock
+        """Turn publisher to testing mode, sharing `recorder` when one is given."""
+        self.is_test = True
+        if recorder is None:
+            self._recorder.reset()
+        else:
+            self._recorder = recorder
         self._fake_handler = with_fake
 
     def reset_test(self) -> None:
         """Turn off publisher's testing mode."""
+        self.is_test = False
+        self._recorder.reset()
+        # A shared recorder goes back to the handler it belongs to
+        self._recorder = CallRecorder(self.specification.name, self._outer_config)
         self._fake_handler = False
-        self.mock.reset_mock()
 
     def __call__(
         self,
@@ -110,7 +118,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
         published_msg = await request(cmd)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         response_msg: Any = await process_msg(
             msg=published_msg,
@@ -128,7 +136,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self,
         extra_middlewares: Iterable["PublisherMiddleware"] = (),
     ) -> Generator["PublisherMiddleware", None, None]:
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         yield from (
             extra_middlewares

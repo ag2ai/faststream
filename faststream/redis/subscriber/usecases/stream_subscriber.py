@@ -268,7 +268,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         )
         _attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
@@ -289,7 +289,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         timeout = 5
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         claim_meta: ClaimMeta | None

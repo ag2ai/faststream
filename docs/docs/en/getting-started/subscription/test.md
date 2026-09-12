@@ -68,32 +68,32 @@ Just use it like a regular async context manager - all published messages will b
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="4 8-9"
-    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:1-4,8-12] !}
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:1-3,5,9-13] !}
     ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="4 8-9"
-    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:1-4,8-12] !}
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:1-3,5,9-13] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="4 8-9"
-    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:1-4,8-12] !}
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:1-3,5,9-13] !}
     ```
 
 === "NATS"
     ```python linenums="1" hl_lines="4 8-9"
-    {!> docs_src/getting_started/subscription/nats/testing.py [ln:1-4,8-12] !}
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:1-3,5,9-13] !}
     ```
 
 === "Redis"
     ```python linenums="1" hl_lines="4 8-9"
-    {!> docs_src/getting_started/subscription/redis/testing.py [ln:1-4,8-12] !}
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:1-3,5,9-13] !}
     ```
 
 === "MQTT"
     ```python linenums="1" hl_lines="4 8-9"
-    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:1-4,8-12] !}
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:1-3,5,9-13] !}
     ```
 
 ### Catching Exceptions
@@ -102,32 +102,32 @@ This way you can catch any exceptions that occur inside your handler:
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="4"
-    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:18-23] !}
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:20-26] !}
     ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="4"
-    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:18-23] !}
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:20-26] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="4"
-    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:18-23] !}
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:20-26] !}
     ```
 
 === "NATS"
     ```python linenums="1" hl_lines="4"
-    {!> docs_src/getting_started/subscription/nats/testing.py [ln:18-23] !}
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:20-26] !}
     ```
 
 === "Redis"
     ```python linenums="1" hl_lines="4"
-    {!> docs_src/getting_started/subscription/redis/testing.py [ln:18-23] !}
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:20-26] !}
     ```
 
 === "MQTT"
     ```python linenums="1" hl_lines="4"
-    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:18-23] !}
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:20-26] !}
     ```
 
 ## Full Example
@@ -169,32 +169,32 @@ Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="6"
-    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:9-14] !}
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:10-15] !}
     ```
 
 === "Confluent"
     ```python linenums="1" hl_lines="6"
-    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:9-14] !}
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:10-15] !}
     ```
 
 === "RabbitMQ"
     ```python linenums="1" hl_lines="6"
-    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:9-14] !}
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:10-15] !}
     ```
 
 === "NATS"
     ```python linenums="1" hl_lines="6"
-    {!> docs_src/getting_started/subscription/nats/testing.py [ln:9-14] !}
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:10-15] !}
     ```
 
 === "Redis"
     ```python linenums="1" hl_lines="6"
-    {!> docs_src/getting_started/subscription/redis/testing.py [ln:9-14] !}
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:10-15] !}
     ```
 
 === "MQTT"
     ```python linenums="1" hl_lines="6"
-    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:9-14] !}
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:10-15] !}
     ```
 
 !!! note
@@ -202,70 +202,179 @@ Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.
 
     Thus our example checks not `#!python mock.assert_called_with(name="John", user_id=1)`, but `#!python mock.assert_called_with({ "name": "John", "user_id": 1 })`.
 
-Scoping rule: all handles' mock objects will be cleared when the context manager exits.
+Scoping rule: the mock exists only inside the context manager. Once it exits, `handle.mock` raises a `SetupError` instead of answering for calls nobody made.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="6 8"
-    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:9-16] !}
+    ```python linenums="1" hl_lines="6 8-9"
+    {!> docs_src/getting_started/subscription/kafka/testing.py [ln:10-18] !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="6 8"
-    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:9-16] !}
+    ```python linenums="1" hl_lines="6 8-9"
+    {!> docs_src/getting_started/subscription/confluent/testing.py [ln:10-18] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="6 8"
-    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:9-16] !}
+    ```python linenums="1" hl_lines="6 8-9"
+    {!> docs_src/getting_started/subscription/rabbit/testing.py [ln:10-18] !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="6 8"
-    {!> docs_src/getting_started/subscription/nats/testing.py [ln:9-16] !}
+    ```python linenums="1" hl_lines="6 8-9"
+    {!> docs_src/getting_started/subscription/nats/testing.py [ln:10-18] !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="6 8"
-    {!> docs_src/getting_started/subscription/redis/testing.py [ln:9-16] !}
+    ```python linenums="1" hl_lines="6 8-9"
+    {!> docs_src/getting_started/subscription/redis/testing.py [ln:10-18] !}
     ```
 
 === "MQTT"
-    ```python linenums="1" hl_lines="6 8"
-    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:9-16] !}
+    ```python linenums="1" hl_lines="6 8-9"
+    {!> docs_src/getting_started/subscription/mqtt/testing.py [ln:10-18] !}
     ```
+
+### Validates Message Fields
+
+Every handler also has an `assert_called_once_with` method. It checks the message body the same way `mock.assert_called_once_with` does, and beside it the message fields the handler saw: `headers`, `correlation_id`, `reply_to`, `content_type` and `path`.
+
+Let's take an example of such an application:
+
+=== "AIOKafka"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:1-2,5-26] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:1-2,5-26] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:1-2,5-26] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:1-2,5-26] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:1-2,5-26] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:1-2,5-26] !}
+    ```
+
+Using `assert_called_once_with`, you can check the body and the headers in one statement. The body may be a plain `dict` or your model: it goes through the broker codec before the comparison, so both spellings mean the same message.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3,5-8,28-46] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5-8,28-46] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5-8,28-46] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3,5-8,28-46] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5-8,28-46] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="16-19 21-24"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5-8,28-46] !}
+    ```
+
+Headers match as a subset: FastStream adds its own headers (`content-type`, `correlation_id`) beside yours, and they never get in the way. Every other field matches exactly. When several fields differ, the `AssertionError` lists all of them at once.
+
+To check only a part of the body, put a [dirty-equals](https://dirty-equals.helpmanual.io/){.external-link target="_blank"} matcher in its place. Anything the fields above do not cover, such as the Kafka message key, lives in the context: check it through `context` by the same path you would give to `Context()`, walking attributes and dict keys from a context name.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="2 15 19-20"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3-8,48-62] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3-8,48-61] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3-8,48-61] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3-8,48-61] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3-8,48-61] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="2 18-19"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3-8,48-61] !}
+    ```
+
+!!! note
+    A context path reads attributes and keys, it never calls. Where a raw message answers with methods, as the Confluent one does, reach for what **FastStream** put in the context beside it, such as `log_context`.
+
+!!! note
+    Both `handle.mock` and `assert_called_once_with` exist only inside the test broker. Outside of it they raise a `SetupError` instead of answering for a handler nobody has called.
+
 
 ## Real Broker Testing
 
 If you want to test your application in a real environment, you shouldn't have to rewrite all your tests: just pass `with_real` optional parameter to your `TestClient` context manager. This way, `TestClient` supports all the testing features but uses an unpatched broker to send and consume messages.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
-    {!> docs_src/getting_started/subscription/kafka/real_testing.py [ln:1-5,9-25] !}
+    ```python linenums="1" hl_lines="5 9 11 19 22"
+    {!> docs_src/getting_started/subscription/kafka/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
-    {!> docs_src/getting_started/subscription/confluent/real_testing.py [ln:1-5,9-25] !}
+    ```python linenums="1" hl_lines="5 9 11 19 22"
+    {!> docs_src/getting_started/subscription/confluent/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
-    {!> docs_src/getting_started/subscription/rabbit/real_testing.py [ln:1-5,9-25] !}
+    ```python linenums="1" hl_lines="5 9 11 19 22"
+    {!> docs_src/getting_started/subscription/rabbit/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
-    {!> docs_src/getting_started/subscription/nats/real_testing.py [ln:1-5,9-25] !}
+    ```python linenums="1" hl_lines="5 9 11 19 22"
+    {!> docs_src/getting_started/subscription/nats/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
-    {!> docs_src/getting_started/subscription/redis/real_testing.py [ln:1-5,9-25] !}
+    ```python linenums="1" hl_lines="5 9 11 19 22"
+    {!> docs_src/getting_started/subscription/redis/real_testing.py [ln:1-6,10-27] !}
     ```
 
 === "MQTT"
-    ```python linenums="1" hl_lines="4 8 10 17 20"
-    {!> docs_src/getting_started/subscription/mqtt/real_testing.py [ln:1-5,9-25] !}
+    ```python linenums="1" hl_lines="5 9 11 19 22"
+    {!> docs_src/getting_started/subscription/mqtt/real_testing.py [ln:1-6,10-27] !}
     ```
 
 !!! tip
