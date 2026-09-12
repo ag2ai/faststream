@@ -102,9 +102,11 @@ async def test_handle_mqtt() -> None:
     from docs.docs_src.getting_started.subscription.mqtt.advanced_testing import (
         test_handle,
         test_message_context,
+        test_mqtt_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_mqtt_fields()

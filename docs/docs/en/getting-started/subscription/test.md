@@ -371,7 +371,7 @@ To check only a part of the body, put a [dirty-equals](https://dirty-equals.help
 !!! note
     A context path reads attributes and keys, it never calls. Where a raw message answers with methods, as the Confluent one does, reach for what **FastStream** put in the context beside it, such as `log_context`.
 
-Beside these fields, the handlers and publishers of a broker take that broker's own, under the names its `publish()` uses for them. A Kafka handler or publisher takes `key` and `partition`, compared exactly as the client delivered them. A RabbitMQ handler or publisher takes `exchange`, `routing_key`, `message_id` and `priority`, read off the message as it was delivered. A NATS handler or publisher takes `subject`, the whole address the message arrived on, where `path` holds only what the template captured. A Redis handler or publisher takes `channel`, `list` or `stream`: the name says which kind of endpoint the message came through, and only that name answers for it:
+Beside these fields, the handlers and publishers of a broker take that broker's own, under the names its `publish()` uses for them. A Kafka handler or publisher takes `key` and `partition`, compared exactly as the client delivered them. A RabbitMQ handler or publisher takes `exchange`, `routing_key`, `message_id` and `priority`, read off the message as it was delivered. A NATS handler or publisher takes `subject`, the whole address the message arrived on, where `path` holds only what the template captured. A Redis handler or publisher takes `channel`, `list` or `stream`: the name says which kind of endpoint the message came through, and only that name answers for it. An MQTT handler or publisher takes `topic`, `qos` and `retain`, as the message arrived:
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="14 18-21"
@@ -396,6 +396,11 @@ Beside these fields, the handlers and publishers of a broker take that broker's 
 === "Redis"
     ```python linenums="1" hl_lines="12 17-20"
     {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5-8,91-105] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="14 18-22"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5-8,91-107] !}
     ```
 
 !!! note
