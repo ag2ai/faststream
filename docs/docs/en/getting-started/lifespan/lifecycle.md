@@ -10,18 +10,22 @@ search:
 
 # Application Lifecycle
 
-`FastStream` exposes four methods that drive the application, and they are not interchangeable:
+Most of the time you start an application with `faststream run module:app` and never call any of the methods below. You need them when:
+
+* you want to start the application from your own script instead of the CLI,
+* **FastStream** has to live inside a process that already has its own `main` (another framework, a scheduler, several applications at once),
+* the application must stop itself from a handler or a hook.
 
 | Method    | What it does                                                                                   |
 | --------- | ---------------------------------------------------------------------------------------------- |
-| `run()`   | Installs signal handlers, enters the `lifespan` context, starts, blocks until asked to exit, stops. |
+| `run()`   | Starts the application and blocks until the process is told to stop. What the CLI calls.        |
 | `start()` | Runs the startup hooks and starts every broker. Returns as soon as they are consuming.        |
-| `stop()`  | Runs the shutdown hooks and stops every broker.                                               |
-| `exit()`  | Tells a running `run()` to leave its loop and shut down.                                      |
+| `stop()`  | Waits for in-flight handlers, runs the shutdown hooks and stops every broker.                  |
+| `exit()`  | Asks a running `run()` to stop.                                                               |
 
-## `run()`
+## Running Without the CLI
 
-This is what the [CLI](../cli.md){.internal-link} calls for you: `faststream run module:app` imports the module and awaits `#!python app.run()`. You can do the same without the CLI:
+`faststream run module:app` does nothing more than import the module and await `#!python app.run()`, so you can do the same yourself:
 
 ```python
 import asyncio
@@ -29,20 +33,13 @@ import asyncio
 asyncio.run(app.run())
 ```
 
-`run()` **owns the process lifecycle**:
+`run()` handles <kbd>Ctrl</kbd>+<kbd>C</kbd> and `SIGTERM` for you: either one shuts the application down cleanly instead of leaving a traceback. It also enters the `#!python FastStream(lifespan=...)` context manager, if you passed one (see [Lifespan Option](./context.md){.internal-link}).
 
-1. It registers handlers for `SIGINT` and `SIGTERM` that call `#!python app.exit()`. This is why <kbd>Ctrl</kbd>+<kbd>C</kbd> results in a clean shutdown instead of a traceback.
-2. It enters the `#!python FastStream(lifespan=...)` context manager, if you passed one. See [Lifespan Option](./context.md){.internal-link}.
-3. It calls `start()`, then waits until `exit()` is called.
-4. It calls `stop()` and leaves the `lifespan` context.
+Because `run()` blocks until the process is told to stop, it should be the only thing your `main` awaits. Anything else you need to run alongside belongs in a [lifespan hook](./hooks.md){.internal-link} or in the `lifespan` context manager.
 
-Because `run()` blocks until the process is told to stop, it should be the only thing your `main` awaits.
+## Embedding Into Your Own Event Loop
 
-## `start()` and `stop()`
-
-`start()` and `stop()` are the two halves of `run()` without the parts that assume they own the process: they don't touch signal handlers and they don't enter the `lifespan` context manager. Both still run the [lifespan hooks](./hooks.md){.internal-link}, so `on_startup` / `after_startup` and `on_shutdown` / `after_shutdown` behave exactly as under `run()`.
-
-Use them when something else already owns the event loop: you embed **FastStream** into a service that has its own `main`, run it next to another framework, or drive several applications from one place. Your code decides when to stop, and it is your code that reacts to signals:
+When something else already owns the process, use `start()` and `stop()` instead of `run()`. They run the same [lifespan hooks](./hooks.md){.internal-link}, so `on_startup` / `after_startup` and `on_shutdown` / `after_shutdown` behave exactly as under `run()`. What they don't do is take over the process: no signal handlers are installed, and your code decides when to stop.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="17 21 28-29 31"
@@ -74,14 +71,14 @@ Use them when something else already owns the event loop: you embed **FastStream
     {!> docs_src/getting_started/lifespan/mqtt/manual_run.py !}
     ```
 
-Always call `stop()` in a `finally` block: it acknowledges in-flight messages, closes the connections, and runs your shutdown hooks. A process that just exits after `start()` leaves unacknowledged messages behind.
+Always call `stop()` in a `finally` block. It waits for the handlers that are still processing a message (up to the broker's `graceful_timeout`), runs your shutdown hooks and closes the connections. If the process exits without it, messages that were being handled are never acknowledged, so the broker delivers them to the next consumer and they get processed twice.
 
 !!! note
     `start()` does not enter the `#!python FastStream(lifespan=...)` context manager. If you rely on it, enter it yourself around `start()` / `stop()`, or move that logic into `on_startup` / `after_shutdown` hooks.
 
-## `exit()`
+## Stopping From Inside the Application
 
-`exit()` is how you stop a running `run()` from the inside. It only sets a flag, so it is safe to call from a handler, a hook, or another task:
+`exit()` stops a running `run()`. It is safe to call from a handler, a hook, or any other task:
 
 ```python
 from faststream import Context, FastStream
@@ -92,18 +89,18 @@ async def handle(command: str, app: FastStream = Context()) -> None:
         app.exit()
 ```
 
-`run()` notices the flag on its next tick and proceeds with the normal shutdown sequence. `exit()` has no effect on an application driven by `start()` / `stop()` — there is no loop to leave.
+The application then goes through the same shutdown as on <kbd>Ctrl</kbd>+<kbd>C</kbd>. `exit()` has no effect on an application driven by `start()` / `stop()`: there is no `run()` to stop, so use your own stop signal, as the example above does.
 
 ## Several Brokers and Applications
 
 One application can serve any number of brokers: pass them all to the constructor and `run()` starts and stops them together. See [Multiple Brokers](../multiple_brokers.md){.internal-link}.
 
-Running **two applications** in one process is different. Each `run()` installs the same signal handlers, and the loop keeps only the last one, so the application that registered first never receives `exit()` and never shuts down. Either merge the brokers into a single `FastStream`, or drive both applications with `start()` / `stop()` under your own signal handling, as shown above.
+Don't run **two applications** with `run()` in one process. Each `run()` installs its own signal handlers, and the second one replaces the first, so the first application never gets the signal and never shuts down. Either merge the brokers into a single `FastStream`, or drive both applications with `start()` / `stop()` under your own signal handling, as shown above.
 
 ## ASGI
 
-When the application is served as an [ASGI app](../asgi.md){.internal-link} through `#!python app.as_asgi()`, the ASGI server owns the process: it handles the signals and reports startup and shutdown through the ASGI lifespan protocol. **FastStream** reacts to those events with `start()` and `stop()`, so the same hooks run, but `run()` and `exit()` are not involved.
+When the application is served as an [ASGI app](../asgi.md){.internal-link} through `#!python app.as_asgi()`, the ASGI server owns the process and handles the signals. **FastStream** starts and stops together with the server, so the same hooks run, but `run()` and `exit()` are not involved.
 
 ## Tests
 
-[TestApp](./test.md){.internal-link} calls `start()` on enter and `stop()` on exit, so lifespan hooks are exercised in tests without signal handling or a blocking loop.
+[TestApp](./test.md){.internal-link} calls `start()` on enter and `stop()` on exit, so lifespan hooks run in tests without signal handling or a blocking loop.

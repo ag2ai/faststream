@@ -37,7 +37,7 @@ If the settings come from different places (environment variables, a secrets man
 | `host`        | host             |                                                               |
 | `port`        | port             | Defaults to `5672`, or `5671` when TLS is enabled.            |
 | `virtualhost` | path             | See below.                                                    |
-| `security`    | user, password   | `SASLPlaintext` carries the credentials, `BaseSecurity` TLS.  |
+| `security`    | user, password   | `SASLPlaintext` for a login and password, `BaseSecurity` for TLS. |
 | `ssl_options` | -                | Extra TLS options passed to **aio-pika**.                     |
 
 Credentials are not separate arguments: put them into the URL or use a [security object](./security.md){.internal-link}.
@@ -59,10 +59,9 @@ The `virtualhost` argument sets the same thing and wins over the URL path, so `#
 
 ## `connect()` and `start()`
 
-`RabbitBroker` has two entry points that are easy to confuse:
+Which one to call depends on what the broker is for:
 
-* `#!python await broker.connect()` only opens the AMQP connection and a default channel. Nothing is declared and no subscriber is consuming. This is what you need when the broker acts as a **client**: publishing messages, sending [RPC requests](./rpc.md){.internal-link} or [declaring queues manually](./declare.md){.internal-link}. Using the broker as an async context manager (`#!python async with broker:`) calls `connect()` on enter and `stop()` on exit.
-* `#!python await broker.start()` calls `connect()` first, then declares every exchange and queue that your subscribers and publishers refer to, and finally starts consuming. This is what `FastStream` does for you on application startup, so you should not call it yourself inside an application.
+* You only **publish**, send [RPC requests](./rpc.md){.internal-link} or [declare queues manually](./declare.md){.internal-link}: call `#!python await broker.connect()`, or use the broker as an async context manager (`#!python async with broker:`), which connects on enter and stops on exit. No subscriber consumes and nothing is declared on the server.
+* You run a full application with subscribers: don't call anything. `FastStream` calls `#!python broker.start()` on startup, which connects, declares every exchange and queue your subscribers and publishers refer to, and starts consuming.
 
-!!! tip
-    `connect()` is idempotent: calling it after the broker was already started does nothing. That's why a `#!python broker.publish(...)` inside a handler never opens a second connection.
+Calling `connect()` on a broker that is already connected does nothing, so an extra `#!python await broker.connect()` inside an application is harmless. Don't wrap an application's broker in `#!python async with broker:` though: the block stops the broker on exit.

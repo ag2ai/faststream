@@ -27,7 +27,7 @@ queue = RabbitQueue(
 )
 ```
 
-`x-queue-type` is set for you from the `queue_type` parameter, so don't put it into `arguments`. The accepted keys depend on that type: `RabbitQueue.__init__` is overloaded by `queue_type`, so **mypy** rejects a key the chosen type doesn't support and your editor can complete the rest.
+`x-queue-type` is set for you from the `queue_type` parameter, so don't put it into `arguments`. The accepted keys depend on that type, and `RabbitQueue` is typed accordingly: your type checker flags a key the chosen queue type doesn't support, and your editor can complete the rest.
 
 ## Common Arguments
 
@@ -60,14 +60,11 @@ The [dead-lettering](https://www.rabbitmq.com/docs/dlx){.external-link target="_
 {! docs_src/rabbit/dead_letter.py !}
 ```
 
-Here is what happens at startup and on each message:
-
-1. **FastStream** declares the `orders-dlx` exchange and binds the `orders-dead` queue to it with the routing key `orders`, because the second subscriber refers to both.
-2. It declares the `orders` queue with the dead-letter arguments. All subscribers are declared before any message is consumed, so the order of the handlers in the file doesn't matter.
-3. `handle_order` raises `RejectMessage` for a bad order. **FastStream** rejects the message without requeue, RabbitMQ publishes it to `orders-dlx` with the routing key `orders`, and it lands in `orders-dead`.
-4. `handle_dead_letter` receives the very same message. RabbitMQ adds an `x-death` header describing why it was dead-lettered (`rejected`, `expired`, `maxlen` or `delivery_limit`) and from which queue.
+A rejected order goes to `orders-dlx` with the routing key `orders`, lands in `orders-dead` and reaches `handle_dead_letter` as the very same message, plus an `x-death` header that says why it was dead-lettered (`rejected`, `expired`, `maxlen` or `delivery_limit`) and from which queue. All queues and exchanges are declared before any message is consumed, so the order of the handlers in the file doesn't matter.
 
 The same path is taken by any message that expires after `x-message-ttl` milliseconds, and by messages a handler fails on with an unhandled exception, since the default [acknowledgement policy](./ack.md){.internal-link} rejects those too.
+
+Use a dead letter queue whenever a handler can fail for a reason a retry won't fix (a malformed payload, a business rule violation): requeueing such a message only makes the same handler fail again. For transient failures, a **quorum** queue with `x-delivery-limit` gives you both: the message is redelivered that many times first, and dead-lettered only after that.
 
 !!! tip
     Without `x-dead-letter-routing-key`, a message is dead-lettered with the routing key it was originally published with. That is handy when one dead letter exchange serves several queues: bind one dead letter queue per source routing key, or use a `fanout` exchange to collect everything in one place.
