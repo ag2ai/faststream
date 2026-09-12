@@ -7,22 +7,17 @@ import pydantic
 import pytest
 from dirty_equals import IsDict, IsPartialDict, IsStr
 from fast_depends import Depends
-from fastapi import Depends as APIDepends
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
 from faststream._internal.broker import BrokerUsecase
-from faststream._internal.fastapi import StreamRouter
 from tests.marks import pydantic_v2
 
 from .basic import AsyncAPI300Factory
 
 
-class FastAPICompatible(AsyncAPI300Factory):
-    is_fastapi: bool = False
-
-    broker_class: BrokerUsecase | StreamRouter
-    dependency_builder = staticmethod(APIDepends)
+class ArgumentsTestcase(AsyncAPI300Factory):
+    broker_class: type[BrokerUsecase]
 
     def test_default_naming(self) -> None:
         broker = self.broker_class()
@@ -561,8 +556,8 @@ class FastAPICompatible(AsyncAPI300Factory):
         def dep2(name2: str):
             return name2
 
-        dependencies = (self.dependency_builder(dep2),)
-        message = self.dependency_builder(dep)
+        dependencies = (Depends(dep2),)
+        message = Depends(dep)
 
         @broker.subscriber("test", dependencies=dependencies)
         async def handle(id: int, message=message) -> None: ...
@@ -640,20 +635,7 @@ class FastAPICompatible(AsyncAPI300Factory):
             "title": "Handle:Message:Payload",
         })
 
-        if self.is_fastapi:
-            assert (
-                payload
-                == IsPartialDict({
-                    "anyOf": [
-                        {"$ref": "#/components/schemas/Sub2"},
-                        {"$ref": "#/components/schemas/Sub"},
-                    ],
-                })
-                | discriminator_payload
-            ), payload
-
-        else:
-            assert payload == discriminator_payload
+        assert payload == discriminator_payload
 
     @pydantic_v2
     def test_nested_discriminator(self) -> None:
@@ -717,10 +699,6 @@ class FastAPICompatible(AsyncAPI300Factory):
                 },
             },
         }, schema["components"]
-
-
-class ArgumentsTestcase(FastAPICompatible):
-    dependency_builder = staticmethod(Depends)
 
     def test_pydantic_field(self) -> None:
         broker = self.broker_class()

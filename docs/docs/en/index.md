@@ -101,7 +101,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated)
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin)
 
 That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 
@@ -571,53 +571,16 @@ Just *start* and *stop* them according to your application's lifespan.
     {!> docs_src/integrations/http_frameworks_integrations/sanic.py !}
     ```
 
-### **FastAPI** Plugin (deprecated)
+### **FastAPI** Plugin
 
-!!! warning "Plugin deprecated"
-    The integration has been moved to the
-    **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
-    package and will be removed in the 1.0.0 version.
+The **FastAPI** integration is shipped as its own package,
+**[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi){.external-link target="_blank"}**:
 
-    ```bash
-    pip install faststream_fastapi
-    ```
+```bash
+pip install faststream_fastapi
+```
 
-Also, **FastStream** can be used as part of **FastAPI**.
-
-Just import a **StreamRouter** you need and declare the message handler with the same `#!python @router.subscriber(...)` and `#!python @router.publisher(...)` decorators.
-
-=== "AIOKafka"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/kafka/base.py !}
-    ```
-
-=== "Confluent"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/confluent/base.py !}
-    ```
-
-=== "RabbitMQ"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/rabbit/base.py !}
-    ```
-
-=== "NATS"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/nats/base.py !}
-    ```
-
-=== "Redis"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/redis/base.py !}
-    ```
-
-=== "MQTT"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/mqtt/base.py !}
-    ```
-
-!!! note
-    More integration features can be found [here](./getting-started/integrations/fastapi/index.md){.internal-link}
+It provides a **StreamRouter** for every broker, so you can declare message handlers inside a **FastAPI** application with the same `#!python @router.subscriber(...)` and `#!python @router.publisher(...)` decorators. See the package README for the details.
 
 ---
 

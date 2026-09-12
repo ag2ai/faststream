@@ -13,7 +13,6 @@ from faststream.nats import (
     PubAck,
     TestNatsBroker,
 )
-from faststream.nats.fastapi import NatsRouter as FastAPIRouter
 from faststream.nats.message import NatsKvMessage, NatsObjMessage
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from faststream.nats.prometheus import NatsPrometheusMiddleware
@@ -240,70 +239,6 @@ NatsRouter(
 )
 
 
-FastAPIRouter(
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-FastAPIRouter(
-    parser=async_parser,
-    decoder=async_decoder,
-)
-FastAPIRouter(
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-
-fastapi_router = FastAPIRouter()
-
-fastapi_sub = fastapi_router.subscriber("test")
-
-
-@fastapi_sub(
-    filter=sync_filter,
-)
-async def handle15() -> None: ...
-
-
-@fastapi_sub(
-    filter=async_filter,
-)
-async def handle16() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-async def handle17() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=async_parser,
-    decoder=async_decoder,
-)
-async def handle18() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-async def handle19() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-def handle20() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-async def handle21() -> None: ...
-
-
 otlp_middleware = NatsTelemetryMiddleware()
 NatsBroker().add_middleware(otlp_middleware)
 NatsBroker(middlewares=[otlp_middleware])
@@ -341,7 +276,7 @@ async def check_request_response_type() -> None:
 
 
 async def check_core_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test")
 
@@ -353,7 +288,7 @@ async def check_core_subscriber_message_type(
 
 
 async def check_concurrent_core_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", max_workers=2)
 
@@ -365,7 +300,7 @@ async def check_concurrent_core_subscriber_message_type(
 
 
 async def check_push_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream")
 
@@ -377,7 +312,7 @@ async def check_push_stream_subscriber_message_type(
 
 
 async def check_concurrent_push_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream", max_workers=2)
 
@@ -389,7 +324,7 @@ async def check_concurrent_push_stream_subscriber_message_type(
 
 
 async def check_pull_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream", pull_sub=True)
 
@@ -401,7 +336,7 @@ async def check_pull_stream_subscriber_message_type(
 
 
 async def check_concurrent_pull_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=2)
 
@@ -413,7 +348,7 @@ async def check_concurrent_pull_stream_subscriber_message_type(
 
 
 async def check_batch_pull_stream_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber(
         "test",
@@ -429,7 +364,7 @@ async def check_batch_pull_stream_subscriber_message_type(
 
 
 async def check_key_value_watch_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("key", kv_watch="bucket")
 
@@ -441,7 +376,7 @@ async def check_key_value_watch_subscriber_message_type(
 
 
 async def check_object_store_watch_subscriber_message_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     subscriber = broker.subscriber("key", obj_watch=ObjWatch())
 
@@ -453,7 +388,7 @@ async def check_object_store_watch_subscriber_message_type(
 
 
 def check_subscriber_instance_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     sub1 = broker.subscriber("key", kv_watch="bucket")
     assert_type(sub1, KeyValueWatchSubscriber)
@@ -488,7 +423,7 @@ def check_subscriber_instance_type(
 
 
 def check_publisher_instance_type(
-    broker: NatsBroker | FastAPIRouter | NatsRouter,
+    broker: NatsBroker | NatsRouter,
 ) -> None:
     publisher = broker.publisher("test")
     assert_type(publisher, LogicPublisher)

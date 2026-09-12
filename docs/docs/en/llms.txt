@@ -62,7 +62,7 @@ If you know FastAPI, you already know FastStream: the same decorators, type-driv
 
 ## Integrations
 - [HTTP Async Frameworks](https://faststream.ag2.ai/latest/getting-started/integrations/frameworks/): FastStream brokers are very easy to integrate with any of your applications: it is enough to initialize the broker at startup and close it correctly at the end of your application.
-- [FastAPI Plugin](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/): FastStream can be used as a part of FastAPI. Just import a StreamRouter you need and declare the message handler in the same way as with a regular FastStream application.
+- [FastAPI Plugin](https://github.com/faststream-community/faststream_fastapi): The FastAPI integration is shipped as the separate faststream_fastapi package. It provides a StreamRouter per broker with the same subscriber and publisher decorators.
 - [Django](https://faststream.ag2.ai/latest/getting-started/integrations/django/): Using FastStream with Django. Django is a high-level Python web framework that promotes rapid development and clean design, allowing developers to focus on building applications without the hassle of web development. In this tutorial, we'll explore how to integrate the FastStream app with a Django application.
 
 ## CLI

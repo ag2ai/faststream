@@ -18,7 +18,7 @@ Most HTTP frameworks have built-in lifecycle hooks for this.
 
 === "FastAPI"
     !!! tip
-        If you want to use **FastStream** in conjunction with **FastAPI**, perhaps you should use a special [plugin](../fastapi/index.md){.internal-link}
+        If you want to use **FastStream** in conjunction with **FastAPI**, take a look at the [faststream_fastapi](https://github.com/faststream-community/faststream_fastapi){.external-link target="_blank"} package
     ```python linenums="1" hl_lines="5 7 9-11 15 17 19"
     {!> docs_src/integrations/http_frameworks_integrations/fastapi.py !}
     ```

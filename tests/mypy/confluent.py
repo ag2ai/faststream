@@ -4,7 +4,6 @@ from confluent_kafka import Message
 from typing_extensions import assert_type
 
 from faststream.confluent import KafkaBroker, KafkaMessage, KafkaRouter, TestKafkaBroker
-from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
     DefaultPublisher,
@@ -57,7 +56,7 @@ async def check_publish_type(fake_bool: bool = True) -> None:
 
 
 async def check_publisher_publish_type(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter, fake_bool: bool = False
+    broker: KafkaBroker | KafkaRouter, fake_bool: bool = False
 ) -> None:
     p1 = broker.publisher("test", batch=False)
     assert_type(p1, DefaultPublisher)
@@ -80,7 +79,7 @@ async def check_publisher_publish_type(
 
 
 async def check_publish_batch_type(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter, fake_bool: bool = True
+    broker: KafkaBroker | KafkaRouter, fake_bool: bool = True
 ) -> None:
     broker = KafkaBroker()
 
@@ -101,7 +100,7 @@ async def check_publish_batch_type(
 
 
 async def check_channel_subscriber(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+    broker: KafkaBroker | KafkaRouter,
 ) -> None:
     subscriber = broker.subscriber("test")
 
@@ -113,7 +112,7 @@ async def check_channel_subscriber(
 
 
 def check_subscriber_instance_type(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+    broker: KafkaBroker | KafkaRouter,
 ) -> None:
     sub1 = broker.subscriber("test")
     assert_type(sub1, DefaultSubscriber)
