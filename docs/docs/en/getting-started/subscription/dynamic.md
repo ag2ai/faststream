@@ -6,7 +6,7 @@ In these cases, you cannot use the regular **FastStream's** `#!python @broker.su
 However, the framework still allows you to do so in a suitable manner.
 
 !!! warning
-    Dynamic subscribers are not supported by [TestBroker](../test){.internal-link}.
+    Dynamic subscribers are not supported by [TestBroker](test.md){.internal-link}.
 
     The examples below will not work.
 
@@ -215,12 +215,12 @@ It would be much better to use the built-in iteration mechanism:
     ```
 
 !!! tip "Technical Details"
-    Both ways support all **FastStream** features, such as  [middlewares](../../middlewares){.internal-link}, [OpenTelemetry tracing](../../observability/opentelemetry){.internal-link} and [Prometheus metrics](../../observability/prometheus){.internal-link}.
+    Both ways support all **FastStream** features, such as  [middlewares](../middlewares/index.md){.internal-link}, [OpenTelemetry tracing](../observability/opentelemetry/index.md){.internal-link} and [Prometheus metrics](../observability/prometheus.md){.internal-link}.
 
 
 ## Acknowledgement
 
-Note that the default **FastStream** [acknowledgement](../../acknowledgement){.internal-link} logic does not work here. You will need to acknowledge a consumed message manually.
+Note that the default **FastStream** [acknowledgement](../acknowledgement.md){.internal-link} logic does not work here. You will need to acknowledge a consumed message manually.
 
 ```python
 msg = await subscriber.get_one()

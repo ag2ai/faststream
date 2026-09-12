@@ -190,7 +190,7 @@ The `env` argument will be passed to the `setup` function from the user-provided
 
 !!! tip
     All lifecycle functions always apply `#!python @apply_types` decorator,
-    therefore, all [context fields](../context/index.md){.internal-link} and [dependencies](../dependencies/index.md){.internal-link} are available in them
+    therefore, all [context fields](../context.md){.internal-link} and [dependencies](../dependencies/index.md){.internal-link} are available in them
 
 Then, we initialize the settings of our application using the file passed to us from the command line:
 

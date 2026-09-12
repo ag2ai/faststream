@@ -23,7 +23,7 @@ Additionally, this object can be used as a decorator. The order of Subscriber an
 
     :material-checkbox-marked:{.checked_mark} **Testing support** - This method has full [`Testing`](./test.md) support.
 
-    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :material-checkbox-marked:{.checked_mark} **Reusable** - This method is reusable.
 

@@ -20,7 +20,7 @@ This method creates a reusable Publisher object that can be used directly to pub
 
     :material-checkbox-marked:{.checked_mark} **Testing support** - This method has full [`Testing`](./test.md) support.
 
-    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :material-checkbox-marked:{.checked_mark} **Optional publication** - You can create optional publications.
 

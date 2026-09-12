@@ -12,7 +12,7 @@ search:
 
 The **Header** Exchange is the most complex and flexible way to route messages in *RabbitMQ*. This `exchange` type sends messages to queues according by matching the queue binding arguments with message headers.
 
-At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](../direct#scaling){.internal-link}).
+At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](direct.md#scaling){.internal-link}).
 
 ## Example
 
