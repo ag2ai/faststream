@@ -137,6 +137,8 @@ class RedisBroker(
                 ack_policy=kwargs.get("ack_policy", EMPTY),
                 id_generator=kwargs.get("id_generator", gen_cor_id),
                 extra_context={"broker": self},
+                underlying_driver_annotations=kwargs.get("underlying_driver_annotations")
+                or {},
             ),
             specification=BrokerSpec(
                 description=kwargs.get("description"),

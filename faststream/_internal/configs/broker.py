@@ -1,5 +1,6 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from typing_extensions import TypeVar as TypeVar313
@@ -20,6 +21,21 @@ if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
 
 
+@dataclass
+class UnderlyingDriverAnnotation:
+    """A driver class mapped to the context annotation that injects it.
+
+    Attributes:
+        type_hint: the context annotation to use instead.
+        module: where that annotation is importable from.
+        name: its name in that module.
+    """
+
+    type_hint: Any
+    module: str
+    name: str
+
+
 @dataclass(kw_only=True)
 class BrokerConfig:
     prefix: str = ""
@@ -36,10 +52,23 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
+    underlying_driver_annotations: Mapping[Any, Any] = field(default_factory=dict)
     broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # A broker's own rows are the defaults; anything the user passed wins.
+        self.underlying_driver_annotations = MappingProxyType(
+            {
+                **self._default_driver_annotations(),
+                **self.underlying_driver_annotations,
+            },
+        )
+
+    def _default_driver_annotations(self) -> Mapping[Any, Any]:
+        return {}
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
