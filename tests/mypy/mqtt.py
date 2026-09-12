@@ -1,6 +1,5 @@
 from typing_extensions import assert_type
 
-from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream.mqtt import (
     MQTTBroker,
     MQTTRouter,
@@ -9,6 +8,7 @@ from faststream.mqtt import (
     Will,
     WillProperties,
 )
+from faststream.mqtt.call_wrapper import MqttHandlerCallWrapper
 from faststream.mqtt.subscriber.usecase import (
     MQTTConcurrentSubscriber,
     MQTTDefaultSubscriber,
@@ -57,10 +57,35 @@ def check_subscriber_instance_type(broker: MQTTBroker | MQTTRouter) -> None:
     assert_type(sub2, MQTTConcurrentSubscriber)
 
 
-def check_decorated_handler_type(broker: MQTTBroker | MQTTRouter) -> None:
-    # A union-typed `subscriber()` counts as an untyped decorator under strict mypy;
-    # a sync handler, since mypy and pyright spell an `async def`'s return differently
+async def check_call_assertions_take_the_mqtt_fields(
+    broker: MQTTBroker | MQTTRouter,
+) -> None:
+    # A sync handler: mypy and pyright spell an `async def`'s return type differently
     @broker.subscriber("test")
     def handle() -> None: ...
 
-    assert_type(handle, HandlerCallWrapper[[], None])
+    assert_type(handle, MqttHandlerCallWrapper[[], None])
+    await handle.assert_called_once_with(
+        None,
+        topic="test",
+        qos=QoS.AT_MOST_ONCE,
+        retain=False,
+    )
+    await handle.assert_called_with(topic="test")
+    await handle.assert_any_call(qos=QoS.AT_MOST_ONCE, retain=False)
+
+    # The publisher's methods take the three fields, which only the MQTT mixin gives them
+    publisher = broker.publisher("test")
+
+    @publisher
+    def published() -> None: ...
+
+    assert_type(published, MqttHandlerCallWrapper[[], None])
+    await publisher.assert_called_once_with(
+        None,
+        topic="test",
+        qos=QoS.AT_MOST_ONCE,
+        retain=False,
+    )
+    await publisher.assert_called_with(topic="test")
+    await publisher.assert_any_call(qos=QoS.AT_MOST_ONCE, retain=False)
