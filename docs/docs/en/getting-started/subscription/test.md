@@ -371,7 +371,7 @@ To check only a part of the body, put a [dirty-equals](https://dirty-equals.help
 !!! note
     A context path reads attributes and keys, it never calls. Where a raw message answers with methods, as the Confluent one does, reach for what **FastStream** put in the context beside it, such as `log_context`.
 
-Beside these fields, the handlers and publishers of a broker take that broker's own, under the names its `publish()` uses for them. A Kafka handler or publisher takes `key` and `partition`, compared exactly as the client delivered them:
+Beside these fields, the handlers and publishers of a broker take that broker's own, under the names its `publish()` uses for them. A Kafka handler or publisher takes `key` and `partition`, compared exactly as the client delivered them. A RabbitMQ handler or publisher takes `exchange`, `routing_key`, `message_id` and `priority`, read off the message as it was delivered:
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="14 18-21"
@@ -381,6 +381,11 @@ Beside these fields, the handlers and publishers of a broker take that broker's 
 === "Confluent"
     ```python linenums="1" hl_lines="14 18-21"
     {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5-8,91-106] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="13 17-20"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5-8,91-105] !}
     ```
 
 !!! note

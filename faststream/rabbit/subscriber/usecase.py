@@ -1,13 +1,16 @@
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator, Sequence
-from typing import TYPE_CHECKING, Any, Optional, cast
+from collections.abc import AsyncIterator, Callable, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import anyio
-from typing_extensions import override
+from typing_extensions import overload, override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
+from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
+from faststream.rabbit.call_wrapper import RabbitHandlerCallWrapper
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -15,12 +18,14 @@ from faststream.rabbit.schemas.constants import REPLY_TO_QUEUE_EXCHANGE_DELIMITE
 
 if TYPE_CHECKING:
     from aio_pika import IncomingMessage, RobustQueue
+    from fast_depends.dependencies import Dependant
 
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream._internal.endpoint.subscriber.specification import (
         SubscriberSpecification,
     )
+    from faststream._internal.types import CustomCallable, Filter
     from faststream.message import StreamMessage
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
@@ -33,6 +38,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
     _outer_config: "RabbitBrokerConfig"
+    _call_wrapper_class = RabbitHandlerCallWrapper
 
     def __init__(
         self,
@@ -59,6 +65,61 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self._consumer_tag: str | None = None
         self._queue_obj: RobustQueue | None = None
         self.channel = config.channel
+
+    @overload
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
+
+    @overload
+    def __call__(
+        self,
+        func: None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Callable[
+        [Callable[P_HandlerParams, T_HandlerReturn]],
+        "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+    ]: ...
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn] | None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Union[
+        "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        Callable[
+            [Callable[P_HandlerParams, T_HandlerReturn]],
+            "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        ],
+    ]:
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn] | Callable["
+            "[Callable[P_HandlerParams, T_HandlerReturn]], "
+            "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]]",
+            super().__call__(
+                func,
+                filter=filter,
+                parser=parser,
+                decoder=decoder,
+                dependencies=dependencies,
+            ),
+        )
 
     @property
     def app_id(self) -> str | None:
