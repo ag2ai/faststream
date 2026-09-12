@@ -140,10 +140,8 @@ The timeout is configured on the broker:
     broker = MQTTBroker(graceful_timeout=30.0)
     ```
 
-!!! warning "Default values differ between brokers"
-    **Kafka** (both **AIOKafka** and **Confluent**), **Redis** and **MQTT** brokers wait up to `15.0` seconds by default.
-    **RabbitMQ** and **NATS** brokers default to `#!python None`, which means the broker **does not wait at all**: the connection is closed right away and running handlers are interrupted.
-    Set `graceful_timeout` explicitly if your handlers must finish their work before the application exits.
+!!! note
+    The default is `15.0` seconds for every broker. Pass `#!python graceful_timeout=None` to skip the wait entirely: the connection is closed right away and running handlers are interrupted.
 
 ## Usage example
 

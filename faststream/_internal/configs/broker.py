@@ -37,7 +37,7 @@ class BrokerConfig:
 
     # subscriber options
     broker_dependencies: Iterable["Dependant"] = ()
-    graceful_timeout: float | None = None
+    graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
 
