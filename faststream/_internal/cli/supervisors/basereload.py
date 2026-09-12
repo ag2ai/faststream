@@ -1,9 +1,13 @@
 import os
-import threading
 from multiprocessing.context import SpawnProcess
 from typing import TYPE_CHECKING
 
-from faststream._internal.cli.supervisors.utils import get_subprocess, set_exit
+from faststream._internal.cli.supervisors.utils import (
+    ExitEvent,
+    get_subprocess,
+    set_exit,
+    stop_process,
+)
 from faststream._internal.logger import logger
 
 if TYPE_CHECKING:
@@ -16,7 +20,7 @@ class BaseReload:
     _process: SpawnProcess
 
     reload_delay: float | None
-    should_exit: threading.Event
+    should_exit: ExitEvent
     pid: int
     reloader_name: str = ""
 
@@ -29,7 +33,7 @@ class BaseReload:
         self._target = target
         self._args = args
 
-        self.should_exit = threading.Event()
+        self.should_exit = ExitEvent()
         self.pid = os.getpid()
         self.reload_delay = reload_delay
 
@@ -60,8 +64,7 @@ class BaseReload:
         logger.info("Stopping reloader process [%s]", self.pid)
 
     def _stop_process(self) -> None:
-        self._process.terminate()
-        self._process.join()
+        stop_process(self._process)
 
     def start_process(self, worker_id: int | None = None) -> SpawnProcess:
         self._args.extra_options["worker_id"] = worker_id
