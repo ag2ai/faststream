@@ -85,12 +85,14 @@ async def test_handle_redis() -> None:
     from docs.docs_src.getting_started.subscription.redis.advanced_testing import (
         test_handle,
         test_message_context,
+        test_redis_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_redis_fields()
 
 
 @pytest.mark.mqtt()

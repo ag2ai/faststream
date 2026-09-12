@@ -1,6 +1,6 @@
 from abc import abstractmethod
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from typing_extensions import override
 
@@ -8,6 +8,8 @@ from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
+from faststream.redis.call_wrapper import RedisCallAssertions, RedisHandlerCallWrapper
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -23,8 +25,11 @@ if TYPE_CHECKING:
     from .config import RedisPublisherConfig
 
 
-class LogicPublisher(PublisherUsecase):
+class LogicPublisher(RedisCallAssertions, PublisherUsecase):
     """A class to represent a Redis publisher."""
+
+    _call_wrapper_class = RedisHandlerCallWrapper
+    _read_field = RedisHandlerCallWrapper._read_field
 
     def __init__(
         self,
@@ -39,6 +44,17 @@ class LogicPublisher(PublisherUsecase):
         self.headers = config.headers or {}
 
         self.producer = self.config._outer_config.producer
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+            super().__call__(func),
+        )
 
     async def start(self) -> None:
         await super().start()
