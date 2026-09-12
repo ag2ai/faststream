@@ -1,8 +1,10 @@
+import os
 import signal
 import threading
 import time
 from multiprocessing.context import SpawnProcess
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,24 +19,36 @@ DIR = Path(__file__).resolve().parent
 
 
 class PatchedWatchReloader(WatchReloader):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.watching = threading.Event()
+
     def start_process(self, worker_id: int | None = None) -> SpawnProcess:
         process = get_subprocess(target=self._target, args=(self._args,))
         process.start()
         return process
 
+    def should_restart(self) -> bool:
+        self.watching.set()
+        return super().should_restart()
+
 
 @pytest.mark.slow()
 @skip_windows
-def test_base(generate_template: interfaces.GenerateTemplateFactory) -> None:
+def test_watcher_stops_on_exit_signal(
+    generate_template: interfaces.GenerateTemplateFactory,
+) -> None:
     with generate_template("") as file_path:
         processor = PatchedWatchReloader(
             target=sleep_forever,
             args=RunArgs(app=""),
             reload_dirs=[str(file_path.parent)],
         )
-        threading.Timer(0.1, processor.should_exit.set).start()
+        sender = threading.Thread(target=signal_while_watching, args=(processor,))
+        sender.start()
 
         processor.run()
+        sender.join()
 
     assert processor._process.exitcode == -signal.SIGTERM
 
@@ -57,6 +71,14 @@ def test_restart(
             processor.run()
 
     mock.assert_called_once()
+
+
+def signal_while_watching(processor: PatchedWatchReloader) -> None:
+    # the watcher blocks the run loop, and watchfiles brings its own interrupt
+    # handling — only `stop_event` gets the reloader out of that step cleanly
+    assert processor.watching.wait(timeout=10)
+    time.sleep(0.2)
+    os.kill(processor.pid, signal.SIGINT)
 
 
 def sleep_forever(args: RunArgs) -> None:  # pragma: no cover
