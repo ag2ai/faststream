@@ -109,10 +109,6 @@ ignore = [
 #     "N815",     # Variable `*` in class scope should not be mixedCase
 # ]
 
-"**/fastapi/**/*.py" = [
-    "N803",     # Argument name `expandMessageExamples` should be lowercase
-]
-
 "**/_compat.py" = [
     "PYI063",
     "PLW3201",
@@ -153,14 +149,10 @@ extend-immutable-calls = [
     "faststream.params.Depends",
     "faststream.params.Context",
     "faststream.params.Depends",
-    "faststream._internal.fastapi.context.Context",
     "typer.Argument",
     "typer.Option",
     "pydantic.Field",
     "rocketry.args.Arg",
-    "fastapi.Depends",
-    "fastapi.Header",
-    "fastapi.datastructures.Default",
     "kafka.partitioner.default.DefaultPartitioner",
 ]
 

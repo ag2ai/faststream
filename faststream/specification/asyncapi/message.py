@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from inspect import isclass
-from typing import TYPE_CHECKING, Any, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 from pydantic import BaseModel, create_model
 
@@ -34,29 +34,6 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
         return {"title": "EmptyPayload", "type": "null"}
 
     return body
-
-
-@overload
-def get_response_schema(call: None, prefix: str = "") -> None: ...
-
-
-@overload
-def get_response_schema(call: "CallModel", prefix: str = "") -> dict[str, Any]: ...
-
-
-def get_response_schema(
-    call: Optional["CallModel"],
-    prefix: str = "",
-) -> dict[str, Any] | None:
-    """Get the response schema for a given call."""
-    return get_model_schema(
-        getattr(
-            call,
-            "response_model",
-            None,
-        ),  # NOTE: FastAPI Dependant object compatibility
-        prefix=prefix,
-    )
 
 
 @overload

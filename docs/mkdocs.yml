@@ -18,7 +18,6 @@ repo_url: https://github.com/ag2ai/faststream
 edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs
 
 exclude_docs: |
-  navigation_template.txt
   SUMMARY.md
 
 theme:
@@ -75,33 +74,6 @@ plugins:
       manual: true
   - macros:                      # Jinja templates
       include_dir: includes
-  - mkdocstrings:                # Generate References
-      default_handler: python
-      handlers:
-        python:
-          import:
-          - https://docs.python.org/3/objects.inv
-          options:
-            preload_modules:
-            - httpx
-            - starlette
-            - fastapi
-            filters:
-            - '!^_'
-            show_root_heading: true
-            show_if_no_docstring: true
-            inherited_members: true
-            members_order: source
-            separate_signature: true
-            unwrap_annotated: true
-            merge_init_into_class: true
-            docstring_section_style: spacy
-            signature_crossrefs: true
-            show_symbol_type_heading: true
-            show_symbol_type_toc: true
-            show_docstring_attributes: false
-            show_signature_annotations: true
-            load_external_modules: true
   - i18n:
       docs_structure: folder
       reconfigure_material: true
@@ -129,9 +101,6 @@ plugins:
       alias_type: copy
       redirect_template: templates/redirect.html
       canonical_version: latest
-
-hooks:
-  - create_api_docs.py
 
 markdown_extensions:
   - toc:

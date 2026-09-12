@@ -18,17 +18,7 @@ repos:
     -   id: check-yaml
         exclude: 'docs/mkdocs.yml'
     -   id: check-added-large-files
-        exclude: |
-            (?x)^(
-                docs/docs/SUMMARY.md|
-                docs/docs/en/api/.meta.yml
-            )$
     -   id: end-of-file-fixer
-        exclude: |
-            (?x)^(
-                docs/docs/SUMMARY.md|
-                docs/docs/en/api/.meta.yml
-            )$
 
 -   repo: https://github.com/crate-ci/typos
     rev: v1.30.3

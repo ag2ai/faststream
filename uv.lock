@@ -848,7 +848,7 @@ wheels = [
 
 [[package]]
 name = "faststream"
-version = "0.7.5"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -898,7 +898,6 @@ dev = [
     { name = "fastapi" },
     { name = "faststream", extra = ["cli", "confluent", "kafka", "mqtt", "nats", "otel", "prometheus", "rabbit", "redis"] },
     { name = "freezegun" },
-    { name = "griffe" },
     { name = "httpx" },
     { name = "mdx-include" },
     { name = "mike" },
@@ -909,7 +908,6 @@ dev = [
     { name = "mkdocs-material" },
     { name = "mkdocs-minify-plugin" },
     { name = "mkdocs-static-i18n" },
-    { name = "mkdocstrings", extra = ["python"] },
     { name = "msgspec" },
     { name = "mypy" },
     { name = "opentelemetry-sdk" },
@@ -932,7 +930,6 @@ dev = [
     { name = "setuptools" },
     { name = "syrupy" },
     { name = "types-aiofiles" },
-    { name = "types-deprecated" },
     { name = "types-docutils" },
     { name = "types-pygments" },
     { name = "types-pyyaml" },
@@ -944,7 +941,6 @@ dev = [
 ]
 docs = [
     { name = "cairosvg" },
-    { name = "griffe" },
     { name = "httpx" },
     { name = "mdx-include" },
     { name = "mike" },
@@ -955,7 +951,6 @@ docs = [
     { name = "mkdocs-material" },
     { name = "mkdocs-minify-plugin" },
     { name = "mkdocs-static-i18n" },
-    { name = "mkdocstrings", extra = ["python"] },
     { name = "pillow" },
 ]
 lint = [
@@ -966,7 +961,6 @@ lint = [
     { name = "ruff" },
     { name = "semgrep" },
     { name = "types-aiofiles" },
-    { name = "types-deprecated" },
     { name = "types-docutils" },
     { name = "types-pygments" },
     { name = "types-pyyaml" },
@@ -1045,7 +1039,6 @@ dev = [
     { name = "fastapi", specifier = "==0.140.0" },
     { name = "faststream", extras = ["rabbit", "kafka", "confluent", "nats", "redis", "mqtt", "otel", "cli", "prometheus"] },
     { name = "freezegun", specifier = ">=1.5.5" },
-    { name = "griffe", specifier = "==1.15.0" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "mdx-include", specifier = "==1.4.2" },
     { name = "mike", specifier = "==2.1.3" },
@@ -1056,7 +1049,6 @@ dev = [
     { name = "mkdocs-material", specifier = "==9.7.7" },
     { name = "mkdocs-minify-plugin", specifier = "==0.8.0" },
     { name = "mkdocs-static-i18n", specifier = "==1.3.0" },
-    { name = "mkdocstrings", extras = ["python"], specifier = "==1.0.2" },
     { name = "msgspec" },
     { name = "mypy", specifier = "==1.19.1" },
     { name = "opentelemetry-sdk", specifier = ">=1.24.0,<2.0.0" },
@@ -1079,7 +1071,6 @@ dev = [
     { name = "setuptools", specifier = ">=80.9.0" },
     { name = "syrupy", specifier = "==6.0.0" },
     { name = "types-aiofiles" },
-    { name = "types-deprecated" },
     { name = "types-docutils" },
     { name = "types-pygments" },
     { name = "types-pyyaml" },
@@ -1091,7 +1082,6 @@ dev = [
 ]
 docs = [
     { name = "cairosvg" },
-    { name = "griffe", specifier = "==1.15.0" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "mdx-include", specifier = "==1.4.2" },
     { name = "mike", specifier = "==2.1.3" },
@@ -1102,7 +1092,6 @@ docs = [
     { name = "mkdocs-material", specifier = "==9.7.7" },
     { name = "mkdocs-minify-plugin", specifier = "==0.8.0" },
     { name = "mkdocs-static-i18n", specifier = "==1.3.0" },
-    { name = "mkdocstrings", extras = ["python"], specifier = "==1.0.2" },
     { name = "pillow" },
 ]
 lint = [
@@ -1113,7 +1102,6 @@ lint = [
     { name = "ruff", specifier = "==0.14.14" },
     { name = "semgrep", specifier = "==1.150.0" },
     { name = "types-aiofiles" },
-    { name = "types-deprecated" },
     { name = "types-docutils" },
     { name = "types-pygments" },
     { name = "types-pyyaml" },
@@ -1240,27 +1228,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/20/18/a746c8344152d368a5aac738d4c857012f2c5d1fd2eac7e17b647a7861bd/googleapis_common_protos-1.74.0.tar.gz", hash = "sha256:57971e4eeeba6aad1163c1f0fc88543f965bb49129b8bb55b2b7b26ecab084f1", size = 151254, upload-time = "2026-04-02T21:23:26.679Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/b0/be5d3329badb9230b765de6eea66b73abd5944bdeb5afb3562ddcd80ae84/googleapis_common_protos-1.74.0-py3-none-any.whl", hash = "sha256:702216f78610bb510e3f12ac3cafd281b7ac45cc5d86e90ad87e4d301a3426b5", size = 300743, upload-time = "2026-04-02T21:22:49.108Z" },
-]
-
-[[package]]
-name = "griffe"
-version = "1.15.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "colorama" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/0c/3a471b6e31951dce2360477420d0a8d1e00dea6cf33b70f3e8c3ab6e28e1/griffe-1.15.0.tar.gz", hash = "sha256:7726e3afd6f298fbc3696e67958803e7ac843c1cfe59734b6251a40cdbfb5eea", size = 424112, upload-time = "2025-11-10T15:03:15.52Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/83/3b1d03d36f224edded98e9affd0467630fc09d766c0e56fb1498cbb04a9b/griffe-1.15.0-py3-none-any.whl", hash = "sha256:6f6762661949411031f5fcda9593f586e6ce8340f0ba88921a0f2ef7a81eb9a3", size = 150705, upload-time = "2025-11-10T15:03:13.549Z" },
-]
-
-[[package]]
-name = "griffelib"
-version = "2.0.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/9d/82/74f4a3310cdabfbb10da554c3a672847f1ed33c6f61dd472681ce7f1fe67/griffelib-2.0.2.tar.gz", hash = "sha256:3cf20b3bc470e83763ffbf236e0076b1211bac1bc67de13daf494640f2de707e", size = 166461, upload-time = "2026-03-27T11:34:51.091Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/8c/c9138d881c79aa0ea9ed83cbd58d5ca75624378b38cee225dcf5c42cc91f/griffelib-2.0.2-py3-none-any.whl", hash = "sha256:925c857658fb1ba40c0772c37acbc2ab650bd794d9c1b9726922e36ea4117ea1", size = 142357, upload-time = "2026-03-27T11:34:46.275Z" },
 ]
 
 [[package]]
@@ -1711,20 +1678,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mkdocs-autorefs"
-version = "1.4.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markdown" },
-    { name = "markupsafe" },
-    { name = "mkdocs" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/52/c0/f641843de3f612a6b48253f39244165acff36657a91cc903633d456ae1ac/mkdocs_autorefs-1.4.4.tar.gz", hash = "sha256:d54a284f27a7346b9c38f1f852177940c222da508e66edc816a0fa55fc6da197", size = 56588, upload-time = "2026-02-10T15:23:55.105Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/de/a3e710469772c6a89595fc52816da05c1e164b4c866a89e3cb82fb1b67c5/mkdocs_autorefs-1.4.4-py3-none-any.whl", hash = "sha256:834ef5408d827071ad1bc69e0f39704fa34c7fc05bc8e1c72b227dfdc5c76089", size = 25530, upload-time = "2026-02-10T15:23:53.817Z" },
-]
-
-[[package]]
 name = "mkdocs-get-deps"
 version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1854,43 +1807,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/03/2b/59652a2550465fde25ae6a009cb6d74d0f7e724d272fc952685807b29ca1/mkdocs_static_i18n-1.3.0.tar.gz", hash = "sha256:65731e1e4ec6d719693e24fee9340f5516460b2b7244d2a89bed4ce3cfa6a173", size = 1370450, upload-time = "2025-01-24T09:03:24.389Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ca/f7/ef222a7a2f96ecf79c7c00bfc9dde3b22cd2cc1bd2b7472c7b204fc64225/mkdocs_static_i18n-1.3.0-py3-none-any.whl", hash = "sha256:7905d52fff71d2c108b6c344fd223e848ca7e39ddf319b70864dfa47dba85d6b", size = 21660, upload-time = "2025-01-24T09:03:22.461Z" },
-]
-
-[[package]]
-name = "mkdocstrings"
-version = "1.0.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "jinja2" },
-    { name = "markdown" },
-    { name = "markupsafe" },
-    { name = "mkdocs" },
-    { name = "mkdocs-autorefs" },
-    { name = "pymdown-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/63/4d/1ca8a9432579184599714aaeb36591414cc3d3bfd9d494f6db540c995ae4/mkdocstrings-1.0.2.tar.gz", hash = "sha256:48edd0ccbcb9e30a3121684e165261a9d6af4d63385fc4f39a54a49ac3b32ea8", size = 101048, upload-time = "2026-01-24T15:57:25.735Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/32/407a9a5fdd7d8ecb4af8d830b9bcdf47ea68f916869b3f44bac31f081250/mkdocstrings-1.0.2-py3-none-any.whl", hash = "sha256:41897815a8026c3634fe5d51472c3a569f92ded0ad8c7a640550873eea3b6817", size = 35443, upload-time = "2026-01-24T15:57:23.933Z" },
-]
-
-[package.optional-dependencies]
-python = [
-    { name = "mkdocstrings-python" },
-]
-
-[[package]]
-name = "mkdocstrings-python"
-version = "2.0.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "griffelib" },
-    { name = "mkdocs-autorefs" },
-    { name = "mkdocstrings" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/29/33/c225eaf898634bdda489a6766fc35d1683c640bffe0e0acd10646b13536d/mkdocstrings_python-2.0.3.tar.gz", hash = "sha256:c518632751cc869439b31c9d3177678ad2bfa5c21b79b863956ad68fc92c13b8", size = 199083, upload-time = "2026-02-20T10:38:36.368Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/28/79f0f8de97cce916d5ae88a7bee1ad724855e83e6019c0b4d5b3fabc80f3/mkdocstrings_python-2.0.3-py3-none-any.whl", hash = "sha256:0b83513478bdfd803ff05aa43e9b1fca9dd22bcd9471f09ca6257f009bc5ee12", size = 104779, upload-time = "2026-02-20T10:38:34.517Z" },
 ]
 
 [[package]]
@@ -3648,15 +3564,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cb/85/3896bfcb4e7c32904f762c36ff0afa96d3e39bfce5a95a41635af79c8761/types_cffi-2.0.0.20260402.tar.gz", hash = "sha256:47e1320c009f630c59c55c8e3d2b8c501e280babf52e92f6109cbfb0864ba367", size = 17476, upload-time = "2026-04-02T04:21:09.332Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ae/26/aacfef05841e31c65f889ae4225c6bce6b84cd5d3882c42a3661030f29ee/types_cffi-2.0.0.20260402-py3-none-any.whl", hash = "sha256:f647a400fba0a31d603479169d82ee5359db79bd1136e41dc7e6489296e3a2b2", size = 20103, upload-time = "2026-04-02T04:21:08.199Z" },
-]
-
-[[package]]
-name = "types-deprecated"
-version = "1.3.1.20260402"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e2/ff/7e237c5118c1bd15e5205789901f7e01db232b0c61ca7c7c05de0394f5da/types_deprecated-1.3.1.20260402.tar.gz", hash = "sha256:00828ef7dce735d778583d00611f97da05b86b783ee14b0f22af2f945363cd12", size = 8481, upload-time = "2026-04-02T04:18:28.704Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/3c/59aa775db5f69eba978390c33e1fd617817381cd87424ac1cff4bf2fb6c5/types_deprecated-1.3.1.20260402-py3-none-any.whl", hash = "sha256:ddf1813bd99cd1c00358cb0cb079878fdaa74509e7e482b79627f74f768f31a9", size = 9077, upload-time = "2026-04-02T04:18:27.867Z" },
 ]
 
 [[package]]

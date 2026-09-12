@@ -1,13 +1,12 @@
 import pydantic
 
 from faststream._internal.broker import BrokerUsecase
-from faststream._internal.fastapi import StreamRouter
 
 from .basic import AsyncAPI300Factory
 
 
 class PublisherTestcase(AsyncAPI300Factory):
-    broker_class: BrokerUsecase | StreamRouter
+    broker_class: type[BrokerUsecase]
 
     def test_publisher_with_description(self) -> None:
         broker = self.broker_class()
