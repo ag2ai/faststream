@@ -65,6 +65,66 @@ async def handle(msg) -> str:
     await publisher2.publish("Response-2")
 ```
 
+### Overriding the Destination
+
+The destination passed to `#!python broker.publisher(...)` is only a default. Every `#!python publisher.publish(...)` call accepts the same destination arguments as `#!python broker.publish(...)`, and a value passed there **overrides** the one from the constructor for that single call:
+
+=== "AIOKafka"
+    ```python hl_lines="5"
+    publisher = broker.publisher("another-topic")
+
+    @broker.subscriber("in")
+    async def handle(msg: str) -> None:
+        await publisher.publish(msg, topic=f"another-topic.{msg}")
+    ```
+
+=== "Confluent"
+    ```python hl_lines="5"
+    publisher = broker.publisher("another-topic")
+
+    @broker.subscriber("in")
+    async def handle(msg: str) -> None:
+        await publisher.publish(msg, topic=f"another-topic.{msg}")
+    ```
+
+=== "RabbitMQ"
+    ```python hl_lines="5"
+    publisher = broker.publisher("another-queue")
+
+    @broker.subscriber("in")
+    async def handle(msg: str) -> None:
+        await publisher.publish(msg, routing_key=f"another-queue.{msg}")
+    ```
+
+=== "NATS"
+    ```python hl_lines="5"
+    publisher = broker.publisher("another-subject")
+
+    @broker.subscriber("in")
+    async def handle(msg: str) -> None:
+        await publisher.publish(msg, subject=f"another-subject.{msg}")
+    ```
+
+=== "Redis"
+    ```python hl_lines="5"
+    publisher = broker.publisher("another-channel")
+
+    @broker.subscriber("in")
+    async def handle(msg: str) -> None:
+        await publisher.publish(msg, channel=f"another-channel.{msg}")
+    ```
+
+=== "MQTT"
+    ```python hl_lines="5"
+    publisher = broker.publisher("another-topic")
+
+    @broker.subscriber("in")
+    async def handle(msg: str) -> None:
+        await publisher.publish(msg, topic=f"another-topic/{msg}")
+    ```
+
+The constructor argument still matters: the **AsyncAPI** schema describes the publisher by it, and the [test mock](./test.md){.internal-link} is attached to it. If a publisher never publishes to its default destination, it is probably [broker publish](./broker.md){.internal-link} you want.
+
 !!! note
     When using this method, **FastStream** doesn't reuse the incoming `correlation_id` to mark outgoing messages with it. You should set it manually if it is required:
 
