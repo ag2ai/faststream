@@ -87,3 +87,19 @@ async def test_several_messages() -> None:
             Data(name="John", user_id=1),
             correlation_id="first",
         )
+
+
+@pytest.mark.asyncio
+async def test_redis_fields() -> None:
+    async with TestRedisBroker(broker) as br:
+        await br.publish(
+            Data(name="John", user_id=1),
+            channel="test-channel",
+            headers={"trace-id": "42"},
+        )
+
+        # `channel`, `list` and `stream` are named as `publish()` names them
+        await handle.assert_called_once_with(
+            Data(name="John", user_id=1),
+            channel="test-channel",
+        )
