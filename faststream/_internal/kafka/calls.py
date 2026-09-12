@@ -1,5 +1,5 @@
-from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, ClassVar
+from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.testing.calls import (
@@ -8,10 +8,6 @@ from faststream._internal.testing.calls import (
     ExpectedCall,
     FieldReader,
 )
-from faststream.exceptions import SetupError
-
-if TYPE_CHECKING:
-    from faststream.message import StreamMessage
 
 
 class KafkaCallAssertions(CallAssertions):
@@ -176,27 +172,3 @@ class KafkaCallAssertions(CallAssertions):
                 type(self)._read_field,
             ),
         )
-
-
-def field_reader(
-    record: type,
-    read: Callable[[Any, str], Any],
-) -> FieldReader:
-    """The reader of a Kafka client's record: `read(raw, name)` once the record is its.
-
-    Args:
-        record: The client's record class; a raw message of another class is refused.
-        read: Takes the field off the record, under the name `publish()` gives it.
-    """
-
-    def read_field(name: str, message: "StreamMessage[Any]") -> Any:
-        raw = message.raw_message
-        if not isinstance(raw, record):
-            msg = (
-                f"`{name}` is a Kafka field, and this "
-                f"`{type(message).__name__}` did not come from Kafka."
-            )
-            raise SetupError(msg)
-        return read(raw, name)
-
-    return read_field

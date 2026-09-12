@@ -325,6 +325,32 @@ class BrokerFields:
     read: FieldReader
 
 
+def field_reader(
+    broker: str,
+    record: type,
+    read: Callable[[Any, str], Any],
+) -> FieldReader:
+    """The reader of a broker's raw message: `read(raw, name)` once the message is its.
+
+    Args:
+        broker: The broker's name, for the refusal of another broker's message.
+        record: The client's message class; a raw message of another class is refused.
+        read: Takes the field off the raw message, under the name `publish()` gives it.
+    """
+
+    def read_field(name: str, message: "StreamMessage[Any]") -> Any:
+        raw = message.raw_message
+        if not isinstance(raw, record):
+            msg = (
+                f"`{name}` is a {broker} field, and this "
+                f"`{type(message).__name__}` did not come from {broker}."
+            )
+            raise SetupError(msg)
+        return read(raw, name)
+
+    return read_field
+
+
 @dataclass(slots=True)
 class RecordedCall:
     message: "StreamMessage[Any]"
