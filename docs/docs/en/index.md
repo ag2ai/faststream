@@ -111,11 +111,9 @@ That is **FastStream**: everything a messaging service needs around your handler
 <a id="versioning-policy"></a>
 
 ??? info "Versioning Policy"
-    FastStream has a stable public API. Only major updates may introduce breaking changes.
+    FastStream has a stable public API and follows [Semantic Versioning](https://semver.org/){.external-link target="_blank"}. Only major updates may introduce breaking changes: minor releases add features and keep backward compatibility, patch releases fix bugs.
 
-    Prior to FastStream's 1.0 release, each minor update is considered a major and can introduce breaking changes, but these changes were communicated through two-versions deprecation warnings prior to being fully removed. So features deprecated in the 0.4 version were only removed in version 0.6.
-
-    Our team is working toward the stable 1.0 version.
+    Anything scheduled for removal is first deprecated with a warning for at least one minor release, and removed only in the next major. The 1.0.0 release closed the 0.x cycle by removing everything deprecated during it.
 
 ---
 
