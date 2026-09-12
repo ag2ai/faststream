@@ -93,6 +93,27 @@ In the example above, the first two messages are sent with their own dedicated k
 !!! tip
     Use `#!python KafkaPublishMessage` whenever messages within a single batch need to be routed to different partitions via distinct keys, or when you need to attach per-message metadata — this is the cleanest way to control individual message attributes without splitting the batch into separate `#!python publish(...)` calls.
 
+## Handling Producer Queue Overflow
+
+Very large batches can overflow the local **librdkafka** produce queue, which is limited both by message count (`queue.buffering.max.messages`, `100000` by default) and by total size (`queue.buffering.max.kbytes`). When that happens, the producer raises a `#!python BufferError` and the batch fails.
+
+By default, `#!python publish_batch(...)` **fails fast**: the `#!python BufferError` is raised immediately, and it is up to your application to retry.
+
+If you prefer the producer to wait for the queue to drain instead, pass `#!python retry_on_buffer_error=True`:
+
+```python
+await broker.publish_batch(
+    *messages,
+    topic="output_data",
+    retry_on_buffer_error=True,
+)
+```
+
+With this flag enabled, the batch is sent in `queue.buffering.max.messages`-sized chunks, and any message rejected with a `#!python BufferError` (for example, due to the size-based `queue.buffering.max.kbytes` limit, which count-based chunking cannot account for) is retried while the queue drains.
+
+!!! warning
+    A retried publish may block for up to `message.timeout.ms` (**5 minutes** by default) while waiting for the queue to drain. If the timeout expires before the message can be enqueued, the `#!python BufferError` is raised anyway. Setting `#!python "message.timeout.ms": 0` (no delivery timeout) makes the retry wait indefinitely.
+
 ## Why Publish in Batches?
 
 In the above example, we've explored how to leverage the `#!python @broker.publisher(...)` decorator to efficiently publish messages in batches using **FastStream** and **Kafka**. By following the two key steps outlined in the previous sections, you can significantly enhance the performance and reliability of your **Kafka**-based applications.
