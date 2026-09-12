@@ -87,3 +87,24 @@ async def test_several_messages() -> None:
             Data(name="John", user_id=1),
             correlation_id="first",
         )
+
+
+@broker.subscriber("logs.{level}")
+async def handle_logs(data: Data) -> None:
+    assert data.name == "John"
+
+
+@pytest.mark.asyncio
+async def test_nats_fields() -> None:
+    async with TestNatsBroker(broker) as br:
+        await br.publish(
+            Data(name="John", user_id=1),
+            subject="logs.info",
+        )
+
+        # `path` holds what the template captured, `subject` the whole address
+        await handle_logs.assert_called_once_with(
+            Data(name="John", user_id=1),
+            path={"level": "info"},
+            subject="logs.info",
+        )
