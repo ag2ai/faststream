@@ -71,8 +71,8 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
 
   <br/>
 
-  <a href="https://gurubase.io/g/faststream" target="_blank">
-    <img alt="Gurubase" src="https://img.shields.io/badge/Gurubase-Ask%20FastStream%20Guru-006BFF"/>
+  <a href="https://context7.com/ag2ai/faststream" target="_blank">
+    <img alt="Context7" src="https://img.shields.io/badge/Context7-Ask%20AI-003257"/>
   </a>
 </p>
 
