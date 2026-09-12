@@ -7,7 +7,7 @@ from typing import (
 )
 
 import anyio
-from typing_extensions import Unpack, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import DefaultCodec
@@ -17,14 +17,14 @@ from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import gen_cor_id
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.response import RabbitPublishCommand
-from faststream.rabbit.schemas import RABBIT_REPLY, RabbitExchange
+from faststream.rabbit.schemas import RABBIT_REPLY
 
 if TYPE_CHECKING:
     from types import TracebackType
 
     import aiormq
     from aio_pika import IncomingMessage, RobustQueue
-    from aio_pika.abc import AbstractIncomingMessage, TimeoutType
+    from aio_pika.abc import AbstractIncomingMessage
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
     from fast_depends.library.serializer import SerializerProto
 
@@ -34,9 +34,6 @@ if TYPE_CHECKING:
         CustomCallable,
     )
     from faststream.rabbit.helpers import RabbitDeclarer
-    from faststream.rabbit.types import AioPikaSendableMessage
-
-    from .options import MessageOptions
 
 
 class LockState(Protocol):
@@ -156,16 +153,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self,
         cmd: "RabbitPublishCommand",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        return await self._publish(
-            message=cmd.body,
-            exchange=cmd.exchange,
-            routing_key=cmd.destination,
-            reply_to=cmd.reply_to,
-            headers=cmd.headers,
-            correlation_id=cmd.correlation_id,
-            **cmd.publish_options,
-            **cmd.message_options,
-        )
+        return await self._publish(cmd=cmd)
 
     @override
     async def request(self, cmd: "RabbitPublishCommand") -> "IncomingMessage":
@@ -174,48 +162,33 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
             await self.declarer.declare_queue(RABBIT_REPLY),
         ) as response_queue:
             with anyio.fail_after(cmd.timeout):
-                await self._publish(
-                    message=cmd.body,
-                    exchange=cmd.exchange,
-                    routing_key=cmd.destination,
-                    reply_to=RABBIT_REPLY.name,
-                    headers=cmd.headers,
-                    correlation_id=cmd.correlation_id,
-                    **cmd.publish_options,
-                    **cmd.message_options,
-                )
+                cmd.reply_to = RABBIT_REPLY.name
+                await self._publish(cmd=cmd)
                 return await response_queue.receive()
 
     async def _publish(
         self,
-        message: "AioPikaSendableMessage",
         *,
-        exchange: "RabbitExchange",
-        routing_key: str,
-        mandatory: bool = True,
-        immediate: bool = False,
-        timeout: "TimeoutType" = None,
-        **message_options: Unpack["MessageOptions"],
+        cmd: "RabbitPublishCommand",
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
         message = await AioPikaParser.encode_message(
-            message=message,
+            cmd,
             serializer=self.serializer,
             codec=self.codec,
             id_generator=self.id_generator,
-            **message_options,
         )
 
         exchange_obj = await self.declarer.declare_exchange(
-            exchange=exchange,
+            exchange=cmd.exchange,
             declare=False,
         )
 
         return await exchange_obj.publish(
             message=message,
-            routing_key=routing_key,
-            mandatory=mandatory,
-            immediate=immediate,
-            timeout=timeout,
+            routing_key=cmd.destination,
+            mandatory=cmd.publish_options.get("mandatory", True),
+            immediate=cmd.publish_options.get("immediate", False),
+            timeout=cmd.publish_options.get("timeout"),
         )
 
 
