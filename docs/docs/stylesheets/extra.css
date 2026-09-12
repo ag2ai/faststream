@@ -51,9 +51,3 @@ a.internal-link::after {
 .warning_mark {
     color: #d19d00;
 }
-
-#gurubase-page-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-}

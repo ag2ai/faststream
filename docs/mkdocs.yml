@@ -64,10 +64,6 @@ theme:
 extra_css:
   - stylesheets/extra.css
 
-extra_javascript:
-  - javascripts/gurubase-widget.js
-  - javascripts/theme-switch.js
-
 plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
