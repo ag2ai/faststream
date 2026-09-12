@@ -34,7 +34,7 @@ If you know FastAPI, you already know FastStream: the same decorators, type-driv
 
 ## Context
 - [Context](https://faststream.ag2.ai/latest/getting-started/context/): FastStreams has its own Dependency Injection container - Context, used to store application runtime objects and variables.
-- [Existing Fields](https://faststream.ag2.ai/latest/getting-started/context/existed/): Context includes global objects such as the current broker, the context itself for custom fields, a logger that tags messages with message_id, and the raw message, while ensuring that the message is local to your current consumer scope through contextlib.ContextVar.
+- [Existing Fields](https://faststream.ag2.ai/latest/getting-started/context/#existing-fields): Context includes global objects such as the current broker, the context itself for custom fields, a logger that tags messages with message_id, and the raw message, while ensuring that the message is local to your current consumer scope through contextlib.ContextVar.
 - [Custom Context](https://faststream.ag2.ai/latest/getting-started/context/custom/): You can also store your own objects in the Global and Local Context.
 - [Fields Access](https://faststream.ag2.ai/latest/getting-started/context/fields/): Sometimes, you may need to use a different name for the argument (not the one under which it is stored in the context) or get access to specific parts of the object. To do this, simply specify the name of what you want to access, and the context will provide you with the object.
 - [Extra Options](https://faststream.ag2.ai/latest/getting-started/context/extra/): Additionally, Context provides you with some extra capabilities for working with containing objects.
