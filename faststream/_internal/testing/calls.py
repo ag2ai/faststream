@@ -4,8 +4,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
-from typing_extensions import Sentinel
-
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.parser import DefaultCodec
@@ -162,7 +160,7 @@ class CallRecorder:
                 try:
                     actual = repo.resolve(key)
                 except (ContextError, AttributeError, KeyError):
-                    actual = _MISSING
+                    actual = EMPTY
                 checks.compare(f"context[{key!r}]", expected, actual)
 
         checks.raise_for(self.name)
@@ -200,9 +198,6 @@ class RecordedCall:
     context: dict[str, Any]
 
 
-_MISSING = Sentinel("MISSING")
-
-
 def _with_body(
     message: "StreamMessage[Any]",
     body: bytes,
@@ -220,7 +215,7 @@ def _headers_seen_through(expected: Any, actual: dict[str, Any]) -> Any:
     if not isinstance(expected, Mapping):
         return actual
     # Headers match as a subset: the framework and the broker add their own
-    return {key: actual.get(key, _MISSING) for key in expected}
+    return {key: actual.get(key, EMPTY) for key in expected}
 
 
 @dataclass(slots=True)
