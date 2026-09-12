@@ -14,7 +14,9 @@ def test_url() -> None:
 def test_params() -> None:
     from docs.docs_src.rabbit.connection.params import broker
 
-    assert broker.specification.url == ["amqp://app:secret@rabbit.internal:5673/my_vhost"]
+    assert broker.specification.url == [
+        "amqp://app:secret@rabbit.internal:5673/my_vhost"  # pragma: allowlist secret
+    ]
 
 
 @pytest.mark.rabbit()
