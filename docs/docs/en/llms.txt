@@ -179,11 +179,6 @@ If you know FastAPI, you already know FastStream: the same decorators, type-driv
 - [Security Configuration](https://faststream.ag2.ai/latest/redis/security/): This chapter covers the security options available in FastStream and their usage. FastStream enhances application security by utilizing security objects when creating brokers, which encapsulate security-related configurations and mechanisms.
 - [Message Format](https://faststream.ag2.ai/latest/redis/message_format/): To offer features like observability, FastStream includes extra data in your messages. Redis allows sending any type of data within a message, so FastStream uses its own binary format for messages, supporting any data type and additional information you wish to include.
 
-## Reference - Code API
-- [Reference - Code API](https://faststream.ag2.ai/latest/api/): Here’s the reference for the code API, including classes, functions, parameters, attributes, and all FastAPI components you can use in your applications. For a better understanding of FastStream, it's recommended to read the FastStream Tutorial.
-- [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/): This section contains information about Public FastStream API
-- [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/): This section contains information about All FastStream API
-
 ## Used By
 - [Used By](https://faststream.ag2.ai/latest/who-uses/): Open-source projects and organizations that use FastStream, plus tools shipping a FastStream integration and community extensions.
 
