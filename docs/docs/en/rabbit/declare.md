@@ -20,6 +20,9 @@ search:
 {! docs_src/rabbit/declare.py !}
 ```
 
+!!! note
+    Both methods need an open connection, so call them after `#!python await broker.connect()` or, inside an application, in an `after_startup` hook as shown above. See [`connect()` and `start()`](./connection.md#connect-and-start){.internal-link} for the difference between the two entry points.
+
 These methods require just one argument (`RabbitQueue`/`RabbitExchange`) containing information about your *RabbitMQ* required objects. They declare/validate *RabbitMQ* objects and return low-level **aio-pika** robust objects to interact with.
 
 !!! tip
