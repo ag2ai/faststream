@@ -5,7 +5,7 @@ independent -- neither imports the other -- so anything both need lives here
 rather than in one of them or in a cross-broker module.
 """
 
-from .calls import KafkaCallAssertions, field_reader
+from .calls import KafkaCallAssertions
 from .keys import (
     extract_per_message_keys_and_bodies,
     key_for_index,
@@ -15,7 +15,6 @@ from .keys import (
 __all__ = (
     "KafkaCallAssertions",
     "extract_per_message_keys_and_bodies",
-    "field_reader",
     "key_for_index",
     "realign_keys",
 )
