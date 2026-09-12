@@ -2,6 +2,8 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
@@ -56,7 +58,9 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
         self.codec = codec or DefaultCodec()
 
     @override
-    async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
+    async def publish_batch(
+        self, cmd: "RedisPublishCommand"
+    ) -> "int | Pipeline[bytes] | ClusterPipeline[bytes]":
         batch = [
             await cmd.message_format.encode(
                 message=msg,
@@ -69,8 +73,41 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
             for msg in cmd.batch_bodies
         ]
 
-        connection = cmd.pipeline or self._connection.client
-        return cast("int", await connection.rpush(cmd.destination, *batch))
+        connection: Any = (
+            cmd.pipeline if cmd.pipeline is not None else self._connection.client
+        )
+        result = connection.rpush(cmd.destination, *batch)
+        if isinstance(result, (Pipeline, ClusterPipeline)):
+            return result
+        return cast("int", await result)
+
+    async def _publish(
+        self,
+        msg: bytes,
+        cmd: "RedisPublishCommand",
+    ) -> "int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
+        connection: Any = (
+            cmd.pipeline if cmd.pipeline is not None else self._connection.client
+        )
+
+        if cmd.destination_type is DestinationType.Channel:
+            result = connection.publish(cmd.destination, msg)
+        elif cmd.destination_type is DestinationType.List:
+            result = connection.rpush(cmd.destination, msg)
+        elif cmd.destination_type is DestinationType.Stream:
+            result = connection.xadd(
+                name=cmd.destination,
+                fields={DATA_KEY: msg},
+                maxlen=cmd.maxlen,
+            )
+        else:
+            raise UnreachablePathError
+
+        # Queued commands return their pipeline; WATCH-mode commands can instead
+        # return a coroutine that must be awaited (see issue #3044).
+        if isinstance(result, (Pipeline, ClusterPipeline)):
+            return result
+        return cast("int | bytes", await result)
 
     def connect(
         self,
@@ -109,7 +146,9 @@ class RedisFastProducer(BaseRedisFastProducer):
         )
 
     @override
-    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
+    async def publish(
+        self, cmd: "RedisPublishCommand"
+    ) -> "int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
         msg = await cmd.message_format.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -119,33 +158,7 @@ class RedisFastProducer(BaseRedisFastProducer):
             codec=self.codec,
         )
 
-        return await self.__publish(msg, cmd)
-
-    async def __publish(
-        self,
-        msg: bytes,
-        cmd: "RedisPublishCommand",
-    ) -> int | bytes:
-        connection = cmd.pipeline or self._connection.client
-
-        if cmd.destination_type is DestinationType.Channel:
-            return await connection.publish(cmd.destination, msg)
-
-        if cmd.destination_type is DestinationType.List:
-            return await connection.rpush(cmd.destination, msg)
-
-        if cmd.destination_type is DestinationType.Stream:
-            return cast(
-                "bytes",
-                await connection.xadd(
-                    name=cmd.destination,
-                    fields={DATA_KEY: msg},
-                    maxlen=cmd.maxlen,
-                ),
-            )
-
-        error_msg = "unreachable"
-        raise AssertionError(error_msg)
+        return await self._publish(msg, cmd)
 
     @override
     async def request(self, cmd: "RedisPublishCommand") -> "Any":
@@ -165,7 +178,7 @@ class RedisFastProducer(BaseRedisFastProducer):
                 codec=self.codec,
             )
 
-            await self.__publish(msg, cmd)
+            await self._publish(msg, cmd)
 
             with anyio.fail_after(cmd.timeout) as scope:
                 # skip subscribe message
@@ -212,7 +225,9 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
         return RedisClusterFastProducer(cluster_state=self._cluster_state, **kwargs)
 
     @override
-    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
+    async def publish(
+        self, cmd: "RedisPublishCommand"
+    ) -> "int | bytes | Pipeline[bytes] | ClusterPipeline[bytes]":
         msg = await cmd.message_format.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -222,21 +237,9 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
             codec=self.codec,
         )
 
-        if cmd.destination_type is DestinationType.Channel:
+        if cmd.pipeline is None and cmd.destination_type is DestinationType.Channel:
             return await self._cluster_state.sync_publish(cmd.destination, msg)
-
-        if cmd.destination_type is DestinationType.List:
-            return cast("int", await self._connection.client.rpush(cmd.destination, msg))
-        if cmd.destination_type is DestinationType.Stream:
-            return cast(
-                "bytes",
-                await self._connection.client.xadd(
-                    name=cmd.destination,
-                    fields={DATA_KEY: msg},
-                    maxlen=cmd.maxlen,
-                ),
-            )
-        raise UnreachablePathError
+        return await self._publish(msg, cmd)
 
     @override
     async def request(self, cmd: "RedisPublishCommand") -> "Any":
