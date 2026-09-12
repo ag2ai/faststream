@@ -13,6 +13,7 @@ from faststream.rabbit import (
     RabbitRouter,
     TestRabbitBroker,
 )
+from faststream.rabbit.call_wrapper import RabbitHandlerCallWrapper
 from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
@@ -345,6 +346,35 @@ async def check_instance_type(
 
     publisher = broker.publisher(queue="test")
     assert_type(publisher, RabbitPublisher)
+
+
+async def check_call_assertions_take_the_rabbit_fields(
+    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+) -> None:
+    # A sync handler: mypy and pyright spell an `async def`'s return type differently
+    @broker.subscriber("test")
+    def handle() -> None: ...
+
+    assert_type(handle, RabbitHandlerCallWrapper[[], None])
+    await handle.assert_called_once_with(
+        None, exchange="", routing_key="test", message_id="m1", priority=3
+    )
+    await handle.assert_called_with(exchange="", routing_key="test")
+    await handle.assert_any_call(message_id="m1", priority=3)
+
+    # The publisher's own type is pinned in `check_instance_type`; here its
+    # methods take the four fields, which only the Rabbit mixin gives them
+    publisher = broker.publisher("test")
+
+    @publisher
+    def published() -> None: ...
+
+    assert_type(published, RabbitHandlerCallWrapper[[], None])
+    await publisher.assert_called_once_with(
+        None, exchange="", routing_key="test", message_id="m1", priority=3
+    )
+    await publisher.assert_called_with(exchange="", routing_key="test")
+    await publisher.assert_any_call(message_id="m1", priority=3)
 
 
 RabbitBroker(routers=[RabbitRouter()])

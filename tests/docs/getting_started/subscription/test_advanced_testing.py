@@ -51,12 +51,14 @@ async def test_handle_rabbit() -> None:
     from docs.docs_src.getting_started.subscription.rabbit.advanced_testing import (
         test_handle,
         test_message_context,
+        test_rabbit_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_rabbit_fields()
 
 
 @pytest.mark.nats()
