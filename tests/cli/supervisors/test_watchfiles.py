@@ -1,5 +1,5 @@
-import os
 import signal
+import threading
 import time
 from multiprocessing.context import SpawnProcess
 from pathlib import Path
@@ -28,17 +28,15 @@ class PatchedWatchReloader(WatchReloader):
 def test_base(generate_template: interfaces.GenerateTemplateFactory) -> None:
     with generate_template("") as file_path:
         processor = PatchedWatchReloader(
-            target=exit,
+            target=sleep_forever,
             args=RunArgs(app=""),
             reload_dirs=[str(file_path.parent)],
         )
+        threading.Timer(0.1, processor.should_exit.set).start()
 
-        processor._args.extra_options = {"parent_id": processor.pid}
         processor.run()
 
-        code = abs(processor._process.exitcode or 0)
-
-    assert code in {signal.SIGTERM.value, 0}, code
+    assert processor._process.exitcode == -signal.SIGTERM
 
 
 @pytest.mark.slow()
@@ -52,10 +50,8 @@ def test_restart(
             args=RunArgs(app=str(file_path)),
             reload_dirs=[file_path.parent],
         )
-
-        mock.side_effect = lambda: exit(
-            RunArgs(app="", extra_options={"parent_id": processor.pid})
-        )
+        # one reload is all this pins, so stop before the watcher reports another
+        mock.side_effect = processor.should_exit.set
 
         with patch.object(processor, "restart", mock):
             processor.run()
@@ -63,11 +59,11 @@ def test_restart(
     mock.assert_called_once()
 
 
-def touch_file(args: RunArgs) -> None:
+def sleep_forever(args: RunArgs) -> None:  # pragma: no cover
+    time.sleep(60)
+
+
+def touch_file(args: RunArgs) -> None:  # pragma: no cover
     while True:
         time.sleep(0.1)
         Path(args.app).write_text("hello", encoding="utf-8")
-
-
-def exit(args: RunArgs) -> None:
-    os.kill(int(args.extra_options["parent_id"]), signal.SIGINT)
