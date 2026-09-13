@@ -113,6 +113,6 @@ if __name__ == "__main__":
 - **Schedule Object**: Takes two parameters:
     - `time`: A `datetime` object (preferably with UTC timezone) indicating when the message should be delivered
     - `target`: The subject where the scheduled message will be published; it must belong to the same stream.
-- **Schedule Subject**: Only one schedule is held per publish `subject` — publishing a new schedule to the same `subject` replaces the prior one, so use a unique `subject` for every pending scheduled message
+- **Schedule Subject**: **NATS** holds one pending schedule per publish `subject`, so publishing a new schedule to `test_stream.subject` replaces the one waiting there. The examples above publish once, which is fine; to keep several schedules pending at the same time, give each its own `subject` (for example `test_stream.schedule.<id>`) and make sure the stream's subjects cover it
 - **Subject Pattern**: The subscriber should use a wildcard pattern (e.g., `"test_stream.*"`) to match the scheduled target subjects
 - **Timezone**: Always use timezone-aware datetime objects, preferably UTC, to avoid scheduling issues

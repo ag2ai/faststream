@@ -18,7 +18,6 @@ When dealing with the **Redis** broker in **FastStream**, you can easily access 
 
 * `#!python body: Union[bytes, Any]`
 * `#!python raw_message: Any`
-* `#!python decoded_body: list[DecodedMessage]` (batch messages only)
 * `#!python headers: dict[str, Any]`
 * `#!python path: dict[str, Any]`
 * `#!python content_type: Optional[str]`

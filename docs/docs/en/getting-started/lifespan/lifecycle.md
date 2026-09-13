@@ -20,12 +20,12 @@ Most of the time you start an application with `faststream run module:app` and n
 | --------- | ---------------------------------------------------------------------------------------------- |
 | `run()`   | Starts the application and blocks until the process is told to stop. What the CLI calls.        |
 | `start()` | Runs the startup hooks and starts every broker. Returns as soon as they are consuming.        |
-| `stop()`  | Waits for in-flight handlers, runs the shutdown hooks and stops every broker.                  |
+| `stop()`  | Runs the `on_shutdown` hooks, waits for in-flight handlers, stops every broker, runs `after_shutdown`. |
 | `exit()`  | Asks a running `run()` to stop.                                                               |
 
 ## Running Without the CLI
 
-`faststream run module:app` does nothing more than import the module and await `#!python app.run()`, so you can do the same yourself:
+`faststream run module:app` imports the module and awaits `#!python app.run()`, passing the CLI's log level and extra options along. You can do the same yourself (if your hooks take CLI options, pass them through `run_extra_options=`):
 
 ```python
 import asyncio
@@ -71,7 +71,7 @@ When something else already owns the process, use `start()` and `stop()` instead
     {!> docs_src/getting_started/lifespan/mqtt/manual_run.py !}
     ```
 
-Always call `stop()` in a `finally` block. It waits for the handlers that are still processing a message (up to the broker's `graceful_timeout`), runs your shutdown hooks and closes the connections. If the process exits without it, messages that were being handled are never acknowledged, so the broker delivers them to the next consumer and they get processed twice.
+Always call `stop()` in a `finally` block. It runs your `on_shutdown` hooks, waits for the handlers that are still processing a message (up to the broker's `graceful_timeout`), closes the connections and runs `after_shutdown`. If the process exits without it, messages that were being handled are never acknowledged: with an acknowledging subscriber (RabbitMQ, NATS JetStream, Redis stream groups, Kafka with any policy but `ACK_FIRST`) the broker delivers them to the next consumer and they get processed twice.
 
 !!! note
     `start()` does not enter the `#!python FastStream(lifespan=...)` context manager. If you rely on it, enter it yourself around `start()` / `stop()`, or move that logic into `on_startup` / `after_shutdown` hooks.

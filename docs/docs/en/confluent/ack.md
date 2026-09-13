@@ -27,7 +27,7 @@ async def base_handler(body: str):
 This way, the message processed will be acknowledged after handler execution. In the case of an exception being raised, the message will also be acknowledged.
 
 !!! warning "`group_id` is required"
-    Any policy other than `AckPolicy.ACK_FIRST` commits offsets manually, and **Kafka** only tracks offsets per consumer group. A subscriber without `group_id` and with such a policy raises `SetupError` at startup. The same goes for `max_workers > 1`: it works with `AckPolicy.ACK_FIRST` only.
+    Any policy other than `AckPolicy.ACK_FIRST` commits offsets manually, and **Kafka** only tracks offsets per consumer group. A subscriber without `group_id` and with such a policy raises `SetupError` when the subscriber is declared. The same goes for `max_workers > 1`: it works with `AckPolicy.ACK_FIRST` only.
 
 If you want to retry on error, you can use `#!python AckPolicy.NACK_ON_ERROR` strategy. In this way offset will not be committed and consumer seeks to read this message again:
 

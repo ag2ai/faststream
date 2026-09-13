@@ -62,6 +62,6 @@ The `virtualhost` argument sets the same thing and wins over the URL path, so `#
 Which one to call depends on what the broker is for:
 
 * You only **publish**, send [RPC requests](./rpc.md){.internal-link} or [declare queues manually](./declare.md){.internal-link}: call `#!python await broker.connect()`, or use the broker as an async context manager (`#!python async with broker:`), which connects on enter and stops on exit. No subscriber consumes and nothing is declared on the server.
-* You run a full application with subscribers: don't call anything. `FastStream` calls `#!python broker.start()` on startup, which connects, declares every exchange and queue your subscribers and publishers refer to, and starts consuming.
+* You run a full application with subscribers: don't call anything. `FastStream` calls `#!python broker.start()` on startup, which connects, declares every queue your subscribers use and every exchange your subscribers and publishers refer to, and starts consuming.
 
 Calling `connect()` on a broker that is already connected does nothing, so an extra `#!python await broker.connect()` inside an application is harmless. Don't wrap an application's broker in `#!python async with broker:` though: the block stops the broker on exit.

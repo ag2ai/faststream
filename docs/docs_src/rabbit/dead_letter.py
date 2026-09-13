@@ -24,14 +24,6 @@ orders_queue = RabbitQueue(
 )
 
 
-@broker.subscriber(orders_queue)
-async def handle_order(order_id: str, logger: Logger) -> None:
-    if order_id.startswith("bad"):
-        raise RejectMessage
-
-    logger.info("processed %s", order_id)
-
-
 @broker.subscriber(dead_letter_queue, dead_letter_exchange)
 async def handle_dead_letter(
     order_id: str,
@@ -40,3 +32,11 @@ async def handle_dead_letter(
 ) -> None:
     reason = msg.headers["x-death"][0]["reason"]
     logger.warning("order %s dead-lettered: %s", order_id, reason)
+
+
+@broker.subscriber(orders_queue)
+async def handle_order(order_id: str, logger: Logger) -> None:
+    if order_id.startswith("bad"):
+        raise RejectMessage
+
+    logger.info("processed %s", order_id)

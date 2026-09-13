@@ -19,13 +19,13 @@ By default, when using **FastStream** with a Redis stream consumer group, the li
 In cases where you want explicit control over when a message is acknowledged, you can manually acknowledge a message by accessing the `ack` and `nack` methods provided:
 
 ```python
-from faststream.redis.annotations import RedisMessage, Redis
+from faststream.redis.annotations import RedisStreamMessage, Redis
 
 # Setup broker and faststream app
 ...
 
 @broker.subscriber(StreamSub("test-stream", group="test-group", consumer="1"))
-async def base_handler(body: dict, msg: RedisMessage, redis: Redis):
+async def base_handler(body: dict, msg: RedisStreamMessage, redis: Redis):
     # Process the message
     ...
 

@@ -71,7 +71,7 @@ A single handler will receive messages from all listed topics, under one consume
 This differs from stacking multiple `#!python @broker.subscriber(...)` decorators, which creates separate independent handlers.
 
 !!! warning
-    When using multiple topics with `max_workers > 1`, only `AckPolicy.ACK_FIRST` is supported. Combining multiple topics, `max_workers > 1`, and any other ack policy (`ACK`, `NACK_ON_ERROR`, `REJECT_ON_ERROR`, `MANUAL`) will raise a `SetupError` at startup.
+    When using multiple topics with `max_workers > 1`, only `AckPolicy.ACK_FIRST` is supported. Combining multiple topics, `max_workers > 1`, and any other ack policy (`ACK`, `NACK_ON_ERROR`, `REJECT_ON_ERROR`, `MANUAL`) raises a `SetupError` when the subscriber is declared.
 
 ### Pattern data access
 
@@ -105,4 +105,4 @@ This subscribes to the topic `cache{shard}.logs.*` where `{shard}` is literal te
 There are two possible modes of concurrent message processing:
 
 * With `AckPolicy.ACK_FIRST` and `max_workers` > 1, a handler processes all messages concurrently in an at-most-once semantic.
-* With any other `AckPolicy` and `max_workers` > 1, processing is concurrent between topic partitions and sequential within a partition to ensure reliable at-least-once processing. This mode requires a single plain topic: combining it with `pattern=` or `partitions=` raises a `SetupError` at startup. Maximum concurrency is achieved when the total number of workers across all application instances running workers in the same consumer group is equal to the number of partitions in the topic. Increasing worker count beyond that will result in idle workers as not more than one consumer from a consumer group can be consuming from the same partition.
+* With any other `AckPolicy` and `max_workers` > 1, processing is concurrent between topic partitions and sequential within a partition to ensure reliable at-least-once processing. This mode requires a single plain topic: combining it with `pattern=` or `partitions=` raises a `SetupError` when the subscriber is declared. Maximum concurrency is achieved when the total number of workers across all application instances running workers in the same consumer group is equal to the number of partitions in the topic. Increasing worker count beyond that will result in idle workers as not more than one consumer from a consumer group can be consuming from the same partition.
