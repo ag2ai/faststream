@@ -472,6 +472,41 @@ class TestConsumeStream(RedisTestcaseConfig):
             assert not await br._connection.exists(queue)
 
     @pytest.mark.slow()
+    async def test_consume_group_no_ack_is_forwarded_to_xreadgroup(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """`no_ack=True` with a consumer group must reach Redis as XREADGROUP NOACK."""
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, no_ack=True),
+        )
+        async def handler(msg: RedisMessage) -> None:
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            with patch.object(
+                Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+            ) as xreadgroup:
+                await br.start()
+                await br.publish("hello", stream=queue)
+                await asyncio.wait(
+                    (asyncio.create_task(event.wait()),),
+                    timeout=3,
+                )
+
+            assert event.is_set()
+            assert xreadgroup.mock.called
+            assert all(
+                c.kwargs.get("noack") is True for c in xreadgroup.mock.call_args_list
+            )
+            # NOACK means nothing is left in the pending entries list
+            pending = await br._connection.xpending(queue, "group")
+            assert pending["pending"] == 0
+
+    @pytest.mark.slow()
     async def test_consume_stream(
         self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:

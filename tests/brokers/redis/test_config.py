@@ -1,3 +1,4 @@
+import warnings
 from unittest.mock import MagicMock
 
 import pytest
@@ -65,6 +66,21 @@ def test_stream_sub_with_no_ack_group() -> None:
             ),
         )
     assert config.ack_policy is AckPolicy.MANUAL
+
+
+@pytest.mark.redis()
+def test_stream_sub_no_ack_with_group_does_not_warn() -> None:
+    # `no_ack` is forwarded to XREADGROUP as NOACK, so it does have an effect
+    # with a consumer group; the old warning was a leftover from 0.3.x.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        stream = StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+            no_ack=True,
+        )
+    assert stream.no_ack is True
 
 
 @pytest.mark.redis()
