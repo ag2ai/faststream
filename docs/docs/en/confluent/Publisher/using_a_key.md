@@ -20,7 +20,7 @@ To publish a message to a **Kafka** topic using a partition key, follow these st
 
 ### Step 1: Define the Publisher
 
-In your FastStream application, define the publisher using `#!python broker.publisher(...)`. The partition key is not configured here; it is passed with each `publish` call.
+In your FastStream application, define the publisher using `#!python broker.publisher(...)`. It accepts a default `key` (and `partition`) for every message it sends; a `key` passed to `publish()` overrides that default. This example sets no default and passes the key with each `publish` call instead.
 
 ```python linenums="1"
 {! docs_src/confluent/publish_with_partition_key/app.py [ln:17] !}
