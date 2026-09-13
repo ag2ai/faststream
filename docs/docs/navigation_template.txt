@@ -46,7 +46,7 @@ search:
     - [ASGI](getting-started/asgi.md)
     - [Multiple Brokers](getting-started/multiple_brokers.md)
     - Observability
-        - [Healthcheks](getting-started/observability/healthcheks.md)
+        - [Healthchecks](getting-started/observability/healthchecks.md)
         - [Prometheus](getting-started/observability/prometheus.md)
         - [OpenTelemetry](getting-started/observability/opentelemetry/index.md)
             - [Tracing](getting-started/observability/opentelemetry/tracing.md)
