@@ -92,3 +92,18 @@ def test_stream_claim_min_idle_time() -> None:
     )
 
     assert stream.claim_min_idle_time == 1000
+
+
+@pytest.mark.redis()
+def test_stream_sub_no_ack_without_warning(recwarn) -> None:
+    StreamSub("test", group="group", consumer="consumer", no_ack=True)
+
+    assert len(recwarn) == 0
+
+
+@pytest.mark.redis()
+def test_stream_sub_no_ack_correct_behaviour() -> None:
+    stream = StreamSub("test", group="group", consumer="consumer", no_ack=True)
+
+    assert stream.no_ack is True
+    assert stream.last_id == ">"
