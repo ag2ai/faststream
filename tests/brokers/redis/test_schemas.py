@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 from faststream.exceptions import SetupError
@@ -95,7 +97,8 @@ def test_stream_claim_min_idle_time() -> None:
 
 
 @pytest.mark.redis()
-def test_stream_sub_no_ack_without_warning(recwarn: pytest.WarningsRecorder) -> None:
-    StreamSub("test", group="group", consumer="consumer", no_ack=True)
+def test_stream_sub_no_ack_without_warning() -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
 
-    assert len(recwarn) == 0
+        StreamSub("test", group="group", consumer="consumer", no_ack=True)
