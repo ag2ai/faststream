@@ -5,7 +5,7 @@ from dirty_equals import IsPartialDict
 from pydantic import BaseModel
 
 from faststream import FastStream, Header
-from faststream.mqtt import MQTTBroker, TestMQTTBroker
+from faststream.mqtt import MQTTBroker, QoS, TestMQTTBroker
 
 broker = MQTTBroker()
 app = FastStream(broker)
@@ -86,4 +86,22 @@ async def test_several_messages() -> None:
         await handle.assert_any_call(
             Data(name="John", user_id=1),
             correlation_id="first",
+        )
+
+
+@pytest.mark.asyncio
+async def test_mqtt_fields() -> None:
+    async with TestMQTTBroker(broker) as br:
+        await br.publish(
+            Data(name="John", user_id=1),
+            topic="test-topic",
+            headers={"trace-id": "42"},
+            qos=QoS.AT_LEAST_ONCE,
+        )
+
+        # `topic` and `qos` are named as `publish()` names them
+        await handle.assert_called_once_with(
+            Data(name="John", user_id=1),
+            topic="test-topic",
+            qos=QoS.AT_LEAST_ONCE,
         )

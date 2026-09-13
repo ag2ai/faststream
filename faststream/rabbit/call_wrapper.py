@@ -1,21 +1,25 @@
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
+from aio_pika import IncomingMessage
+
 from faststream._internal.constants import EMPTY
+from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream._internal.testing.calls import (
     BrokerFields,
     CallAssertions,
     ExpectedCall,
     FieldReader,
+    field_reader,
 )
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 
 
-class KafkaCallAssertions(CallAssertions):
-    """The Call assertions of a Kafka endpoint: the message fields, `key` and `partition`."""
+class RabbitCallAssertions(CallAssertions):
+    """The Call assertions of a RabbitMQ endpoint: the message's address and identity."""
 
     __slots__ = ()
 
-    # Each Kafka package binds the reader of its client's record, see `field_reader`
     _read_field: ClassVar[FieldReader]
 
     async def assert_called_once_with(
@@ -29,8 +33,10 @@ class KafkaCallAssertions(CallAssertions):
         content_type: Any = EMPTY,
         path: Any = EMPTY,
         context: Mapping[str, Any] = EMPTY,
-        key: Any = EMPTY,
-        partition: Any = EMPTY,
+        exchange: Any = EMPTY,
+        routing_key: Any = EMPTY,
+        message_id: Any = EMPTY,
+        priority: Any = EMPTY,
     ) -> None:
         """Assert the endpoint was called once, with the message described here.
 
@@ -42,8 +48,10 @@ class KafkaCallAssertions(CallAssertions):
             content_type: The exact content type.
             path: The exact path parameters the subject template matched.
             context: Context paths, as given to `Context()`, mapped to their values.
-            key: The exact record key, as the bytes the client delivered.
-            partition: The exact partition the record was read from.
+            exchange: The exact exchange name; the default exchange is `""`.
+            routing_key: The exact routing key the message was delivered with.
+            message_id: The exact message id, as the broker delivered it.
+            priority: The exact priority, as the broker delivered it.
         """
         await self._assert_called_once_with(
             self._expected_call(
@@ -54,8 +62,10 @@ class KafkaCallAssertions(CallAssertions):
                 content_type=content_type,
                 path=path,
                 context=context,
-                key=key,
-                partition=partition,
+                exchange=exchange,
+                routing_key=routing_key,
+                message_id=message_id,
+                priority=priority,
             )
         )
 
@@ -70,8 +80,10 @@ class KafkaCallAssertions(CallAssertions):
         content_type: Any = EMPTY,
         path: Any = EMPTY,
         context: Mapping[str, Any] = EMPTY,
-        key: Any = EMPTY,
-        partition: Any = EMPTY,
+        exchange: Any = EMPTY,
+        routing_key: Any = EMPTY,
+        message_id: Any = EMPTY,
+        priority: Any = EMPTY,
     ) -> None:
         """Assert the last message the endpoint saw is the one described here.
 
@@ -83,8 +95,10 @@ class KafkaCallAssertions(CallAssertions):
             content_type: The exact content type.
             path: The exact path parameters the subject template matched.
             context: Context paths, as given to `Context()`, mapped to their values.
-            key: The exact record key, as the bytes the client delivered.
-            partition: The exact partition the record was read from.
+            exchange: The exact exchange name; the default exchange is `""`.
+            routing_key: The exact routing key the message was delivered with.
+            message_id: The exact message id, as the broker delivered it.
+            priority: The exact priority, as the broker delivered it.
         """
         await self._assert_called_with(
             self._expected_call(
@@ -95,8 +109,10 @@ class KafkaCallAssertions(CallAssertions):
                 content_type=content_type,
                 path=path,
                 context=context,
-                key=key,
-                partition=partition,
+                exchange=exchange,
+                routing_key=routing_key,
+                message_id=message_id,
+                priority=priority,
             )
         )
 
@@ -111,8 +127,10 @@ class KafkaCallAssertions(CallAssertions):
         content_type: Any = EMPTY,
         path: Any = EMPTY,
         context: Mapping[str, Any] = EMPTY,
-        key: Any = EMPTY,
-        partition: Any = EMPTY,
+        exchange: Any = EMPTY,
+        routing_key: Any = EMPTY,
+        message_id: Any = EMPTY,
+        priority: Any = EMPTY,
     ) -> None:
         """Assert one of the messages the endpoint saw is the one described here.
 
@@ -124,8 +142,10 @@ class KafkaCallAssertions(CallAssertions):
             content_type: The exact content type.
             path: The exact path parameters the subject template matched.
             context: Context paths, as given to `Context()`, mapped to their values.
-            key: The exact record key, as the bytes the client delivered.
-            partition: The exact partition the record was read from.
+            exchange: The exact exchange name; the default exchange is `""`.
+            routing_key: The exact routing key the message was delivered with.
+            message_id: The exact message id, as the broker delivered it.
+            priority: The exact priority, as the broker delivered it.
         """
         await self._assert_any_call(
             self._expected_call(
@@ -136,8 +156,10 @@ class KafkaCallAssertions(CallAssertions):
                 content_type=content_type,
                 path=path,
                 context=context,
-                key=key,
-                partition=partition,
+                exchange=exchange,
+                routing_key=routing_key,
+                message_id=message_id,
+                priority=priority,
             )
         )
 
@@ -152,8 +174,10 @@ class KafkaCallAssertions(CallAssertions):
         content_type: Any = EMPTY,
         path: Any = EMPTY,
         context: Mapping[str, Any] = EMPTY,
-        key: Any = EMPTY,
-        partition: Any = EMPTY,
+        exchange: Any = EMPTY,
+        routing_key: Any = EMPTY,
+        message_id: Any = EMPTY,
+        priority: Any = EMPTY,
     ) -> ExpectedCall:
         return ExpectedCall(
             body=body,
@@ -166,9 +190,27 @@ class KafkaCallAssertions(CallAssertions):
             broker_fields=BrokerFields(
                 {
                     name: value
-                    for name, value in (("key", key), ("partition", partition))
+                    for name, value in (
+                        ("exchange", exchange),
+                        ("routing_key", routing_key),
+                        ("message_id", message_id),
+                        ("priority", priority),
+                    )
                     if value is not EMPTY
                 },
                 type(self)._read_field,
             ),
         )
+
+
+class RabbitHandlerCallWrapper(
+    RabbitCallAssertions,
+    HandlerCallWrapper[P_HandlerParams, T_HandlerReturn],
+):
+    """The wrapper of a RabbitMQ handler: its Call assertions take the Rabbit fields."""
+
+    __slots__ = ()
+
+    # The test broker delivers a `PatchedMessage`, an `IncomingMessage` subclass,
+    # so the guard holds in memory as it does on the wire
+    _read_field = field_reader("RabbitMQ", IncomingMessage, getattr)

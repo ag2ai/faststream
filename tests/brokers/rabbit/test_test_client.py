@@ -7,7 +7,7 @@ import pytest
 from freezegun import freeze_time
 
 from faststream import BaseMiddleware
-from faststream.exceptions import SubscriberNotFound
+from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.rabbit import (
     ExchangeType,
     RabbitBroker,
@@ -17,6 +17,7 @@ from faststream.rabbit import (
 from faststream.rabbit.annotations import RabbitMessage
 from faststream.rabbit.testing import FakeProducer, _is_handler_matches, apply_pattern
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiokafka
 
 from .basic import RabbitMemoryTestcaseConfig
 from .test_publish import TestPublishWithExchange as PublishWithExchangeCase
@@ -185,6 +186,73 @@ class TestTestclient(
         queue: str,
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
+
+    async def test_assertions_take_the_rabbit_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue, message_id="m1", priority=3)
+
+            await handle.assert_called_once_with(
+                "hello",
+                exchange="",
+                routing_key=queue,
+                message_id="m1",
+                priority=3,
+            )
+            await handle.assert_called_with(routing_key=queue, message_id="m1")
+            await handle.assert_any_call(exchange="", priority=3)
+
+            with pytest.raises(
+                AssertionError,
+                match=f"routing_key: expected 'other', got '{queue}'",
+            ):
+                await handle.assert_called_once_with("hello", routing_key="other")
+
+    async def test_publisher_assertions_take_the_rabbit_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "2", exchange="ex")
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None:
+            await publisher.publish("response", message_id="m1", priority=3)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            await publisher.assert_called_once_with(
+                "response",
+                exchange="ex",
+                routing_key=queue + "2",
+                message_id="m1",
+                priority=3,
+            )
+            await publisher.assert_called_with(routing_key=queue + "2", message_id="m1")
+            await publisher.assert_any_call(exchange="ex", priority=3)
+
+    @require_aiokafka
+    async def test_rabbit_fields_refuse_another_brokers_message(self, queue: str) -> None:
+        from faststream.kafka import KafkaBroker, TestKafkaBroker
+
+        broker = self.get_broker()
+        kafka = KafkaBroker()
+
+        # The first decorator decides the wrapper class: Rabbit's here
+        @kafka.subscriber(queue)
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker), TestKafkaBroker(kafka):
+            await kafka.publish("hello", queue)
+
+            await handle.assert_called_once_with("hello")
+
+            with pytest.raises(SetupError, match="`routing_key` is a RabbitMQ field"):
+                await handle.assert_called_once_with("hello", routing_key=queue)
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(

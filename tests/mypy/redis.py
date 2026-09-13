@@ -19,6 +19,7 @@ from faststream.redis import (
     StreamSub,
     TestRedisBroker,
 )
+from faststream.redis.call_wrapper import RedisHandlerCallWrapper
 from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
@@ -458,6 +459,44 @@ def check_list_subscriber_instance_type(
 
     sub3 = broker.subscriber(list="test", max_workers=2)
     assert_type(sub3, ListConcurrentSubscriber)
+
+
+async def check_call_assertions_take_the_redis_fields(
+    broker: RedisBroker | FastAPIRouter | RedisRouter,
+) -> None:
+    # A sync handler: mypy and pyright spell an `async def`'s return type differently
+    @broker.subscriber("test")
+    def handle() -> None: ...
+
+    assert_type(handle, RedisHandlerCallWrapper[[], None])
+    await handle.assert_called_once_with(None, channel="test")
+    await handle.assert_called_with(channel="test")
+    await handle.assert_any_call(channel="test")
+
+    # Every subscriber kind builds the one wrapper; which name answers is a runtime check
+    @broker.subscriber(list="test")
+    def from_list() -> None: ...
+
+    assert_type(from_list, RedisHandlerCallWrapper[[], None])
+    await from_list.assert_called_once_with(None, list="test")
+
+    @broker.subscriber(stream="test")
+    def from_stream() -> None: ...
+
+    assert_type(from_stream, RedisHandlerCallWrapper[[], None])
+    await from_stream.assert_called_once_with(None, stream="test")
+
+    # The publisher's own type is pinned in `check_publisher_publish_result_types`; here
+    # its methods take the three fields, which only the Redis mixin gives them
+    publisher = broker.publisher("test")
+
+    @publisher
+    def published() -> None: ...
+
+    assert_type(published, RedisHandlerCallWrapper[[], None])
+    await publisher.assert_called_once_with(None, channel="test")
+    await publisher.assert_called_with(list="test")
+    await publisher.assert_any_call(stream="test")
 
 
 RedisBroker(routers=[RedisRouter()])

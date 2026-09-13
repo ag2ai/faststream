@@ -1,7 +1,8 @@
 from confluent_kafka import Message
 
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
-from faststream._internal.kafka import KafkaCallAssertions, field_reader
+from faststream._internal.kafka import KafkaCallAssertions
+from faststream._internal.testing.calls import field_reader
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 
 
@@ -14,4 +15,4 @@ class KafkaHandlerCallWrapper(
     __slots__ = ()
 
     # The confluent client answers with methods where aiokafka has attributes
-    _read_field = field_reader(Message, lambda raw, name: getattr(raw, name)())
+    _read_field = field_reader("Kafka", Message, lambda raw, name: getattr(raw, name)())
