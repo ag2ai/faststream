@@ -16,13 +16,13 @@ In this tutorial, let's see how to use the FastStream app alongside a **Django**
 
 ## ASGI
 
-[**ASGI**](https://asgi.readthedocs.io/en/latest/){.external-link target="_blank"} protocol supports lifespan events, and **Django** can be served as an **ASGI** application. So, the best way to integrate FastStream with the **Django** is by using **ASGI** lifespan. You can write it by yourself (it is really easy) or use something like [this](https://github.com/illagrenan/django-asgi-lifespan){.external-link target="_blank"}, but the preferred way for us is using [**Starlette**](https://www.starlette.io/){.external-link target="_blank"} Router.
+[**ASGI**](https://asgi.readthedocs.io/en/latest/){.external-link target="_blank"} protocol supports lifespan events, and **Django** can be served as an **ASGI** application. So, the best way to integrate FastStream with **Django** is by using **ASGI** lifespan. You can write it by yourself (it is really easy) or use something like [this](https://github.com/illagrenan/django-asgi-lifespan){.external-link target="_blank"}, but the preferred way for us is using [**Starlette**](https://www.starlette.io/){.external-link target="_blank"} Router.
 
 Starlette Router allows you to serve any **ASGI** application you want, and it also supports lifespans. So, you can use it in your project to serve your regular Django **ASGI** and start up your FastStream broker too. Additionally, Starlette has much better static files support, providing an extra zero-cost feature.
 
 ## Default Django Application
 
-Well, lets take a look at a default **Django** `asgi.py`
+Well, let's take a look at a default **Django** `asgi.py`
 
 ```python linenums="1" title="asgi.py"
 import os
@@ -39,16 +39,16 @@ You can already serve it using any **ASGI** server
 For example, using [**uvicorn**](https://www.uvicorn.org/deployment/){.external-link target="_blank"}:
 
 ```bash
-uvicorn asgi:app --workers 4
+uvicorn asgi:application --workers 4
 ```
 
 Or you can use [**Gunicorn**](https://docs.gunicorn.org/en/latest/run.html){.external-link target="_blank"} with uvicorn workers
 
 ```bash
-gunicorn asgi:app --workers 4 --worker-class uvicorn.workers.UvicornWorker
+gunicorn asgi:application --workers 4 --worker-class uvicorn.workers.UvicornWorker
 ```
 
-Your **Django** views, models and other stuff has no any changes if you serving it through **ASGI**, so you need no worry about it.
+Your **Django** views, models and other stuff don't change if you serve them through **ASGI**, so you don't need to worry about it.
 
 ## FastStream Integration
 
@@ -57,7 +57,7 @@ Your **Django** views, models and other stuff has no any changes if you serving 
 Now, we need to modify our `asgi.py` to serve it using **Starlette**
 
 ```python linenums="1" title="asgi.py" hl_lines="16"
-# regular Djano stuff
+# regular Django stuff
 import os
 
 from django.core.asgi import get_asgi_application
@@ -72,14 +72,14 @@ from starlette.routing import Mount
 
 application = Starlette(
     routes=(
-        Mount("/", django_asgi()),  # redirect all requests to Django
+        Mount("/", django_asgi),  # redirect all requests to Django
     ),
 )
 ```
 
 ### Serving static files with Starlette
 
-Also, **Starlette** has a better static files provider than original **Django** one, so we can reuse it too.
+Also, **Starlette** has a better static files provider than the original **Django** one, so we can reuse it too.
 
 Just add this line to your `settings.py`
 
@@ -87,7 +87,7 @@ Just add this line to your `settings.py`
 STATIC_ROOT = "static/"
 ```
 
-And collect all static files by default **Django** command
+And collect all static files with the default **Django** command
 
 ```bash
 python manage.py collectstatic
@@ -171,10 +171,11 @@ application = Starlette(
     )
     ```
 
-This way we can easily integrate our **FastStream** application with the **Django**!
+This way we can easily integrate our **FastStream** application with **Django**!
 
-# Accessing Django ORM from within a FastStream Consumer
-## Start using FastStream CLI
+## Accessing Django ORM from within a FastStream Consumer
+
+### Start using FastStream CLI
 
 In order to access the **Django** ORM from within a FastStream consumer, you need to ensure that the Django settings are properly configured and that the Django application is initialized before accessing the ORM. Here is how to do it using `serve_faststream.py` as an entry point for your FastStream consumer application.
 
@@ -216,14 +217,15 @@ async def faststream_django_orm_demo_handler(message: str):
 app = FastStream(broker)
 ```
 
-Start consumer with:
+Start the consumer with:
 ```bash
 faststream run serve_faststream:app
 ```
 
 It is advisable to use FastStream's router to keep `serve_faststream.py` clean and to ensure `django.setup()` is always called first. See [FastStream Router](https://faststream.ag2.ai/latest/getting-started/routers/) for more information.
-## Start using Django's management command
-This demonstrates how to access Django ORM from within a FastStream consumer by using Django's management command. When management command runs, it automatically sets up Django and makes the ORM available.
+### Start using Django's management command
+
+This demonstrates how to access Django ORM from within a FastStream consumer by using Django's management command. When the management command runs, it automatically sets up Django and makes the ORM available.
 ```Python
 # serve_faststream.py
 import sys
@@ -283,7 +285,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         asyncio.run(faststream_app.run())
 ```
-You can now start consumer with:
+You can now start the consumer with:
 ```bash
 ./manage.py faststream
 ```

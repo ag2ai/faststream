@@ -53,7 +53,7 @@ You can register such handlers in two ways:
 
 ## Publishing Exceptions Handlers
 
-The second way to process messages is to fallback to a default result that should be published in case of an error. Such handlers can process errors in your message handler (or serialization) function only.
+The second way to process messages is to fall back to a default result that should be published in case of an error. Such handlers can process errors in your message handler (or serialization) function only.
 
 They can be registered in the same two ways as the previous one, but with a slight difference:
 

@@ -12,7 +12,7 @@ search:
 
 Partition keys are a crucial concept in Apache **Kafka**, enabling you to determine the appropriate partition for a message. This ensures that related messages are kept together in the same partition, which can be invaluable for maintaining order or grouping related messages for efficient processing. Additionally, **Kafka** utilizes partitioning to distribute load across multiple brokers and scale horizontally, while replicating data across brokers provides fault tolerance.
 
-You can specify your partition keys when utilizing the `#!python @KafkaBroker.publisher(...)` decorator in **FastStream**. This guide will walk you through the process of using partition keys effectively.
+You can specify your partition key when calling `publish(...)` on a publisher created with `#!python broker.publisher(...)` in **FastStream**. This guide will walk you through the process of using partition keys effectively.
 
 ## Publishing with a Partition Key
 
@@ -20,7 +20,7 @@ To publish a message to a **Kafka** topic using a partition key, follow these st
 
 ### Step 1: Define the Publisher
 
-In your FastStream application, define the publisher using the `#!python @KafkaBroker.publisher(...)` decorator. This decorator allows you to configure various aspects of message publishing, including the partition key.
+In your FastStream application, define the publisher using `#!python broker.publisher(...)`. The partition key is not configured here; it is passed with each `publish` call.
 
 ```python linenums="1"
 {! docs_src/kafka/publish_with_partition_key/app.py [ln:17] !}

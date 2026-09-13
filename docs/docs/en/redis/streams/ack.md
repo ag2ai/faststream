@@ -12,7 +12,7 @@ search:
 
 When working with *Redis* streams in the **FastStream** library, it's important to manage message acknowledgements carefully to ensure that messages are not lost and that they have been processed as intended.
 
-By default, when using the **FastStream** with a Redis stream, the library will automatically acknowledge (*ack*) that a message has been processed. This follows the *at most once* processing guarantee.
+By default, when using **FastStream** with a Redis stream consumer group, the library will automatically acknowledge (*ack*) a message once it has been processed successfully. This follows the *at least once* processing guarantee.
 
 ## Manual Acknowledgement
 
@@ -30,7 +30,7 @@ async def base_handler(body: dict, msg: RedisMessage, redis: Redis):
     ...
 
     # Manually acknowledge the message
-    await msg.ack(redis)
+    await msg.ack(redis, group="test-group")
     # or, if processing fails and you want to reprocess later
     await msg.nack()
 ```

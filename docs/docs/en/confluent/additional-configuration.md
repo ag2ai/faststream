@@ -10,7 +10,7 @@ search:
 
 # Passing Additional Configuration to confluent-kafka-python
 
-The `confluent-kafka-python` package is a Python wrapper around [librdkakfa](https://github.com/confluentinc/librdkafka), which is a C/C++ client library for Apache Kafka.
+The `confluent-kafka-python` package is a Python wrapper around [librdkafka](https://github.com/confluentinc/librdkafka), which is a C/C++ client library for Apache Kafka.
 
 `confluent-kafka-python` accepts a `config` dictionary that is then passed on to `librdkafka`. `librdkafka` provides plenty of [configuration properties](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md) to configure the Kafka client.
 

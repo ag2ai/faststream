@@ -11,7 +11,7 @@ search:
 # Healthchecks
 
 A common pattern for healthchecks is a low-cost **HTTP** endpoint,
-**FastStream** implements this feature and allows you to create liveness and readiness probes using [ASGI](../asgi.md) feature.
+**FastStream** implements this feature and allows you to create liveness and readiness probes using the [ASGI](../asgi.md) feature.
 
 ### Liveness Probe
 
@@ -35,7 +35,7 @@ dummy
 ```
 
 This example shows how to implement liveness and readiness probes in **FastStream**.
-Readiness probe checks connection to **Redis**, **RabbitMQ** and **Postgres**. Liveness probe checks that app just works.
+The readiness probe checks the connection to **Redis**, **RabbitMQ** and **Postgres**. The liveness probe just checks that the app is alive.
 
 ```python linenums="1" hl_lines="13-15 23 24 32 38 44 46 61-64 67" title="main.py"
 import asyncio
@@ -67,7 +67,7 @@ def readiness(
     async def func(scope: Scope) -> AsgiResponse:
         try:
             await redis_connection.ping()
-        except (redis.ConnectionError, Exception):
+        except Exception:
             logging.exception("Redis not ready")
             return unhealthy_response
 
@@ -79,7 +79,7 @@ def readiness(
 
         try:
             await postgres_connection.fetchval("SELECT 1")
-        except (asyncpg.exceptions.PostgresConnectionError, Exception):
+        except Exception:
             logging.exception("Postgres not ready")
             return unhealthy_response
 
@@ -130,9 +130,9 @@ RUN pip install 'faststream[rabbit]' uvicorn redis asyncpg
 COPY main.py /app
 ```
 
-### Docker-compose with healtcheck
+### Docker-compose with healthcheck
 
-**Docker-compose** doesn't allow you to realize the full power of trials, but it's enough to increase the stability of your application.
+**Docker-compose** doesn't allow you to use the full power of probes, but it's enough to increase the stability of your application.
 
 ```yaml linenums="1" hl_lines="37"
 services:
@@ -187,7 +187,7 @@ services:
 
 ### Kubernetes deployment
 
-But if you use k8s you can use the full power of this feature because you can use live and ready probes together.
+But if you use k8s you can use the full power of this feature because you can use liveness and readiness probes together.
 This is an example of deployment with liveness and readiness probes:
 
 ```yaml title="faststream-deployment.yaml" linenums="1" hl_lines="23-26 29-32"

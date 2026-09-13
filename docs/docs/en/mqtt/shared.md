@@ -32,4 +32,4 @@ Shared subscriptions are a **server feature**. If your broker does not implement
 
 ## Routers and prefixes
 
-`MQTTRouter` / `include_router(..., prefix=...)` **doesn\`t work** for now with `prefix` and `shared` combination. You receive `MQTTInvalidTopicError` from `zmqtt` if try to combine it.
+`MQTTRouter` / `include_router(..., prefix=...)` **doesn't work** for now with the `prefix` and `shared` combination. You receive `MQTTInvalidTopicError` from `zmqtt` if you try to combine them.

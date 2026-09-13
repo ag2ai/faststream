@@ -81,14 +81,14 @@ after_shutdown called
 This allows you to safely separate logic and resource initialization across different functions and hooks without worrying about the order of registration.
 
 !!! note ""
-   You can also specify multiple hooks. All your registered hooks will be added to a list and executed.
+    You can also specify multiple hooks. All your registered hooks will be added to a list and executed.
 
 ## Usage example
 
 Let's imagine that your application uses **pydantic** as your settings manager.
 
 !!! note ""
-    I highly recommend using **pydantic** for these purposes, because this dependency is already used at **FastStream**
+    I highly recommend using **pydantic** for these purposes, because this dependency is already used by **FastStream**
     and you don't have to install an additional package
 
 Also, let's imagine that you have several `.env`, `.env.development`, `.env.test`, `.env.production` files with your application settings,
@@ -114,7 +114,7 @@ Now let's look into a little more detail.
 
 To begin with, we are using a `#!python @app.on_startup` decorator
 
-```python linenums="12" hl_lines="14-15" hl_lines="1"
+```python linenums="12" hl_lines="1"
 {! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
@@ -122,7 +122,7 @@ to declare a function that runs when our application starts.
 
 The next step is to declare our function parameters that we expect to receive:
 
-```python linenums="12" hl_lines="14-15" hl_lines="2"
+```python linenums="12" hl_lines="2"
 {! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
@@ -134,7 +134,7 @@ The `env` argument will be passed to the `setup` function from the user-provided
 
 Then, we initialize the settings of our application using the file passed to us from the command line:
 
-```python linenums="12" hl_lines="14-15" hl_lines="3"
+```python linenums="12" hl_lines="3"
 {! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
@@ -166,7 +166,7 @@ Now let's imagine that we have a machine learning model that needs to process me
 
 Initialization of such models usually takes a long time. It would be wise to do this at the start of the application, and not when processing each message.
 
-You can initialize your model somewhere at the top of your module/file. However, in this case, this code will be run even just in case of importing
+You can initialize your model somewhere at the top of your module/file. However, in this case, this code will be run even just in the case of importing
 this module, for example, during testing.
 
 Therefore, it is worth initializing the model in the `#!python @app.on_startup` hook.
@@ -216,7 +216,6 @@ If you want to declare multiple lifecycle hooks, they will be used in the order 
 ### Async or not async
 
 In the asynchronous version of the application, both asynchronous and synchronous methods can be used as hooks.
-In the synchronous version, only synchronous methods are available.
 
 ### Command line arguments
 

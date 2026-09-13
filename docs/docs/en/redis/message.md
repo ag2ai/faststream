@@ -14,11 +14,11 @@ In **FastStream**, messages passed through a **Redis** broker are serialized and
 
 ## Redis Message Access
 
-When dealing with **Redis** broker in **FastStream**, you can easily access message details by using the `RedisMessage` object which wraps the underlying message with additional context information. This object is specifically tailored for **Redis** and contains relevant message attributes:
+When dealing with the **Redis** broker in **FastStream**, you can easily access message details by using the `RedisMessage` object which wraps the underlying message with additional context information. This object is specifically tailored for **Redis** and contains relevant message attributes:
 
 * `#!python body: Union[bytes, Any]`
 * `#!python raw_message: Any`
-* `#!python decoded_body: Optional[DecodedMessage]`
+* `#!python decoded_body: list[DecodedMessage]` (batch messages only)
 * `#!python headers: dict[str, Any]`
 * `#!python path: dict[str, Any]`
 * `#!python content_type: Optional[str]`
@@ -26,7 +26,7 @@ When dealing with **Redis** broker in **FastStream**, you can easily access mess
 * `#!python message_id: str`
 * `#!python correlation_id: str`
 * `#!python processed: bool`
-* `#!python committed: bool`
+* `#!python committed: Optional[AckStatus]`
 
 For instance, if you need to retrieve headers from an incoming **Redis** message, here’s how you might do it:
 

@@ -14,7 +14,7 @@ Testability is a crucial part of any application, and **FastStream** provides yo
 
 ## Original Application
 
-Let's take a look at the original application to test
+Let's take a look at the original application to test:
 
 === "AIOKafka"
     ```python linenums="1" title="annotation_kafka.py"
@@ -42,7 +42,7 @@ Let's take a look at the original application to test
     ```
 
 === "MQTT"
-    ```python linenums="1" title="annotation_redis.py"
+    ```python linenums="1" title="annotation_mqtt.py"
     {!> docs_src/getting_started/subscription/mqtt/annotation.py !}
     ```
 
@@ -56,13 +56,13 @@ async def test_handler():
     await handle("John", 1)
 ```
 
-But if you want to test your function closer to your real runtime, you should use the special **FastStream** test client.
+But if you want to test your function closer to your real runtime, you should use the **FastStream** test broker classes (`TestKafkaBroker`, `TestRabbitBroker`, etc.).
 
 ## In-Memory Testing
 
 Deploying a whole service with a Message Broker is a bit too much just for testing purposes, especially in your CI environment. Not to mention the possible loss of messages due to network failures when working with real brokers.
 
-For this reason, **FastStream** has a special `TestClient` to make your broker work in `InMemory` mode.
+For this reason, **FastStream** has special test broker classes (`TestKafkaBroker`, `TestRabbitBroker`, `TestNatsBroker`, `TestRedisBroker`, `TestMQTTBroker`) to make your broker work in `InMemory` mode.
 
 Just use it like a regular async context manager - all published messages will be routed in-memory (without any external dependencies) and consumed by the correct handler.
 
@@ -198,7 +198,7 @@ Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.
     ```
 
 !!! note
-    The *handle* mock has a raw **JSON** message body. This way you can validate the incoming message itself and not a parsed python arguments.
+    The *handle* mock has a raw **JSON** message body. This way you can validate the incoming message itself and not the parsed Python arguments.
 
     Thus our example checks not `#!python mock.assert_called_with(name="John", user_id=1)`, but `#!python mock.assert_called_with({ "name": "John", "user_id": 1 })`.
 
@@ -345,7 +345,7 @@ To check only a part of the body, put a [dirty-equals](https://dirty-equals.help
 
 ## Real Broker Testing
 
-If you want to test your application in a real environment, you shouldn't have to rewrite all your tests: just pass `with_real` optional parameter to your `TestClient` context manager. This way, `TestClient` supports all the testing features but uses an unpatched broker to send and consume messages.
+If you want to test your application in a real environment, you shouldn't have to rewrite all your tests: just pass the `with_real` optional parameter to your test broker context manager. This way, the test broker supports all the testing features but uses an unpatched broker to send and consume messages.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="5 9 11 19 22"
@@ -378,7 +378,7 @@ If you want to test your application in a real environment, you shouldn't have t
     ```
 
 !!! tip
-    When you're using a patched broker to test your consumers, the publish method is called synchronously with a consumer one, so you need not wait until your message is consumed. But in the real broker's case, it doesn't.
+    When you're using a patched broker to test your consumers, the publish method is called synchronously with a consumer one, so you need not wait until your message is consumed. But in the real broker's case, it isn't.
 
     For this reason, you have to wait for message consumption manually with the special `#!python handler.wait_call(timeout)` method.
     Also, inner handler exceptions will be raised in this function, not `#!python broker.publish(...)`.
@@ -391,4 +391,4 @@ It can be very useful to set the `with_real` flag using an environment variable.
 WITH_REAL=True/False pytest ...
 ```
 
-To learn more about managing your application configuration visit [this page](../config/index.md){.internal-link}.
+To learn more about managing your application configuration, visit [this page](../config/index.md){.internal-link}.

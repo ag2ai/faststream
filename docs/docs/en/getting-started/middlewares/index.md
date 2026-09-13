@@ -28,7 +28,7 @@ It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`
 1. **on_receive** - This method is called first for every incoming message, regardless of whether the message will be processed.
 2. [**parser**](../serialization/parser.md){.internal-link} - Converts native broker messages (aiopika, aiokafka, redis, etc.) into FastStream's StreamMessage format
 3. [**filter**](../subscription/filtering.md){.internal-link} - Applies filtering logic based on user-defined filter parameters.
-4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues to the handler. otherwise, the event will be passed to another handler.
+4. [**consume_scope**](#important-information-about-consume_scope){.internal-link} - If the filter passes, the flow continues to the handler. Otherwise, the event will be passed to another handler.
     - [**decoder**](../serialization/decoder.md){.internal-link} - Deserializes message bytes into dictionaries or structured data.
     - **Handler** - Executes the message handling function
 5. [**publish_scope**](#important-information-about-publish_scope){.internal-link} - This method is called for every outgoing message, which includes messages sent via `#!python @publisher` decorators, direct calls to `#!python broker.publish()` or `#!python broker.request()`, and any replies.
@@ -66,7 +66,7 @@ broker = Broker(middlewares=[MyMiddleware])  # global scope
 router = BrokerRouter(middlewares=[MyMiddleware])  # router scope
 ```
 
-**Middlewares** can be used Broker scope or [Router](../routers/index.md){.internal-link} scope.
+**Middlewares** can be used in Broker scope or [Router](../routers/index.md){.internal-link} scope.
 
 ## 🛠️ Full middleware methods
 
@@ -113,7 +113,7 @@ class MyMiddleware(BaseMiddleware):
         return await super().after_processed(exc_type, exc_val, exc_tb)
 ```
 
-PayAttention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
+Pay attention to the order: the methods are executed in this sequence after each stage. Read more below in [Middlewares Flow](#basic-middlewares-flow).
 
 
 ### **Important information about `consume_scope`**
@@ -135,9 +135,9 @@ Inside `consume_scope`:
 
 ### **Important information about `publish_scope`**
 
-If you want to intercept the publishing process, you will need to use the **publish_scope** method. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.). So, you can patch them any kind you want.
+If you want to intercept the publishing process, you will need to use the **publish_scope** method. This method consumes the message body and any other options passed to the `publish` method (such as destination headers, etc.). So, you can patch them any way you want.
 
-**publish_scope** affect all ways of publishing something, including the `#!python broker.publish(...)` call and reply-to / RPC replies.
+**publish_scope** affects all ways of publishing something, including the `#!python broker.publish(...)` call and reply-to / RPC replies.
 
 To differentiate between different types of publishers, you can use `cmd.publish_type`. It can be one of the following `Enum`:
 

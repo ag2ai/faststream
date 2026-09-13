@@ -73,7 +73,7 @@ Under `AckPolicy.ACK_FIRST` the offset is committed by the client, so `msg.ack()
 | MANUAL          | Do nothing    | Do nothing    | Consumer never commits offset, full manual control                                                                                                                          |
 | ACK_FIRST       | Do nothing    | Do nothing    | Offset committed by Kafka client within [`enable.auto.commit`](https://kafka.apache.org/documentation/#consumerconfigs_enable.auto.commit){.external-link target="_blank"} setting |
 | ACK             | Commit offset | Commit offset |                                                                                                                                                                             |
-| REJECT_ON_ERROR | Commit offset | Commit offset | Same as ack, because Kafka has not native support for rejecting messages                                                                                                    |
+| REJECT_ON_ERROR | Commit offset | Commit offset | Same as ack, because Kafka has no native support for rejecting messages                                                                                                    |
 | NACK_ON_ERROR   | Commit offset | Seek offset   | Seek offset to read message again                                                                                                                                           |
 
 ## Interrupt Process

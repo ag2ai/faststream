@@ -36,7 +36,7 @@ async def handle_scheduled_message(msg: NatsMessage) -> None:
 To schedule a message for future delivery, use the `Schedule` object when publishing:
 
 ```python
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 async def publish_scheduled_message() -> None:
@@ -44,7 +44,7 @@ async def publish_scheduled_message() -> None:
   await broker.connect()
 
   # Calculate the delivery time (e.g., 3 seconds from now)
-  current_time = datetime.now(tz=UTC)
+  current_time = datetime.now(tz=timezone.utc)
   schedule_time = current_time + timedelta(seconds=3)
 
   # Define the target subject for the scheduled message
@@ -65,7 +65,7 @@ async def publish_scheduled_message() -> None:
 Here's a full working example that demonstrates scheduled message publishing:
 
 ```python
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from faststream import FastStream
@@ -79,12 +79,12 @@ broker = NatsBroker()
   stream=JStream("test_stream", allow_msg_schedules=True)
 )
 async def handle_scheduled_message(msg: NatsMessage) -> None:
-  print(f"Message received at {datetime.now(tz=UTC)}")
+  print(f"Message received at {datetime.now(tz=timezone.utc)}")
   print(msg)
 
 
 async def on_startup() -> None:
-  current_time = datetime.now(tz=UTC)
+  current_time = datetime.now(tz=timezone.utc)
   schedule_time = current_time + timedelta(seconds=3)
   await broker.connect()
 
@@ -111,7 +111,8 @@ if __name__ == "__main__":
 
 - **Stream Configuration**: The JetStream must be created with `allow_msg_schedules=True` to enable scheduling
 - **Schedule Object**: Takes two parameters:
-    - `schedule_time`: A `datetime` object (preferably with UTC timezone) indicating when the message should be delivered
-    - `schedule_target`: The subject where the scheduled message will be published, should be unique for every message.
+    - `time`: A `datetime` object (preferably with UTC timezone) indicating when the message should be delivered
+    - `target`: The subject where the scheduled message will be published; it must belong to the same stream.
+- **Schedule Subject**: Only one schedule is held per publish `subject` — publishing a new schedule to the same `subject` replaces the prior one, so use a unique `subject` for every pending scheduled message
 - **Subject Pattern**: The subscriber should use a wildcard pattern (e.g., `"test_stream.*"`) to match the scheduled target subjects
 - **Timezone**: Always use timezone-aware datetime objects, preferably UTC, to avoid scheduling issues
