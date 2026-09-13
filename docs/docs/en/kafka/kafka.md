@@ -54,6 +54,6 @@ Check out [Confluent's KafkaBroker](../confluent/index.md).
 
 ### AIOKafka library
 
-The `aiokafka` library, is an asynchronous Kafka client for Python, built on top of the `asyncio` framework. It is designed to work seamlessly with asynchronous code, making it suitable for applications with high concurrency requirements.
+The `aiokafka` library is an asynchronous Kafka client for Python, built on top of the `asyncio` framework. It is designed to work seamlessly with asynchronous code, making it suitable for applications with high concurrency requirements.
 
 Check out [aiokafka's KafkaBroker](../kafka/index.md).

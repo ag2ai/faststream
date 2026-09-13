@@ -42,6 +42,7 @@ The `publish` method accepts the following arguments:
 ## Message Parameters
 
 * `#!python headers: dict[str, str] | None = None` - headers of the message being sent (used by consumers).
+* `#!python reply_to: str = ""` - *subject* to send the response to.
 * `#!python correlation_id: str | None = None` - message id, which helps to match the original message with the reply to it (generated automatically).
 
 ## NatsJS Parameters

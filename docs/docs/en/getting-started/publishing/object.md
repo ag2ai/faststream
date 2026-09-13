@@ -76,4 +76,4 @@ async def handle(msg) -> str:
 This way, you will send a copy of your return to all output topics.
 
 !!! note
-    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers as well.
+    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers.

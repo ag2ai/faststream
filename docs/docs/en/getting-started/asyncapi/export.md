@@ -39,7 +39,7 @@ If you prefer `yaml` instead of `json`, please run the following command to gene
 ```
 
 !!! tip
-    To generate the documentation in yaml format, please install the necessary dependency to work with **YAML** file format at first.
+    To generate the documentation in yaml format, please install the necessary dependency to work with the **YAML** file format first.
 
     ```shell
     pip install PyYAML

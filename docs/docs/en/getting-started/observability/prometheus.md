@@ -18,7 +18,7 @@ and performance of systems and applications.
 
 ### FastStream Metrics
 
-To add a metrics to your broker, you need to:
+To add metrics to your broker, you need to:
 
 1. Install `FastStream` with `prometheus-client`
 
@@ -136,7 +136,7 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | Label                             | Description                                                     | Values                                            |
 |-----------------------------------|-----------------------------------------------------------------|---------------------------------------------------|
 | app_name                          | The name of the application, which the user can specify himself | `faststream` by default                           |
-| broker                            | Broker name                                                     | `kafka`, `rabbit`, `nats`, `redis`                |
+| broker                            | Broker name                                                     | `kafka`, `rabbitmq`, `nats`, `redis`, `mqtt`      |
 | handler                           | Where the message came from                                     |                                                   |
 | status (while receiving)          | Message processing status                                       | `acked`, `nacked`, `rejected`, `skipped`, `error` |
 | exception_type (while receiving)  | Exception type when processing message                          |                                                   |

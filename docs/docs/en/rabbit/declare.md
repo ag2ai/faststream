@@ -12,13 +12,16 @@ search:
 
 ## Declaring queues and exchanges
 
-**FastStream** *subscribers* declares and validates all using *RabbitMQ* exchanges and queues (*publishers* declares exchanges only), but sometimes you need to declare them manually.
+**FastStream** *subscribers* declare and validate all the *RabbitMQ* exchanges and queues they use (*publishers* declare exchanges only), but sometimes you need to declare them manually.
 
 **RabbitBroker** provides a way to achieve this easily.
 
 ```python linenums="1" hl_lines="15-20 22-27"
 {! docs_src/rabbit/declare.py !}
 ```
+
+!!! note
+    Both methods need an open connection, so call them after `#!python await broker.connect()` or, inside an application, in an `after_startup` hook as shown above. See [`connect()` and `start()`](./connection.md#connect-and-start){.internal-link} for the difference between the two entry points.
 
 These methods require just one argument (`RabbitQueue`/`RabbitExchange`) containing information about your *RabbitMQ* required objects. They declare/validate *RabbitMQ* objects and return low-level **aio-pika** robust objects to interact with.
 

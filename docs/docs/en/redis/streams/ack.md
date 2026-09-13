@@ -12,25 +12,25 @@ search:
 
 When working with *Redis* streams in the **FastStream** library, it's important to manage message acknowledgements carefully to ensure that messages are not lost and that they have been processed as intended.
 
-By default, when using the **FastStream** with a Redis stream, the library will automatically acknowledge (*ack*) that a message has been processed. This follows the *at most once* processing guarantee.
+By default, when using **FastStream** with a Redis stream consumer group, the library will automatically acknowledge (*ack*) a message once it has been processed successfully. This follows the *at least once* processing guarantee.
 
 ## Manual Acknowledgement
 
 In cases where you want explicit control over when a message is acknowledged, you can manually acknowledge a message by accessing the `ack` and `nack` methods provided:
 
 ```python
-from faststream.redis.annotations import RedisMessage, Redis
+from faststream.redis.annotations import RedisStreamMessage, Redis
 
 # Setup broker and faststream app
 ...
 
 @broker.subscriber(StreamSub("test-stream", group="test-group", consumer="1"))
-async def base_handler(body: dict, msg: RedisMessage, redis: Redis):
+async def base_handler(body: dict, msg: RedisStreamMessage, redis: Redis):
     # Process the message
     ...
 
     # Manually acknowledge the message
-    await msg.ack(redis)
+    await msg.ack(redis, group="test-group")
     # or, if processing fails and you want to reprocess later
     await msg.nack()
 ```

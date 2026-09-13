@@ -12,7 +12,7 @@ search:
 
 If you are working with a Publisher object (either as a decorator or directly), you have several testing features available:
 
-* In-memory TestClient
+* In-memory *TestBroker*
 * Publishing locally with error propagation
 * Checking the incoming message body
 
@@ -173,7 +173,7 @@ In addition, the publisher has the same `assert_called_once_with` method as a [s
     The Publisher mock contains not just a `publish` method input value. It sets up a virtual consumer for an outgoing topic, consumes a message, and stores this consumed one.
 
 !!! note
-    In order for publishers to be properly patched by the test broker, you need to create them before running the test broker
+    In order for publishers to be properly patched by the test broker, you need to create them before running the test broker.
 
 Additionally, *TestBroker* can be used with a real external broker to make your tests end-to-end suitable. For more information, please visit the [subscriber testing page](../subscription/test.md#real-broker-testing){.internal-link}.
 
