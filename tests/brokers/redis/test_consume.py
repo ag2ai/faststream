@@ -451,6 +451,33 @@ class TestConsumeStream(RedisTestcaseConfig):
             await br.start()
             assert await br._connection.exists(queue)
 
+    async def test_consume_group_with_no_ack_calls_xreadgroup(
+        self, queue: str, event: asyncio.Event, mock: MagicMock
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, no_ack=True),
+        )
+        async def handler(msg: RedisMessage) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            assert await br._connection.exists(queue)
+            with patch.object(
+                Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
+            ) as xreadgroup:
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", stream=queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=3,
+                )
+            assert xreadgroup.mock.call_args.kwargs["noack"] is True
+
     async def test_consume_group_without_declare_requires_stream(
         self, queue: str
     ) -> None:
