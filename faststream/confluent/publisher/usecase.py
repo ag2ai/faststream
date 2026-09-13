@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 
 from confluent_kafka import Message
@@ -9,6 +9,9 @@ from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
+from faststream._internal.kafka import KafkaCallAssertions
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
+from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -22,8 +25,11 @@ if TYPE_CHECKING:
     from .producer import AsyncConfluentFastProducer
 
 
-class LogicPublisher(PublisherUsecase):
+class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
+
+    _call_wrapper_class = KafkaHandlerCallWrapper
+    _read_field = KafkaHandlerCallWrapper._read_field
 
     def __init__(
         self,
@@ -36,6 +42,17 @@ class LogicPublisher(PublisherUsecase):
         self.partition = config.partition
         self.reply_to = config.reply_to
         self.headers = config.headers or {}
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+            super().__call__(func),
+        )
 
     @property
     def topic(self) -> str:
