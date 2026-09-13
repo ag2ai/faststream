@@ -114,7 +114,7 @@ context.reset_global("my_key")
 
 ## Local
 
-To set a local context (available only within the message processing scope), use the context manager `scope`. It could be extremely useful to fill the context with additional options in [Middlewares](../middlewares/){.internal-link}
+To set a local context (available only within the message processing scope), use the context manager `scope`. It could be extremely useful to fill the context with additional options in [Middlewares](middlewares/index.md){.internal-link}
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="13 22"
@@ -538,7 +538,7 @@ Or even to a dict key
 
 **FastStreams** has its own Dependency Injection container - **Context**, used to store application runtime objects and variables.
 
-With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](../dependencies/index.md){.internal-link} usage.
+With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](dependencies/index.md){.internal-link} usage.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="2 4 12"
@@ -579,4 +579,4 @@ By default, the context is available in the same place as `Depends`:
 * nested dependencies
 
 !!! tip
-    You can get access to the **Context** in [Middlewares](../middlewares/#context-access){.internal-link} as `#!python self.context`
+    You can get access to the **Context** in [Middlewares](middlewares/index.md#context-access){.internal-link} as `#!python self.context`

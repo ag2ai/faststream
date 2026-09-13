@@ -92,7 +92,7 @@ class RabbitBroker(
         default_channel: Optional["Channel"] = None,
         app_id: str | None = SERVICE_NAME,
         # broker base args
-        graceful_timeout: float | None = None,
+        graceful_timeout: float | None = 15.0,
         ack_policy: AckPolicy = EMPTY,
         id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,

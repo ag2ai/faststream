@@ -237,7 +237,7 @@ class NatsBroker(
         ws_connection_headers: dict[str, list[str]] | None = None,
         reconnect_to_server_handler: ReconnectToServerHandler | None = None,
         js_options: Union["JsInitOptions", dict[str, Any], None] = None,
-        graceful_timeout: float | None = None,
+        graceful_timeout: float | None = 15.0,
         ack_policy: AckPolicy = EMPTY,
         id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,

@@ -214,6 +214,9 @@ typeCheckingMode = "strict"
 [tool.pytest.ini_options]
 minversion = "7.0"
 timeout = 30
+# Per phase, so a `flaky` rerun gets its own timer: pytest-timeout cancels a
+# whole-item one on the first failure, and rerunfailures retries inside it.
+timeout_func_only = true
 addopts = "--strict-markers --strict-config -q -m 'not slow'"
 testpaths = ["tests"]
 markers = [

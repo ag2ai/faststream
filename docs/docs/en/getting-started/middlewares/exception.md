@@ -85,7 +85,7 @@ They can be registered in the same two ways as the previous one, but with a slig
 Your registered exception handlers are also wrapped by the **FastDepends** serialization mechanism, so they can be:
 
 * Either sync or async
-* Able to access the [Context](../context/index.md){.internal-link} feature
+* Able to access the [Context](../context.md){.internal-link} feature
 
 This works in the same way as a regular message handler.
 

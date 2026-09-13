@@ -83,6 +83,66 @@ This allows you to safely separate logic and resource initialization across diff
 !!! note ""
     You can also specify multiple hooks. All your registered hooks will be added to a list and executed.
 
+## Graceful Shutdown
+
+When the application stops, **FastStream** does not drop messages that are already being processed. Shutdown happens in this order:
+
+1. `on_shutdown` hooks are called.
+2. Every subscriber stops consuming new messages.
+3. **FastStream** waits for in-flight handlers to finish, up to `graceful_timeout` seconds. Once the timeout expires, the remaining handlers are no longer awaited.
+4. The broker connection is closed.
+5. `after_shutdown` hooks are called.
+6. The `lifespan` context manager (if any) exits.
+
+So, `on_shutdown` runs while your handlers may still be working, and `after_shutdown` runs only after all of them have finished (or the timeout has expired).
+
+The timeout is configured on the broker:
+
+=== "AIOKafka"
+    ```python hl_lines="3"
+    from faststream.kafka import KafkaBroker
+
+    broker = KafkaBroker(graceful_timeout=30.0)
+    ```
+
+=== "Confluent"
+    ```python hl_lines="3"
+    from faststream.confluent import KafkaBroker
+
+    broker = KafkaBroker(graceful_timeout=30.0)
+    ```
+
+=== "RabbitMQ"
+    ```python hl_lines="3"
+    from faststream.rabbit import RabbitBroker
+
+    broker = RabbitBroker(graceful_timeout=30.0)
+    ```
+
+=== "NATS"
+    ```python hl_lines="3"
+    from faststream.nats import NatsBroker
+
+    broker = NatsBroker(graceful_timeout=30.0)
+    ```
+
+=== "Redis"
+    ```python hl_lines="3"
+    from faststream.redis import RedisBroker
+
+    broker = RedisBroker(graceful_timeout=30.0)
+    ```
+
+=== "MQTT"
+    ```python hl_lines="3"
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker(graceful_timeout=30.0)
+    ```
+
+!!! note
+    The default is `15.0` seconds for every broker. Pass `#!python graceful_timeout=None` to skip the wait entirely: the connection is closed right away and running handlers are interrupted.
+
 ## Usage example
 
 Let's imagine that your application uses **pydantic** as your settings manager.
@@ -130,7 +190,7 @@ The `env` argument will be passed to the `setup` function from the user-provided
 
 !!! tip
     All lifecycle functions always apply `#!python @apply_types` decorator,
-    therefore, all [context fields](../context/index.md){.internal-link} and [dependencies](../dependencies/index.md){.internal-link} are available in them
+    therefore, all [context fields](../context.md){.internal-link} and [dependencies](../dependencies/index.md){.internal-link} are available in them
 
 Then, we initialize the settings of our application using the file passed to us from the command line:
 

@@ -12,7 +12,7 @@ search:
 
 The **Fanout** Exchange is an even simpler, but slightly less popular way of routing in *RabbitMQ*. This type of `exchange` sends messages to all queues subscribed to it, ignoring any arguments of the message.
 
-At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](../direct#scaling){.internal-link}).
+At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](direct.md#scaling){.internal-link}).
 
 ## Example
 

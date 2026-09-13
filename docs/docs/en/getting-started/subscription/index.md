@@ -169,7 +169,7 @@ async def handle_str(
     ...
 ```
 
-You can also access some extra features through the function arguments, such as [Depends](../dependencies/index.md){.internal-link} and [Context](../context/existed.md){.internal-link} if required.
+You can also access some extra features through the function arguments, such as [Depends](../dependencies/index.md){.internal-link} and [Context](../context.md#existing-fields){.internal-link} if required.
 
 However, you can easily disable **Pydantic** validation by creating a broker with the following option: `#!python Broker(apply_types=False)`.
 

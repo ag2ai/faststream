@@ -28,3 +28,7 @@ The parser declared at the `broker` level will be applied to all subscribers. Th
 ### Message Decoding
 
 At this stage, the body of the **StreamMessage** is transformed into a format suitable for processing within your subscriber function. This is the stage you may need to redefine more often.
+
+!!! tip "Need the message itself?"
+    Type annotations only control how the decoded body is validated and cast for your handler.
+    If you need the message as it came from the broker — its raw bytes, headers, or the decoded body before any casting — don't fight the annotation: inject the **StreamMessage** with `#!python Context("message")` instead. See [Existing Context Fields](../context.md#existing-fields){.internal-link}.
