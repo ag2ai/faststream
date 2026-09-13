@@ -158,3 +158,20 @@ def test_sub_overrides_broker_and_router() -> None:
         ack_policy=AckPolicy.ACK_FIRST,
     )
     assert sub.ack_policy is AckPolicy.ACK_FIRST
+
+
+@pytest.mark.redis()
+def test_stream_sub_no_ack_with_group_default_last_id() -> None:
+    """no_ack is forwarded to XREADGROUP NOACK when last_id is `>`."""
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        stream = StreamSub(
+            "test_stream",
+            group="test_group",
+            consumer="test_consumer",
+            no_ack=True,
+        )
+    assert stream.no_ack is True
+    assert stream.last_id == ">"

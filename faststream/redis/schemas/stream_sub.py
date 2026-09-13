@@ -115,13 +115,6 @@ class StreamSub(NameRequired):
                         stacklevel=1,
                     )
 
-            elif no_ack:
-                warnings.warn(
-                    message="`no_ack` has no effect with consumer group",
-                    category=RuntimeWarning,
-                    stacklevel=1,
-                )
-
         if claim_min_idle_time is not None:
             if not REDIS_V710:
                 msg = (
