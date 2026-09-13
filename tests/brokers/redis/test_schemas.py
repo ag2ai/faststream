@@ -95,15 +95,7 @@ def test_stream_claim_min_idle_time() -> None:
 
 
 @pytest.mark.redis()
-def test_stream_sub_no_ack_without_warning(recwarn) -> None:
+def test_stream_sub_no_ack_without_warning(recwarn: pytest.WarningsRecorder) -> None:
     StreamSub("test", group="group", consumer="consumer", no_ack=True)
 
     assert len(recwarn) == 0
-
-
-@pytest.mark.redis()
-def test_stream_sub_no_ack_correct_arguments_stored() -> None:
-    stream = StreamSub("test", group="group", consumer="consumer", no_ack=True)
-
-    assert stream.no_ack is True
-    assert stream.last_id == ">"

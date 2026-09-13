@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from dirty_equals import IsPartialDict
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
@@ -451,32 +452,32 @@ class TestConsumeStream(RedisTestcaseConfig):
             await br.start()
             assert await br._connection.exists(queue)
 
-    async def test_consume_group_with_no_ack_calls_xreadgroup(
-        self, queue: str, event: asyncio.Event, mock: MagicMock
+    async def test_consume_group_with_no_ack_skips_pel(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, group="group", consumer=queue, no_ack=True),
         )
-        async def handler(msg: RedisMessage) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
-            assert await br._connection.exists(queue)
-            with patch.object(
-                Redis, "xreadgroup", spy_decorator(Redis.xreadgroup)
-            ) as xreadgroup:
-                await asyncio.wait(
-                    (
-                        asyncio.create_task(br.publish("hello", stream=queue)),
-                        asyncio.create_task(event.wait()),
-                    ),
-                    timeout=3,
-                )
-            assert xreadgroup.mock.call_args.kwargs["noack"] is True
+            await br.publish({"data": "hello"}, stream=queue)
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+            # XREADGROUP NOACK delivers the entry without ever putting it in the PEL
+            assert await br._connection.xpending(queue, "group") == IsPartialDict(
+                pending=0,
+            )
+
+        mock.assert_called_once_with({"data": "hello"})
 
     async def test_consume_group_without_declare_requires_stream(
         self, queue: str
