@@ -64,7 +64,7 @@ A rejected order goes to `orders-dlx` with the routing key `orders`, lands in `o
 
 The same path is taken by any message that expires after `x-message-ttl` milliseconds, and by messages a handler fails on with an unhandled exception, since the default [acknowledgement policy](./ack.md){.internal-link} rejects those too.
 
-Use a dead letter queue whenever a handler can fail for a reason a retry won't fix (a malformed payload, a business rule violation): requeueing such a message only makes the same handler fail again. For transient failures, a **quorum** queue with `x-delivery-limit` gives you both: the message is redelivered that many times first, and dead-lettered only after that.
+Use a dead letter queue whenever a handler can fail for a reason a retry won't fix (a malformed payload, a business rule violation): requeuing such a message only makes the same handler fail again. For transient failures, a **quorum** queue with `x-delivery-limit` gives you both: the message is redelivered that many times first, and dead-lettered only after that.
 
 !!! tip
     Without `x-dead-letter-routing-key`, a message is dead-lettered with the routing key it was originally published with. That is handy when one dead letter exchange serves several queues: bind one dead letter queue per source routing key, or use a `fanout` exchange to collect everything in one place.
