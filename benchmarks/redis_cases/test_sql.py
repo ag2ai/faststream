@@ -11,9 +11,8 @@ from metrics import registry, tracer_provider
 from opentelemetry import metrics, trace
 from opentelemetry.semconv._incubating.attributes import messaging_attributes
 from schemas.pydantic import Schema
-from sql import DSN
+from sql import DSN, find_user_by_name
 
-from benchmarks.sql import find_user_by_name
 from faststream.opentelemetry.consts import (
     ERROR_TYPE,
     INSTRUMENTING_LIBRARY_VERSION,
@@ -51,10 +50,8 @@ class TestFaststreamRedisSQLCase:
             ],
         )
 
-        p = self.publisher = broker.publisher("in")
         self.sql_pool = await asyncpg.create_pool(dsn=DSN)
 
-        @p
         @broker.subscriber("in")
         async def handle(message: Schema) -> Schema:
             self.EVENTS_PROCESSED += 1

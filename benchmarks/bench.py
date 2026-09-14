@@ -11,8 +11,23 @@ from pathlib import Path
 from typing import Protocol
 
 import psutil
+from confluent_cases import CONFLUENT_CASES
+from kafka_cases import KAFKA_CASES
+from nats_cases import NATS_CASES
+from rabbit_cases import RABBIT_CASES
+from redis_cases import REDIS_CASES
 
 from faststream.__about__ import __version__
+
+BENCHMARKS = {
+    "kafka": KAFKA_CASES,
+    "nats": NATS_CASES,
+    "rabbit": RABBIT_CASES,
+    "redis": REDIS_CASES,
+    "confluent": CONFLUENT_CASES,
+}
+
+PREFILL_SIZES = (200_000, 500_000, 1_000_000)
 
 
 class TestCase(Protocol):
@@ -20,12 +35,11 @@ class TestCase(Protocol):
     broker_type: str
     comment: str
 
-    def setup_method(self) -> None: ...
+    async def setup_method(self, **kwargs: object) -> None: ...
 
     @asynccontextmanager
     def start(self) -> AsyncGenerator[float, None]: ...
 
-    @asynccontextmanager
     def test_consume_message(self) -> AsyncGenerator[None, None]: ...
 
 
@@ -40,21 +54,22 @@ class MeasureResult:
 
 
 async def measure(
-    case: TestCase, measure_time: int
+    case: TestCase,
+    target: int,
 ) -> AsyncGenerator[MeasureResult, None]:
     async with case.start() as start_time:
-        while (elapsed_time := (time.time() - start_time)) < measure_time:
-            yield MeasureResult(case.EVENTS_PROCESSED, elapsed_time)
+        while case.EVENTS_PROCESSED < target:
+            print(f"Obrabotano {case.EVENTS_PROCESSED} / {target}")
             await asyncio.sleep(1.0)
-
     yield MeasureResult(case.EVENTS_PROCESSED, time.time() - start_time)
 
 
-async def main(case: TestCase, measure_time: int) -> MeasureResult:
-    async for result in measure(case, measure_time):
+async def main(case: TestCase, prefill_messages: int) -> MeasureResult:
+    await case.setup_method(prefill_messages=prefill_messages)
+    async for result in measure(case, prefill_messages):
         sys.stdout.write(
-            f"\rTotal events: {result.total_events}, elapsed time: "
-            f"{result.elapsed_time:.1f}s ({(measure_time - result.elapsed_time):.1f} left), "
+            f"\rTotal events: {result.total_events}, passed time: "
+            f"{result.elapsed_time:.1f}) "
             f"EPS: {result.eps:.2f}"
         )
 
@@ -62,45 +77,47 @@ async def main(case: TestCase, measure_time: int) -> MeasureResult:
 
 
 if __name__ == "__main__":
-    from rabbit_cases.test_aiopika import TestRabbitCase
+    for broker, test_cases in BENCHMARKS.items():
+        test_case_classes = [
+            case_cls for cases in test_cases.values() for case_cls in cases
+        ]
+        for case_cls in test_case_classes:
+            for prefill_messages in PREFILL_SIZES:
+                case = case_cls()
+                bench_file = Path(__file__).resolve().parent / "new_benches.csv"
+                final_result = asyncio.run(main(case, prefill_messages))
 
-    case: TestCase = TestRabbitCase()
+                print(f"\nTotal events: {final_result.total_events}")
+                print(f"Events per second: {(final_result.eps):.2f}")
 
-    case.setup_method()
+                with bench_file.open("a", newline="") as csvfile:
+                    writer = csv.writer(csvfile, delimiter=";")
 
-    bench_file = Path(__file__).resolve().parent / "benches.csv"
+                    if csvfile.tell() == 0:
+                        writer.writerow([
+                            "FastStream Version",
+                            "Broker",
+                            "Prefill Messages",
+                            "Total Events",
+                            "Event per second",
+                            "Elapsed Time",
+                            "Measure Time",
+                            "Python Version",
+                            "Comments",
+                            "Host Memory",
+                        ])
 
-    final_result = asyncio.run(main(case, 60 * 10))
+                    mem = psutil.virtual_memory()
 
-    print(f"\nTotal events: {final_result.total_events}")
-    print(f"Events per second: {(final_result.eps):.2f}")
-
-    with bench_file.open("a", newline="") as csvfile:
-        writer = csv.writer(csvfile, delimiter=";")
-
-        if csvfile.tell() == 0:
-            writer.writerow([
-                "FastStream Version",
-                "Broker",
-                "Total Events",
-                "Event per second",
-                "Elapsed Time",
-                "Measure Time",
-                "Python Version",
-                "Comments",
-                "Host Memory",
-            ])
-
-        mem = psutil.virtual_memory()
-
-        writer.writerow([
-            __version__,
-            case.broker_type,
-            final_result.total_events,
-            round(final_result.eps, 2),
-            final_result.elapsed_time,
-            datetime.now(tz=timezone.utc).isoformat(),
-            platform.python_version(),
-            case.comment,
-            f"{mem.total / (1024**3):.2f} GB",
-        ])
+                    writer.writerow([
+                        __version__,
+                        case.broker_type,
+                        prefill_messages,
+                        final_result.total_events,
+                        round(final_result.eps, 2),
+                        final_result.elapsed_time,
+                        datetime.now(tz=timezone.utc).isoformat(),
+                        platform.python_version(),
+                        case.comment,
+                        f"{mem.total / (1024**3):.2f} GB",
+                    ])

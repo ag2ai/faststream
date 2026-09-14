@@ -60,3 +60,4 @@ __all__ = (
     "TestPureNatsPydanticCase",
     "TestPureNatsSQLCase",
 )
+

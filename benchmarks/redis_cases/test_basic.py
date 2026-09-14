@@ -10,6 +10,30 @@ import redis.asyncio as redis
 
 from faststream.redis import RedisBroker
 
+PREFILL_MESSAGES = 200000
+
+
+async def prefill_stream(url: str, n: int) -> None:
+    client = redis.Redis.from_url(url, decode_responses=False)
+    try:
+        semaphore = asyncio.Semaphore(100)
+
+        async def send() -> None:
+            async with semaphore:
+                await client.publish(
+                    "in",
+                    json.dumps({
+                        "name": "John",
+                        "age": 39,
+                        "fullname": "LongString" * 8,
+                        "children": json.dumps([{"name": "Mike", "age": 8, "fullname": "LongString" * 8}]),
+                    }),
+                )
+
+        await asyncio.gather(*(send() for _ in range(n)))
+    finally:
+        await client.aclose()
+
 
 @pytest.mark.asyncio()
 @pytest.mark.benchmark(
@@ -25,9 +49,6 @@ class TestFaststreamRedisCase:
 
         broker = self.broker = RedisBroker(logger=None, graceful_timeout=10)
 
-        p = self.publisher = broker.publisher("in")
-
-        @p
         @broker.subscriber("in")
         async def handle(message: Any) -> Any:
             self.EVENTS_PROCESSED += 1
@@ -35,19 +56,13 @@ class TestFaststreamRedisCase:
 
         self.handler = handle
 
+
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:
         async with self.broker:
             await self.broker.start()
             start_time = time.time()
-
-            await self.publisher.publish({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            })
-
+            await _prefill_stream("redis://localhost:6379", PREFILL_MESSAGES)
             yield start_time
 
     async def test_consume_message(self) -> None:
@@ -67,42 +82,30 @@ class TestPureRedisCase:
 
     async def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
+        self.client = redis.Redis(host="localhost", port=6379, decode_responses=False)
+        self.pubsub = self.client.pubsub()
+        await self.pubsub.subscribe("in")
+        await prefill_stream("redis://localhost:6379", PREFILL_MESSAGES)
 
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:
-        client = redis.Redis(host="localhost", port=6379, decode_responses=False)
-        pubsub = client.pubsub()
-        await pubsub.subscribe("in")
-
-        async def handler() -> None:
-            async for msg in pubsub.listen():
-                if msg["type"] != "message":
-                    continue
-                self.EVENTS_PROCESSED += 1
-                data = json.loads(msg["data"].decode())
-                await client.publish("in", json.dumps(data))
-
+        print("Pripersya v start")
         start_time = time.time()
+        async for msg in self.pubsub.listen():
+            if msg["type"] != "message":
+                continue
+            self.EVENTS_PROCESSED += 1
+            json.loads(msg["data"].decode())
+            if self.EVENTS_PROCESSED >= 200000:
+                    break
 
-        await client.publish(
-            "in",
-            json.dumps({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            }),
-        )
-
-        handler_task = asyncio.create_task(handler())
 
         try:
             yield start_time
         finally:
-            handler_task.cancel()
-            await pubsub.unsubscribe("in")
-            await pubsub.aclose()
-            await client.aclose()
+            await self.pubsub.unsubscribe("in")
+            await self.pubsub.aclose()
+            await self.client.aclose()
 
     async def test_consume_message(self) -> None:
         async with self.start():

@@ -27,6 +27,8 @@ from faststream.prometheus.container import MetricsContainer
 from faststream.prometheus.manager import MetricsManager
 from faststream.prometheus.types import ProcessingStatus
 
+from .test_basic import prefill_stream
+
 MESSAGING_SYSTEM = "nats"
 
 
@@ -39,8 +41,9 @@ class TestFaststreamNatsMetricsCase:
     comment = "Consume Messages with Metrics"
     broker_type = "NATS"
 
-    async def setup_method(self) -> None:
+    async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self.PREFILL_MESSAGES = prefill_messages
 
         broker = self.broker = NatsBroker(
             logger=None,
@@ -51,9 +54,6 @@ class TestFaststreamNatsMetricsCase:
             ],
         )
 
-        p = self.publisher = broker.publisher("in")
-
-        @p
         @broker.subscriber("in")
         async def handle(message: Schema) -> Schema:
             self.EVENTS_PROCESSED += 1
@@ -66,20 +66,15 @@ class TestFaststreamNatsMetricsCase:
         async with self.broker:
             await self.broker.start()
             start_time = time.time()
-
-            await self.publisher.publish({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            })
+            await prefill_stream("nats://localhost:4222", self.PREFILL_MESSAGES)
 
             yield start_time
 
     async def test_consume_message(self) -> None:
         async with self.start():
-            await asyncio.sleep(1)
-        assert self.EVENTS_PROCESSED > 1
+            while self.EVENTS_PROCESSED < self.PREFILL_MESSAGES:
+                await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED == self.PREFILL_MESSAGES
 
 
 @pytest.mark.asyncio()
@@ -91,8 +86,9 @@ class TestPureNatsMetricsCase:
     comment = "Pure nats_py client with metrics"
     broker_type = "NATS"
 
-    async def setup_method(self) -> None:
+    async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self.PREFILL_MESSAGES = prefill_messages
 
         container = MetricsContainer(registry, custom_label_names=())
         self.metrics = MetricsManager(container, app_name="faststream")
@@ -157,8 +153,7 @@ class TestPureNatsMetricsCase:
                         MessageAction.PROCESS,
                     )
                     data = json.loads(body.decode("utf-8"))
-                    parsed = Schema(**data)
-                    await nc.publish("in", parsed.model_dump_json().encode())
+                    Schema(**data)
             except Exception as e:
                 err = e
                 metrics_attributes[ERROR_TYPE] = type(e).__name__
@@ -196,20 +191,13 @@ class TestPureNatsMetricsCase:
         await nc.subscribe("in", cb=message_handler)
         start_time = time.time()
 
-        await nc.publish(
-            "in",
-            json.dumps({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            }).encode("utf-8"),
-        )
+        await prefill_stream("nats://localhost:4222", self.PREFILL_MESSAGES)
         yield start_time
 
         await nc.close()
 
     async def test_consume_message(self) -> None:
         async with self.start():
-            await asyncio.sleep(1)
-        assert self.EVENTS_PROCESSED > 1
+            while self.EVENTS_PROCESSED < self.PREFILL_MESSAGES:
+                await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED == self.PREFILL_MESSAGES

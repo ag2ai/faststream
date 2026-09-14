@@ -25,9 +25,6 @@ class TestFaststreamRedisPydanticCase:
 
         broker = self.broker = RedisBroker(logger=None, graceful_timeout=10)
 
-        p = self.publisher = broker.publisher("in")
-
-        @p
         @broker.subscriber("in")
         async def handle(message: Schema) -> Schema:
             self.EVENTS_PROCESSED += 1

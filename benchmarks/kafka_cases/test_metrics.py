@@ -5,8 +5,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 
 import pytest
-from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
-from aiokafka.admin import AIOKafkaAdminClient, NewTopic
+from aiokafka import AIOKafkaConsumer
 from metrics import registry, tracer_provider
 from opentelemetry import metrics, trace
 from opentelemetry.semconv._incubating.attributes import messaging_attributes
@@ -27,6 +26,8 @@ from faststream.prometheus.container import MetricsContainer
 from faststream.prometheus.manager import MetricsManager
 from faststream.prometheus.types import ProcessingStatus
 
+from .test_basic import prefill_topic
+
 MESSAGING_SYSTEM = "kafka"
 
 
@@ -39,7 +40,7 @@ class TestFaststreamKafkaMetricsCase:
     comment = "Consume Messages with Metrics"
     broker_type = "Kafka"
 
-    async def setup_method(self) -> None:
+    async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
 
         broker = self.broker = KafkaBroker(
@@ -51,15 +52,14 @@ class TestFaststreamKafkaMetricsCase:
             ],
         )
 
-        p = self.publisher = broker.publisher("in")
-
-        @p
-        @broker.subscriber("in")
+        @broker.subscriber("in", auto_offset_reset="earliest")
         async def handle(message: Schema) -> Schema:
             self.EVENTS_PROCESSED += 1
             return message
 
         self.handler = handle
+
+        await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:
@@ -67,19 +67,12 @@ class TestFaststreamKafkaMetricsCase:
             await self.broker.start()
             start_time = time.time()
 
-            await self.publisher.publish({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            })
-
             yield start_time
 
     async def test_consume_message(self) -> None:
         async with self.start():
             await asyncio.sleep(1)
-        assert self.EVENTS_PROCESSED > 1
+        assert self.EVENTS_PROCESSED > 0
 
 
 @pytest.mark.asyncio()
@@ -91,7 +84,7 @@ class TestPureKafkaMetricsCase:
     comment = "Pure aio-kafka client with metrics"
     broker_type = "Kafka"
 
-    async def setup_method(self) -> None:
+    async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
 
         container = MetricsContainer(registry, custom_label_names=())
@@ -115,28 +108,16 @@ class TestPureKafkaMetricsCase:
             description="Measures the number of processed messages.",
         )
 
-    async def create_topic(self) -> None:
-        admin = AIOKafkaAdminClient(bootstrap_servers="localhost:9092")
-        await admin.start()
-        try:
-            with suppress(Exception):
-                await admin.create_topics([
-                    NewTopic(name="in", num_partitions=1, replication_factor=1)
-                ])
-        finally:
-            await admin.close()
+        await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:  # noqa: PLR0915
-        await self.create_topic()
-        producer = AIOKafkaProducer(bootstrap_servers="localhost:9092")
         consumer = AIOKafkaConsumer(
             "in",
             bootstrap_servers="localhost:9092",
             auto_offset_reset="earliest",
             enable_auto_commit=True,
         )
-        await producer.start()
         await consumer.start()
 
         metrics_manager = self.metrics
@@ -144,16 +125,6 @@ class TestPureKafkaMetricsCase:
 
         start_time = time.time()
         stop_event = asyncio.Event()
-
-        await producer.send_and_wait(
-            "in",
-            json.dumps({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            }).encode(),
-        )
 
         async def message_loop() -> None:
             try:
@@ -196,10 +167,7 @@ class TestPureKafkaMetricsCase:
                                 MessageAction.PROCESS,
                             )
                             data = json.loads(body.decode())
-                            parsed = Schema(**data)
-                            await producer.send_and_wait(
-                                "in", parsed.model_dump_json().encode()
-                            )
+                            Schema(**data)
                     except Exception as e:
                         err = e
                         metrics_attributes[ERROR_TYPE] = type(e).__name__
@@ -250,10 +218,9 @@ class TestPureKafkaMetricsCase:
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
-            await producer.stop()
             await consumer.stop()
 
     async def test_consume_message(self) -> None:
         async with self.start():
             await asyncio.sleep(1)
-        assert self.EVENTS_PROCESSED > 1
+        assert self.EVENTS_PROCESSED > 0

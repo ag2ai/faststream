@@ -6,13 +6,13 @@ from contextlib import asynccontextmanager
 
 import asyncpg
 import pytest
-from confluent_kafka import Consumer, Producer, TopicPartition
+from confluent_kafka import Consumer, TopicPartition
 from metrics import registry, tracer_provider
 from opentelemetry import metrics, trace
 from opentelemetry.semconv._incubating.attributes import messaging_attributes
 from schemas.pydantic import Schema
 
-from benchmarks.sql import DSN, find_user_by_name
+from sql import DSN, find_user_by_name
 from faststream._internal.utils.functions import run_in_executor
 from faststream.confluent import KafkaBroker
 from faststream.confluent.opentelemetry import KafkaTelemetryMiddleware
@@ -29,6 +29,8 @@ from faststream.prometheus.container import MetricsContainer
 from faststream.prometheus.manager import MetricsManager
 from faststream.prometheus.types import ProcessingStatus
 
+from .test_basic import prefill_topic
+
 MESSAGING_SYSTEM = "kafka"
 
 
@@ -41,7 +43,7 @@ class TestFaststreamConfluentSQLCase:
     comment = "Consume Messages with Metrics"
     broker_type = "Confluent"
 
-    async def setup_method(self) -> None:
+    async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
         self.sql_pool = await asyncpg.create_pool(dsn=DSN)
 
@@ -54,10 +56,7 @@ class TestFaststreamConfluentSQLCase:
             ],
         )
 
-        p = self.publisher = broker.publisher("in")
-
-        @p
-        @broker.subscriber("in")
+        @broker.subscriber("in", auto_offset_reset="earliest")
         async def handle(message: Schema) -> Schema:
             self.EVENTS_PROCESSED += 1
             await find_user_by_name(message.name, self.sql_pool)
@@ -65,25 +64,20 @@ class TestFaststreamConfluentSQLCase:
 
         self.handler = handle
 
+        await prefill_topic("localhost:9092", prefill_messages)
+
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:
         async with self.broker:
             await self.broker.start()
             start_time = time.time()
 
-            await self.publisher.publish({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            })
-
             yield start_time
 
     async def test_consume_message(self) -> None:
         async with self.start():
             await asyncio.sleep(6.0)
-        assert self.EVENTS_PROCESSED > 1
+        assert self.EVENTS_PROCESSED > 0
 
 
 @pytest.mark.asyncio()
@@ -95,13 +89,9 @@ class TestPureConfluentSQLCase:
     comment = "Pure confluent client with metrics"
     broker_type = "Confluent"
 
-    async def setup_method(self) -> None:
+    async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
         self.sql_pool = await asyncpg.create_pool(dsn=DSN)
-
-        self.producer = Producer({
-            "bootstrap.servers": "localhost:9092",
-        })
 
         self.consumer = Consumer({
             "bootstrap.servers": "localhost:9092",
@@ -132,16 +122,14 @@ class TestPureConfluentSQLCase:
             description="Measures the number of processed messages.",
         )
 
+        await prefill_topic("localhost:9092", prefill_messages)
+
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:  # noqa: PLR0915
         stop_event = asyncio.Event()
 
         metrics_manager = self.metrics
         tracer = self.tracer
-
-        def acked(err, msg) -> None:  # noqa: ANN001
-            if err is not None:
-                print(f"Failed to deliver message: {msg!s}: {err!s}")
 
         def handle() -> None:
             while not stop_event.is_set():
@@ -189,12 +177,6 @@ class TestPureConfluentSQLCase:
                         data = json.loads(body.decode("utf-8"))
                         parsed = Schema(**data)
                         asyncio.run(find_user_by_name(parsed.name, self.sql_pool))
-                        self.producer.produce(
-                            "in",
-                            value=parsed.model_dump_json().encode("utf-8"),
-                            callback=acked,
-                        )
-                        self.producer.flush()
                 except Exception as e:
                     err = e
                     metrics_attributes[ERROR_TYPE] = type(e).__name__
@@ -233,25 +215,14 @@ class TestPureConfluentSQLCase:
         start_time = time.time()
         executor_task = loop.run_in_executor(None, handle)
 
-        value = json.dumps({
-            "name": "John",
-            "age": 39,
-            "fullname": "LongString" * 8,
-            "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-        }).encode("utf-8")
-
-        await run_in_executor(None, self.producer.produce, "in", value=value)
-        await run_in_executor(None, self.producer.poll, 0)
-
         try:
             yield start_time
         finally:
             stop_event.set()
             await executor_task
-            await run_in_executor(None, self.producer.flush)
             await run_in_executor(None, self.consumer.close)
 
     async def test_consume_message(self) -> None:
         async with self.start():
             await asyncio.sleep(6.0)
-        assert self.EVENTS_PROCESSED > 1
+        assert self.EVENTS_PROCESSED > 0
