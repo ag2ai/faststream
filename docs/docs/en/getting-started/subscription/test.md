@@ -304,6 +304,38 @@ Using `assert_called_once_with`, you can check the body and the headers in one s
 
 Headers match as a subset: FastStream adds its own headers (`content-type`, `correlation_id`) beside yours, and they never get in the way. Every other field matches exactly. When several fields differ, the `AssertionError` lists all of them at once.
 
+A handler that saw several messages answers with two more methods, named as in `unittest.mock` and taking the same arguments: `assert_called_with` checks the last message, as the mock's does, and `assert_any_call` passes when any of the messages matches. When none does, the `AssertionError` lists every message the handler saw with its own mismatches.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="24-27 29-32"
+    {!> docs_src/getting_started/subscription/kafka/advanced_testing.py [ln:3,5-8,64-90] !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="24-27 29-32"
+    {!> docs_src/getting_started/subscription/confluent/advanced_testing.py [ln:3,5-8,63-89] !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="24-27 29-32"
+    {!> docs_src/getting_started/subscription/rabbit/advanced_testing.py [ln:3,5-8,63-89] !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="24-27 29-32"
+    {!> docs_src/getting_started/subscription/nats/advanced_testing.py [ln:3,5-8,63-89] !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="24-27 29-32"
+    {!> docs_src/getting_started/subscription/redis/advanced_testing.py [ln:3,5-8,63-89] !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="24-27 29-32"
+    {!> docs_src/getting_started/subscription/mqtt/advanced_testing.py [ln:3,5-8,63-89] !}
+    ```
+
 To check only a part of the body, put a [dirty-equals](https://dirty-equals.helpmanual.io/){.external-link target="_blank"} matcher in its place. Anything the fields above do not cover, such as the Kafka message key, lives in the context: check it through `context` by the same path you would give to `Context()`, walking attributes and dict keys from a context name.
 
 === "AIOKafka"
@@ -340,7 +372,7 @@ To check only a part of the body, put a [dirty-equals](https://dirty-equals.help
     A context path reads attributes and keys, it never calls. Where a raw message answers with methods, as the Confluent one does, reach for what **FastStream** put in the context beside it, such as `log_context`.
 
 !!! note
-    Both `handle.mock` and `assert_called_once_with` exist only inside the test broker. Outside of it they raise a `SetupError` instead of answering for a handler nobody has called.
+    Both `handle.mock` and the three assertion methods exist only inside the test broker. Outside of it they raise a `SetupError` instead of answering for a handler nobody has called.
 
 
 ## Real Broker Testing

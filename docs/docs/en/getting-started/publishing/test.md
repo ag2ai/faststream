@@ -136,7 +136,7 @@ Also, it allows you to check the outgoing message body in the same way as with a
 publisher.mock.assert_called_once_with("Hi!")
 ```
 
-In addition, the publisher has the same `assert_called_once_with` method as a [subscriber](../subscription/test.md#validates-message-fields){.internal-link}. It takes the body as a `dict`, your model or a matcher, and the message fields the outgoing message carried. Here the publisher inherits the `correlation_id` of the message the handler consumed:
+In addition, the publisher has the same `assert_called_once_with`, `assert_called_with` and `assert_any_call` methods as a [subscriber](../subscription/test.md#validates-message-fields){.internal-link}. They take the body as a `dict`, your model or a matcher, and the message fields the outgoing message carried. Here the publisher inherits the `correlation_id` of the message the handler consumed:
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="10"

@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from copy import copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class CallAssertions:
-    """The mock and the assertion an endpoint answers with under a test broker."""
+    """The mock and the Call assertions an endpoint answers with under a test broker."""
 
     __slots__ = ()
 
@@ -25,13 +25,7 @@ class CallAssertions:
     @property
     def mock(self) -> MagicMock:
         """The mock recording the endpoint's calls, available under a test broker."""
-        if not self.is_test:
-            msg = (
-                f"`{self._recorder.name}` is not under a test broker: "
-                "wrap the broker with its `Test*Broker` to access the mock."
-            )
-            raise SetupError(msg)
-        return self._recorder.mock
+        return self._recorder_under_test().mock
 
     async def assert_called_once_with(
         self,
@@ -56,20 +50,113 @@ class CallAssertions:
             path: The exact path parameters the subject template matched.
             context: Context paths, as given to `Context()`, mapped to their values.
         """
-        self.mock.assert_called_once()
-        await self._recorder.assert_last_call(
-            body,
-            headers=headers,
-            correlation_id=correlation_id,
-            reply_to=reply_to,
-            content_type=content_type,
-            path=path,
-            context=context,
+        recorder = self._recorder_with_calls()
+        recorder.mock.assert_called_once()
+        await recorder.assert_last_call(
+            ExpectedCall(
+                body=body,
+                headers=headers,
+                correlation_id=correlation_id,
+                reply_to=reply_to,
+                content_type=content_type,
+                path=path,
+                context=context,
+            )
         )
+
+    async def assert_called_with(
+        self,
+        body: Any = EMPTY,
+        /,
+        *,
+        headers: Any = EMPTY,
+        correlation_id: Any = EMPTY,
+        reply_to: Any = EMPTY,
+        content_type: Any = EMPTY,
+        path: Any = EMPTY,
+        context: Mapping[str, Any] = EMPTY,
+    ) -> None:
+        """Assert the last message the endpoint saw is the one described here.
+
+        Args:
+            body: The body as a dict, a model or a matcher; it goes through the codec.
+            headers: Headers the message must carry; the rest may carry more.
+            correlation_id: The exact correlation id.
+            reply_to: The exact reply-to destination.
+            content_type: The exact content type.
+            path: The exact path parameters the subject template matched.
+            context: Context paths, as given to `Context()`, mapped to their values.
+        """
+        recorder = self._recorder_with_calls()
+        await recorder.assert_last_call(
+            ExpectedCall(
+                body=body,
+                headers=headers,
+                correlation_id=correlation_id,
+                reply_to=reply_to,
+                content_type=content_type,
+                path=path,
+                context=context,
+            )
+        )
+
+    async def assert_any_call(
+        self,
+        body: Any = EMPTY,
+        /,
+        *,
+        headers: Any = EMPTY,
+        correlation_id: Any = EMPTY,
+        reply_to: Any = EMPTY,
+        content_type: Any = EMPTY,
+        path: Any = EMPTY,
+        context: Mapping[str, Any] = EMPTY,
+    ) -> None:
+        """Assert one of the messages the endpoint saw is the one described here.
+
+        Args:
+            body: The body as a dict, a model or a matcher; it goes through the codec.
+            headers: Headers the message must carry; the rest may carry more.
+            correlation_id: The exact correlation id.
+            reply_to: The exact reply-to destination.
+            content_type: The exact content type.
+            path: The exact path parameters the subject template matched.
+            context: Context paths, as given to `Context()`, mapped to their values.
+        """
+        recorder = self._recorder_with_calls()
+        await recorder.assert_any_call(
+            ExpectedCall(
+                body=body,
+                headers=headers,
+                correlation_id=correlation_id,
+                reply_to=reply_to,
+                content_type=content_type,
+                path=path,
+                context=context,
+            )
+        )
+
+    def _recorder_with_calls(self) -> "CallRecorder":
+        recorder = self._recorder_under_test()
+        # Every Call assertion answers alike for an endpoint nobody called
+        if not recorder.calls:
+            msg = f"`{recorder.name}` was not called"
+            raise AssertionError(msg)
+        return recorder
+
+    def _recorder_under_test(self) -> "CallRecorder":
+        if not self.is_test:
+            msg = (
+                f"`{self._recorder.name}` is not under a test broker: "
+                "wrap the broker with its `Test*Broker` to use the mock "
+                "and the Call assertions."
+            )
+            raise SetupError(msg)
+        return self._recorder
 
 
 class CallRecorder:
-    """Records the messages an endpoint saw under a test broker and asserts on them."""
+    """Records the messages an endpoint saw under a test broker and compares them."""
 
     def __init__(self, name: str, outer_config: "BrokerConfig") -> None:
         self.name = name
@@ -103,38 +190,38 @@ class CallRecorder:
         self.mock.reset_mock()
         self.calls.clear()
 
-    async def assert_last_call(
-        self,
-        body: Any = EMPTY,
-        /,
-        *,
-        headers: Any = EMPTY,
-        correlation_id: Any = EMPTY,
-        reply_to: Any = EMPTY,
-        content_type: Any = EMPTY,
-        path: Any = EMPTY,
-        context: Mapping[str, Any] = EMPTY,
-    ) -> None:
-        call = self.calls[-1]
+    async def assert_last_call(self, expected: "ExpectedCall") -> None:
+        """Assert the last Recorded call is the one described."""
+        mismatches = await self._mismatches(self.calls[-1], expected)
+        if mismatches:
+            raise AssertionError(_called_with_different(self.name, mismatches))
 
+    async def assert_any_call(self, expected: "ExpectedCall") -> None:
+        """Assert one of the Recorded calls, in order, is the one described."""
+        reports: list[list[str]] = []
+        for call in self.calls:
+            mismatches = await self._mismatches(call, expected)
+            if not mismatches:
+                return
+            reports.append(mismatches)
+        raise AssertionError(_not_called_with(self.name, reports))
+
+    async def _mismatches(
+        self,
+        call: "RecordedCall",
+        expected: "ExpectedCall",
+    ) -> list[str]:
+        """Compare one Recorded call with the message described, one line per mismatch."""
         checks = _Mismatches()
 
-        if body is not EMPTY:
+        if expected.body is not EMPTY:
             checks.compare(
                 "body",
-                await self._expected_body(body, call.message),
+                await self._expected_body(expected.body, call.message),
                 await call.message.decode(),
             )
 
-        message_fields = {
-            "headers": headers,
-            "correlation_id": correlation_id,
-            "reply_to": reply_to,
-            "content_type": content_type,
-            "path": path,
-            "context": context,
-        }
-        asked = [name for name, value in message_fields.items() if value is not EMPTY]
+        asked = expected.message_fields()
         if asked and call.message.batch_headers:
             msg = (
                 f"`{self.name}` received a batch: only its body can be asserted, "
@@ -142,28 +229,28 @@ class CallRecorder:
             )
             raise SetupError(msg)
 
-        if headers is not EMPTY:
+        if expected.headers is not EMPTY:
             checks.compare(
                 "headers",
-                headers,
-                _headers_seen_through(headers, call.message.headers),
+                expected.headers,
+                _headers_seen_through(expected.headers, call.message.headers),
                 shown=call.message.headers,
             )
 
         for name in ("correlation_id", "reply_to", "content_type", "path"):
-            if (expected := message_fields[name]) is not EMPTY:
-                checks.compare(name, expected, getattr(call.message, name))
+            if (value := getattr(expected, name)) is not EMPTY:
+                checks.compare(name, value, getattr(call.message, name))
 
-        if context is not EMPTY:
+        if expected.context is not EMPTY:
             repo = ContextRepo(call.context)
-            for key, expected in context.items():
+            for key, value in expected.context.items():
                 try:
                     actual = repo.resolve(key)
                 except (ContextError, AttributeError, KeyError):
                     actual = EMPTY
-                checks.compare(f"context[{key!r}]", expected, actual)
+                checks.compare(f"context[{key!r}]", value, actual)
 
-        checks.raise_for(self.name)
+        return checks.lines
 
     async def _expected_body(self, body: Any, message: "StreamMessage[Any]") -> Any:
         """Run the expected body through the path the received one took."""
@@ -192,6 +279,27 @@ class CallRecorder:
         return [await probe.decode() for probe in probes]
 
 
+@dataclass(slots=True, kw_only=True)
+class ExpectedCall:
+    """The message a Call assertion describes; a field given as EMPTY is not compared."""
+
+    body: Any
+    headers: Any
+    correlation_id: Any
+    reply_to: Any
+    content_type: Any
+    path: Any
+    context: Mapping[str, Any]
+
+    def message_fields(self) -> list[str]:
+        """The names asked of the message beside its body."""
+        return [
+            f.name
+            for f in fields(self)
+            if f.name != "body" and getattr(self, f.name) is not EMPTY
+        ]
+
+
 @dataclass(slots=True)
 class RecordedCall:
     message: "StreamMessage[Any]"
@@ -218,6 +326,21 @@ def _headers_seen_through(expected: Any, actual: dict[str, Any]) -> Any:
     return {key: actual.get(key, EMPTY) for key in expected}
 
 
+def _called_with_different(name: str, mismatches: list[str]) -> str:
+    return "\n".join((
+        f"`{name}` was called with different arguments:",
+        *(f"  {line}" for line in mismatches),
+    ))
+
+
+def _not_called_with(name: str, reports: list[list[str]]) -> str:
+    lines = [f"`{name}` was not called with these arguments:"]
+    for number, mismatches in enumerate(reports, start=1):
+        lines.append(f"  call {number}:")
+        lines.extend(f"    {line}" for line in mismatches)
+    return "\n".join(lines)
+
+
 @dataclass(slots=True)
 class _Mismatches:
     lines: list[str] = field(default_factory=list)
@@ -233,11 +356,4 @@ class _Mismatches:
         if expected == actual:
             return
         got = actual if shown is EMPTY else shown
-        self.lines.append(f"  {name}: expected {expected!r}, got {got!r}")
-
-    def raise_for(self, name: str) -> None:
-        if self.lines:
-            msg = "\n".join(
-                (f"`{name}` was called with different arguments:", *self.lines),
-            )
-            raise AssertionError(msg)
+        self.lines.append(f"{name}: expected {expected!r}, got {got!r}")
