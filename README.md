@@ -50,7 +50,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated)
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin)
 
 That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 
@@ -75,7 +75,7 @@ That is **FastStream**: everything a messaging service needs around your handler
   - [Dependencies](#dependencies)
   - [HTTP Frameworks integrations](#http-frameworks-integrations)
     - [Any Framework](#any-framework)
-    - [**FastAPI** Plugin (deprecated)](#fastapi-plugin-deprecated)
+    - [**FastAPI** Plugin](#fastapi-plugin)
   - [Benchmarks](#benchmarks)
   - [Stay in touch](#stay-in-touch)
   - [Contributors](#contributors)
@@ -93,11 +93,9 @@ That is **FastStream**: everything a messaging service needs around your handler
 <details>
 <summary><b>Versioning Policy</b></summary>
 
-FastStream has a stable public API. Only major updates may introduce breaking changes.
+FastStream has a stable public API and follows [Semantic Versioning](https://semver.org/). Only major updates may introduce breaking changes: minor releases add features and keep backward compatibility, patch releases fix bugs.
 
-Prior to FastStream's 1.0 release, each minor update is considered a major and can introduce breaking changes, but these changes were communicated through two-versions deprecation warnings prior to being fully removed. So features deprecated in the 0.4 version were only removed in version 0.6.
-
-Our team is working toward the stable 1.0 version.
+Anything scheduled for removal is first deprecated with a warning for at least one minor release, and removed only in the next major. The 1.0.0 release closed the 0.x cycle by removing everything deprecated during it.
 </details>
 
 ---
@@ -389,39 +387,15 @@ if __name__ == "__main__":
     web.run_app(app)
 ```
 
-### **FastAPI** Plugin (deprecated)
+### **FastAPI** Plugin
 
-> **Deprecated.** The integration has been moved to the **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)** package and will be removed in the 1.0.0 version:
->
-> ```bash
-> pip install faststream_fastapi
-> ```
+The **FastAPI** integration is shipped as its own package, **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**:
 
-Also, **FastStream** can be used as part of **FastAPI**.
-
-Just import a **StreamRouter** you need and declare the message handler with the same `@router.subscriber(...)` and `@router.publisher(...)` decorators.
-
-```python
-from fastapi import FastAPI
-from pydantic import BaseModel
-
-from faststream.kafka.fastapi import KafkaRouter
-
-router = KafkaRouter("localhost:9092")
-
-class Incoming(BaseModel):
-    m: dict
-
-@router.subscriber("test")
-@router.publisher("response")
-async def hello(m: Incoming):
-    return {"response": "Hello, world!"}
-
-app = FastAPI()
-app.include_router(router)
+```bash
+pip install faststream_fastapi
 ```
 
-More integration features can be found [here](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/)
+It provides a **StreamRouter** for every broker, so you can declare message handlers inside a **FastAPI** application with the same `@router.subscriber(...)` and `@router.publisher(...)` decorators. See the package README for the details.
 
 ---
 

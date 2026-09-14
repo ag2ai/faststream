@@ -4,7 +4,7 @@ from faststream._internal.application import StartAbleApplication
 from faststream.rabbit import RabbitBroker
 
 
-def test_set_broker() -> None:
+def test_add_broker() -> None:
     app = StartAbleApplication()
 
     assert app.broker is None

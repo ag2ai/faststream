@@ -101,7 +101,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated)
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin)
 
 That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 
@@ -111,11 +111,9 @@ That is **FastStream**: everything a messaging service needs around your handler
 <a id="versioning-policy"></a>
 
 ??? info "Versioning Policy"
-    FastStream has a stable public API. Only major updates may introduce breaking changes.
+    FastStream has a stable public API and follows [Semantic Versioning](https://semver.org/){.external-link target="_blank"}. Only major updates may introduce breaking changes: minor releases add features and keep backward compatibility, patch releases fix bugs.
 
-    Prior to FastStream's 1.0 release, each minor update is considered a major and can introduce breaking changes, but these changes were communicated through two-versions deprecation warnings prior to being fully removed. So features deprecated in the 0.4 version were only removed in version 0.6.
-
-    Our team is working toward the stable 1.0 version.
+    Anything scheduled for removal is first deprecated with a warning for at least one minor release, and removed only in the next major. The 1.0.0 release closed the 0.x cycle by removing everything deprecated during it.
 
 ---
 
@@ -571,53 +569,16 @@ Just *start* and *stop* them according to your application's lifespan.
     {!> docs_src/integrations/http_frameworks_integrations/sanic.py !}
     ```
 
-### **FastAPI** Plugin (deprecated)
+### **FastAPI** Plugin
 
-!!! warning "Plugin deprecated"
-    The integration has been moved to the
-    **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
-    package and will be removed in the 1.0.0 version.
+The **FastAPI** integration is shipped as its own package,
+**[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi){.external-link target="_blank"}**:
 
-    ```bash
-    pip install faststream_fastapi
-    ```
+```bash
+pip install faststream_fastapi
+```
 
-Also, **FastStream** can be used as part of **FastAPI**.
-
-Just import a **StreamRouter** you need and declare the message handler with the same `#!python @router.subscriber(...)` and `#!python @router.publisher(...)` decorators.
-
-=== "AIOKafka"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/kafka/base.py !}
-    ```
-
-=== "Confluent"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/confluent/base.py !}
-    ```
-
-=== "RabbitMQ"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/rabbit/base.py !}
-    ```
-
-=== "NATS"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/nats/base.py !}
-    ```
-
-=== "Redis"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/redis/base.py !}
-    ```
-
-=== "MQTT"
-    ```python linenums="1" hl_lines="4 6 14-18 24-25"
-    {!> docs_src/integrations/fastapi/mqtt/base.py !}
-    ```
-
-!!! note
-    More integration features can be found [here](./getting-started/integrations/fastapi/index.md){.internal-link}
+It provides a **StreamRouter** for every broker, so you can declare message handlers inside a **FastAPI** application with the same `#!python @router.subscriber(...)` and `#!python @router.publisher(...)` decorators. See the package README for the details.
 
 ---
 

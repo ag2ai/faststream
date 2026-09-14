@@ -43,10 +43,6 @@ To develop the documentation, you don't even need to install the entire **FastSt
     ```bash
     just docs-serve
     ```
-    For a full build with all dependencies and extended processing, use:
-    ```bash
-    just docs-serve --full
-    ```
 
 Now all changes in the documentation files will be reflected on your local version of the site.
 After making all the changes, you can issue a `PR` with them - and we will gladly accept it!

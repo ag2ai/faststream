@@ -19,7 +19,6 @@ from faststream.redis import (
     StreamSub,
     TestRedisBroker,
 )
-from faststream.redis.fastapi import RedisRouter as FastAPIRouter
 from faststream.redis.message import RedisMessage as Msg
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from faststream.redis.prometheus import RedisPrometheusMiddleware
@@ -250,70 +249,6 @@ RedisRouter(
 )
 
 
-FastAPIRouter(
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-FastAPIRouter(
-    parser=async_parser,
-    decoder=async_decoder,
-)
-FastAPIRouter(
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-
-fastapi_router = FastAPIRouter()
-
-fastapi_sub = fastapi_router.subscriber("test")
-
-
-@fastapi_sub(
-    filter=sync_filter,
-)
-async def handle15() -> None: ...
-
-
-@fastapi_sub(
-    filter=async_filter,
-)
-async def handle16() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-async def handle17() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=async_parser,
-    decoder=async_decoder,
-)
-async def handle18() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-async def handle19() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-def handle20() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-async def handle21() -> None: ...
-
-
 otlp_middleware = RedisTelemetryMiddleware()
 RedisBroker().add_middleware(otlp_middleware)
 RedisBroker(middlewares=[otlp_middleware])
@@ -341,7 +276,7 @@ async def check_broker_publish_result_type(optional_stream: str | None = "test")
 
 
 async def check_publisher_publish_result_types(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
 ) -> None:
     p = broker.publisher(channel="test")
     assert_type(p, ChannelPublisher)
@@ -361,7 +296,7 @@ async def check_publisher_publish_result_types(
 
 
 async def check_request_response_type(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
 ) -> None:
     broker = RedisBroker()
 
@@ -386,7 +321,7 @@ async def check_request_response_type(
 
 
 async def check_channel_subscriber_message_type(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
 ) -> None:
     subscriber = broker.subscriber("test")
 
@@ -398,7 +333,7 @@ async def check_channel_subscriber_message_type(
 
 
 async def check_stream_subscriber_message_type(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
     redis: Redis,
 ) -> None:
     subscriber = broker.subscriber(stream=StreamSub("test"))
@@ -413,7 +348,7 @@ async def check_stream_subscriber_message_type(
 
 
 async def check_list_subscriber_message_type(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
 ) -> None:
     subscriber = broker.subscriber(list=ListSub("test"))
 
@@ -425,7 +360,7 @@ async def check_list_subscriber_message_type(
 
 
 def check_channel_subscriber_instance_type(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
 ) -> None:
     sub1 = broker.subscriber("test")
     assert_type(sub1, ChannelSubscriber)
@@ -435,7 +370,7 @@ def check_channel_subscriber_instance_type(
 
 
 def check_stream_subscriber_instance_type(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
 ) -> None:
     sub1 = broker.subscriber(stream="test")
     assert_type(sub1, StreamSubscriber)
@@ -448,7 +383,7 @@ def check_stream_subscriber_instance_type(
 
 
 def check_list_subscriber_instance_type(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
+    broker: RedisBroker | RedisRouter,
 ) -> None:
     sub1 = broker.subscriber(list="test")
     assert_type(sub1, ListSubscriber)

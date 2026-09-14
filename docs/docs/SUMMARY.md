@@ -38,7 +38,6 @@ search:
         - [Customize Information](getting-started/asyncapi/custom.md)
     - Integrations
         - [HTTP Async Frameworks](getting-started/integrations/frameworks/index.md)
-        - [FastAPI Plugin](getting-started/integrations/fastapi/index.md)
         - [Django](getting-started/integrations/django/index.md)
     - [CLI](getting-started/cli.md)
     - [Acknowledgement](getting-started/acknowledgement.md)
@@ -141,10 +140,7 @@ search:
     - [Message Information](redis/message.md)
     - [Security Configuration](redis/security.md)
     - [How-To](howto/redis/index.md)
-	- [Message Format](redis/message_format.md)
-- [Reference - Code API](api/index.md)
-{public_api}
-{api}
+    - [Message Format](redis/message_format.md)
 - [Used By](who-uses.md)
 - Contributing
     - [Development](getting-started/contributing/CONTRIBUTING.md)
