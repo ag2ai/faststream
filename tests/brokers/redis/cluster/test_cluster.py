@@ -245,18 +245,17 @@ class TestClusterBrokerInheritance:
         broker = RedisClusterBroker()
         assert isinstance(broker.config, ConfigComposition)
 
-    def test_start_stop_lifecycle(self) -> None:
-        import anyio
+    @pytest.mark.connected()
+    @pytest.mark.asyncio()
+    async def test_start_stop_lifecycle(self) -> None:
+        broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
+        assert broker._connection is None
 
-        async def test() -> None:
-            broker = RedisClusterBroker()
-            assert broker._connection is None
-            await broker.start()
-            assert broker._connection is not None
-            await broker.stop()
-            assert broker._connection is None
+        await broker.start()
+        assert broker._connection is not None
 
-        anyio.run(test)
+        await broker.stop()
+        assert broker._connection is None
 
 
 @pytest.mark.parametrize(

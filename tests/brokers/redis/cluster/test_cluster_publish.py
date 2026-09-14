@@ -141,8 +141,9 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         """Pipeline should emit RuntimeWarning in cluster mode."""
         broker = self.get_broker()
 
-        with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish("hello", channel=queue, pipeline=None)  # type: ignore[arg-type]
+        async with broker:
+            with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
+                await broker.publish("hello", channel=queue, pipeline=None)  # type: ignore[arg-type]
 
     async def test_publish_batch_with_pipeline_warns(
         self,
