@@ -3,7 +3,6 @@ from copy import deepcopy
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
-from faststream.redis._compat import REDIS_V710, _REDIS_VERSION
 
 
 class StreamSub(NameRequired):
@@ -123,13 +122,6 @@ class StreamSub(NameRequired):
                 )
 
         if claim_min_idle_time is not None:
-            if not REDIS_V710:
-                msg = (
-                    "`claim_min_idle_time` requires redis-py 7.1.0 or newer "
-                    f"(installed: {_REDIS_VERSION})"
-                )
-                raise SetupError(msg)
-
             if min_idle_time is not None:
                 msg = (
                     "`claim_min_idle_time` (XREADGROUP CLAIM) and `min_idle_time` "

@@ -2,7 +2,6 @@ import pytest
 
 from faststream.exceptions import SetupError
 from faststream.redis import StreamSub
-from tests.marks import require_redis_v710
 
 
 @pytest.mark.redis()
@@ -17,7 +16,6 @@ def test_stream_group() -> None:
 
 
 @pytest.mark.redis()
-@require_redis_v710
 @pytest.mark.parametrize(
     ("kwargs", "match"),
     (
@@ -64,25 +62,6 @@ def test_stream_claim_min_idle_time_misconfiguration(kwargs: dict, match: str) -
 
 
 @pytest.mark.redis()
-def test_stream_claim_min_idle_time_requires_redis_py_710(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        "faststream.redis.schemas.stream_sub.REDIS_V710",
-        False,
-    )
-
-    with pytest.raises(SetupError, match=r"redis-py 7\.1\.0"):
-        StreamSub(
-            "test",
-            group="group",
-            consumer="consumer",
-            claim_min_idle_time=1000,
-        )
-
-
-@pytest.mark.redis()
-@require_redis_v710
 def test_stream_claim_min_idle_time() -> None:
     stream = StreamSub(
         "test",

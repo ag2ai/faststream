@@ -1,7 +1,6 @@
 import pytest
 
 from faststream.redis import TestApp, TestRedisBroker
-from tests.marks import require_redis_v710
 
 
 @pytest.mark.redis()
@@ -24,7 +23,6 @@ async def test_stream_claiming_manual_ack() -> None:
 
 @pytest.mark.redis()
 @pytest.mark.asyncio()
-@require_redis_v710
 async def test_stream_claiming_unified() -> None:
     from docs.docs_src.redis.stream.claiming_unified import app, broker, handle
 

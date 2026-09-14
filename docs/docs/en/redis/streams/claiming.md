@@ -92,7 +92,6 @@ Redis 8.4 added the [`CLAIM` option](https://redis.io/docs/latest/commands/xread
 
 !!! note "Requirements"
     - **Redis server 8.4+** — older servers reject the `CLAIM` option with a `ResponseError` (`ERR syntax error`)
-    - **redis-py 7.1.0+** — with an older client the subscriber fails at startup with a clear `SetupError`
     - `claim_min_idle_time` is mutually exclusive with `min_idle_time` (a different claiming mode) and with `no_ack` (never acknowledging claimed entries would redeliver them forever), and requires a consumer group with the default `last_id` (`>`), because Redis silently ignores `CLAIM` for any other id
 
 ### Claim Metadata
