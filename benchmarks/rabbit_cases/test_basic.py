@@ -24,17 +24,25 @@ async def prefill_queue(url: str, n: int) -> None:
 
         async def send(i: int) -> None:
             async with semaphore:
-                message = {
-                    "name": "John",
-                    "age": 39,
-                    "fullname": "LongString" * 8,
-                    "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-                } if i == 0 else {
-                    "name": f"John-{i}",
-                    "age": 39,
-                    "fullname": "LongString" * 8,
-                    "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-                }
+                message = (
+                    {
+                        "name": "John",
+                        "age": 39,
+                        "fullname": "LongString" * 8,
+                        "children": [
+                            {"name": "Mike", "age": 8, "fullname": "LongString" * 8}
+                        ],
+                    }
+                    if i == 0
+                    else {
+                        "name": f"John-{i}",
+                        "age": 39,
+                        "fullname": "LongString" * 8,
+                        "children": [
+                            {"name": "Mike", "age": 8, "fullname": "LongString" * 8}
+                        ],
+                    }
+                )
                 await channel.default_exchange.publish(
                     aio_pika.Message(body=json.dumps(message).encode()),
                     routing_key=QUEUE,

@@ -12,8 +12,8 @@ from metrics import registry, tracer_provider
 from opentelemetry import metrics, trace
 from opentelemetry.semconv._incubating.attributes import messaging_attributes
 from schemas.pydantic import Schema
-
 from sql import DSN, find_user_by_name
+
 from faststream.nats import NatsBroker
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from faststream.nats.prometheus import NatsPrometheusMiddleware

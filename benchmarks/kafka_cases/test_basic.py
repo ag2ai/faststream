@@ -12,7 +12,6 @@ from aiokafka.admin import AIOKafkaAdminClient, NewTopic
 from faststream.kafka import KafkaBroker
 
 
-
 async def prefill_topic(bootstrap_servers: str, n: int) -> None:
     admin = AIOKafkaAdminClient(bootstrap_servers="localhost:9092")
     await admin.start()
@@ -29,22 +28,31 @@ async def prefill_topic(bootstrap_servers: str, n: int) -> None:
 
         async def send(i: int) -> None:
             async with semaphore:
-                message = {
-                    "name": "John",
-                    "age": 39,
-                    "fullname": "LongString" * 8,
-                    "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-                } if i == 0 else {
-                    "name": f"John-{i}",
-                    "age": 39,
-                    "fullname": "LongString" * 8,
-                    "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-                }
+                message = (
+                    {
+                        "name": "John",
+                        "age": 39,
+                        "fullname": "LongString" * 8,
+                        "children": [
+                            {"name": "Mike", "age": 8, "fullname": "LongString" * 8}
+                        ],
+                    }
+                    if i == 0
+                    else {
+                        "name": f"John-{i}",
+                        "age": 39,
+                        "fullname": "LongString" * 8,
+                        "children": [
+                            {"name": "Mike", "age": 8, "fullname": "LongString" * 8}
+                        ],
+                    }
+                )
                 await producer.send_and_wait("in", json.dumps(message).encode())
 
         await asyncio.gather(*(send(i) for i in range(n)))
     finally:
         await producer.stop()
+
 
 @pytest.mark.asyncio()
 @pytest.mark.benchmark(

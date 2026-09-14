@@ -58,7 +58,7 @@ async def measure(
     target: int,
 ) -> AsyncGenerator[MeasureResult, None]:
     async with case.start() as start_time:
-        while case.EVENTS_PROCESSED < target:
+        while target > case.EVENTS_PROCESSED:
             print(f"Obrabotano {case.EVENTS_PROCESSED} / {target}")
             await asyncio.sleep(1.0)
     yield MeasureResult(case.EVENTS_PROCESSED, time.time() - start_time)
@@ -77,7 +77,7 @@ async def main(case: TestCase, prefill_messages: int) -> MeasureResult:
 
 
 if __name__ == "__main__":
-    for broker, test_cases in BENCHMARKS.items():
+    for test_cases in BENCHMARKS.values():
         test_case_classes = [
             case_cls for cases in test_cases.values() for case_cls in cases
         ]

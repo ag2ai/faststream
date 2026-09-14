@@ -11,8 +11,8 @@ from metrics import registry, tracer_provider
 from opentelemetry import metrics, trace
 from opentelemetry.semconv._incubating.attributes import messaging_attributes
 from schemas.pydantic import Schema
-
 from sql import DSN, find_user_by_name
+
 from faststream._internal.utils.functions import run_in_executor
 from faststream.confluent import KafkaBroker
 from faststream.confluent.opentelemetry import KafkaTelemetryMiddleware
@@ -125,7 +125,7 @@ class TestPureConfluentSQLCase:
         await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
-    async def start(self) -> AsyncGenerator[float, None]:  # noqa: PLR0915
+    async def start(self) -> AsyncGenerator[float, None]:
         stop_event = asyncio.Event()
 
         metrics_manager = self.metrics

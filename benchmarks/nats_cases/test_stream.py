@@ -36,7 +36,6 @@ class TestNatsTestCase:
             await self.broker.start()
             start_time = time.time()
 
-
             yield start_time
 
     async def test_consume_message(self) -> None:

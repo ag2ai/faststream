@@ -111,7 +111,7 @@ class TestPureKafkaMetricsCase:
         await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
-    async def start(self) -> AsyncGenerator[float, None]:  # noqa: PLR0915
+    async def start(self) -> AsyncGenerator[float, None]:
         consumer = AIOKafkaConsumer(
             "in",
             bootstrap_servers="localhost:9092",

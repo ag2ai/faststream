@@ -11,7 +11,6 @@ import pytest
 from faststream.nats import NatsBroker
 
 
-
 async def prefill_stream(url: str, n: int) -> None:
     nc = await nats.connect(servers=[url])
     try:
@@ -23,7 +22,9 @@ async def prefill_stream(url: str, n: int) -> None:
                     "name": "John",
                     "age": 39,
                     "fullname": "LongString" * 8,
-                    "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
+                    "children": [
+                        {"name": "Mike", "age": 8, "fullname": "LongString" * 8}
+                    ],
                 }
                 await nc.publish("in", json.dumps(message).encode())
 
@@ -52,7 +53,6 @@ class TestFaststreamNatsCase:
             return message
 
         self.handler = handle
-
 
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:

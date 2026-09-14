@@ -55,17 +55,17 @@ docker run --rm \
   python:3.12-slim \
   /bin/bash -c "
   set -e
-  
+
   echo '📦 Установка зависимостей бенчмарка...'
   pip install --no-cache-dir -r /requirements-bench.txt
-  
+
   echo ''
   echo '✅ Все зависимости установлены успешно'
   echo -e '\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m'
   echo ''
   echo '⏱️  Запуск бенчмарка...'
   echo ''
-  
+
   python bench.py
   "
 

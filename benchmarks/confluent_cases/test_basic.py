@@ -29,17 +29,21 @@ async def prefill_topic(bootstrap_servers: str, n: int) -> None:
     producer = Producer({"bootstrap.servers": bootstrap_servers})
 
     for i in range(n):
-        message = {
-            "name": "John",
-            "age": 39,
-            "fullname": "LongString" * 8,
-            "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-        } if i == 0 else {
-            "name": f"John-{i}",
-            "age": 39,
-            "fullname": "LongString" * 8,
-            "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-        }
+        message = (
+            {
+                "name": "John",
+                "age": 39,
+                "fullname": "LongString" * 8,
+                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
+            }
+            if i == 0
+            else {
+                "name": f"John-{i}",
+                "age": 39,
+                "fullname": "LongString" * 8,
+                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
+            }
+        )
         producer.produce("in", value=json.dumps(message).encode("utf-8"))
         if i % 1000 == 0:
             producer.poll(0)

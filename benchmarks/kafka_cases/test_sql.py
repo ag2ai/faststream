@@ -11,8 +11,8 @@ from metrics import registry, tracer_provider
 from opentelemetry import metrics, trace
 from opentelemetry.semconv._incubating.attributes import messaging_attributes
 from schemas.pydantic import Schema
-
 from sql import DSN, find_user_by_name
+
 from faststream.kafka import KafkaBroker
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
@@ -116,7 +116,7 @@ class TestPureKafkaSQLCase:
         await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
-    async def start(self) -> AsyncGenerator[float, None]:  # noqa: PLR0915
+    async def start(self) -> AsyncGenerator[float, None]:
         consumer = AIOKafkaConsumer(
             "in",
             bootstrap_servers="localhost:9092",

@@ -26,7 +26,9 @@ async def prefill_stream(url: str, n: int) -> None:
                         "name": "John",
                         "age": 39,
                         "fullname": "LongString" * 8,
-                        "children": json.dumps([{"name": "Mike", "age": 8, "fullname": "LongString" * 8}]),
+                        "children": json.dumps([
+                            {"name": "Mike", "age": 8, "fullname": "LongString" * 8}
+                        ]),
                     }),
                 )
 
@@ -56,13 +58,12 @@ class TestFaststreamRedisCase:
 
         self.handler = handle
 
-
     @asynccontextmanager
     async def start(self) -> AsyncGenerator[float, None]:
         async with self.broker:
             await self.broker.start()
             start_time = time.time()
-            await _prefill_stream("redis://localhost:6379", PREFILL_MESSAGES)
+            await prefill_stream("redis://localhost:6379", PREFILL_MESSAGES)
             yield start_time
 
     async def test_consume_message(self) -> None:
@@ -97,8 +98,7 @@ class TestPureRedisCase:
             self.EVENTS_PROCESSED += 1
             json.loads(msg["data"].decode())
             if self.EVENTS_PROCESSED >= 200000:
-                    break
-
+                break
 
         try:
             yield start_time

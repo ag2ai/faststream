@@ -26,7 +26,7 @@ from faststream.rabbit import RabbitBroker
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
 
-from .test_basic import QUEUE, RABBIT_URL, prefill_queue
+from .test_basic import RABBIT_URL, prefill_queue
 
 MESSAGING_SYSTEM = "rabbitmq"
 

@@ -120,7 +120,7 @@ class TestPureConfluentMetricsCase:
         await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
-    async def start(self) -> AsyncGenerator[float, None]:  # noqa: PLR0915
+    async def start(self) -> AsyncGenerator[float, None]:
         stop_event = asyncio.Event()
 
         metrics_manager = self.metrics
