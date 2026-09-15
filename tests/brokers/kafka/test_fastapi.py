@@ -5,7 +5,11 @@ import pytest
 
 from faststream.kafka import KafkaRouter
 from faststream.kafka.fastapi import KafkaRouter as StreamRouter
-from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
+from tests.brokers.base.fastapi import (
+    FastAPILocalTestcase,
+    FastAPITestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+)
 
 from .basic import KafkaMemoryTestcaseConfig
 
@@ -41,7 +45,11 @@ class TestKafkaRouter(FastAPITestcase):
 
 
 @pytest.mark.kafka()
-class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
+class TestRouterLocal(
+    KafkaMemoryTestcaseConfig,
+    FastAPILocalTestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
 
