@@ -16,6 +16,37 @@
   {%- endif -%}
 {%- endmacro %}
 
+{#-
+  Mirrors what `base.html` puts in `<meta name="description">`, so a page with a
+  `description:` in its front matter does not fall back to the site-wide text on
+  the social cards alone.
+-#}
+{% macro seo_description() -%}
+  {%- if page and page.meta and page.meta.description -%}
+    {{ page.meta.description }}
+  {%- else -%}
+    {{ config.site_description }}
+  {%- endif -%}
+{%- endmacro %}
+
+{#-
+  A nav section has no page of its own, so its breadcrumb points at the first
+  page underneath it — the one its entry opens in the sidebar.
+-#}
+{% macro node_url(node) -%}
+  {%- if node.is_page -%}
+    {{- node.canonical_url -}}
+  {%- elif node.is_section -%}
+    {%- set found = namespace(url="") -%}
+    {%- for child in node.children -%}
+      {%- if not found.url -%}
+        {%- set found.url = node_url(child) | trim -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {{- found.url -}}
+  {%- endif -%}
+{%- endmacro %}
+
 {% block htmltitle %}
   <title>{{ seo_title() }}</title>
 {% endblock %}
@@ -24,7 +55,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="{{ config.site_name }}" />
   <meta property="og:title" content="{{ seo_title() }}" />
-  <meta property="og:description" content="{{ config.site_description }}" />
+  <meta property="og:description" content="{{ seo_description() }}" />
   <meta property="og:url" content="{{ page.canonical_url }}" />
   <meta property="og:image" content="{{ config.extra.social_image }}" />
   <meta property="og:image:type" content="image/png" />
@@ -33,8 +64,80 @@
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="{{ seo_title() }}" />
-  <meta name="twitter:description" content="{{ config.site_description }}" />
+  <meta name="twitter:description" content="{{ seo_description() }}" />
   <meta name="twitter:image" content="{{ config.extra.social_image }}" />
+
+  {#- Breadcrumbs are the one rich result a documentation site reliably gets:
+      they replace the bare URL in the search snippet. -#}
+  {%- set home_url = config.site_url if config.site_url.endswith("/") else config.site_url ~ "/" -%}
+  {%- set trail = [] -%}
+  {#- the page itself is the last step, so a section that merely opens on it is not
+      a step of its own -#}
+  {%- set seen = [home_url, page.canonical_url] if page else [home_url] -%}
+  {%- set resolved = namespace(complete=true) -%}
+  {%- for ancestor in (page.ancestors if page else []) | reverse -%}
+    {%- set url = node_url(ancestor) | trim -%}
+    {%- if not url -%}
+      {%- set resolved.complete = false -%}
+    {#- a section that opens on the page its child section already pointed at
+        would otherwise repeat the same step twice -#}
+    {%- elif url not in seen -%}
+      {%- set _ = seen.append(url) -%}
+      {%- set _ = trail.append((ancestor.title, url)) -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if page and not page.is_homepage and resolved.complete %}
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": {{ config.site_name | tojson }},
+          "item": {{ home_url | tojson }}
+        },
+        {%- for title, url in trail %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index + 1 }},
+          "name": {{ title | striptags | tojson }},
+          "item": {{ url | tojson }}
+        },
+        {%- endfor %}
+        {
+          "@type": "ListItem",
+          "position": {{ trail | length + 2 }},
+          "name": {{ page.title | striptags | tojson }}
+        }
+      ]
+    }
+  </script>
+  {%- endif %}
+
+  {%- if page and page.is_homepage %}
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      "name": {{ config.site_name | tojson }},
+      "description": {{ config.site_description | tojson }},
+      "url": {{ home_url | tojson }},
+      "image": {{ config.extra.social_image | tojson }},
+      "codeRepository": {{ config.repo_url | tojson }},
+      "programmingLanguage": "Python",
+      "runtimePlatform": "Python 3",
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "keywords": "asyncio, event-driven, message broker, Kafka, RabbitMQ, NATS, Redis, MQTT, AsyncAPI",
+      "author": {
+        "@type": "Organization",
+        "name": {{ config.site_author | tojson }},
+        "url": "https://ag2.ai/"
+      }
+    }
+  </script>
+  {%- endif %}
 {% endblock %}
 
 {% block scripts %}

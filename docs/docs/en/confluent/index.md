@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  FastStream Kafka support built on confluent-kafka-python, the client from the creators of
+  Kafka, with Schema Registry and Avro compatibility.
 search:
   boost: 10
 ---

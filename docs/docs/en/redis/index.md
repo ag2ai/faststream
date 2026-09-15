@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  FastStream Redis support: Pub/Sub channels, Streams with consumer groups and List queues
+  behind one asynchronous Python broker API.
 search:
   boost: 10
 ---
