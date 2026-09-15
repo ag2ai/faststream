@@ -13,6 +13,7 @@ from faststream.nats import (
     PubAck,
     TestNatsBroker,
 )
+from faststream.nats.call_wrapper import NatsHandlerCallWrapper
 from faststream.nats.fastapi import NatsRouter as FastAPIRouter
 from faststream.nats.message import NatsKvMessage, NatsObjMessage
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
@@ -492,6 +493,42 @@ def check_publisher_instance_type(
 ) -> None:
     publisher = broker.publisher("test")
     assert_type(publisher, LogicPublisher)
+
+
+async def check_call_assertions_take_the_nats_fields(
+    broker: NatsBroker | FastAPIRouter | NatsRouter,
+) -> None:
+    # A sync handler: mypy and pyright spell an `async def`'s return type differently
+    @broker.subscriber("test")
+    def handle() -> None: ...
+
+    assert_type(handle, NatsHandlerCallWrapper[[], None])
+    await handle.assert_called_once_with(None, subject="test")
+    await handle.assert_called_with(subject="test")
+    await handle.assert_any_call(subject="test")
+
+    # Every subscriber variant takes the base's overloads: a JetStream and a store one
+    @broker.subscriber("test", stream="stream")
+    def streamed() -> None: ...
+
+    assert_type(streamed, NatsHandlerCallWrapper[[], None])
+
+    @broker.subscriber("key", kv_watch="bucket")
+    def watched() -> None: ...
+
+    assert_type(watched, NatsHandlerCallWrapper[[], None])
+
+    # The publisher's own type is pinned in `check_publisher_instance_type`; here its
+    # methods take the field, which only the NATS mixin gives them
+    publisher = broker.publisher("test")
+
+    @publisher
+    def published() -> None: ...
+
+    assert_type(published, NatsHandlerCallWrapper[[], None])
+    await publisher.assert_called_once_with(None, subject="test")
+    await publisher.assert_called_with(subject="test")
+    await publisher.assert_any_call(subject="test")
 
 
 NatsBroker(routers=[NatsRouter()])

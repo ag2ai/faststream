@@ -51,12 +51,14 @@ async def test_handle_rabbit() -> None:
     from docs.docs_src.getting_started.subscription.rabbit.advanced_testing import (
         test_handle,
         test_message_context,
+        test_rabbit_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_rabbit_fields()
 
 
 @pytest.mark.nats()
@@ -66,12 +68,14 @@ async def test_handle_nats() -> None:
     from docs.docs_src.getting_started.subscription.nats.advanced_testing import (
         test_handle,
         test_message_context,
+        test_nats_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_nats_fields()
 
 
 @pytest.mark.redis()
@@ -81,12 +85,14 @@ async def test_handle_redis() -> None:
     from docs.docs_src.getting_started.subscription.redis.advanced_testing import (
         test_handle,
         test_message_context,
+        test_redis_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_redis_fields()
 
 
 @pytest.mark.mqtt()
@@ -96,9 +102,11 @@ async def test_handle_mqtt() -> None:
     from docs.docs_src.getting_started.subscription.mqtt.advanced_testing import (
         test_handle,
         test_message_context,
+        test_mqtt_fields,
         test_several_messages,
     )
 
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_mqtt_fields()

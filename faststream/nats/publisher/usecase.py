@@ -1,10 +1,12 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address
+from faststream.nats.call_wrapper import NatsCallAssertions, NatsHandlerCallWrapper
 from faststream.nats.response import NatsPublishCommand
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.response.publish_type import PublishType
@@ -22,10 +24,12 @@ if TYPE_CHECKING:
     from .config import NatsPublisherConfig
 
 
-class LogicPublisher(PublisherUsecase):
+class LogicPublisher(NatsCallAssertions, PublisherUsecase):
     """A class to represent a NATS publisher."""
 
     _outer_config: "NatsBrokerConfig"
+    _call_wrapper_class = NatsHandlerCallWrapper
+    _read_field = NatsHandlerCallWrapper._read_field
 
     def __init__(
         self,
@@ -40,6 +44,17 @@ class LogicPublisher(PublisherUsecase):
         self.timeout = config.timeout or 0.5
         self.headers = config.headers or {}
         self.reply_to = config.reply_to
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+            super().__call__(func),
+        )
 
     @property
     def subject(self) -> "Address":

@@ -2,9 +2,12 @@ import asyncio
 
 import pytest
 
+from faststream.exceptions import SetupError
+from faststream.mqtt import QoS
 from faststream.mqtt.broker.broker import MQTTBroker
 from faststream.mqtt.testing import FakeProducer, TestMQTTBroker, mqtt_topic_matches
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiokafka
 
 from .basic import MQTTMemoryTestcaseConfig
 
@@ -71,6 +74,71 @@ class TestTestclient(MQTTMemoryTestcaseConfig, BrokerTestclientTestcase):
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
         await super().test_publisher_assertions_share_the_recorded_calls(queue)
+
+    async def test_assertions_take_the_mqtt_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(f"{queue}/+")
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", f"{queue}/1", qos=QoS.AT_LEAST_ONCE)
+
+            await handle.assert_called_once_with(
+                "hello",
+                topic=f"{queue}/1",
+                qos=QoS.AT_LEAST_ONCE,
+                retain=False,
+            )
+            await handle.assert_called_with(topic=f"{queue}/1")
+            await handle.assert_any_call(qos=QoS.AT_LEAST_ONCE, retain=False)
+
+            with pytest.raises(
+                AssertionError,
+                match=r"qos: expected <QoS.EXACTLY_ONCE: 2>, got <QoS.AT_LEAST_ONCE: 1>",
+            ):
+                await handle.assert_called_once_with("hello", qos=QoS.EXACTLY_ONCE)
+
+    async def test_publisher_assertions_take_the_mqtt_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "2")
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None:
+            await publisher.publish("response", qos=QoS.AT_LEAST_ONCE, retain=True)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            await publisher.assert_called_once_with(
+                "response",
+                topic=queue + "2",
+                qos=QoS.AT_LEAST_ONCE,
+                retain=True,
+            )
+            await publisher.assert_called_with(topic=queue + "2")
+            await publisher.assert_any_call(qos=QoS.AT_LEAST_ONCE, retain=True)
+
+    @require_aiokafka
+    async def test_mqtt_fields_refuse_another_brokers_message(self, queue: str) -> None:
+        from faststream.kafka import KafkaBroker, TestKafkaBroker
+
+        broker = self.get_broker()
+        kafka = KafkaBroker()
+
+        # The first decorator decides the wrapper class: MQTT's here
+        @kafka.subscriber(queue)
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker), TestKafkaBroker(kafka):
+            await kafka.publish("hello", queue)
+
+            await handle.assert_called_once_with("hello")
+
+            with pytest.raises(SetupError, match="`qos` is a MQTT field"):
+                await handle.assert_called_once_with("hello", qos=QoS.AT_MOST_ONCE)
 
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:

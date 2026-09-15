@@ -87,3 +87,19 @@ async def test_several_messages() -> None:
             Data(name="John", user_id=1),
             correlation_id="first",
         )
+
+
+@pytest.mark.asyncio
+async def test_rabbit_fields() -> None:
+    async with TestRabbitBroker(broker) as br:
+        await br.publish(
+            Data(name="John", user_id=1),
+            headers={"trace-id": "42"},
+            routing_key="test-queue",
+        )
+
+        # `routing_key` and the other Rabbit fields are named as `publish()` names them
+        await handle.assert_called_once_with(
+            Data(name="John", user_id=1),
+            routing_key="test-queue",
+        )

@@ -8,6 +8,7 @@ from faststream.exceptions import SetupError
 from faststream.redis import ListSub, StreamSub
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiopika
 
 from .basic import RedisMemoryTestcaseConfig
 
@@ -148,6 +149,9 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             # A batch has one header set per message, so there is no single answer
             with pytest.raises(SetupError, match="received a batch"):
                 await m.assert_called_once_with(headers={"key": "value"})
+
+            with pytest.raises(SetupError, match=r"received a batch.*list"):
+                await m.assert_called_once_with(list=queue)
 
     async def test_batch_publisher_mock(
         self,
@@ -318,6 +322,116 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
             grouped.mock.assert_called_once_with("hello")
             ungrouped.mock.assert_called_once_with("hello")
+
+    async def test_stream_batch_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(stream=StreamSub(queue, batch=True))
+        async def m(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+            await m.assert_called_once_with(["hello"])
+
+            with pytest.raises(SetupError, match=r"received a batch.*stream"):
+                await m.assert_called_once_with(stream=queue)
+
+    @pytest.mark.parametrize("kind", ("channel", "list", "stream"))
+    async def test_assertions_take_the_redis_fields(self, queue: str, kind: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(**{kind: queue})
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", **{kind: queue})
+
+            await handle.assert_called_once_with("hello", **{kind: queue})
+            await handle.assert_called_with(**{kind: queue})
+            await handle.assert_any_call(**{kind: queue})
+
+            with pytest.raises(
+                AssertionError,
+                match=f"{kind}: expected 'other', got '{queue}'",
+            ):
+                await handle.assert_called_once_with("hello", **{kind: "other"})
+
+    async def test_pattern_assertions_take_the_delivered_channel(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(f"{queue}.{{name}}")
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", f"{queue}.john")
+
+            await handle.assert_called_once_with("hello", channel=f"{queue}.john")
+
+    @pytest.mark.parametrize("kind", ("channel", "list", "stream"))
+    async def test_publisher_assertions_take_the_redis_fields(
+        self,
+        queue: str,
+        kind: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(**{kind: queue + "2"})
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None:
+            await publisher.publish("response")
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            await publisher.assert_called_once_with("response", **{kind: queue + "2"})
+            await publisher.assert_called_with(**{kind: queue + "2"})
+            await publisher.assert_any_call(**{kind: queue + "2"})
+
+    async def test_redis_fields_refuse_another_kind(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def from_channel(msg) -> None: ...
+
+        @broker.subscriber(stream=queue)
+        async def from_stream(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", channel=queue)
+            await br.publish("hello", stream=queue)
+
+            with pytest.raises(SetupError, match="`list` was asked of a pub/sub message"):
+                await from_channel.assert_called_once_with("hello", list=queue)
+
+            with pytest.raises(
+                SetupError, match="`channel` was asked of a stream message"
+            ):
+                await from_stream.assert_called_once_with("hello", channel=queue)
+
+    @require_aiopika
+    async def test_redis_fields_refuse_another_brokers_message(self, queue: str) -> None:
+        from faststream.rabbit import RabbitBroker, TestRabbitBroker
+
+        broker = self.get_broker()
+        rabbit = RabbitBroker()
+
+        # The first decorator decides the wrapper class: Redis's here
+        @rabbit.subscriber(queue)
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker), TestRabbitBroker(rabbit):
+            await rabbit.publish("hello", queue)
+
+            await handle.assert_called_once_with("hello")
+
+            with pytest.raises(SetupError, match="`channel` is a Redis field"):
+                await handle.assert_called_once_with("hello", channel=queue)
 
     async def test_publish_to_none(self) -> None:
         broker = self.get_broker()
