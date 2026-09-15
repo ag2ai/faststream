@@ -1,4 +1,7 @@
+from typing import TYPE_CHECKING
+
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.rabbit.address import broker_exchange, broker_queue
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.utils import is_routing_exchange
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -15,46 +18,46 @@ from faststream.specification.schema.bindings import (
 
 from .config import RabbitSubscriberSpecificationConfig
 
+if TYPE_CHECKING:
+    from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
+
 
 class RabbitSubscriberSpecification(
     SubscriberSpecification[RabbitBrokerConfig, RabbitSubscriberSpecificationConfig],
 ):
     @property
+    def queue(self) -> "RabbitQueue":
+        return broker_queue(self._outer_config, self.config.queue)
+
+    @property
+    def exchange(self) -> "RabbitExchange":
+        return broker_exchange(self._outer_config, self.config.exchange)
+
+    @property
     def channel_labels(self) -> list[str]:
-        """A queue and the exchange it is bound to, which is not the address.
+        """The queue and its exchange: both are needed to tell two subscribers apart."""
+        queue_name = self.queue.name
 
-        The address is the routing key; a queue is a place to read from. Both are
-        needed to tell two subscribers apart, so the label carries both.
-        """
-        queue_name = self.config.queue.name
+        exchange_name = getattr(self.exchange, "name", None)
 
-        exchange_name = getattr(self.config.exchange, "name", None)
-
-        return [f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}"]
+        return [f"{queue_name}:{exchange_name or '_'}"]
 
     @property
     def address(self) -> str | None:
-        """The routing key the queue is bound by, prefixed.
-
-        `None` where the exchange ignores routing keys: a fanout reaches every queue
-        bound to it, so the queue this subscriber reads from names nothing a message
-        is routed by. The document drops the queue binding for the same reason, and
-        drops the address rather than giving an empty one — AsyncAPI reads an absent
-        address as unknown, which `""` does not say.
-        """
-        if not is_routing_exchange(self.config.exchange):
+        """The routing key the queue is bound by, with the Router prefix."""
+        # A fanout ignores routing keys, so the queue names nothing a message is routed
+        # by; `None` rather than `""` because AsyncAPI reads an absent address as unknown.
+        if not is_routing_exchange(self.exchange):
             return None
 
-        return self.config.queue.add_prefix(
-            self._outer_config.prefix,
-        ).routing_template()
+        return self.queue.routing_template()
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
-        queue = self.config.queue.add_prefix(self._outer_config.prefix)
+        queue = self.queue
 
-        exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
+        exchange_binding = amqp.Exchange.from_exchange(self.exchange)
         queue_binding = amqp.Queue.from_queue(queue)
 
         channel_name = self.name
