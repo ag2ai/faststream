@@ -13,6 +13,8 @@ from faststream.redis.exceptions import UnreachablePathError
 from faststream.redis.message import DATA_KEY
 from faststream.redis.parser import RedisPubSubParser, SimpleParserConfig
 from faststream.redis.response import DestinationType, RedisPublishCommand
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -59,10 +61,14 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
     async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
         batch = [
             await cmd.message_format.encode(
-                message=msg,
-                correlation_id=cmd.correlation_id or "",
-                reply_to=cmd.reply_to,
-                headers=cmd.headers,
+                cmd=PublishCommand(
+                    body=msg,
+                    destination=cmd.destination,
+                    correlation_id=cmd.correlation_id,
+                    reply_to=cmd.reply_to,
+                    headers=cmd.headers,
+                    _publish_type=PublishType.PUBLISH,
+                ),
                 serializer=self.serializer,
                 codec=self.codec,
             )
@@ -111,10 +117,7 @@ class RedisFastProducer(BaseRedisFastProducer):
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
         msg = await cmd.message_format.encode(
-            message=cmd.body,
-            reply_to=cmd.reply_to,
-            headers=cmd.headers,
-            correlation_id=cmd.correlation_id or "",
+            cmd=cmd,
             serializer=self.serializer,
             codec=self.codec,
         )
@@ -156,11 +159,17 @@ class RedisFastProducer(BaseRedisFastProducer):
         try:
             await psub.subscribe(reply_to)
 
-            msg = await cmd.message_format.encode(
-                message=cmd.body,
+            request_cmd = PublishCommand(
+                body=cmd.body,
+                destination=cmd.destination,
+                correlation_id=cmd.correlation_id,
                 reply_to=reply_to,
                 headers=cmd.headers,
-                correlation_id=cmd.correlation_id or "",
+                _publish_type=PublishType.REQUEST,
+            )
+
+            msg = await cmd.message_format.encode(
+                cmd=request_cmd,
                 serializer=self.serializer,
                 codec=self.codec,
             )
@@ -214,10 +223,7 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
     @override
     async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
         msg = await cmd.message_format.encode(
-            message=cmd.body,
-            reply_to=cmd.reply_to,
-            headers=cmd.headers,
-            correlation_id=cmd.correlation_id or "",
+            cmd=cmd,
             serializer=self.serializer,
             codec=self.codec,
         )
@@ -247,11 +253,17 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
         try:
             await psub.subscribe(reply_to)
 
-            msg = await cmd.message_format.encode(
-                message=cmd.body,
+            request_cmd = PublishCommand(
+                body=cmd.body,
+                destination=cmd.destination,
+                correlation_id=cmd.correlation_id,
                 reply_to=reply_to,
                 headers=cmd.headers,
-                correlation_id=cmd.correlation_id or "",
+                _publish_type=PublishType.REQUEST,
+            )
+
+            msg = await cmd.message_format.encode(
+                cmd=request_cmd,
                 serializer=self.serializer,
                 codec=self.codec,
             )
