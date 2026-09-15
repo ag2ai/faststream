@@ -22,9 +22,9 @@ The main difference between *KV* and *Object* storages is that in the *Object* s
 
 ## FastStream Details
 
-**FastStream** has some useful methods to help you with **Object Storage NATS** feature interacting.
+**FastStream** has some useful methods to help you interact with the **Object Storage NATS** feature.
 
-First of all, you need to create a *Object Storage* object and put some value to it:
+First of all, you need to create an *Object Storage* object and put some value to it:
 
 ```python linenums="1" hl_lines="11-12"
 {! docs_src/nats/js/object.py [ln:1-2,3,5,7-10,23-26] !}
@@ -33,11 +33,11 @@ First of all, you need to create a *Object Storage* object and put some value to
 !!! tip
     * [`BytesIO`](https://docs.python.org/3/library/io.html#binary-i-o){.external-link target="_blank"} - is a *Readable* object used to emulate a file opened for reading.
 
-    * `#!python broker.object_storage(bucket="example-bucket")` is an idempotent method. It means that it stores all already created storages in memory and do not make new request to **NATS** if your are trying to call it for the same bucket.
+    * `#!python broker.object_storage(bucket="example-bucket")` is an idempotent method. It means that it stores all already created storages in memory and does not make a new request to **NATS** if you are trying to call it for the same bucket.
 
 ---
 
-Then we are able to use returned `object_storage` object as a regular NATS one. But, if you want to watch by any new files in the bucket, **FastStream** allows you to make it via regular `#!python @broker.subscriber` interface:
+Then we are able to use the returned `object_storage` object as a regular NATS one. But, if you want to watch for any new files in the bucket, **FastStream** allows you to make it via regular `#!python @broker.subscriber` interface:
 
 ```python linenums="1" hl_lines="1"
 @broker.subscriber("example-bucket", obj_watch=True)
@@ -45,16 +45,16 @@ async def handler(filename: str):
     assert filename == "file.txt"
 ```
 
-**NATS** delivers you just a filename (and some more metainformation you can get access via `message.raw_message`) because files can be any size. The framework should protect your service from memory overflow, so we can't upload whole file content right to the memo. By you can make it manually the following way:
+**NATS** delivers you just a filename (and some more metainformation you can access via `message.raw_message`) because files can be any size. The framework should protect your service from memory overflow, so we can't load the whole file content right into memory. But you can do it manually the following way:
 
 ```python linenums="1" hl_lines="1 6 10-11"
 {! docs_src/nats/js/object.py [ln:6-7,12-20] !}
 ```
 
 !!! note
-    `faststream.nats.annotations.ObjectStorage` is a your current bucket, so you need no to put it to context manually.
+    `faststream.nats.annotations.ObjectStorage` is your current bucket, so you don't need to put it into the context manually.
 
-Also, if you want more detail settings for you **Object Storage**, we have `ObjWatch` object for it:
+Also, if you want more detailed settings for your **Object Storage**, we have `ObjWatch` object for it:
 
 ```python linenums="1" hl_lines="5"
 from faststream.nats import NatsBroker, ObjWatch

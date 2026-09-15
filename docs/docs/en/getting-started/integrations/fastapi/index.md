@@ -31,7 +31,7 @@ Just import a **StreamRouter** you need and declare the message handler in the s
 
     Note that the code below uses `fastapi.Depends`, not `faststream.Depends`.
 
-    Also, instead original `faststream.Context` you should use `faststream.[broker].fastapi.Context` (the same with [already created annotations](../../context.md#annotated-aliases){.internal-link})
+    Also, instead of the original `faststream.Context`, you should use `faststream.[broker].fastapi.Context` (the same with [already created annotations](../../context.md#annotated-aliases){.internal-link})
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="4 6 14-18 24-25"
@@ -65,7 +65,7 @@ Just import a **StreamRouter** you need and declare the message handler in the s
 
 
 !!! warning
-    If you are using **fastapi < 0.112.2** version, you should setup lifespan manually `#!python FastAPI(lifespan=router.lifespan_context)`
+    If you are using **fastapi < 0.112.2** version, you should set up the lifespan manually `#!python FastAPI(lifespan=router.lifespan_context)`
 
 When processing a message from a broker, the entire message body is placed simultaneously in both the `body` and `path` request parameters. You can access them in any way convenient for you. The message header is placed in `headers`.
 
@@ -362,9 +362,9 @@ To test your **FastAPI StreamRouter**, you can still use it with the *TestClient
 
 ## Multiple Routers
 
-Using **FastStream** as a **FastAPI** plugin you are still able to separate messages processing logic between different routers (like with a regular `HTTPRouter`). But it can be confusing - **StreamRouter** patches a **FastAPI** object lifespan.
+Using **FastStream** as a **FastAPI** plugin you are still able to separate message processing logic between different routers (like with a regular `HTTPRouter`). But it can be confusing - **StreamRouter** patches a **FastAPI** object lifespan.
 
-Fortunately, you can use regular **FastStream** routers and include them to the **FastAPI** integration one like in the regular broker object. Also, it can be useful to reuse your endpoints between **FastAPI** integration and regular **FastStream** app.
+Fortunately, you can use regular **FastStream** routers and include them in the **FastAPI** integration one like in the regular broker object. Also, it can be useful to reuse your endpoints between **FastAPI** integration and regular **FastStream** app.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="2-3 6 12-14 16"

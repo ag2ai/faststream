@@ -46,7 +46,7 @@ The rules for delivering messages to consumers depend on the **type of exchange*
 
 In general, the message path looks so:
 
-1. *Publisher* sends a message to `exchange`, specify its `routing_key` and headers according to which routing will take place.
+1. *Publisher* sends a message to `exchange`, specifying its `routing_key` and headers according to which routing will take place.
 2. `Exchange`, depending on the message parameters, determines which of the subscribed `bindings` to send the message to.
 3. `Binding` delivers the message to `queue` or another `exchange` (in this case it will send it further by its own rules).
 4. `Queue`, after receiving a message, sends it to one of subscribed consumers (**PUSH API**).
@@ -56,7 +56,7 @@ In general, the message path looks so:
     In **FastStream**, queues are connected to this `exchange`, and messages are sent by default unless another `exchange` is explicitly specified.
 
     !!! warning ""
-        Connecting the queue to any other `exchange` will still leave it subscribed to the `default exchange'. Be careful with this.
+        Connecting the queue to any other `exchange` will still leave it subscribed to the `default exchange`. Be careful with this.
 
 At this stage, the message gets into your application - and you start processing it.
 
@@ -72,7 +72,7 @@ In most cases, **FastStream** performs all the necessary actions by itself. Howe
 
 ## **FastStream** Specific
 
-**FastStream** omits the ability to create `bindings` directly, since in most cases, you do not need to subscribe one queue to several `exchanges` or subscribe `exchanges` to each other. On the contrary, this practice leads to over-complication of the message routing scheme, which makes it difficult to maintain and further develop the entire infrastructure of services.
+**FastStream** discourages creating `bindings` directly, since in most cases, you do not need to subscribe one queue to several `exchanges` or subscribe `exchanges` to each other. On the contrary, this practice leads to over-complication of the message routing scheme, which makes it difficult to maintain and further develop the entire infrastructure of services.
 
 **FastStream** suggests you adhere to the scheme `exchange:queue` as `1:N`, which will greatly simplify the scheme of interaction between your services. It is better to create an additional queue for a new `exchange` than to subscribe to an existing one.
 

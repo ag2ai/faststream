@@ -30,7 +30,7 @@ msg: RabbitMessage = await broker.request("Hello, RabbitMQ!", queue="test")
 
 Also, if you want to create a permanent request-reply data flow, probably, you should create a permanent queue to consume responses.
 
-So, if you have such one, you can specify it with the `reply_to` argument. This way, **FastStream** will send a response to this queue automatically.
+So, if you have such a queue, you can specify it with the `reply_to` argument. This way, **FastStream** will send a response to this queue automatically.
 
 ```python linenums="1" hl_lines="1 8"
 @broker.subscriber("response-queue")

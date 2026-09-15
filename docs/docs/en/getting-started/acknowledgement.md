@@ -18,7 +18,7 @@ Due to the possibility of unexpected errors during message processing, FastStrea
 
 ### Usage
 
-You must specify the `ack_policy` parameter when creating a subscriber:
+You can specify the `ack_policy` parameter when creating a subscriber (it is optional; each broker has its own default, see [below](#broker-level-default){.internal-link}):
 
 ```python linenums="1" hl_lines="9"
 from faststream import FastStream, Logger, AckPolicy
@@ -44,7 +44,7 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 | `ACK_FIRST`       | Acknowledge immediately upon receipt, before processing begins.                                                                         | Message is acknowledged early;<br/>may be lost if processing fails.              | Acknowledged despite error;<br/>message not re-delivered. | Kafka commits offset;<br/>NATS, Redis, and RabbitMQ acknowledge immediately. |
 | `ACK`             | Acknowledge only after processing completes, regardless of success.                                                                     | Ack after success.                                          | Ack sent anyway;<br/>message not redelivered.             | Kafka: offset commit; others: explicit ack.                              |
 | `REJECT_ON_ERROR` | Reject message if an unhandled exception occurs, permanently discarding it;<br/>otherwise, ack.                                             | Ack after success. | Message discarded; no retry.                          | RabbitMQ/NATS drops message. Kafka commits offset.                       |
-| `NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis Streams and RabbitMQ redelivers; Kafka commits as fallback.        |
+| `NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis Streams and RabbitMQ redeliver; Kafka seeks the partition back to the message offset and reads it again.        |
 | `MANUAL`      | No automatic acknowledgement. User must manually handle the completion via message methods<ul><li> `#!python msg.ack()`</li><li>`#!python msg.nack()`<li>`#!python msg.reject()`</li></ul> | | | |
 
 ---
@@ -73,7 +73,7 @@ async def handle_event(msg: str) -> None:
 
 The resolution order is: **subscriber-level > broker-level > built-in default**.
 
-If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broker-level value applies. If neither is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis).
+If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broker-level value applies. If neither is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `ACK` for MQTT, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis Streams consumer groups; Redis list, channel, and group-less stream subscribers are always `MANUAL`).
 
 ### When to Use
 
@@ -91,7 +91,7 @@ If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broke
 
 ```python linenums="1" hl_lines="7 10"
 from faststream import FastStream, AckPolicy, Logger
-from faststream.rabbitmq import RabbitBroker
+from faststream.rabbit import RabbitBroker
 
 broker = RabbitBroker()
 app = FastStream(broker)
@@ -114,7 +114,7 @@ app = FastStream(broker)
 @broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
 async def handle_event(msg: str) -> None:
     try:
-        # do_smth(msg)
+        do_smth(msg)
     except Exception:
         await msg.nack()  # or msg.reject()
     else:

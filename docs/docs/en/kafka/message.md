@@ -16,9 +16,13 @@ As you may know, **FastStream** serializes a message body and provides you acces
 
 You can easily access this information by referring to the message object in the [Context](../getting-started/context.md#existing-fields)
 
-This object serves as a unified **FastStream** wrapper around the native broker library message (for example, `aiokafka.ConsumerRecord` in the case of *Kafka*). It contains most of the required information, including:
+This object serves as a unified **FastStream** wrapper around the native broker library message (for example, `aiokafka.ConsumerRecord` in the case of *Kafka*). The wrapper itself carries:
 
 * `#!python body: bytes`
+* `#!python headers: dict[str, str]`
+
+and its `raw_message` (the `aiokafka.ConsumerRecord`) contains the rest of the required information, including:
+
 * `#!python checksum: int`
 * `#!python headers: Sequence[Tuple[str, bytes]]`
 * `#!python key: Optional[aiokafka.structs.KT]`

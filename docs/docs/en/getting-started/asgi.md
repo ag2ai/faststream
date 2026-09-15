@@ -14,7 +14,7 @@ Often, you need not only to run your application to consume messages but also to
 
 Unfortunately, such functionality can't be implemented by broker features alone, and you have to provide several **HTTP** endpoints in your app.
 
-Of course, you can use **FastStream** as a part of any **ASGI** frameworks ([integrations](./integrations/frameworks/index.md){.internal-link}), but fewer the dependencies, the better, right?
+Of course, you can use **FastStream** as a part of any **ASGI** frameworks ([integrations](./integrations/frameworks/index.md){.internal-link}), but the fewer the dependencies, the better, right?
 
 ## AsgiFastStream
 
@@ -39,7 +39,7 @@ uvicorn main:app
 It does nothing but launch the app itself as an **ASGI lifespan**.
 
 !!! note
-    You are able to use something else than `uvicorn`.
+    You are able to use something other than `uvicorn`.
     ```shell
     faststream run main:app --workers 4
     ```
@@ -73,12 +73,12 @@ First, we have already written a wrapper on top of the broker to make a ready-to
 
 If you want to write your own simple **HTTP**-endpoint, you can use our `#!python @get` or `#!python @post` decorator as in the following example.
 
-```python linenums="1" hl_lines="2 7-9 13""
+```python linenums="1" hl_lines="2 7-9 13"
 {! docs_src/getting_started/asgi/custom_app.py !}
 ```
 
 !!! tip
-    You do not need to setup all routes using the `asgi_routes=[]` parameter.<br/>
+    You do not need to set up all routes using the `asgi_routes=[]` parameter.<br/>
     You can use the `#!python app.mount("/health", asgi_endpoint)` method also.
 
 #### Accessing context fields
@@ -100,7 +100,7 @@ You can also use helper functions to access query parameters and headers:
 Dependency Injection works with [**FastDepends**](https://lancetnik.github.io/FastDepends/){.external-link target="_blank"} in the same way as described in [Dependencies](./dependencies/index.md){.internal-link}.
 
 !!! warning
-    FastDepends DI and `Context` access will not work if you implement your own handlers instead using the `get` or `post` decorators.
+    FastDepends DI and `Context` access will not work if you implement your own handlers instead of using the `get` or `post` decorators.
 
 ### ASGI Documentation
 
@@ -149,14 +149,14 @@ app = AsgiFastStream(
 )
 ```
 
-Now, your **AsyncAPI HTML** representation can be found by the `/docs/asyncapi` url.
+Now, your **AsyncAPI HTML** representation can be found at the `/docs/asyncapi` url.
 
 !!! note
     For extended examples on the **AsyncAPI** feature, see [Serving the AsyncAPI Documentation](./asyncapi/hosting.md){.internal-link} page.
 
 ### FastStream Object Reuse
 
-You may also use regular `FastStream.as_asgi()` method for similar result.
+You may also use the regular `FastStream.as_asgi()` method for a similar result.
 
 ```python linenums="1" hl_lines="1 12"
 from faststream import FastStream
@@ -185,12 +185,12 @@ app = FastStream(broker, specification=AsyncAPI()).as_asgi(
     ```shell
     faststream run main:app --host 0.0.0.0 --port 8000 --workers 4
     ```
-    This possibility built on gunicorn + uvicorn, you need install them to run FastStream ASGI app via CLI.
-    We send all args directly to gunicorn, you can learn more about it [here](https://github.com/benoitc/gunicorn/blob/master/examples/example_config.py).
+    This possibility is built on **uvicorn**'s multiprocess supervisor, so you need to install `uvicorn` to run a FastStream ASGI app via the CLI.
+    We send all matching args directly to `uvicorn.Config`, you can learn more about them [here](https://www.uvicorn.org/settings/){.external-link target="_blank"}.
 
 ## Other ASGI Compatibility
 
-Moreover, our wrappers can be used as ready-to-use endpoints for other **ASGI** frameworks. This can be very helpful When you are running **FastStream** in the same runtime as any other **ASGI** frameworks.
+Moreover, our wrappers can be used as ready-to-use endpoints for other **ASGI** frameworks. This can be very helpful when you are running **FastStream** in the same runtime as any other **ASGI** frameworks.
 
 Just follow the following example in such cases:
 

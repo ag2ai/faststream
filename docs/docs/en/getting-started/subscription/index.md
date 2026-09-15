@@ -159,7 +159,7 @@ Also, synchronous functions are supported as well:
 
 ## Message Body Serialization
 
-Generally, **FastStream** uses your function type annotation to serialize incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).
+Generally, **FastStream** uses your function type annotation to serialize the incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).
 
 ```python hl_lines="3"
 @broker.subscriber("test")
@@ -171,9 +171,9 @@ async def handle_str(
 
 You can also access some extra features through the function arguments, such as [Depends](../dependencies/index.md){.internal-link} and [Context](../context.md#existing-fields){.internal-link} if required.
 
-However, you can easily disable **Pydantic** validation by creating a broker with the following option `#!python Broker(apply_types=False)`
+However, you can easily disable **Pydantic** validation by creating a broker with the following option: `#!python Broker(apply_types=False)`.
 
-This way **FastStream** still consumes `#!python json.loads` result, but without pydantic validation and casting.
+This way **FastStream** still consumes the `#!python json.loads` result, but without pydantic validation and casting.
 
 === "AIOKafka"
     ```python hl_lines="3"

@@ -53,8 +53,8 @@ Or you can decorate your processing function and return a batch of messages, as 
 The application in the example implements both of these ways, so feel free to use whichever option fits your needs better.
 
 !!! note
-    Also, you can publishes messages in batches right from a `broker` object: just call
-    `#!python broker.publish_batch("msg2", "msg2", topic="output_data")`
+    Also, you can publish messages in batches right from a `broker` object: just call
+    `#!python broker.publish_batch("msg1", "msg2", topic="output_data")`
 
 ## Per-Message Attributes with `KafkaPublishMessage`
 
@@ -103,6 +103,4 @@ Publishing messages in batches offers several advantages when working with **Kaf
 
 2. **Reduced Network and Broker Load**: Sending messages in batches reduces the number of network calls and broker interactions. This optimization minimizes the load on the **Kafka** brokers and network resources, making your **Kafka** cluster more efficient.
 
-3. **Atomicity**: Batches ensure that a group of related messages is processed together or not at all. This atomicity can be crucial in scenarios where message processing needs to maintain data consistency and integrity.
-
-4. **Enhanced Scalability**: With batch publishing, you can efficiently scale your **Kafka** applications to handle high message volumes. By sending messages in larger chunks, you can make the most of **Kafka**'s parallelism and partitioning capabilities.
+3. **Enhanced Scalability**: With batch publishing, you can efficiently scale your **Kafka** applications to handle high message volumes. By sending messages in larger chunks, you can make the most of **Kafka**'s parallelism and partitioning capabilities.

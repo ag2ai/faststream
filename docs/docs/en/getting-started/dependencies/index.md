@@ -14,7 +14,7 @@ You can visit the [**FastDepends**](https://lancetnik.github.io/FastDepends/){.e
 
 The key function in the dependency management and type conversion system in **FastStream** is the decorator `#!python @apply_types` (also known as `#!python @inject` in **FastDepends**).
 
-By default, it applies to all event handlers, unless you disabled the same option when creating the broker.
+By default, it applies to all event handlers, unless you disable this option when creating the broker.
 
 === "AIOKafka"
     ```python
@@ -59,7 +59,7 @@ By default, it applies to all event handlers, unless you disabled the same optio
 This flag can be useful if you are using **FastStream** within another framework and you need to use its native dependency system.
 
 ## Using `Annotated`
-Dependencies also can be used with `Annotated`.
+Dependencies can also be used with `Annotated`.
 
 === "Non-Annotated"
     ```python
@@ -73,7 +73,7 @@ Dependencies also can be used with `Annotated`.
 
 ## Dependency Injection
 
-To implement dependencies in **FastStream**, a special class called **Depends** is used
+To implement dependencies in **FastStream**, a special class called **Depends** is used.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="7-8"
@@ -192,7 +192,7 @@ But, using a special `subscriber` parameter is much more suitable:
 def method(): ...
 ```
 
-You can also declare broker-level dependencies, which will be applied to all broker's handlers:
+You can also declare broker-level dependencies, which will be applied to all of the broker's handlers:
 
 ```python
 broker = RabbitBroker(dependencies=[Depends(...)])
@@ -250,12 +250,12 @@ Dependencies can also contain other dependencies. This works in a very predictab
     However, it still automatically applies to all functions used as dependencies.
 
 !!! Tip "Caching"
-    In the example above, the `another_dependency` function will be called at **ONCE**!
+    In the example above, the `another_dependency` function will be called only **ONCE**!
     **FastDepends** caches all dependency execution results within **ONE** `#!python @apply_types` call stack.
     This means that all nested dependencies will receive the cached result of dependency execution.
     But, between different calls of the main function, these results will be different.
 
-    To prevent this behavior, just use `#!python Depends(..., cache=False)`. In this case, the dependency will be used for each function
+    To prevent this behavior, just use `#!python Depends(..., use_cache=False)`. In this case, the dependency will be used for each function
     in the call stack where it is used.
 
 ## Use with Regular Functions
@@ -278,7 +278,7 @@ You can use the decorator `#!python @apply_types` not only with `#!python @broke
 
 ## Casting Dependency Types
 
-**FastDepends**, used by **FastStream**, also gives the type `return`. This means that the value returned by the dependency will be
+**FastDepends**, used by **FastStream**, also casts the `return` type. This means that the value returned by the dependency will be
 cast to the type twice: as `return` for dependencies and as the input argument of the main function. This does not incur additional costs if
 these types have the same annotation. Just keep it in mind. Or not... Anyway, I've warned you.
 

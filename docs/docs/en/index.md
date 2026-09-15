@@ -416,7 +416,7 @@ What the five clients share is a deliberately small surface:
 Beyond this scope you can use any broker-native features you need:
 
 * **Kafka** - specific partition reads, partitioner control, consumer groups, batch processing, etc.
-* **RabbitMQ** - all exchange types, Redis Streams, RPC, manual channel configuration, DLQ, etc.
+* **RabbitMQ** - all exchange types, RabbitMQ Streams, RPC, manual channel configuration, DLQ, etc.
 * **NATS** - core and Push/Pull JetStream subscribers, KeyValue, ObjectStorage, RPC, etc.
 * **Redis** - Pub/Sub, List, Stream subscribers, consumer groups, acknowledgements, etc.
 * **MQTT** - topic subscriptions (including wildcards), QoS and retain, MQTT 3.1.1 and 5.0, request/reply (RPC), TLS, etc.
@@ -428,7 +428,7 @@ If a particular feature is missing or not yet supported, you can always fall bac
 ---
 ## Testing the service
 
-The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
+The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, put the Broker into "testing mode".
 
 The Tester will redirect your `subscriber` and `publisher` decorated functions to the InMemory brokers, allowing you to quickly test your app without the need for a running broker and all its dependencies.
 

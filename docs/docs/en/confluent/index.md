@@ -21,14 +21,9 @@ Developed by Confluent, this library enjoys strong support from the core team be
 
 ## Installation
 
-!!! warning "Available starting from v0.4.0rc0"
-    Support for `Confluent` is present **starting** from the version **v0.4.0rc0**.
-
-    Please run the following command to install it:
-
-    ```bash
-    pip install "faststream[confluent]>=0.4.0"
-    ```
+```bash
+pip install "faststream[confluent]"
+```
 
 ### FastStream Confluent KafkaBroker
 
@@ -50,6 +45,6 @@ Here's a simplified code example demonstrating how to establish a connection to 
 {! docs_src/index/confluent/basic.py!}
 ```
 
-This minimal example illustrates how FastStream simplifies the process of connecting to Kafka and performing basic message processing from the **in_topic** to the **out-topic**. Depending on your specific use case and requirements, you can further customize your Kafka integration with FastStream to build robust and efficient streaming applications.
+This minimal example illustrates how FastStream simplifies the process of connecting to Kafka and performing basic message processing from the **in-topic** to the **out-topic**. Depending on your specific use case and requirements, you can further customize your Kafka integration with FastStream to build robust and efficient streaming applications.
 
 For more advanced configuration options and detailed usage instructions, please refer to the FastStream Kafka documentation and the [official Kafka documentation](https://kafka.apache.org/){.external-link target="_blank"}.
