@@ -110,6 +110,11 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     serializer: Annotated[SerializerProto, "Custom serializer. Defaults to ``EMPTY``."]
     provider: Annotated[Provider | None, "FastDepends provider. Defaults to ``None``."]
     context: Annotated[ContextRepo | None, "Context repository. Defaults to ``None``."]
+    underlying_driver_annotations: Annotated[
+        "Mapping[Any, Any]",
+        "Extra driver type hints that FastStream cannot inject, mapped to the "
+        "annotation to use instead. Merged over the broker's own rows.",
+    ]
 
 
 class RedisClusterParams(RedisBrokerParams, total=False):
