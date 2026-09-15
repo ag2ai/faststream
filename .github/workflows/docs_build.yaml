@@ -47,6 +47,11 @@ jobs:
           git config --local user.email "faststream-actions[bot]@users.noreply.github.com"
           git config --local user.name "faststream-actions[bot]"
 
+      # `git checkout gh-pages` below replaces the working tree, so the script
+      # has to be taken out of it first.
+      - name: Stage the SEO script
+        run: cp docs/create_seo_files.py "$RUNNER_TEMP/create_seo_files.py"
+
       - name: Build docs
         run: |
           if [ "$IS_RC" == "False" ]; then
@@ -65,6 +70,9 @@ jobs:
             git checkout gh-pages
             git reset --soft HEAD~2
           fi
+
+      - name: Add robots.txt, root sitemap.xml and archive markers
+        run: python3 "$RUNNER_TEMP/create_seo_files.py" .
 
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0

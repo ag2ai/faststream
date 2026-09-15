@@ -1,14 +1,29 @@
 {% extends "base.html" %}
 
+{#-
+  One title for the tab, Open Graph and Twitter cards. The landing page carries
+  the keywords, because "FastStream" alone says nothing about Python or brokers.
+-#}
+{% macro seo_title() -%}
+  {%- if page and page.meta and page.meta.title -%}
+    {{ page.meta.title }} - {{ config.site_name }}
+  {%- elif page and page.title and not page.is_homepage -%}
+    {{ page.title | striptags }} - {{ config.site_name }}
+  {%- elif config.extra.site_tagline -%}
+    {{ config.site_name }} — {{ config.extra.site_tagline }}
+  {%- else -%}
+    {{ config.site_name }}
+  {%- endif -%}
+{%- endmacro %}
+
+{% block htmltitle %}
+  <title>{{ seo_title() }}</title>
+{% endblock %}
+
 {% block extrahead %}
-  {% set title = config.site_name %}
-  {% if page and page.meta and page.meta.title %}
-    {% set title = title ~ " - " ~ page.meta.title %}
-  {% elif page and page.title and not page.is_homepage %}
-    {% set title = title ~ " - " ~ page.title | striptags %}
-  {% endif %}
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="{{ title }}" />
+  <meta property="og:site_name" content="{{ config.site_name }}" />
+  <meta property="og:title" content="{{ seo_title() }}" />
   <meta property="og:description" content="{{ config.site_description }}" />
   <meta property="og:url" content="{{ page.canonical_url }}" />
   <meta property="og:image" content="{{ config.extra.social_image }}" />
@@ -17,7 +32,7 @@
   <meta property="og:image:height" content="630" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="{{ title }}" />
+  <meta name="twitter:title" content="{{ seo_title() }}" />
   <meta name="twitter:description" content="{{ config.site_description }}" />
   <meta name="twitter:image" content="{{ config.extra.social_image }}" />
 {% endblock %}
