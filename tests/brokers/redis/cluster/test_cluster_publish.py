@@ -90,6 +90,26 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
 
         assert {1, "hi"} == {r.result() for r in result}
 
+    async def test_list_publish_batch_connects_without_pipeline(self, queue: str) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3044.
+
+        Supporting external pipelines must preserve implicit batch connections.
+        """
+        broker = self.get_broker()
+        try:
+            assert await broker.publish_batch("one", "two", list=queue) == 2
+            client = await broker.connect()
+            try:
+                messages = await client.lrange(queue, 0, -1)
+                assert [broker.message_format.parse(msg)[0] for msg in messages] == [
+                    b"one",
+                    b"two",
+                ]
+            finally:
+                await client.delete(queue)
+        finally:
+            await broker.stop()
+
     async def test_response(
         self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
@@ -133,26 +153,6 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
                 timeout=self.timeout,
             )
             assert await response.decode() == "Hi!", response
-
-    async def test_pipeline_warns(
-        self,
-        queue: str,
-    ) -> None:
-        """Pipeline should emit RuntimeWarning in cluster mode."""
-        broker = self.get_broker()
-
-        with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish("hello", channel=queue, pipeline=None)  # type: ignore[arg-type]
-
-    async def test_publish_batch_with_pipeline_warns(
-        self,
-        queue: str,
-    ) -> None:
-        """Pipeline should emit RuntimeWarning for publish_batch in cluster."""
-        broker = self.get_broker()
-
-        with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish_batch("x", "y", list=queue, pipeline=None)  # type: ignore[arg-type]
 
     async def test_channel_publish(
         self,
