@@ -13,7 +13,7 @@ from opentelemetry.semconv._incubating.attributes import messaging_attributes
 from schemas.pydantic import Schema
 from sql import DSN, find_user_by_name
 
-from faststream.kafka import KafkaBroker
+from faststream.kafka import KafkaBroker, KafkaMessage
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 from faststream.opentelemetry.consts import (
@@ -28,7 +28,7 @@ from faststream.prometheus.container import MetricsContainer
 from faststream.prometheus.manager import MetricsManager
 from faststream.prometheus.types import ProcessingStatus
 
-from .test_basic import prefill_topic
+from .test_basic import SequenceTrackingMixin, prefill_topic
 
 MESSAGING_SYSTEM = "kafka"
 
@@ -38,12 +38,16 @@ MESSAGING_SYSTEM = "kafka"
     min_time=150,
     max_time=300,
 )
-class TestFaststreamKafkaSQLCase:
-    comment = "Consume Messages with Metrics"
+class TestFaststreamKafkaSQLCase(SequenceTrackingMixin):
+    comment = "Consume Messages with SQL"
     broker_type = "Kafka"
+    prefetch = None  
+    batch = False
+    ack_mode = "ack_first"  
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED: int = 0
+        self._init_sequence_tracking(prefill_messages)
         self.sql_pool = await asyncpg.create_pool(dsn=DSN)
 
         broker = self.broker = KafkaBroker(
@@ -56,8 +60,9 @@ class TestFaststreamKafkaSQLCase:
         )
 
         @broker.subscriber("in", auto_offset_reset="earliest")
-        async def handle(message: Schema) -> Schema:
+        async def handle(message: Schema, raw: KafkaMessage) -> Schema:
             self.EVENTS_PROCESSED += 1
+            self._track_message(json.loads(raw.body.decode()))
             await find_user_by_name(message.name, self.sql_pool)
             return message
 
@@ -84,12 +89,16 @@ class TestFaststreamKafkaSQLCase:
     min_time=150,
     max_time=300,
 )
-class TestPureKafkaSQLCase:
-    comment = "Pure aio-kafka client with metrics"
+class TestPureKafkaSQLCase(SequenceTrackingMixin):
+    comment = "Pure aio-kafka client with SQL"
     broker_type = "Kafka"
+    prefetch = None 
+    batch = False
+    ack_mode = "auto_commit"  
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
         self.sql_pool = await asyncpg.create_pool(dsn=DSN)
 
         container = MetricsContainer(registry, custom_label_names=())
@@ -171,7 +180,7 @@ class TestPureKafkaSQLCase:
                                 messaging_attributes.MESSAGING_OPERATION_TYPE,
                                 MessageAction.PROCESS,
                             )
-                            data = json.loads(body.decode())
+                            self._track_message(data := json.loads(body.decode()))
                             parsed = Schema(**data)
                             await find_user_by_name(parsed.name, self.sql_pool)
                     except Exception as e:

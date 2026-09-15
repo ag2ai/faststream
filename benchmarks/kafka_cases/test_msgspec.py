@@ -9,9 +9,9 @@ from aiokafka import AIOKafkaConsumer
 from fast_depends.msgspec import MsgSpecSerializer
 from schemas.msgspec import Schema
 
-from faststream.kafka import KafkaBroker
+from faststream.kafka import KafkaBroker, KafkaMessage
 
-from .test_basic import prefill_topic
+from .test_basic import SequenceTrackingMixin, prefill_topic
 
 
 @pytest.mark.asyncio()
@@ -19,12 +19,16 @@ from .test_basic import prefill_topic
     min_time=150,
     max_time=300,
 )
-class TestFaststreamKafkaMsgspecCase:
+class TestFaststreamKafkaMsgspecCase(SequenceTrackingMixin):
     comment = "Consume Msgspec Struct"
     broker_type = "Kafka"
+    prefetch = None  
+    batch = False
+    ack_mode = "ack_first"  
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
 
         broker = self.broker = KafkaBroker(
             logger=None,
@@ -33,8 +37,9 @@ class TestFaststreamKafkaMsgspecCase:
         )
 
         @broker.subscriber("in", auto_offset_reset="earliest")
-        async def handle(message: Schema) -> Schema:
+        async def handle(message: Schema, raw: KafkaMessage) -> Schema:
             self.EVENTS_PROCESSED += 1
+            self._track_message(json.loads(raw.body.decode()))
             return message
 
         self.handler = handle
@@ -60,12 +65,16 @@ class TestFaststreamKafkaMsgspecCase:
     min_time=150,
     max_time=300,
 )
-class TestPureKafkaMsgspecCase:
+class TestPureKafkaMsgspecCase(SequenceTrackingMixin):
     comment = "Pure aio-kafka client with msgspec"
     broker_type = "Kafka"
+    prefetch = None  
+    batch = False
+    ack_mode = "auto_commit"  
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
         await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
@@ -88,7 +97,8 @@ class TestPureKafkaMsgspecCase:
                         break
                     self.EVENTS_PROCESSED += 1
                     data = json.loads(msg.value.decode())
-                    Schema(**data)
+                    self._track_message(data)
+                    Schema(**{k: v for k, v in data.items() if not k.startswith("_")})
             except asyncio.CancelledError:
                 pass
 

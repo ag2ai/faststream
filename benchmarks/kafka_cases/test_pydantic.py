@@ -8,9 +8,9 @@ import pytest
 from aiokafka import AIOKafkaConsumer
 from schemas.pydantic import Schema
 
-from faststream.kafka import KafkaBroker
+from faststream.kafka import KafkaBroker, KafkaMessage
 
-from .test_basic import prefill_topic
+from .test_basic import SequenceTrackingMixin, prefill_topic
 
 
 @pytest.mark.asyncio()
@@ -18,18 +18,23 @@ from .test_basic import prefill_topic
     min_time=150,
     max_time=300,
 )
-class TestFaststreamKafkaPydanticCase:
+class TestFaststreamKafkaPydanticCase(SequenceTrackingMixin):
     comment = "Consume Pydantic Model"
     broker_type = "Kafka"
+    prefetch = None  
+    batch = False
+    ack_mode = "ack_first"  
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
 
         broker = self.broker = KafkaBroker(logger=None, graceful_timeout=10)
 
         @broker.subscriber("in", auto_offset_reset="earliest")
-        async def handle(message: Schema) -> Schema:
+        async def handle(message: Schema, raw: KafkaMessage) -> Schema:
             self.EVENTS_PROCESSED += 1
+            self._track_message(json.loads(raw.body.decode()))
             return message
 
         self.handler = handle
@@ -55,12 +60,16 @@ class TestFaststreamKafkaPydanticCase:
     min_time=150,
     max_time=300,
 )
-class TestPureKafkaPydanticCase:
+class TestPureKafkaPydanticCase(SequenceTrackingMixin):
     comment = "Pure aio-kafka client with pydantic"
     broker_type = "Kafka"
+    prefetch = None  # max_poll_records not overridden, aiokafka default
+    batch = False
+    ack_mode = "auto_commit"  # enable_auto_commit=True below
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
         await prefill_topic("localhost:9092", prefill_messages)
 
     @asynccontextmanager
@@ -84,6 +93,7 @@ class TestPureKafkaPydanticCase:
                     self.EVENTS_PROCESSED += 1
                     data = json.loads(msg.value.decode())
                     Schema(**data)
+                    self._track_message(data)
             except asyncio.CancelledError:
                 pass
 

@@ -11,7 +11,7 @@ from opentelemetry import metrics, trace
 from opentelemetry.semconv._incubating.attributes import messaging_attributes
 from schemas.pydantic import Schema
 
-from faststream.kafka import KafkaBroker
+from faststream.kafka import KafkaBroker, KafkaMessage
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 from faststream.opentelemetry.consts import (
@@ -26,7 +26,7 @@ from faststream.prometheus.container import MetricsContainer
 from faststream.prometheus.manager import MetricsManager
 from faststream.prometheus.types import ProcessingStatus
 
-from .test_basic import prefill_topic
+from .test_basic import SequenceTrackingMixin, prefill_topic
 
 MESSAGING_SYSTEM = "kafka"
 
@@ -36,12 +36,16 @@ MESSAGING_SYSTEM = "kafka"
     min_time=150,
     max_time=300,
 )
-class TestFaststreamKafkaMetricsCase:
+class TestFaststreamKafkaMetricsCase(SequenceTrackingMixin):
     comment = "Consume Messages with Metrics"
     broker_type = "Kafka"
+    prefetch = None 
+    batch = False
+    ack_mode = "ack_first"  
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
 
         broker = self.broker = KafkaBroker(
             logger=None,
@@ -53,8 +57,9 @@ class TestFaststreamKafkaMetricsCase:
         )
 
         @broker.subscriber("in", auto_offset_reset="earliest")
-        async def handle(message: Schema) -> Schema:
+        async def handle(message: Schema, raw: KafkaMessage) -> Schema:
             self.EVENTS_PROCESSED += 1
+            self._track_message(json.loads(raw.body.decode()))
             return message
 
         self.handler = handle
@@ -80,12 +85,16 @@ class TestFaststreamKafkaMetricsCase:
     min_time=150,
     max_time=300,
 )
-class TestPureKafkaMetricsCase:
+class TestPureKafkaMetricsCase(SequenceTrackingMixin):
     comment = "Pure aio-kafka client with metrics"
     broker_type = "Kafka"
+    prefetch = None  
+    batch = False
+    ack_mode = "auto_commit"  
 
     async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
 
         container = MetricsContainer(registry, custom_label_names=())
         self.metrics = MetricsManager(container, app_name="faststream")
@@ -167,6 +176,7 @@ class TestPureKafkaMetricsCase:
                                 MessageAction.PROCESS,
                             )
                             data = json.loads(body.decode())
+                            self._track_message(data)
                             Schema(**data)
                     except Exception as e:
                         err = e

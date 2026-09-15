@@ -1,29 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-# Цвета для вывода
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${YELLOW}🚀 Запуск бенчмарка FastStream...${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo "Параметры:"
-echo "  - CPU: 0.5 ядра"
-echo "  - Память: 256 МБ"
-echo "  - Python: 3.12-slim"
-echo "  - Профили: rabbit, kafka, confluent, nats, redis, otel, prometheus"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
+COMPOSE_FILE="docker-compose.yaml"
 
+cleanup() {
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo "Stopping and removing benchmark containers..."
+    docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans
+}
+trap cleanup EXIT
 
-# Проверка requirements файла
 if [ ! -f "requirements-bench.txt" ]; then
-    echo -e "${RED}❌ Файл requirements-bench.txt не найден${NC}"
-    echo "Создаю requirements-bench.txt..."
     cat > requirements-bench.txt << 'EOF'
 faststream[rabbit,kafka,confluent,nats,redis,otel,prometheus]
 aiokafka>=0.9,<0.15
@@ -44,7 +39,16 @@ EOF
     echo ""
 fi
 
-# Запуск бенчмарка в Docker
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "Starting benchmark dependencies (kafka, postgres, otel-collector)..."
+docker compose -f "$COMPOSE_FILE" up -d --wait
+COMPOSE_UP_CODE=$?
+
+if [ $COMPOSE_UP_CODE -ne 0 ]; then
+    echo -e "${RED}❌ Не удалось поднять зависимости (docker compose up), код: ${COMPOSE_UP_CODE}${NC}"
+    exit $COMPOSE_UP_CODE
+fi
+
 docker run --rm \
   --cpus="0.5" \
   --memory="256m" \
@@ -56,15 +60,7 @@ docker run --rm \
   /bin/bash -c "
   set -e
 
-  echo '📦 Установка зависимостей бенчмарка...'
   pip install --no-cache-dir -r /requirements-bench.txt
-
-  echo ''
-  echo '✅ Все зависимости установлены успешно'
-  echo -e '\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m'
-  echo ''
-  echo '⏱️  Запуск бенчмарка...'
-  echo ''
 
   python bench.py
   "
@@ -78,5 +74,6 @@ if [ $EXIT_CODE -eq 0 ]; then
 else
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${RED}❌ Ошибка при выполнении бенчмарка (код: $EXIT_CODE)${NC}"
-    exit $EXIT_CODE
 fi
+
+exit $EXIT_CODE
