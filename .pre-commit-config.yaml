@@ -11,6 +11,7 @@ repos:
     rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
+        exclude: '^docs/site_root/'
     -   id: mixed-line-ending
     -   id: check-case-conflict
     -   id: check-ast
@@ -25,10 +26,11 @@ repos:
             )$
     -   id: end-of-file-fixer
         exclude: |
-            (?x)^(
-                docs/docs/SUMMARY.md|
-                docs/docs/en/api/.meta.yml
-            )$
+            (?x)(
+                ^docs/docs/SUMMARY.md$|
+                ^docs/docs/en/api/.meta.yml$|
+                ^docs/site_root/
+            )
 
 -   repo: https://github.com/crate-ci/typos
     rev: v1.30.3
