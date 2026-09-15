@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Replace the default JSON encoding in FastStream with gzip, Avro, Protobuf or Msgpack by
+  customising the message parser and decoder.
 search:
   boost: 10
 ---

@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Serve HTTP endpoints next to your FastStream consumers with built-in ASGI support —
+  Prometheus metrics and Kubernetes liveness and readiness probes.
 search:
   boost: 10
 ---

@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Run FastStream applications from the command line: hot reload while you develop, multiple
+  worker processes in production and environment options.
 search:
   boost: 10
 ---

@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Use FastStream brokers inside a FastAPI application. The plugin now ships separately as the
+  faststream_fastapi package.
 search:
   boost: 10
 ---
