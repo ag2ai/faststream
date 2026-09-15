@@ -32,19 +32,11 @@ class TestRouterPublisher(PublisherTestcase):
 
 
 @pytest.mark.rabbit()
-def test_fastapi_security_schema() -> None:
+def test_fastapi_security_schema(snapshot_json) -> None:
     security = SASLPlaintext(username="user", password="pass", use_ssl=False)
 
     router = RabbitRouter(security=security)
 
     schema = get_2_6_0_schema(router.broker)
 
-    assert schema["servers"]["development"] == {
-        "protocol": "amqp",
-        "protocolVersion": "0.9.1",
-        "security": [{"user-password": []}],
-        "url": "amqp://user:pass@localhost:5672/",
-    }
-    assert schema["components"]["securitySchemes"] == {
-        "user-password": {"type": "userPassword"},
-    }
+    assert schema == snapshot_json
