@@ -18,14 +18,11 @@ class TestNatsTestCase:
     comment = "Consume from JetStream"
     broker_type = "NATS"
 
-    def setup_method(self) -> None:
+    async def setup_method(self) -> None:
         self.EVENTS_PROCESSED = 0
 
         broker = self.broker = NatsBroker(logger=None, graceful_timeout=10)
 
-        p = self.publisher = broker.publisher("in")
-
-        @p
         @broker.subscriber("in", stream="streamname")
         async def handle(message: Any) -> Any:
             self.EVENTS_PROCESSED += 1
@@ -38,13 +35,6 @@ class TestNatsTestCase:
         async with self.broker:
             await self.broker.start()
             start_time = time.time()
-
-            await self.publisher.publish({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            })
 
             yield start_time
 

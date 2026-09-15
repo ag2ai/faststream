@@ -1,14 +1,18 @@
 import asyncio
+import json
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
+import nats
 import pytest
 from fast_depends.msgspec import MsgSpecSerializer
+from schemas.msgspec import Schema
 
 from faststream.nats import NatsBroker
 
-from .schemas.msgspec import Schema
+from .test_basic import prefill_stream
 
 
 @pytest.mark.asyncio()
@@ -16,12 +20,13 @@ from .schemas.msgspec import Schema
     min_time=150,
     max_time=300,
 )
-class TestNatsTestCase:
+class TestFaststreamNatsMsgspecCase:
     comment = "Consume Msgspec Struct"
     broker_type = "NATS"
 
-    def setup_method(self) -> None:
+    async def setup_method(self, prefill_messages: int) -> None:
         self.EVENTS_PROCESSED = 0
+        self.PREFILL_MESSAGES = prefill_messages
 
         broker = self.broker = NatsBroker(
             logger=None,
@@ -29,9 +34,6 @@ class TestNatsTestCase:
             serializer=MsgSpecSerializer(use_fastdepends_errors=False),
         )
 
-        p = self.publisher = broker.publisher("in")
-
-        @p
         @broker.subscriber("in")
         async def handle(message: Schema) -> Schema:
             self.EVENTS_PROCESSED += 1
@@ -44,17 +46,49 @@ class TestNatsTestCase:
         async with self.broker:
             await self.broker.start()
             start_time = time.time()
-
-            await self.publisher.publish({
-                "name": "John",
-                "age": 39,
-                "fullname": "LongString" * 8,
-                "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
-            })
+            await prefill_stream("nats://localhost:4222", self.PREFILL_MESSAGES)
 
             yield start_time
 
     async def test_consume_message(self) -> None:
         async with self.start():
-            await asyncio.sleep(1)
-        assert self.EVENTS_PROCESSED > 1
+            while self.EVENTS_PROCESSED < self.PREFILL_MESSAGES:
+                await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED == self.PREFILL_MESSAGES
+
+
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=150,
+    max_time=300,
+)
+class TestPureNatsMsgspecCase:
+    comment = "Pure nats_py client with msgspec"
+    broker_type = "NATS"
+
+    async def setup_method(self, prefill_messages: int) -> None:
+        self.EVENTS_PROCESSED = 0
+        self.PREFILL_MESSAGES = prefill_messages
+
+    @asynccontextmanager
+    async def start(self) -> AsyncGenerator[float, None]:
+        nc = await nats.connect(servers=["nats://localhost:4222"])
+
+        async def message_handler(msg: Any) -> None:
+            self.EVENTS_PROCESSED += 1
+            data = json.loads(msg.data.decode("utf-8"))
+            Schema(**data)
+
+        await nc.subscribe("in", cb=message_handler)
+        start_time = time.time()
+
+        await prefill_stream("nats://localhost:4222", self.PREFILL_MESSAGES)
+        yield start_time
+
+        await nc.close()
+
+    async def test_consume_message(self) -> None:
+        async with self.start():
+            while self.EVENTS_PROCESSED < self.PREFILL_MESSAGES:
+                await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED == self.PREFILL_MESSAGES
