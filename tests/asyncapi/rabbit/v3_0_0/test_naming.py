@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import RabbitBroker
 from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
@@ -8,7 +9,7 @@ from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
 class TestNaming(NamingTestCase):
     broker_class: type[RabbitBroker] = RabbitBroker
 
-    def test_subscriber_with_exchange(self, snapshot_json) -> None:
+    def test_subscriber_with_exchange(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test", "exchange")
@@ -18,7 +19,7 @@ class TestNaming(NamingTestCase):
 
         assert schema == snapshot_json
 
-    def test_publisher_with_exchange(self, snapshot_json) -> None:
+    def test_publisher_with_exchange(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.publisher("test", "exchange")
@@ -28,7 +29,7 @@ class TestNaming(NamingTestCase):
 
         assert schema == snapshot_json
 
-    def test_base(self, snapshot_json) -> None:
+    def test_base(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test")

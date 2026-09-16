@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit.fastapi import RabbitRouter
@@ -32,7 +33,7 @@ class TestRouterPublisher(PublisherTestcase):
 
 
 @pytest.mark.rabbit()
-def test_fastapi_security_schema(snapshot_json) -> None:
+def test_fastapi_security_schema(snapshot_json: SnapshotAssertion) -> None:
     security = SASLPlaintext(username="user", password="pass", use_ssl=False)
 
     router = RabbitRouter(security=security)

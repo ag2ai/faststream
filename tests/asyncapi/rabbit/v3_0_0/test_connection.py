@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import RabbitBroker
 from faststream.specification import Tag
@@ -6,7 +7,7 @@ from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
 @pytest.mark.rabbit()
-def test_base(snapshot_json) -> None:
+def test_base(snapshot_json: SnapshotAssertion) -> None:
     schema = get_3_0_0_schema(
         RabbitBroker(
             "amqps://localhost",
@@ -33,7 +34,7 @@ def test_kwargs() -> None:
 
 
 @pytest.mark.rabbit()
-def test_custom(snapshot_json) -> None:
+def test_custom(snapshot_json: SnapshotAssertion) -> None:
     broker = RabbitBroker(
         "amqps://localhost",
         specification_url="amqp://guest:guest@127.0.0.1:5672/vh",
