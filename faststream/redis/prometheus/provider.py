@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class BaseRedisMetricsSettingsProvider(
-    MetricsSettingsProvider[dict[str, Any], RedisPublishCommand],
+    MetricsSettingsProvider[dict[str, Any], RedisPublishCommand[Any]],
 ):
     __slots__ = ("messaging_system",)
 
@@ -17,7 +17,7 @@ class BaseRedisMetricsSettingsProvider(
 
     def get_publish_destination_name_from_cmd(
         self,
-        cmd: RedisPublishCommand,
+        cmd: RedisPublishCommand[Any],
     ) -> str:
         return cmd.destination
 

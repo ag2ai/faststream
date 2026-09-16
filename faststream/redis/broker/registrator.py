@@ -1,6 +1,8 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union, cast
 
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import overload, override
 
 from faststream._internal.broker.registrator import Registrator
@@ -41,8 +43,12 @@ if TYPE_CHECKING:
         StreamSubscriber,
     )
 
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 
-class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
+
+class RedisRegistrator(
+    Registrator[UnifyRedisDict, RedisBrokerConfig], Generic[_PipelineT]
+):
     """Includable to RedisBroker router."""
 
     @overload  # type: ignore[override]
@@ -336,7 +342,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "StreamPublisher": ...
+    ) -> "StreamPublisher[_PipelineT]": ...
 
     @overload
     def publisher(
@@ -354,7 +360,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "ListPublisher": ...
+    ) -> "ListPublisher[_PipelineT]": ...
 
     @overload
     def publisher(
@@ -372,7 +378,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> Union["ListPublisher", "ListBatchPublisher"]: ...
+    ) -> Union["ListPublisher[_PipelineT]", "ListBatchPublisher[_PipelineT]"]: ...
 
     @overload
     def publisher(
@@ -390,7 +396,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "ChannelPublisher": ...
+    ) -> "ChannelPublisher[_PipelineT]": ...
 
     @overload
     def publisher(
@@ -470,7 +476,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     @override
     def include_router(
         self,
-        router: "RedisRegistrator",  # type: ignore[override]
+        router: "RedisRegistrator[Any]",  # type: ignore[override]
         *,
         prefix: str = "",
         dependencies: Iterable["Dependant"] = (),

@@ -1,7 +1,9 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union, overload
 
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import (
@@ -12,8 +14,6 @@ from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import Pipeline
-
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.redis.message import RedisChannelMessage
@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from faststream.response import PublishCommand
 
     from .config import RedisPublisherConfig
+
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 
 
 class LogicPublisher(PublisherUsecase):
@@ -57,7 +59,7 @@ class LogicPublisher(PublisherUsecase):
         raise NotImplementedError
 
 
-class ChannelPublisher(LogicPublisher):
+class ChannelPublisher(LogicPublisher, Generic[_PipelineT]):
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -81,6 +83,30 @@ class ChannelPublisher(LogicPublisher):
             "stream": None,
         }
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: None = None,
+    ) -> int: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: _PipelineT,
+    ) -> _PipelineT: ...
+
     @override
     async def publish(
         self,
@@ -90,8 +116,8 @@ class ChannelPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+        pipeline: _PipelineT | None = None,
+    ) -> int | _PipelineT:
         cmd = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
@@ -102,7 +128,7 @@ class ChannelPublisher(LogicPublisher):
             _publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
         )
-        result: int = await self._basic_publish(
+        result: int | _PipelineT = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
@@ -112,7 +138,7 @@ class ChannelPublisher(LogicPublisher):
     @override
     async def _publish(
         self,
-        cmd: Union["PublishCommand", "RedisPublishCommand"],
+        cmd: Union["PublishCommand", "RedisPublishCommand[_PipelineT]"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
@@ -140,7 +166,7 @@ class ChannelPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
-        cmd = RedisPublishCommand(
+        cmd: RedisPublishCommand[None] = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
             headers=self.headers | (headers or {}),
@@ -157,7 +183,7 @@ class ChannelPublisher(LogicPublisher):
         return msg
 
 
-class ListPublisher(LogicPublisher):
+class ListPublisher(LogicPublisher, Generic[_PipelineT]):
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -181,6 +207,30 @@ class ListPublisher(LogicPublisher):
             "stream": None,
         }
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        list: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: None = None,
+    ) -> int: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        list: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        pipeline: _PipelineT,
+    ) -> _PipelineT: ...
+
     @override
     async def publish(
         self,
@@ -190,8 +240,8 @@ class ListPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+        pipeline: _PipelineT | None = None,
+    ) -> int | _PipelineT:
         cmd = RedisPublishCommand(
             message,
             list=list or self.list.name,
@@ -203,7 +253,7 @@ class ListPublisher(LogicPublisher):
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish(
+        result: int | _PipelineT = await self._basic_publish(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
@@ -213,7 +263,7 @@ class ListPublisher(LogicPublisher):
     @override
     async def _publish(
         self,
-        cmd: Union["PublishCommand", "RedisPublishCommand"],
+        cmd: Union["PublishCommand", "RedisPublishCommand[_PipelineT]"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
@@ -241,7 +291,7 @@ class ListPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
-        cmd = RedisPublishCommand(
+        cmd: RedisPublishCommand[None] = RedisPublishCommand(
             message,
             list=list or self.list.name,
             headers=self.headers | (headers or {}),
@@ -258,7 +308,29 @@ class ListPublisher(LogicPublisher):
         return msg
 
 
-class ListBatchPublisher(ListPublisher):
+class ListBatchPublisher(ListPublisher[_PipelineT], Generic[_PipelineT]):
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        list: str | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        pipeline: None = None,
+    ) -> int: ...
+
+    @overload
+    async def publish(
+        self,
+        *messages: "SendableMessage",
+        list: str | None = None,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        pipeline: _PipelineT,
+    ) -> _PipelineT: ...
+
     @override
     async def publish(
         self,
@@ -267,8 +339,8 @@ class ListBatchPublisher(ListPublisher):
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+        pipeline: _PipelineT | None = None,
+    ) -> int | _PipelineT:
         cmd = RedisPublishCommand(
             *messages,
             list=list or self.list.name,
@@ -280,7 +352,7 @@ class ListBatchPublisher(ListPublisher):
             message_format=self.config.message_format,
         )
 
-        result: int = await self._basic_publish_batch(
+        result: int | _PipelineT = await self._basic_publish_batch(
             cmd,
             producer=self.producer,
             _extra_middlewares=(),
@@ -290,7 +362,7 @@ class ListBatchPublisher(ListPublisher):
     @override
     async def _publish(
         self,
-        cmd: Union["PublishCommand", "RedisPublishCommand"],
+        cmd: Union["PublishCommand", "RedisPublishCommand[_PipelineT]"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
@@ -316,7 +388,7 @@ class ListBatchPublisher(ListPublisher):
         )
 
 
-class StreamPublisher(LogicPublisher):
+class StreamPublisher(LogicPublisher, Generic[_PipelineT]):
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -339,6 +411,32 @@ class StreamPublisher(LogicPublisher):
             "stream": self.stream.name if name_only else self.stream,
         }
 
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        stream: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        maxlen: int | None = None,
+        pipeline: None = None,
+    ) -> bytes: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        stream: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        *,
+        maxlen: int | None = None,
+        pipeline: _PipelineT,
+    ) -> _PipelineT: ...
+
     @override
     async def publish(
         self,
@@ -349,8 +447,8 @@ class StreamPublisher(LogicPublisher):
         correlation_id: str | None = None,
         *,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> bytes:
+        pipeline: _PipelineT | None = None,
+    ) -> bytes | _PipelineT:
         cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,
@@ -373,7 +471,7 @@ class StreamPublisher(LogicPublisher):
     @override
     async def _publish(
         self,
-        cmd: Union["PublishCommand", "RedisPublishCommand"],
+        cmd: Union["PublishCommand", "RedisPublishCommand[_PipelineT]"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
@@ -403,7 +501,7 @@ class StreamPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
-        cmd = RedisPublishCommand(
+        cmd: RedisPublishCommand[None] = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,
             headers=self.headers | (headers or {}),

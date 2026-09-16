@@ -3,6 +3,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Generic,
     Optional,
     cast,
 )
@@ -11,6 +12,8 @@ from urllib.parse import urlparse
 import anyio
 from anyio import move_on_after
 from fast_depends import dependency_provider
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 from redis.asyncio.connection import (
     parse_url,
 )
@@ -42,17 +45,22 @@ from .registrator import RedisRegistrator
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from redis.asyncio.client import Pipeline, Redis
+    from redis.asyncio.client import Redis
 
     from faststream._internal.basic_types import SendableMessage
     from faststream.redis.message import RedisChannelMessage
     from faststream.redis.schemas.types import RedisBrokerParams
     from faststream.security import BaseSecurity
 
+from typing_extensions import TypeVar as TypeVar313
+
+_PipelineT = TypeVar313("_PipelineT", bound=Pipeline | ClusterPipeline, default=Pipeline)
+
 
 class RedisBroker(
-    RedisRegistrator,
-    BrokerUsecase[UnifyRedisDict, "Redis[bytes]", RedisBrokerConfig],
+    RedisRegistrator[_PipelineT],
+    BrokerUsecase[UnifyRedisDict, "Redis", RedisBrokerConfig],
+    Generic[_PipelineT],
 ):
     """Redis broker."""
 
@@ -63,7 +71,7 @@ class RedisBroker(
     def __init__(
         self,
         url: str = "redis://localhost:6379",
-        **kwargs: Unpack["RedisBrokerParams"],
+        **kwargs: Unpack["RedisBrokerParams[_PipelineT]"],
     ) -> None:
         """Initialized the RedisBroker."""
         self._init_broker(url, dict(kwargs))
@@ -173,9 +181,9 @@ class RedisBroker(
         )
 
     @override
-    async def _connect(self) -> "Redis[bytes]":
+    async def _connect(self) -> "Redis":
         await self.config.connect()
-        return cast("Redis[bytes]", self.config.broker_config.connection.client)
+        return cast("Redis", self.config.broker_config.connection.client)
 
     async def stop(
         self,
@@ -203,7 +211,7 @@ class RedisBroker(
         list: str | None = None,
         stream: None = None,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: None = None,
     ) -> int: ...
 
     @overload
@@ -218,8 +226,23 @@ class RedisBroker(
         list: str | None = None,
         stream: str = ...,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: None = None,
     ) -> bytes: ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage" = None,
+        channel: str | None = None,
+        *,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
+        list: str | None = None,
+        stream: str | None = None,
+        maxlen: int | None = None,
+        pipeline: Pipeline,
+    ) -> Pipeline: ...
 
     @override
     async def publish(
@@ -233,8 +256,8 @@ class RedisBroker(
         list: str | None = None,
         stream: str | None = None,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int | bytes:
+        pipeline: Optional["Pipeline"] = None,
+    ) -> int | bytes | Pipeline:
         """Publish message directly.
 
         This method allows you to publish a message in a non-AsyncAPI-documented way.
@@ -277,7 +300,7 @@ class RedisBroker(
             message_format=self.message_format,
         )
 
-        result: int | bytes = await super()._basic_publish(
+        result: int | bytes | Pipeline = await super()._basic_publish(
             cmd,
             producer=self.config.producer,
         )
@@ -296,7 +319,7 @@ class RedisBroker(
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
-        cmd = RedisPublishCommand(
+        cmd: RedisPublishCommand[None] = RedisPublishCommand(
             message,
             correlation_id=correlation_id or self.config.id_generator(),
             channel=channel,
@@ -314,16 +337,38 @@ class RedisBroker(
         )
         return msg
 
-    @override
-    async def publish_batch(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    async def publish_batch(
         self,
         *messages: "SendableMessage",
         list: str,
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
-    ) -> int:
+        pipeline: None = None,
+    ) -> int: ...
+
+    @overload
+    async def publish_batch(
+        self,
+        *messages: "SendableMessage",
+        list: str,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        pipeline: Pipeline,
+    ) -> Pipeline: ...
+
+    @override
+    async def publish_batch(
+        self,
+        *messages: "SendableMessage",
+        list: str,
+        correlation_id: str | None = None,
+        reply_to: str = "",
+        headers: dict[str, Any] | None = None,
+        pipeline: Pipeline | None = None,
+    ) -> int | Pipeline:
         """Publish multiple messages to Redis List by one request.
 
         Args:
@@ -348,7 +393,7 @@ class RedisBroker(
             message_format=self.message_format,
         )
 
-        result: int = await self._basic_publish_batch(
+        result: int | Pipeline = await self._basic_publish_batch(
             cmd,
             producer=self.config.producer,
         )

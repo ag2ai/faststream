@@ -67,14 +67,14 @@ class DefaultListMessage(_ListMessage):
     """A class to represent a single List message."""
 
     type: Literal["list"]
-    data: bytes
+    data: list[bytes | str] | bytes | str
 
 
 class BatchListMessage(_ListMessage):
     """A class to represent a List messages batch."""
 
     type: Literal["blist"]
-    data: list[bytes]
+    data: bytes | str | list[bytes | str] | None
 
 
 class RedisListMessage(BrokerStreamMessage[DefaultListMessage]):
@@ -117,19 +117,19 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     @override
     async def ack(
         self,
-        redis: Optional["Redis[bytes]"] = None,
+        redis: Optional["Redis"] = None,
         group: str | None = None,
     ) -> None:
         if not self.committed and group is not None and redis is not None:
             ids = self.raw_message["message_ids"]
             channel = self.raw_message["channel"]
-            await redis.xack(channel, group, *ids)  # type: ignore[no-untyped-call]
+            await redis.xack(channel, group, *ids)
         await super().ack()
 
     @override
     async def nack(
         self,
-        redis: Optional["Redis[bytes]"] = None,
+        redis: Optional["Redis"] = None,
         group: str | None = None,
     ) -> None:
         await super().nack()
@@ -137,12 +137,12 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     @override
     async def reject(
         self,
-        redis: Optional["Redis[bytes]"] = None,
+        redis: Optional["Redis"] = None,
         group: str | None = None,
     ) -> None:
         await super().reject()
 
-    async def delete(self, redis: Optional["Redis[bytes]"]) -> None:
+    async def delete(self, redis: Optional["Redis"]) -> None:
         if redis is not None:
             ids = self.raw_message["message_ids"]
             channel = self.raw_message["channel"]
@@ -152,7 +152,7 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
     async def get_delivery_count(
         self,
-        redis: "Redis[bytes]",
+        redis: "Redis",
         group: str,
     ) -> int:
         """Return this message's current delivery count from the Redis PEL.

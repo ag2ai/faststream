@@ -1,6 +1,8 @@
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import override
 
 from faststream.exceptions import SetupError
@@ -10,9 +12,9 @@ from faststream.response.publish_type import PublishType
 from faststream.response.response import BatchPublishCommand, PublishCommand, Response
 
 if TYPE_CHECKING:
-    from redis.asyncio.client import Pipeline
-
     from faststream._internal.basic_types import SendableMessage
+
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline | None)
 
 
 class DestinationType(str, Enum):
@@ -24,7 +26,7 @@ class DestinationType(str, Enum):
 class RedisResponse(Response):
     def __init__(
         self,
-        body: Optional["SendableMessage"] = None,
+        body: "SendableMessage | None" = None,
         *,
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
@@ -40,7 +42,7 @@ class RedisResponse(Response):
         self.message_format = message_format
 
     @override
-    def as_publish_command(self) -> "RedisPublishCommand":
+    def as_publish_command(self) -> "RedisPublishCommand[None]":
         return RedisPublishCommand(
             self.body,
             headers=self.headers,
@@ -52,7 +54,7 @@ class RedisResponse(Response):
         )
 
 
-class RedisPublishCommand(BatchPublishCommand):
+class RedisPublishCommand(BatchPublishCommand, Generic[_PipelineT]):
     destination_type: DestinationType
 
     def __init__(
@@ -69,7 +71,7 @@ class RedisPublishCommand(BatchPublishCommand):
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
         timeout: float | None = 30.0,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: _PipelineT | None = None,
         message_format: type["MessageFormat"] = BinaryMessageFormatV1,
     ) -> None:
         super().__init__(
@@ -120,11 +122,11 @@ class RedisPublishCommand(BatchPublishCommand):
     @classmethod
     def from_cmd(
         cls,
-        cmd: Union["PublishCommand", "RedisPublishCommand"],
+        cmd: "PublishCommand | RedisPublishCommand[Any]",
         *,
         batch: bool = False,
         message_format: type["MessageFormat"] = BinaryMessageFormatV1,
-    ) -> "RedisPublishCommand":
+    ) -> "RedisPublishCommand[Any]":
         if isinstance(cmd, RedisPublishCommand):
             # NOTE: Should return a copy probably.
             return cmd

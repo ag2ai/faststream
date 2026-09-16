@@ -20,7 +20,7 @@ search:
 |---|---|
 | Single Redis instance | Multi-node cluster |
 | Development / testing | Production with HA |
-| Need `pipeline` support | Can tolerate no pipeline |
+| Single-node transactions | Same-slot transactions |
 
 ## Connecting
 
@@ -53,8 +53,8 @@ broker = RedisClusterBroker(
 |---|---|---|
 | List | ✅ | ✅ |
 | Stream + XAUTOCLAIM | ✅ | ✅ |
-| Pub/Sub | ✅ | ✅ |
-| Pipeline | ✅ | ❌ |
+| Pub/Sub | ✅ | ✅ (via sync cluster) |
+| Pipeline | ✅ | ✅ (lists and streams) |
 
 ## Stream Location
 
@@ -79,7 +79,8 @@ broker = RedisClusterBroker(url="redis://localhost:7000")
 
 ## Limitations
 
-- **Pipeline** is not supported in Redis Cluster.
+- **Pipelines** support lists and streams, but redis-py blocks channel `PUBLISH` commands in cluster pipelines. See [Redis Pipeline](pipeline.md){.internal-link} for a tested example.
+- **Transactions** require `redis-py >= 6.2.0`, `transaction=True`, and keys in the same hash slot. A shared hash tag such as `{orders}` keeps related keys together. Pipelining without a transaction is not atomic.
 - **XAUTOCLAIM** with `min_idle_time` requires a consumer group with `group` and `consumer` parameters on `StreamSub`.
 
 ## References

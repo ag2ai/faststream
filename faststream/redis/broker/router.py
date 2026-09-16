@@ -1,6 +1,9 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
+
 from faststream._internal.broker.router import (
     ArgsContainer,
     BrokerRouter,
@@ -152,7 +155,7 @@ class RedisRoute(SubscriberRoute):
 
 
 class RedisRouter(
-    RedisRegistrator,
+    RedisRegistrator[Pipeline | ClusterPipeline],
     BrokerRouter[UnifyRedisDict, RedisRouterConfig],
 ):
     """Includable to RedisBroker router."""
@@ -164,7 +167,7 @@ class RedisRouter(
         *,
         dependencies: Iterable["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
-        routers: Iterable[RedisRegistrator] = (),
+        routers: Iterable[RedisRegistrator[Any]] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,

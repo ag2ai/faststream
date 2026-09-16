@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream import Context
-from faststream.redis import RedisResponse
+from faststream.redis import ClusterPipeline, ListSub, RedisResponse
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
@@ -134,27 +134,6 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
             )
             assert await response.decode() == "Hi!", response
 
-    async def test_pipeline_warns(
-        self,
-        queue: str,
-    ) -> None:
-        """Pipeline should emit RuntimeWarning in cluster mode."""
-        broker = self.get_broker()
-
-        async with broker:
-            with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-                await broker.publish("hello", channel=queue, pipeline=None)  # type: ignore[arg-type]
-
-    async def test_publish_batch_with_pipeline_warns(
-        self,
-        queue: str,
-    ) -> None:
-        """Pipeline should emit RuntimeWarning for publish_batch in cluster."""
-        broker = self.get_broker()
-
-        with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish_batch("x", "y", list=queue, pipeline=None)  # type: ignore[arg-type]
-
     async def test_channel_publish(
         self,
         queue: str,
@@ -219,3 +198,82 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         assert event.is_set()
         assert mock.call_args[1]["body"] == "hi"
         assert mock.call_args[1]["correlation_id"] == "cor123"
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        "type_queue",
+        (
+            pytest.param("channel"),
+            pytest.param("list"),
+            pytest.param("stream"),
+        ),
+    )
+    async def test_publish_with_pipeline(
+        self,
+        event: asyncio.Event,
+        type_queue: str,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        destination = {type_queue: queue + "resp"}
+        publisher = broker.publisher(**destination)
+
+        @broker.subscriber(**{type_queue: queue})
+        async def m(msg: str, pipe: ClusterPipeline) -> None:
+            for _ in range(5):
+                # publish 5 messages by publisher
+                await publisher.publish(None, pipeline=pipe)
+
+                # and 5 by broker
+                await broker.publish(None, **destination, pipeline=pipe)
+
+            await pipe.execute()
+
+        @broker.subscriber(**destination)
+        async def resp(msg: str) -> None:
+            mock(msg)
+            if mock.call_count == 10:
+                event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            tasks = (
+                asyncio.create_task(br.publish("", **{type_queue: queue})),
+                asyncio.create_task(event.wait()),
+            )
+            await asyncio.wait(tasks, timeout=3)
+
+        assert mock.call_count == 10
+
+    @pytest.mark.asyncio()
+    async def test_publish_batch_with_pipeline(
+        self,
+        event: asyncio.Event,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @broker.subscriber(channel=queue)
+        async def m(msg: str, pipe: ClusterPipeline) -> None:
+            await broker.publish_batch(*range(5), list=queue + "resp", pipeline=pipe)
+            await pipe.execute()
+
+        @broker.subscriber(list=ListSub(queue + "resp", batch=True, max_records=5))
+        async def resp(msgs: list[int]) -> None:
+            mock(msgs)
+            event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            tasks = (
+                asyncio.create_task(br.publish("", channel=queue)),
+                asyncio.create_task(event.wait()),
+            )
+            await asyncio.wait(tasks, timeout=3)
+
+        mock.assert_called_once_with([0, 1, 2, 3, 4])

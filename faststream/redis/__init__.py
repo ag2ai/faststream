@@ -11,10 +11,12 @@ RedisParserType: TypeAlias = ParserProto["Mapping[str, Any]"]
 
 try:
     from .annotations import (
+        ClusterPipeline,
         Pipeline,
         Redis,
         RedisBatchStreamMessage,
         RedisChannelMessage,
+        RedisCluster,
         RedisListMessage,
         RedisMessage,
         RedisStreamMessage,
@@ -43,6 +45,7 @@ except ImportError as e:
 
 __all__ = (
     "BinaryMessageFormatV1",
+    "ClusterPipeline",
     "ListSub",
     "Pipeline",
     "PubSub",
@@ -50,6 +53,7 @@ __all__ = (
     "RedisBatchStreamMessage",
     "RedisBroker",
     "RedisChannelMessage",
+    "RedisCluster",
     "RedisClusterBroker",
     "RedisListMessage",
     "RedisMessage",
