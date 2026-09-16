@@ -261,11 +261,11 @@ To differentiate between different types of publishers, you can use `cmd.publish
     from faststream.redis import RedisPublishCommand
 
 
-    class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand]):
+    class RedisPublishMiddleware(BaseMiddleware[RedisPublishCommand[Any]]):
         async def publish_scope(
             self,
-            call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
-            cmd: RedisPublishCommand,
+            call_next: Callable[[RedisPublishCommand[Any]], Awaitable[Any]],
+            cmd: RedisPublishCommand[Any],
         ) -> Any:
             return await call_next(cmd)
     ```

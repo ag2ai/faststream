@@ -7,8 +7,10 @@ from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
     Optional,
     Protocol,
+    TypeVar,
     Union,
     cast,
     overload,
@@ -17,6 +19,8 @@ from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import TypedDict, override
 
 from faststream._internal.endpoint.utils import ParserComposition
@@ -28,6 +32,8 @@ from faststream._internal.testing.broker import (
 )
 from faststream.exceptions import SetupError, SubscriberNotFound
 from faststream.redis.broker.broker import RedisBroker
+from faststream.redis.broker.cluster_broker import RedisClusterBroker
+from faststream.redis.broker.sentinel_broker import RedisSentinelBroker
 from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.message import (
     BatchListMessage,
@@ -58,6 +64,11 @@ __all__ = (
     "PEL",
     "TestRedisBroker",
 )
+
+_RedisBrokerT = TypeVar(
+    "_RedisBrokerT", bound=RedisBroker | RedisClusterBroker | RedisSentinelBroker
+)
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline | None)
 
 
 @dataclass(kw_only=True)
@@ -90,13 +101,15 @@ class PEL:
         return self.entries.get(correlation_id)
 
 
-class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
+class TestRedisBroker(
+    TestBroker[_RedisBrokerT, EnterType], Generic[_RedisBrokerT, EnterType]
+):
     """A class to test Redis brokers."""
 
     @overload
     def __init__(
-        self: "TestRedisBroker[RedisBroker]",
-        broker: RedisBroker,
+        self: "TestRedisBroker[_RedisBrokerT, _RedisBrokerT]",
+        broker: _RedisBrokerT,
         /,
         *,
         with_real: bool = False,
@@ -105,15 +118,15 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
 
     @overload
     def __init__(
-        self: "TestRedisBroker[tuple[RedisBroker, ...]]",
-        *brokers: RedisBroker,
+        self: "TestRedisBroker[_RedisBrokerT, tuple[_RedisBrokerT, ...]]",
+        *brokers: _RedisBrokerT,
         with_real: bool = False,
         connect_only: bool | None = None,
     ) -> None: ...
 
     def __init__(
         self,
-        *brokers: RedisBroker,
+        *brokers: _RedisBrokerT,
         with_real: bool = False,
         connect_only: bool | None = None,
         pel: PEL | None = None,
@@ -128,7 +141,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         )
 
     @asynccontextmanager
-    async def _create_ctx(self) -> AsyncGenerator[list[RedisBroker], None]:
+    async def _create_ctx(self) -> AsyncGenerator[list[_RedisBrokerT], None]:
         with ExitStack() as cluster_stack:
             for broker in self.brokers:
                 is_cluster = isinstance(
@@ -147,7 +160,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                 yield brokers
 
     @contextmanager
-    def _patch_producer(self, broker: RedisBroker) -> Generator[None, None, None]:
+    def _patch_producer(self, broker: _RedisBrokerT) -> Generator[None, None, None]:
         with ExitStack() as es:
             es.enter_context(
                 change_producer(
@@ -168,7 +181,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
 
     def create_publisher_fake_subscriber(
         self,
-        broker: RedisBroker,
+        broker: _RedisBrokerT,
         publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber", bool]:
         sub: LogicSubscriber | None = None
@@ -196,7 +209,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
 
     @staticmethod
     async def _fake_connect(  # type: ignore[override]
-        broker: RedisBroker,
+        broker: _RedisBrokerT,
         *args: Any,
         **kwargs: Any,
     ) -> AsyncMock:
@@ -221,11 +234,11 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         return connection
 
 
-class FakeProducer(RedisFastProducer):
+class FakeProducer(RedisFastProducer, Generic[_RedisBrokerT]):
     def __init__(
         self,
-        broker: RedisBroker,
-        brokers: Sequence[RedisBroker],
+        broker: _RedisBrokerT,
+        brokers: Sequence[_RedisBrokerT],
         config: ParserConfig,
         pel: PEL | None = None,
     ) -> None:
@@ -251,7 +264,7 @@ class FakeProducer(RedisFastProducer):
         return (cast("LogicSubscriber", s) for b in self.brokers for s in b.subscribers)
 
     @override
-    def _build_child(self, **kwargs: Any) -> "FakeProducer":
+    def _build_child(self, **kwargs: Any) -> "FakeProducer[_RedisBrokerT]":
         return FakeProducer(
             broker=self.broker,
             brokers=self.brokers,
@@ -259,7 +272,9 @@ class FakeProducer(RedisFastProducer):
         )
 
     @override
-    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
+    async def publish(
+        self, cmd: "RedisPublishCommand[_PipelineT]"
+    ) -> int | bytes | _PipelineT:
         body = await build_message(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -289,7 +304,7 @@ class FakeProducer(RedisFastProducer):
         return 0
 
     @override
-    async def request(self, cmd: "RedisPublishCommand") -> "PubSubMessage":
+    async def request(self, cmd: "RedisPublishCommand[Any]") -> "PubSubMessage":
         body = await build_message(
             message=cmd.body,
             correlation_id=cmd.correlation_id or self.broker.config.id_generator(),
@@ -321,7 +336,9 @@ class FakeProducer(RedisFastProducer):
         raise SubscriberNotFound
 
     @override
-    async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
+    async def publish_batch(
+        self, cmd: "RedisPublishCommand[_PipelineT]"
+    ) -> int | _PipelineT:
         data_to_send = [
             await build_message(
                 m,
@@ -380,7 +397,7 @@ class FakeProducer(RedisFastProducer):
         self,
         destination: "_DestinationKwargs",
         visitors: "Sequence[Visitor]",
-        cmd: "RedisPublishCommand",
+        cmd: "RedisPublishCommand[Any]",
         session_id: uuid.UUID,
     ) -> "Iterator[tuple[Visitor, str, LogicSubscriber]]":
         published_groups: set[tuple[str, str]] = set()
@@ -406,7 +423,7 @@ class FakeProducer(RedisFastProducer):
         handler: "LogicSubscriber",
         visited_ch: str,
         published_groups: set[tuple[str, str]],
-        cmd: "RedisPublishCommand",
+        cmd: "RedisPublishCommand[Any]",
         session_id: uuid.UUID,
     ) -> bool:
         if isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.group:
@@ -440,7 +457,7 @@ class FakeProducer(RedisFastProducer):
     def _check_pel(
         self,
         handler: "LogicSubscriber",
-        cmd: "RedisPublishCommand",
+        cmd: "RedisPublishCommand[Any]",
         session_id: uuid.UUID,
     ) -> Optional["Entry"]:
         return self.pel.get_entry(
@@ -455,7 +472,7 @@ class FakeProducer(RedisFastProducer):
         self,
         handler: "LogicSubscriber",
         msg: Any,
-        cmd: "RedisPublishCommand",
+        cmd: "RedisPublishCommand[Any]",
         session_id: uuid.UUID,
     ) -> None:
         if not self._handler_no_ack(handler):
@@ -658,7 +675,7 @@ class _DestinationKwargs(TypedDict, total=False):
     stream: str
 
 
-def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
+def _make_destination_kwargs(cmd: RedisPublishCommand[Any]) -> _DestinationKwargs:
     destination: _DestinationKwargs = {}
     if cmd.destination_type is DestinationType.Channel:
         destination["channel"] = cmd.destination

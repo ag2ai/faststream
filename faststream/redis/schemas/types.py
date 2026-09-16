@@ -1,10 +1,13 @@
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Annotated, Any
+from typing import Annotated, Any, Generic, TypeVar
 
 from fast_depends import Provider
 from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
-from redis.asyncio.connection import BaseParser, Connection, Encoder
+from redis._parsers import BaseParser, Encoder
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
+from redis.asyncio.connection import Connection
 from redis.asyncio.retry import Retry
 from typing_extensions import Required, TypedDict
 
@@ -17,6 +20,8 @@ from faststream.redis.broker.registrator import RedisRegistrator
 from faststream.redis.parser import MessageFormat
 from faststream.security import BaseSecurity
 from faststream.specification.schema.extra import Tag, TagDict
+
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 
 
 class RedisConnectionParams(TypedDict, total=False):
@@ -62,7 +67,7 @@ class RedisConnectionParams(TypedDict, total=False):
     encoder_class: Annotated[type[Encoder], "Encoder class. Defaults to ``Encoder``."]
 
 
-class RedisBrokerParams(RedisConnectionParams, total=False):
+class RedisBrokerParams(RedisConnectionParams, Generic[_PipelineT], total=False):
     graceful_timeout: Annotated[
         float | None, "Graceful shutdown timeout. Defaults to ``15.0``."
     ]
@@ -88,7 +93,7 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
         Sequence[BrokerMiddleware[Any, Any]], "Global middlewares. Defaults to ``()``."
     ]
     routers: Annotated[
-        Iterable[RedisRegistrator], "Routers to include. Defaults to ``()``."
+        Iterable[RedisRegistrator[_PipelineT]], "Routers to include. Defaults to ``()``."
     ]
     message_format: Annotated[
         type[MessageFormat],
@@ -112,14 +117,14 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     context: Annotated[ContextRepo | None, "Context repository. Defaults to ``None``."]
 
 
-class RedisClusterParams(RedisBrokerParams, total=False):
+class RedisClusterParams(RedisBrokerParams[ClusterPipeline], total=False):
     startup_nodes: Annotated[
         Iterable[tuple[str, int]],
         "Explicit seed node addresses. Auto-discovered when omitted. Defaults to ``None``.",
     ]
 
 
-class RedisSentinelParams(RedisBrokerParams, total=False):
+class RedisSentinelParams(RedisBrokerParams[Pipeline], total=False):
     sentinels: Annotated[
         Required[Sequence[tuple[str, int]]],
         "Redis Sentinel ``(host, port)`` nodes to discover the master from. Required.",

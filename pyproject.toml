@@ -117,7 +117,6 @@ lint = [
     # type checkers extensions
     "types-PyYAML",
     "types-setuptools",
-    "types-redis",
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",
