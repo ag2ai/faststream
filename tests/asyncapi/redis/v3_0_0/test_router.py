@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 from faststream.redis import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
 from faststream.specification import Specification
 from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase

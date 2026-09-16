@@ -1,4 +1,4 @@
-from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.api.publisher import PublisherSpecification
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, PublisherSpec
@@ -16,7 +16,7 @@ class MQTTPublisherSpecification(
 ):
     @property
     def topic(self) -> str:
-        return self.config.address.add_prefix(self._outer_config.prefix).template
+        return self.config.address.add_prefix(self.outer_config.prefix).template
 
     @property
     def name(self) -> str:

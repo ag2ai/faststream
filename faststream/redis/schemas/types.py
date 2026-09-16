@@ -8,15 +8,14 @@ from redis.asyncio.connection import BaseParser, Connection, Encoder
 from redis.asyncio.retry import Retry
 from typing_extensions import Required, TypedDict
 
-from faststream._internal.basic_types import LoggerProto
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.parser import CodecProto
-from faststream._internal.types import BrokerMiddleware, CustomCallable, IdGenerator
+from faststream.api.parser import CodecProto
+from faststream.context import ContextRepo
 from faststream.middlewares import AckPolicy
 from faststream.redis.broker.registrator import RedisRegistrator
 from faststream.redis.parser import MessageFormat
 from faststream.security import BaseSecurity
 from faststream.specification.schema.extra import Tag, TagDict
+from faststream.types import BrokerMiddleware, CustomCallable, IdGenerator, LoggerProto
 
 
 class RedisConnectionParams(TypedDict, total=False):

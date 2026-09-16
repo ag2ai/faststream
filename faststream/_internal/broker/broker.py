@@ -60,7 +60,7 @@ class BrokerUsecase(
         return self.config.broker_middlewares
 
     @property
-    def _producer(self) -> "ProducerProto":
+    def producer(self) -> "ProducerProto":
         return self.config.producer
 
     @property

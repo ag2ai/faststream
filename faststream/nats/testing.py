@@ -7,27 +7,26 @@ import anyio
 from nats.aio.msg import Msg
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import EnterType, TestBroker
-from faststream._internal.types import IdGenerator
+from faststream.api.parser import DefaultCodec, ParserComposition
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.nats.broker import NatsBroker
 from faststream.nats.parser import NatsParser
 from faststream.nats.publisher.producer import NatsFastProducer
 from faststream.nats.schemas.js_stream import is_subject_match_wildcard
+from faststream.types import IdGenerator
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.configs.broker import ConfigComposition
-    from faststream._internal.parser import CodecProto
+    from faststream.api.configs.broker import ConfigComposition
+    from faststream.api.parser import CodecProto
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.response import NatsPublishCommand
     from faststream.nats.subscriber.usecases.basic import LogicSubscriber
+    from faststream.types import SendableMessage
 
 __all__ = ("TestNatsBroker",)
 
@@ -142,8 +141,8 @@ class FakeProducer(NatsFastProducer):
         self.brokers = brokers
 
         default = NatsParser(pattern="", is_ack_disabled=True)
-        self._parser = ParserComposition(broker._parser, default.parse_message)
-        self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.parser = ParserComposition(broker.parser, default.parse_message)
+        self.decoder = ParserComposition(broker.decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()
 
     @property
@@ -160,7 +159,7 @@ class FakeProducer(NatsFastProducer):
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             reply_to=cmd.reply_to,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
         )
@@ -186,7 +185,7 @@ class FakeProducer(NatsFastProducer):
             subject=cmd.destination,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
         )
@@ -221,7 +220,7 @@ class FakeProducer(NatsFastProducer):
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
         )

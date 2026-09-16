@@ -36,7 +36,7 @@ class BrokerPublishMixin(Generic[MsgType]):
     ) -> Any:
         raise NotImplementedError
 
-    async def _basic_publish(
+    async def basic_publish(
         self,
         cmd: "PublishCommand",
         *,
@@ -58,7 +58,7 @@ class BrokerPublishMixin(Generic[MsgType]):
         msg = f"{self.__class__.__name__} doesn't support publishing in batches."
         raise FeatureNotSupportedException(msg)
 
-    async def _basic_publish_batch(
+    async def basic_publish_batch(
         self,
         cmd: "PublishCommand",
         *,
@@ -82,7 +82,7 @@ class BrokerPublishMixin(Generic[MsgType]):
     ) -> Any:
         raise NotImplementedError
 
-    async def _basic_request(
+    async def basic_request(
         self,
         cmd: "PublishCommand",
         *,
@@ -99,8 +99,8 @@ class BrokerPublishMixin(Generic[MsgType]):
         response_msg: Any = await process_msg(
             msg=published_msg,
             middlewares=(m(published_msg, context=context) for m in self.middlewares),
-            parser=producer._parser,
-            decoder=producer._decoder,
+            parser=producer.parser,
+            decoder=producer.decoder,
             source_type=SourceType.RESPONSE,
         )
         return response_msg

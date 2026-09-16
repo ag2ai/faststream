@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from zmqtt import Message, QoS
 
-from faststream._internal.broker.router import (
+from faststream._internal.constants import EMPTY
+from faststream.api.broker import (
     ArgsContainer,
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 
@@ -17,8 +17,7 @@ from .registrator import MQTTRegistrator
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.types import BrokerMiddleware, CustomCallable, SendableMessage
 
 
 class MQTTPublisher(ArgsContainer):

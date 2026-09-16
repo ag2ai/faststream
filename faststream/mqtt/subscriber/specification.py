@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.api.subscriber import SubscriberSpecification
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, SubscriberSpec
@@ -13,7 +13,7 @@ from faststream.specification.schema.bindings import (
 from .config import MQTTSubscriberSpecificationConfig
 
 if TYPE_CHECKING:
-    from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream.api.subscriber import CallsCollection
 
 
 class MQTTSubscriberSpecification(
@@ -21,11 +21,11 @@ class MQTTSubscriberSpecification(
 ):
     def __init__(
         self,
-        _outer_config: "MQTTBrokerConfig",
+        outer_config: "MQTTBrokerConfig",
         specification_config: "MQTTSubscriberSpecificationConfig",
         calls: "CallsCollection[Any]",
     ) -> None:
-        super().__init__(_outer_config, specification_config, calls)
+        super().__init__(outer_config, specification_config, calls)
 
     @property
     def address(self) -> str:
@@ -36,7 +36,7 @@ class MQTTSubscriberSpecification(
         the address does not either. The channel name and the MQTT channel binding
         both keep it, which is where the group stays visible.
         """
-        return self.config.address.add_prefix(self._outer_config.prefix).template
+        return self.config.address.add_prefix(self.outer_config.prefix).template
 
     @property
     def topic(self) -> str:

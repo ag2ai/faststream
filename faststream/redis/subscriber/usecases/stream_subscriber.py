@@ -8,8 +8,8 @@ import anyio
 from redis.exceptions import ResponseError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
-from faststream._internal.endpoint.utils import process_msg
+from faststream.api.endpoint import process_msg
+from faststream.api.subscriber import ConcurrentMixin
 from faststream.redis.exceptions import (
     StreamClaimUnsupportedError,
     StreamGroupNotFoundError,
@@ -29,9 +29,9 @@ from .basic import CONSUME_ERROR_BACKOFF_SECONDS, LogicSubscriber
 if TYPE_CHECKING:
     from anyio import Event
 
-    from faststream._internal.endpoint.subscriber import SubscriberSpecification
-    from faststream._internal.endpoint.subscriber.call_item import (
+    from faststream.api.subscriber import (
         CallsCollection,
+        SubscriberSpecification,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.message import _StreamMessage
@@ -87,7 +87,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
     @property
     def stream_sub(self) -> "StreamSub":
-        return self._stream_sub.add_prefix(self._outer_config.prefix)
+        return self._stream_sub.add_prefix(self.outer_config.prefix)
 
     def get_log_context(
         self,
@@ -268,7 +268,7 @@ class _StreamHandlerMixin(LogicSubscriber):
         )
         _attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
-        context = self._outer_config.context
+        context = self.outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
@@ -289,7 +289,7 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         timeout = 5
 
-        context = self._outer_config.context
+        context = self.outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         claim_meta: ClaimMeta | None

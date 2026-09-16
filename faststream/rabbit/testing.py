@@ -11,14 +11,12 @@ from pamqp import commands as spec
 from pamqp.header import ContentHeader
 from typing_extensions import override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
-from faststream._internal.testing.broker import (
+from faststream.api.parser import DefaultCodec, ParserComposition
+from faststream.api.testing import (
     EnterType,
     TestBroker,
     change_producer,
 )
-from faststream._internal.types import IdGenerator
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
 from faststream.rabbit.broker.broker import RabbitBroker
@@ -29,13 +27,14 @@ from faststream.rabbit.schemas import (
     RabbitExchange,
     RabbitQueue,
 )
+from faststream.types import IdGenerator
 
 if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.endpoint.subscriber import SubscriberUsecase
-    from faststream._internal.parser import CodecProto
+    from faststream.api.parser import CodecProto
+    from faststream.api.subscriber import SubscriberUsecase
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.response import RabbitPublishCommand
     from faststream.rabbit.subscriber import RabbitSubscriber
@@ -248,9 +247,9 @@ class FakeProducer(AioPikaFastProducer):
         self.brokers = brokers
 
         default_parser = AioPikaParser()
-        self._parser = ParserComposition(broker._parser, default_parser.parse_message)
-        self._decoder = ParserComposition(
-            broker._decoder,
+        self.parser = ParserComposition(broker.parser, default_parser.parse_message)
+        self.decoder = ParserComposition(
+            broker.decoder,
             default_parser.decode_message,
         )
         self.codec = broker.config.broker_codec or DefaultCodec()
@@ -272,7 +271,7 @@ class FakeProducer(AioPikaFastProducer):
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
             reply_to=cmd.reply_to,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
             **cmd.message_options,
@@ -305,7 +304,7 @@ class FakeProducer(AioPikaFastProducer):
             routing_key=cmd.destination,
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
             **cmd.message_options,
@@ -335,7 +334,7 @@ class FakeProducer(AioPikaFastProducer):
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
-            serializer=self.broker.config.fd_config._serializer,
+            serializer=self.broker.config.fd_config.serializer,
             codec=self.codec,
             id_generator=self.broker.config.id_generator,
         )

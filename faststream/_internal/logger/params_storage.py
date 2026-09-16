@@ -59,20 +59,20 @@ class DefaultLoggerStorage(LoggerParamsStorage):
         # will be used to build logger in `get_logger` method
         self.logger_log_level = logging.INFO
 
-        self._logger_ref = WeakSet[logging.Logger]()
+        self.logger_ref = WeakSet[logging.Logger]()
 
     @abstractmethod
     def get_logger(self, *, context: "ContextRepo") -> "LoggerProto":
         raise NotImplementedError
 
-    def _get_logger_ref(self) -> logging.Logger | None:
-        if self._logger_ref:
-            return next(iter(self._logger_ref))
+    def get_logger_ref(self) -> logging.Logger | None:
+        if self.logger_ref:
+            return next(iter(self.logger_ref))
 
         return None
 
     def set_level(self, level: int) -> None:
-        if lg := self._get_logger_ref():
+        if lg := self.get_logger_ref():
             lg.setLevel(level)
 
         self.logger_log_level = level

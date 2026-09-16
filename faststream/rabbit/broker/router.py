@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from aio_pika import IncomingMessage
 
-from faststream._internal.broker.router import (
+from faststream._internal.constants import EMPTY
+from faststream.api.broker import (
     ArgsContainer,
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig
 
@@ -18,15 +18,15 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
     from faststream.rabbit.schemas import (
         RabbitExchange,
         RabbitQueue,
     )
     from faststream.rabbit.types import AioPikaSendableMessage
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
+    )
 
 
 class RabbitPublisher(ArgsContainer):

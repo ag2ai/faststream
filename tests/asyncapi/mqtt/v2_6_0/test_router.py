@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
+from faststream.api.broker import BrokerUsecase
 from faststream.mqtt import MQTTBroker, MQTTPublisher, MQTTRoute, MQTTRouter
 from faststream.specification.base import Specification
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase

@@ -30,11 +30,10 @@ from nats.js.errors import BadRequestError
 from typing_extensions import overload, override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.di import FastDependsConfig
-from faststream._internal.types import IdGenerator
+from faststream.api.broker import BrokerUsecase
+from faststream.api.di import FastDependsConfig
+from faststream.context import ContextRepo
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
@@ -47,6 +46,7 @@ from faststream.nats.security import parse_security
 from faststream.nats.subscriber.usecases.basic import LogicSubscriber
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
+from faststream.types import IdGenerator
 
 from .logging import make_nats_logger_state
 from .registrator import NatsRegistrator
@@ -68,15 +68,19 @@ if TYPE_CHECKING:
     from nats.js.object_store import ObjectStore
     from typing_extensions import TypedDict
 
-    from faststream._internal.basic_types import LoggerProto, SendableMessage
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream.api.parser import CodecProto
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import PubAck, Schedule
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
+        LoggerProto,
+        SendableMessage,
+    )
 
     class NatsInitKwargs(TypedDict, total=False):
         """NatsBroker.connect() method type hints.
@@ -624,15 +628,15 @@ class NatsBroker(
             reply_to=reply_to,
             stream=stream,
             timeout=timeout or 0.5,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             schedule=schedule,
         )
 
         result: PubAck | None
         if stream:
-            result = await super()._basic_publish(cmd, producer=self.config.js_producer)
+            result = await super().basic_publish(cmd, producer=self.config.js_producer)
         else:
-            result = await super()._basic_publish(cmd, producer=self.config.producer)
+            result = await super().basic_publish(cmd, producer=self.config.producer)
         return result
 
     @override
@@ -677,12 +681,12 @@ class NatsBroker(
             headers=headers,
             timeout=timeout,
             stream=stream,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
 
         producer = self.config.js_producer if stream is not None else self.config.producer
 
-        msg: NatsMessage = await super()._basic_request(cmd, producer=producer)
+        msg: NatsMessage = await super().basic_request(cmd, producer=producer)
         return msg
 
     async def key_value(

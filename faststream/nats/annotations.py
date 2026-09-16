@@ -4,8 +4,8 @@ from nats.aio.client import Client as _NatsClient
 from nats.js.client import JetStreamContext as _JetStream
 from nats.js.object_store import ObjectStore as _ObjectStore
 
-from faststream._internal.context import Context
 from faststream.annotations import ContextRepo, Logger
+from faststream.context import Context
 from faststream.nats.broker import NatsBroker as _Broker
 from faststream.nats.message import (
     NatsKvMessage as _KVMessage,

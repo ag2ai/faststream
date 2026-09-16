@@ -13,9 +13,9 @@ from typing_extensions import Self
 from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
 from faststream._internal.application import Application
 from faststream._internal.constants import EMPTY
-from faststream._internal.context import ContextRepo
-from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
+from faststream.api.di import FastDependsConfig
+from faststream.context import ContextRepo
 from faststream.exceptions import INSTALL_UVICORN, StartupValidationError
 
 from .factories import AsyncAPIRoute, make_try_it_out_handler
@@ -29,14 +29,14 @@ if TYPE_CHECKING:
     from anyio.abc import TaskStatus
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import (
+    from faststream.api.broker import BrokerUsecase
+    from faststream.specification.base import SpecificationFactory
+    from faststream.types import (
         AnyCallable,
         Lifespan,
         LoggerProto,
         SettingField,
     )
-    from faststream._internal.broker import BrokerUsecase
-    from faststream.specification.base import SpecificationFactory
 
     class UvicornServerProtocol(Protocol):
         should_exit: bool

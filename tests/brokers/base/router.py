@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream import Context
-from faststream._internal.broker.router import (
+from faststream.api.broker import (
     ArgsContainer,
     BrokerRouter,
     SubscriberRoute,
@@ -516,11 +516,11 @@ class RouterTestcase(
         pub1 = router1.publisher("l3")
         pub2 = router2.publisher("l3")
 
-        assert pub1._outer_config.producer is not pub2._outer_config.producer
+        assert pub1.outer_config.producer is not pub2.outer_config.producer
 
         pub_broker.include_routers(router2, router1)
 
-        assert pub1._outer_config.producer is pub2._outer_config.producer
+        assert pub1.outer_config.producer is pub2.outer_config.producer
 
 
 @pytest.mark.asyncio()

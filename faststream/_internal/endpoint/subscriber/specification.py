@@ -5,16 +5,14 @@ from typing_extensions import (
     TypeVar as TypeVar313,
 )
 
-from faststream._internal.configs import BrokerConfig, SubscriberSpecificationConfig
-from faststream._internal.endpoint.specification import EndpointSpecification
+from faststream.api.configs import BrokerConfig, SubscriberSpecificationConfig
+from faststream.api.endpoint import EndpointSpecification
 from faststream.exceptions import SetupError
 from faststream.specification.asyncapi.message import parse_handler_params
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
-    from faststream._internal.endpoint.subscriber.call_item import (
-        CallsCollection,
-    )
+    from faststream.api.subscriber import CallsCollection
     from faststream.specification.schema import SubscriberSpec
 
 
@@ -31,11 +29,11 @@ class SubscriberSpecification(
 ):
     def __init__(
         self,
-        _outer_config: "T_BrokerConfig",
+        outer_config: "T_BrokerConfig",
         specification_config: "T_SpecificationConfig",
         calls: "CallsCollection[Any]",
     ) -> None:
-        super().__init__(_outer_config, specification_config)
+        super().__init__(outer_config, specification_config)
         self.calls = calls
 
     @property

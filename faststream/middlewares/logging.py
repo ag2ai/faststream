@@ -1,17 +1,17 @@
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
-from faststream._internal.middlewares import BaseMiddleware
+from faststream import BaseMiddleware
 from faststream.exceptions import IgnoredException
 from faststream.message.source_type import SourceType
 
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.basic_types import AsyncFuncAny
-    from faststream._internal.context.repository import ContextRepo
-    from faststream._internal.logger import LoggerState
+    from faststream.api.logger import LoggerState
+    from faststream.context import ContextRepo
     from faststream.message import StreamMessage
+    from faststream.types import AsyncFuncAny
 
 
 class CriticalLogMiddleware:

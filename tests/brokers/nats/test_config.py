@@ -12,7 +12,7 @@ def test_default() -> None:
         sub_config=ConsumerConfig(),
     )
 
-    assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
+    assert config.resolved_ack_policy is AckPolicy.REJECT_ON_ERROR
 
 
 @pytest.mark.nats()

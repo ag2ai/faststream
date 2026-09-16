@@ -33,7 +33,7 @@ class PublisherProto(Protocol[PublishCommandType_contra]):
         self,
         cmd: "PublishCommandType_contra",
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """Private method to publish a message.
 

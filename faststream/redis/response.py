@@ -12,7 +12,7 @@ from faststream.response.response import BatchPublishCommand, PublishCommand, Re
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
 
-    from faststream._internal.basic_types import SendableMessage
+    from faststream.types import SendableMessage
 
 
 class DestinationType(str, Enum):
@@ -45,7 +45,7 @@ class RedisResponse(Response):
             self.body,
             headers=self.headers,
             correlation_id=self.correlation_id,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
             maxlen=self.maxlen,
             message_format=self.message_format,
             channel="fake-channel",  # it will be replaced by reply-sender
@@ -60,7 +60,7 @@ class RedisPublishCommand(BatchPublishCommand):
         message: "SendableMessage",
         /,
         *messages: "SendableMessage",
-        _publish_type: "PublishType",
+        publish_type: "PublishType",
         correlation_id: str | None = None,
         channel: str | None = None,
         list: str | None = None,
@@ -75,7 +75,7 @@ class RedisPublishCommand(BatchPublishCommand):
         super().__init__(
             message,
             *messages,
-            _publish_type=_publish_type,
+            publish_type=publish_type,
             correlation_id=correlation_id,
             reply_to=reply_to,
             destination="",
@@ -139,5 +139,5 @@ class RedisPublishCommand(BatchPublishCommand):
             headers=cmd.headers,
             reply_to=cmd.reply_to,
             message_format=message_format,
-            _publish_type=cmd.publish_type,
+            publish_type=cmd.publish_type,
         )

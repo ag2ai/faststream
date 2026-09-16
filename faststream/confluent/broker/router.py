@@ -1,12 +1,12 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-from faststream._internal.broker.router import (
+from faststream._internal.constants import EMPTY
+from faststream.api.broker import (
     ArgsContainer,
     BrokerRouter,
     SubscriberRoute,
 )
-from faststream._internal.constants import EMPTY
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
@@ -16,12 +16,12 @@ if TYPE_CHECKING:
     from confluent_kafka import Message
     from fast_depends.dependencies import Dependant
 
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.types import (
+    from faststream.confluent.schemas import Topic, TopicPartition
+    from faststream.types import (
         BrokerMiddleware,
         CustomCallable,
+        SendableMessage,
     )
-    from faststream.confluent.schemas import Topic, TopicPartition
 
 
 class KafkaPublisher(ArgsContainer):

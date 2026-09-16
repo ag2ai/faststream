@@ -2,9 +2,9 @@ import time
 from collections.abc import Awaitable, Callable, Sequence
 from typing import TYPE_CHECKING, Any, Generic
 
+from faststream import BaseMiddleware
 from faststream._internal.constants import EMPTY
-from faststream._internal.middlewares import BaseMiddleware
-from faststream._internal.types import AnyMsg, BrokerMiddleware, PublishCommandType
+from faststream._internal.types import AnyMsg, PublishCommandType
 from faststream.exceptions import IgnoredException
 from faststream.message import SourceType
 from faststream.prometheus.consts import (
@@ -16,13 +16,14 @@ from faststream.prometheus.manager import MetricsManager
 from faststream.prometheus.provider import MetricsSettingsProvider
 from faststream.prometheus.types import ProcessingStatus, PublishingStatus
 from faststream.response import PublishType
+from faststream.types import BrokerMiddleware
 
 if TYPE_CHECKING:
     from prometheus_client import CollectorRegistry
 
-    from faststream._internal.basic_types import AsyncFuncAny
-    from faststream._internal.context.repository import ContextRepo
+    from faststream.context import ContextRepo
     from faststream.message.message import StreamMessage
+    from faststream.types import AsyncFuncAny
 
 
 class PrometheusMiddleware(BrokerMiddleware[AnyMsg, PublishCommandType]):

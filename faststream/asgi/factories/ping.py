@@ -6,7 +6,7 @@ from faststream.asgi.response import AsgiResponse
 from faststream.asgi.types import Scope
 
 if TYPE_CHECKING:
-    from faststream._internal.broker import BrokerUsecase
+    from faststream.api.broker import BrokerUsecase
     from faststream.specification.schema import Tag, TagDict
 
 

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
     from confluent_kafka import Message
 
-    from faststream._internal.basic_types import DecodedMessage
+    from faststream.types import DecodedMessage
 
     from .message import ConsumerProtocol
 

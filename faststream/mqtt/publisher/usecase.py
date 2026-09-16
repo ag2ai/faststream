@@ -4,16 +4,15 @@ from typing import TYPE_CHECKING, Any, Union
 from typing_extensions import override
 from zmqtt import QoS
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream.api.publisher import PublisherUsecase
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.endpoint.publisher import PublisherSpecification
-    from faststream._internal.types import PublisherMiddleware
+    from faststream.api.publisher import PublisherSpecification
     from faststream.mqtt.broker.config import MQTTBrokerConfig
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware, SendableMessage
 
     from .config import MQTTPublisherConfig
 
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
 class MQTTPublisher(PublisherUsecase):
     """Publisher for MQTT topics."""
 
-    _outer_config: "MQTTBrokerConfig"
+    outer_config: "MQTTBrokerConfig"
 
     def __init__(
         self,
@@ -38,7 +37,7 @@ class MQTTPublisher(PublisherUsecase):
     @property
     def topic(self) -> str:
         # A Publisher's topic goes to the wire as it stands, prefix included.
-        return self._address.add_prefix(self._outer_config.prefix).template
+        return self._address.add_prefix(self.outer_config.prefix).template
 
     @override
     async def publish(
@@ -57,14 +56,14 @@ class MQTTPublisher(PublisherUsecase):
             qos=qos if qos is not None else self.qos,
             retain=retain if retain is not None else self.retain,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
-            _publish_type=PublishType.PUBLISH,
+            correlation_id=correlation_id or self.outer_config.id_generator(),
+            publish_type=PublishType.PUBLISH,
         )
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=(),
+            producer=self.outer_config.producer,
+            extra_middlewares=(),
         )
 
     @override
@@ -72,7 +71,7 @@ class MQTTPublisher(PublisherUsecase):
         self,
         cmd: Union["PublishCommand", "MQTTPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """Called in subscriber flow only."""
         cmd = MQTTPublishCommand.from_cmd(cmd)
@@ -82,10 +81,10 @@ class MQTTPublisher(PublisherUsecase):
         cmd.qos = cmd.qos or self.qos
         cmd.retain = cmd.retain or self.retain
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
-            producer=self._outer_config.producer,
-            _extra_middlewares=_extra_middlewares,
+            producer=self.outer_config.producer,
+            extra_middlewares=extra_middlewares,
         )
 
     @override
@@ -104,12 +103,12 @@ class MQTTPublisher(PublisherUsecase):
             qos=self.qos,
             retain=self.retain,
             headers=self.headers,
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             reply_to=reply_to,
             timeout=timeout,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
-        return await self._basic_request(
+        return await self.basic_request(
             cmd,
-            producer=self._outer_config.producer,
+            producer=self.outer_config.producer,
         )

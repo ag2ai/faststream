@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, TypeAlias
 
-from faststream._internal.parser import ParserProto
-from faststream._internal.testing.app import TestApp
+from faststream.api.parser import ParserProto
+from faststream.api.testing import TestApp
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

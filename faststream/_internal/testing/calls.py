@@ -168,7 +168,7 @@ class CallRecorder:
     async def _expected_body(self, body: Any, message: "StreamMessage[Any]") -> Any:
         """Run the expected body through the path the received one took."""
         codec = self._outer_config.broker_codec or DefaultCodec()
-        serializer = self._outer_config.fd_config._serializer
+        serializer = self._outer_config.fd_config.serializer
 
         try:
             if message.batch_headers:

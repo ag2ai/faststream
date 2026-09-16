@@ -17,11 +17,9 @@ from fast_depends import dependency_provider
 from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.di import FastDependsConfig
-from faststream._internal.types import IdGenerator
+from faststream.api.broker import BrokerUsecase
+from faststream.api.di import FastDependsConfig
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.helpers import (
     AsyncConfluentConsumer,
@@ -29,10 +27,12 @@ from faststream.confluent.helpers import (
 )
 from faststream.confluent.publisher.producer import AsyncConfluentFastProducerImpl
 from faststream.confluent.response import KafkaPublishCommand
+from faststream.context import ContextRepo
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
+from faststream.types import IdGenerator
 
 from .logging import make_kafka_logger_state
 from .registrator import KafkaRegistrator
@@ -44,19 +44,17 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import (
-        LoggerProto,
-        SendableMessage,
-    )
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream.api.parser import CodecProto
     from faststream.confluent.helpers.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
+        LoggerProto,
+        SendableMessage,
+    )
 
 Partition = TypeVar("Partition")
 
@@ -421,11 +419,11 @@ class KafkaBroker(
             reply_to=reply_to,
             no_confirm=no_confirm,
             correlation_id=correlation_id or self.config.id_generator(),
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
         result: (
             asyncio.Future[Message | None] | Message | None
-        ) = await super()._basic_publish(cmd, producer=self.config.producer)
+        ) = await super().basic_publish(cmd, producer=self.config.producer)
         return result
 
     @override
@@ -450,10 +448,10 @@ class KafkaBroker(
             headers=headers,
             timeout=timeout,
             correlation_id=correlation_id or self.config.id_generator(),
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
 
-        msg: KafkaMessage = await super()._basic_request(
+        msg: KafkaMessage = await super().basic_request(
             cmd,
             producer=self.config.producer,
         )
@@ -480,10 +478,10 @@ class KafkaBroker(
             reply_to=reply_to,
             no_confirm=no_confirm,
             correlation_id=correlation_id or self.config.id_generator(),
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
 
-        await self._basic_publish_batch(cmd, producer=self.config.producer)
+        await self.basic_publish_batch(cmd, producer=self.config.producer)
 
     @override
     async def ping(self, timeout: float | None) -> bool:

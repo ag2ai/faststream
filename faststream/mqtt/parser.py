@@ -11,7 +11,7 @@ from faststream.message import StreamMessage, decode_message
 from .message import MQTTMessage
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import DecodedMessage
+    from faststream.types import DecodedMessage
 
 
 MQTTVersion = Literal["3.1.1", "5.0"]

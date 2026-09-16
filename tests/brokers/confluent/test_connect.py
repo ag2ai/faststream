@@ -34,7 +34,7 @@ async def test_correct_config_merging(queue: str) -> None:
             "debug": config.Debug.broker,
         })
 
-        producer_config = broker._producer._producer.producer.config
+        producer_config = broker.producer._producer.producer.config
 
         assert producer_config == expected_config
 

@@ -9,7 +9,7 @@ from faststream._internal.utils.functions import call_or_await
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer, TopicPartition
 
-    from faststream._internal.basic_types import LoggerProto
+    from faststream.types import LoggerProto
 
 
 def make_logging_listener(

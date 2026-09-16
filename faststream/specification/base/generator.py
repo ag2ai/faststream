@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Protocol, Union
 from .specification import Specification
 
 if TYPE_CHECKING:
-    from faststream._internal.broker import BrokerUsecase
+    from faststream.api.broker import BrokerUsecase
     from faststream.asgi.handlers import HttpHandler
     from faststream.specification.schema import Contact, License
 

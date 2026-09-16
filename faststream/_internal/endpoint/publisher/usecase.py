@@ -39,12 +39,12 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
         config: "PublisherUsecaseConfig",
         specification: "PublisherSpecification",
     ) -> None:
-        super().__init__(config._outer_config)
+        super().__init__(config.outer_config)
 
         self.specification = specification
 
         self._fake_handler = False
-        self._recorder = CallRecorder(specification.name, self._outer_config)
+        self._recorder = CallRecorder(specification.name, self.outer_config)
         self.is_test = False
 
     async def start(self) -> None:
@@ -69,7 +69,7 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
         self.is_test = False
         self._recorder.reset()
         # A shared recorder goes back to the handler it belongs to
-        self._recorder = CallRecorder(self.specification.name, self._outer_config)
+        self._recorder = CallRecorder(self.specification.name, self.outer_config)
         self._fake_handler = False
 
     def __call__(
@@ -82,31 +82,31 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
         self.specification.add_call(handler._declared_call)
         return handler
 
-    async def _basic_publish(
+    async def basic_publish(
         self,
         cmd: "PublishCommand",
         *,
         producer: "ProducerProto[Any]",
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> Any:
         pub = producer.publish
-        for pub_m in self._build_middlewares_stack(_extra_middlewares):
+        for pub_m in self._build_middlewares_stack(extra_middlewares):
             pub = partial(pub_m, pub)
         return await pub(cmd)
 
-    async def _basic_publish_batch(
+    async def basic_publish_batch(
         self,
         cmd: "PublishCommand",
         *,
         producer: "ProducerProto[Any]",
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> Any:
         pub = producer.publish_batch
-        for pub_m in self._build_middlewares_stack(_extra_middlewares):
+        for pub_m in self._build_middlewares_stack(extra_middlewares):
             pub = partial(pub_m, pub)
         return await pub(cmd)
 
-    async def _basic_request(
+    async def basic_request(
         self,
         cmd: "PublishCommand",
         *,
@@ -118,16 +118,16 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
 
         published_msg = await request(cmd)
 
-        context = self._outer_config.context
+        context = self.outer_config.context
 
         response_msg: Any = await process_msg(
             msg=published_msg,
             middlewares=(
                 m(published_msg, context=context)
-                for m in reversed(self._outer_config.broker_middlewares)
+                for m in reversed(self.outer_config.broker_middlewares)
             ),
-            parser=producer._parser,
-            decoder=producer._decoder,
+            parser=producer.parser,
+            decoder=producer.decoder,
             source_type=SourceType.RESPONSE,
         )
         return response_msg
@@ -136,13 +136,13 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
         self,
         extra_middlewares: Iterable["PublisherMiddleware"] = (),
     ) -> Generator["PublisherMiddleware", None, None]:
-        context = self._outer_config.context
+        context = self.outer_config.context
 
         yield from (
             extra_middlewares
             or (
                 m(None, context=context).publish_scope
-                for m in reversed(self._outer_config.broker_middlewares)
+                for m in reversed(self.outer_config.broker_middlewares)
             )
         )
 

@@ -1,4 +1,4 @@
-from faststream._internal.endpoint.publisher import PublisherSpecification
+from faststream.api.publisher import PublisherSpecification
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.utils import is_routing_exchange
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -51,7 +51,7 @@ class RabbitPublisherSpecification(
             return None
 
         routing = self.routing
-        return f"{self._outer_config.prefix}{routing}" if routing else None
+        return f"{self.outer_config.prefix}{routing}" if routing else None
 
     @property
     def name(self) -> str:
@@ -73,7 +73,7 @@ class RabbitPublisherSpecification(
         # exchange ignores one. `address` answers for the document instead, so it
         # has to make that call itself.
         r = self.config.routing_address.template or self.config.queue.routing_template()
-        routing_key = f"{self._outer_config.prefix}{r}"
+        routing_key = f"{self.outer_config.prefix}{r}"
 
         return {
             self.name: PublisherSpec(
@@ -103,7 +103,7 @@ class RabbitPublisherSpecification(
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(
-                        virtual_host=self._outer_config.virtual_host,
+                        virtual_host=self.outer_config.virtual_host,
                         queue=queue_binding,
                         exchange=exchange_binding,
                     ),

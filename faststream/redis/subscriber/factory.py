@@ -2,7 +2,7 @@ import warnings
 from typing import TYPE_CHECKING, Any, TypeAlias, Union
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
@@ -64,8 +64,8 @@ def create_subscriber(
         list_sub=ListSub.validate(list),
         stream_sub=StreamSub.validate(stream),
         no_reply=no_reply,
-        _outer_config=config,
-        _ack_policy=ack_policy,
+        outer_config=config,
+        ack_policy=ack_policy,
         _message_format=message_format,
     )
 
@@ -86,7 +86,7 @@ def create_subscriber(
             channel=subscriber_config.channel_sub,
         )
 
-        subscriber_config._ack_policy = AckPolicy.MANUAL
+        subscriber_config.ack_policy = AckPolicy.MANUAL
 
         if max_workers > 1:
             return ChannelConcurrentSubscriber(

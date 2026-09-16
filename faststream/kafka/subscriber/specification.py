@@ -1,5 +1,5 @@
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
-from faststream._internal.utils.path import Address
+from faststream.api.subscriber import SubscriberSpecification
+from faststream.api.utils import Address
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.kafka.subscriber.usecase import KAFKA_ADDRESS_SYNTAX
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -19,7 +19,7 @@ class KafkaSubscriberSpecification(
         Deduped through a dict rather than a set: set order varies per process and
         would reach the document as the order of its channels.
         """
-        prefix = self._outer_config.prefix
+        prefix = self.outer_config.prefix
 
         topics = [f"{prefix}{t}" for t in self.config.topics]
         topics.extend(f"{prefix}{p.topic}" for p in self.config.partitions)

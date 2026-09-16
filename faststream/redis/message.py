@@ -14,7 +14,7 @@ from faststream.message import StreamMessage as BrokerStreamMessage
 if TYPE_CHECKING:
     from redis.asyncio import Redis
 
-    from faststream._internal.basic_types import DecodedMessage
+    from faststream.types import DecodedMessage
 
 
 BaseMessage: TypeAlias = Union[

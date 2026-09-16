@@ -2,8 +2,8 @@ from typing import Annotated
 
 from aiokafka import AIOKafkaConsumer
 
-from faststream._internal.context import Context
 from faststream.annotations import ContextRepo, Logger
+from faststream.context import Context
 from faststream.kafka.broker import KafkaBroker as KB
 from faststream.kafka.message import KafkaMessage as KM
 from faststream.kafka.publisher.producer import AioKafkaFastProducer

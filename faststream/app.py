@@ -16,24 +16,24 @@ from faststream._internal._compat import ExceptionGroup
 from faststream._internal.application import Application
 from faststream._internal.cli.supervisors.utils import set_exit
 from faststream._internal.constants import EMPTY
-from faststream._internal.context import ContextRepo
-from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
+from faststream.api.di import FastDependsConfig
 from faststream.asgi.app import AsgiFastStream
+from faststream.context import ContextRepo
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import (
+    from faststream.api.broker import BrokerUsecase
+    from faststream.asgi import AsyncAPIRoute
+    from faststream.asgi.types import ASGIApp
+    from faststream.specification.base import SpecificationFactory
+    from faststream.types import (
         AnyCallable,
         Lifespan,
         LoggerProto,
         SettingField,
     )
-    from faststream._internal.broker import BrokerUsecase
-    from faststream.asgi import AsyncAPIRoute
-    from faststream.asgi.types import ASGIApp
-    from faststream.specification.base import SpecificationFactory
 
 P_HookParams = ParamSpec("P_HookParams")
 T_HookReturn = TypeVar("T_HookReturn")

@@ -333,7 +333,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._producer._producer.producer.send(queue, key=b""),
+                        br.producer._producer.producer.send(queue, key=b""),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -362,7 +362,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._producer._producer.producer.send(queue, key=b""),
+                        br.producer._producer.producer.send(queue, key=b""),
                     ),
                     asyncio.create_task(event.wait()),
                 ),

@@ -12,8 +12,7 @@ from nats.js.client import (
 )
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection, SubscriberSpecification
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
@@ -155,8 +154,8 @@ def create_subscriber(
         sub_config=config,
         extra_options=extra_options,
         no_reply=no_reply,
-        _outer_config=broker_config,
-        _ack_policy=ack_policy,
+        outer_config=broker_config,
+        ack_policy=ack_policy,
     )
 
     calls = CallsCollection[Any]()
@@ -171,13 +170,13 @@ def create_subscriber(
     )
 
     specification = NatsSubscriberSpecification(
-        _outer_config=broker_config,
+        outer_config=broker_config,
         calls=calls,
         specification_config=specification_config,
     )
 
     not_include_spec = NotIncludeSpecifation(
-        _outer_config=broker_config,
+        outer_config=broker_config,
         calls=calls,
         specification_config=specification_config,
     )

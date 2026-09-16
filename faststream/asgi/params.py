@@ -1,7 +1,7 @@
 from typing import Any
 
 from faststream._internal.constants import EMPTY
-from faststream._internal.context import Context as Context_
+from faststream.context import Context as Context_
 
 
 def Header(  # noqa: N802

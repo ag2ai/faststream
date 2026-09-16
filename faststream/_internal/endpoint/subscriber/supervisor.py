@@ -99,7 +99,7 @@ class TaskCallbackSupervisor:
         return bool(int(os.getenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")))
 
     def __call__(self, task: Task[Any]) -> None:
-        logger = self.subscriber._outer_config.logger
+        logger = self.subscriber.outer_config.logger
 
         logger.log(
             f"callback for {task.get_name()} is being executed...",

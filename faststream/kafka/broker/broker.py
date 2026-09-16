@@ -21,12 +21,11 @@ from fast_depends import Provider, dependency_provider
 from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.di import FastDependsConfig
-from faststream._internal.types import IdGenerator
 from faststream._internal.utils.data import filter_by_dict
+from faststream.api.broker import BrokerUsecase
+from faststream.api.di import FastDependsConfig
+from faststream.context import ContextRepo
 from faststream.exceptions import IncorrectState
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
@@ -37,6 +36,7 @@ from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
+from faststream.types import IdGenerator
 
 from .logging import make_kafka_logger_state
 from .registrator import KafkaRegistrator
@@ -51,18 +51,16 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
     from typing_extensions import TypedDict
 
-    from faststream._internal.basic_types import (
-        LoggerProto,
-        SendableMessage,
-    )
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream.api.parser import CodecProto
     from faststream.kafka.message import KafkaMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
+        LoggerProto,
+        SendableMessage,
+    )
 
     class KafkaInitKwargs(TypedDict, total=False):
         """Kafka broker initialization keyword arguments.
@@ -613,9 +611,9 @@ class KafkaBroker(
             reply_to=reply_to,
             no_confirm=no_confirm,
             correlation_id=correlation_id or self.config.id_generator(),
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
-        return await super()._basic_publish(cmd, producer=self.config.producer)
+        return await super().basic_publish(cmd, producer=self.config.producer)
 
     @override
     async def request(  # type: ignore[override]
@@ -663,10 +661,10 @@ class KafkaBroker(
             headers=headers,
             timeout=timeout,
             correlation_id=correlation_id or self.config.id_generator(),
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
 
-        msg: KafkaMessage = await super()._basic_request(
+        msg: KafkaMessage = await super().basic_request(
             cmd,
             producer=self.config.producer,
         )
@@ -758,10 +756,10 @@ class KafkaBroker(
             reply_to=reply_to,
             no_confirm=no_confirm,
             correlation_id=correlation_id or self.config.id_generator(),
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
 
-        return await self._basic_publish_batch(cmd, producer=self.config.producer)
+        return await self.basic_publish_batch(cmd, producer=self.config.producer)
 
     @override
     async def ping(self, timeout: float | None) -> bool:

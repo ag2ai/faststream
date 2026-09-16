@@ -15,11 +15,10 @@ from fast_depends import Provider, dependency_provider
 from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
-from faststream._internal.context.repository import ContextRepo
-from faststream._internal.di import FastDependsConfig
-from faststream._internal.types import IdGenerator
+from faststream.api.broker import BrokerUsecase
+from faststream.api.di import FastDependsConfig
+from faststream.context import ContextRepo
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.configs import RabbitBrokerConfig
@@ -39,6 +38,7 @@ from faststream.rabbit.security import parse_security
 from faststream.rabbit.utils import build_url
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
+from faststream.types import IdGenerator
 
 from .logging import make_rabbit_logger_state
 from .registrator import RabbitRegistrator
@@ -57,18 +57,18 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
     from yarl import URL
 
-    from faststream._internal.basic_types import LoggerProto
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
-        BrokerMiddleware,
-        CustomCallable,
-    )
+    from faststream.api.parser import CodecProto
     from faststream.rabbit.helpers import RabbitDeclarer
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.types import AioPikaSendableMessage
     from faststream.rabbit.utils import RabbitClientProperties
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
+    from faststream.types import (
+        BrokerMiddleware,
+        CustomCallable,
+        LoggerProto,
+    )
 
 
 class RabbitBroker(
@@ -374,12 +374,12 @@ class RabbitBroker(
             user_id=user_id,
             timeout=timeout,
             priority=priority,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
 
-        result: aiormq.abc.ConfirmationFrameType | None = await super()._basic_publish(
+        result: aiormq.abc.ConfirmationFrameType | None = await super().basic_publish(
             cmd,
-            producer=self._producer,
+            producer=self.producer,
         )
         return result
 
@@ -454,10 +454,10 @@ class RabbitBroker(
             user_id=user_id,
             timeout=timeout,
             priority=priority,
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
 
-        msg: RabbitMessage = await super()._basic_request(cmd, producer=self._producer)
+        msg: RabbitMessage = await super().basic_request(cmd, producer=self.producer)
         return msg
 
     async def declare_queue(self, queue: "RabbitQueue") -> "RobustQueue":

@@ -25,11 +25,11 @@ if TYPE_CHECKING:
 
     from redis.asyncio.client import Pipeline
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.redis.schemas.types import RedisClusterParams
     from faststream.redis.subscriber.usecases import ChannelSubscriber
     from faststream.security import BaseSecurity
+    from faststream.types import SendableMessage
 
 
 class RedisClusterBroker(RedisBroker):

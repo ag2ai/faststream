@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from faststream._internal.configs import (
+from faststream.api.configs import (
     PublisherSpecificationConfig,
     PublisherUsecaseConfig,
 )
@@ -17,7 +17,7 @@ class RedisPublisherSpecificationConfig(PublisherSpecificationConfig):
 
 @dataclass(kw_only=True)
 class RedisPublisherConfig(PublisherUsecaseConfig):
-    _outer_config: RedisBrokerConfig
+    outer_config: RedisBrokerConfig
 
     reply_to: str
     headers: dict[str, Any] | None
@@ -26,4 +26,4 @@ class RedisPublisherConfig(PublisherUsecaseConfig):
 
     @property
     def message_format(self) -> type["MessageFormat"]:
-        return self._message_format or self._outer_config.message_format
+        return self._message_format or self.outer_config.message_format

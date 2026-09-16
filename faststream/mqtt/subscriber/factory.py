@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 from zmqtt import QoS
 
-from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.api.subscriber import CallsCollection
 from faststream.mqtt.path import build_mqtt_address
 
 from .config import MQTTSubscriberConfig, MQTTSubscriberSpecificationConfig
@@ -38,8 +38,8 @@ def create_subscriber(
         qos=qos,
         shared=shared,
         no_reply=no_reply,
-        _outer_config=config,
-        _ack_policy=ack_policy,
+        outer_config=config,
+        ack_policy=ack_policy,
     )
 
     specification_config = MQTTSubscriberSpecificationConfig(

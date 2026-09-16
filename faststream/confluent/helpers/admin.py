@@ -6,7 +6,7 @@ from confluent_kafka.admin import AdminClient
 from .client import _LazyLoggerProxy
 
 if TYPE_CHECKING:
-    from faststream._internal.logger import LoggerState
+    from faststream.api.logger import LoggerState
     from faststream.confluent.schemas import Topic
 
     from .config import ConfluentFastConfig

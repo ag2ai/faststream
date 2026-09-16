@@ -19,9 +19,9 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from types import TracebackType
 
-    from faststream._internal.basic_types import AsyncFuncAny
-    from faststream._internal.context.repository import ContextRepo
+    from faststream.context import ContextRepo
     from faststream.message import StreamMessage
+    from faststream.types import AsyncFuncAny
 
 
 GeneralExceptionHandler: TypeAlias = Callable[..., None] | Callable[..., Awaitable[None]]

@@ -1,4 +1,4 @@
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.api.subscriber import SubscriberSpecification
 from faststream.rabbit.configs import RabbitBrokerConfig
 from faststream.rabbit.utils import is_routing_exchange
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -30,7 +30,7 @@ class RabbitSubscriberSpecification(
 
         exchange_name = getattr(self.config.exchange, "name", None)
 
-        return [f"{self._outer_config.prefix}{queue_name}:{exchange_name or '_'}"]
+        return [f"{self.outer_config.prefix}{queue_name}:{exchange_name or '_'}"]
 
     @property
     def address(self) -> str | None:
@@ -46,13 +46,13 @@ class RabbitSubscriberSpecification(
             return None
 
         return self.config.queue.add_prefix(
-            self._outer_config.prefix,
+            self.outer_config.prefix,
         ).routing_template()
 
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
-        queue = self.config.queue.add_prefix(self._outer_config.prefix)
+        queue = self.config.queue.add_prefix(self.outer_config.prefix)
 
         exchange_binding = amqp.Exchange.from_exchange(self.config.exchange)
         queue_binding = amqp.Queue.from_queue(queue)
@@ -83,7 +83,7 @@ class RabbitSubscriberSpecification(
                 ),
                 bindings=ChannelBinding(
                     amqp=amqp.ChannelBinding(
-                        virtual_host=self._outer_config.virtual_host,
+                        virtual_host=self.outer_config.virtual_host,
                         queue=queue_binding,
                         exchange=exchange_binding,
                     ),

@@ -1,4 +1,4 @@
-from faststream._internal.endpoint.subscriber import SubscriberSpecification
+from faststream.api.subscriber import SubscriberSpecification
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
 from faststream.specification.schema import Message, Operation, SubscriberSpec
@@ -17,7 +17,7 @@ class KafkaSubscriberSpecification(
         Deduped through a dict rather than a set: set order varies per process and
         would reach the document as the order of its channels.
         """
-        prefix = self._outer_config.prefix
+        prefix = self.outer_config.prefix
 
         topics = [f"{prefix}{t.name}" for t in self.config.topics]
         topics.extend(f"{prefix}{p.topic}" for p in self.config.partitions)

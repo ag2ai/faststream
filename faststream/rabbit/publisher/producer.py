@@ -9,15 +9,14 @@ from typing import (
 import anyio
 from typing_extensions import Unpack, override
 
-from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import DefaultCodec
-from faststream._internal.producer import ProducerProto
-from faststream._internal.types import IdGenerator
+from faststream.api.parser import DefaultCodec, ParserComposition
+from faststream.api.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.message import gen_cor_id
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RABBIT_REPLY, RabbitExchange
+from faststream.types import IdGenerator
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -28,13 +27,13 @@ if TYPE_CHECKING:
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.parser import CodecProto
-    from faststream._internal.types import (
+    from faststream.api.parser import CodecProto
+    from faststream.rabbit.helpers import RabbitDeclarer
+    from faststream.rabbit.types import AioPikaSendableMessage
+    from faststream.types import (
         AsyncCallable,
         CustomCallable,
     )
-    from faststream.rabbit.helpers import RabbitDeclarer
-    from faststream.rabbit.types import AioPikaSendableMessage
 
     from .options import MessageOptions
 
@@ -113,8 +112,8 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
 class AioPikaFastProducerImpl(AioPikaFastProducer):
     """A class for fast producing messages using aio-pika."""
 
-    _decoder: "AsyncCallable"
-    _parser: "AsyncCallable"
+    decoder: "AsyncCallable"
+    parser: "AsyncCallable"
 
     def __init__(
         self,
@@ -132,8 +131,8 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         self.codec: CodecProto = DefaultCodec()
 
         default_parser = AioPikaParser()
-        self._parser = ParserComposition(parser, default_parser.parse_message)
-        self._decoder = ParserComposition(decoder, default_parser.decode_message)
+        self.parser = ParserComposition(parser, default_parser.parse_message)
+        self.decoder = ParserComposition(decoder, default_parser.decode_message)
 
     def connect(
         self,

@@ -3,21 +3,20 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from typing_extensions import overload, override
 
-from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.path import Address
+from faststream.api.publisher import PublisherUsecase
 from faststream.nats.response import NatsPublishCommand
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
-    from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.endpoint.publisher import PublisherSpecification
-    from faststream._internal.producer import ProducerProto
-    from faststream._internal.types import PublisherMiddleware
+    from faststream.api.producer import ProducerProto
+    from faststream.api.publisher import PublisherSpecification
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import PubAck
     from faststream.response.response import PublishCommand
+    from faststream.types import PublisherMiddleware, SendableMessage
 
     from .config import NatsPublisherConfig
 
@@ -25,7 +24,7 @@ if TYPE_CHECKING:
 class LogicPublisher(PublisherUsecase):
     """A class to represent a NATS publisher."""
 
-    _outer_config: "NatsBrokerConfig"
+    outer_config: "NatsBrokerConfig"
 
     def __init__(
         self,
@@ -45,7 +44,7 @@ class LogicPublisher(PublisherUsecase):
     def subject(self) -> "Address":
         """The subject this Publisher was declared with, and its Broker address."""
         return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
-            self._outer_config.prefix,
+            self.outer_config.prefix,
         )
 
     @overload
@@ -114,27 +113,27 @@ class LogicPublisher(PublisherUsecase):
             subject=subject or self.subject.template,
             headers=self.headers | (headers or {}),
             reply_to=reply_to or self.reply_to,
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
             timeout=timeout or self.timeout,
-            _publish_type=PublishType.PUBLISH,
+            publish_type=PublishType.PUBLISH,
         )
 
         response: PubAck | None
         if cmd.stream:
             response = cast(
                 "PubAck",
-                await self._basic_publish(
+                await self.basic_publish(
                     cmd,
-                    producer=self._outer_config.js_producer,
-                    _extra_middlewares=(),
+                    producer=self.outer_config.js_producer,
+                    extra_middlewares=(),
                 ),
             )
         else:
-            response = await self._basic_publish(
+            response = await self.basic_publish(
                 cmd,
-                producer=self._outer_config.producer,
-                _extra_middlewares=(),
+                producer=self.outer_config.producer,
+                extra_middlewares=(),
             )
 
         return response
@@ -144,7 +143,7 @@ class LogicPublisher(PublisherUsecase):
         self,
         cmd: Union["PublishCommand", "NatsPublishCommand"],
         *,
-        _extra_middlewares: Iterable["PublisherMiddleware"],
+        extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
         """This method should be called in subscriber flow only."""
         cmd = NatsPublishCommand.from_cmd(cmd)
@@ -158,14 +157,14 @@ class LogicPublisher(PublisherUsecase):
             cmd.timeout = self.timeout
 
         if cmd.stream:
-            producer: ProducerProto[Any] = self._outer_config.js_producer
+            producer: ProducerProto[Any] = self.outer_config.js_producer
         else:
-            producer = self._outer_config.producer
+            producer = self.outer_config.producer
 
-        await self._basic_publish(
+        await self.basic_publish(
             cmd,
             producer=producer,
-            _extra_middlewares=_extra_middlewares,
+            extra_middlewares=extra_middlewares,
         )
 
     @override
@@ -208,15 +207,15 @@ class LogicPublisher(PublisherUsecase):
             subject=subject or self.subject.template,
             headers=self.headers | (headers or {}),
             timeout=timeout or self.timeout,
-            correlation_id=correlation_id or self._outer_config.id_generator(),
+            correlation_id=correlation_id or self.outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
-            _publish_type=PublishType.REQUEST,
+            publish_type=PublishType.REQUEST,
         )
 
         if cmd.stream:
-            producer: ProducerProto[Any] = self._outer_config.js_producer
+            producer: ProducerProto[Any] = self.outer_config.js_producer
         else:
-            producer = self._outer_config.producer
+            producer = self.outer_config.producer
 
-        msg: NatsMessage = await self._basic_request(cmd, producer=producer)
+        msg: NatsMessage = await self.basic_request(cmd, producer=producer)
         return msg

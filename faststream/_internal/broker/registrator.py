@@ -25,8 +25,8 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         config: BrokerConfigType,
         routers: Iterable["Registrator[MsgType]"],
     ) -> None:
-        self._parser = config.broker_parser
-        self._decoder = config.broker_decoder
+        self.parser = config.broker_parser
+        self.decoder = config.broker_decoder
 
         self.config: ConfigComposition[BrokerConfigType] = ConfigComposition(config)
 

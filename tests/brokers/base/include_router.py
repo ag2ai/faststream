@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerRouter, BrokerUsecase
+from faststream.api.broker import BrokerRouter, BrokerUsecase
 
 from .basic import BaseTestcaseConfig
 
@@ -16,7 +16,7 @@ class IncludeTestcase(BaseTestcaseConfig):
 
         obj = self.get_object(broker)
 
-        broker_middlewars = obj._outer_config.broker_middlewares
+        broker_middlewars = obj.outer_config.broker_middlewares
         assert tuple(broker_middlewars) == (1,), broker_middlewars
 
     def test_router_middlewares(self) -> None:
@@ -28,7 +28,7 @@ class IncludeTestcase(BaseTestcaseConfig):
 
         broker.include_router(router)
 
-        broker_middlewars = obj._outer_config.broker_middlewares
+        broker_middlewars = obj.outer_config.broker_middlewares
         assert tuple(broker_middlewars) == (1, 2), broker_middlewars
 
     def test_nested_router_middleware(self) -> None:
@@ -43,7 +43,7 @@ class IncludeTestcase(BaseTestcaseConfig):
         router.include_router(router2)
         broker.include_router(router)
 
-        broker_middlewars = obj._outer_config.broker_middlewares
+        broker_middlewars = obj.outer_config.broker_middlewares
         assert tuple(broker_middlewars) == (1, 2, 3), broker_middlewars
 
     def test_include_router_with_middlewares(self) -> None:
@@ -55,7 +55,7 @@ class IncludeTestcase(BaseTestcaseConfig):
 
         broker.include_router(router, middlewares=[2])
 
-        broker_middlewars = obj._outer_config.broker_middlewares
+        broker_middlewars = obj.outer_config.broker_middlewares
         assert tuple(broker_middlewars) == (1, 2, 3), broker_middlewars
 
     @pytest.mark.parametrize(
@@ -103,7 +103,7 @@ class IncludeSubscriberTestcase(IncludeTestcase):
         router.include_router(router2)
         broker.include_router(router)
 
-        assert obj._outer_config.graceful_timeout == 10
+        assert obj.outer_config.graceful_timeout == 10
 
     def test_simple_router_prefix(self) -> None:
         broker = self.get_broker()
@@ -113,7 +113,7 @@ class IncludeSubscriberTestcase(IncludeTestcase):
 
         broker.include_router(router)
 
-        assert obj._outer_config.prefix == "1."
+        assert obj.outer_config.prefix == "1."
 
     def test_nested_router_prefix(self) -> None:
         broker = self.get_broker()
@@ -126,7 +126,7 @@ class IncludeSubscriberTestcase(IncludeTestcase):
         router.include_router(router2)
         broker.include_router(router)
 
-        assert obj._outer_config.prefix == "1.2."
+        assert obj.outer_config.prefix == "1.2."
 
     def test_complex_router_prefix(self) -> None:
         broker = self.get_broker()
@@ -142,8 +142,8 @@ class IncludeSubscriberTestcase(IncludeTestcase):
         router.include_router(router2)
         broker.include_router(router)
 
-        assert sub2._outer_config.prefix == "1."
-        assert sub3._outer_config.prefix == "1.4.5."
+        assert sub2.outer_config.prefix == "1."
+        assert sub3.outer_config.prefix == "1.4.5."
 
     def test_idempotent_include_twice_on_same_broker(self) -> None:
         router = self.get_router()
