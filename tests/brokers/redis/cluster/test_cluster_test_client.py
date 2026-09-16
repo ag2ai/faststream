@@ -18,6 +18,11 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
+    @pytest.mark.connected()
+    async def test_broker_with_real_doesnt_get_patched(self) -> None:
+        await super().test_broker_with_real_doesnt_get_patched()
+
+    @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
