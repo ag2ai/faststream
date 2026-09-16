@@ -39,6 +39,18 @@ class TestTestclient(MQTTMemoryTestcaseConfig, BrokerTestclientTestcase):
             pytest.skip(_SKIP_V311)
         await super().test_reply_to(queue, mock, event)
 
+    async def test_subscriber_assertion_checks_body_fields_and_context(
+        self, queue: str
+    ) -> None:
+        if self.version == "3.1.1":
+            pytest.skip(_SKIP_V311)
+        await super().test_subscriber_assertion_checks_body_fields_and_context(queue)
+
+    async def test_publisher_assert_called_once_with(self, queue: str) -> None:
+        if self.version == "3.1.1":
+            pytest.skip(_SKIP_V311)
+        await super().test_publisher_assert_called_once_with(queue)
+
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)

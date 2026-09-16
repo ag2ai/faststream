@@ -65,7 +65,7 @@ Global pytest timeout is 30s per test; the suite runs parallel — keep tests in
 
 ## Shared base testcases
 
-Cross-broker behavior is specified ONCE in `tests/brokers/base/` (`basic.py`, `consume.py`, `publish.py`, `router.py`, `codec.py`, `middlewares.py`, `parser.py`, `requests.py`, `connection.py`, `fastapi.py`, `testclient.py`, ...) and inherited by every broker.
+Cross-broker behavior is specified ONCE in `tests/brokers/base/` (`basic.py`, `consume.py`, `publish.py`, `router.py`, `codec.py`, `middlewares.py`, `parser.py`, `requests.py`, `connection.py`, `testclient.py`, ...) and inherited by every broker.
 
 Each broker defines its config in `tests/brokers/<broker>/basic.py`:
 

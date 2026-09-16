@@ -488,7 +488,7 @@ jobs:
       - test-redis-smoke
     services:
       redis:
-        image: redis:alpine
+        image: redis:8-alpine
         ports:
           - 6379:6379
     steps:
@@ -550,7 +550,7 @@ jobs:
     steps:
       - name: Start Redis Cluster
         run: |
-          docker run -d --name redis-cluster --network host redis:7-alpine \
+          docker run -d --name redis-cluster --network host redis:8-alpine \
             sh -c "
               redis-server --port 7001 --cluster-enabled yes --cluster-config-file n1.conf --cluster-node-timeout 5000 --appendonly no --save '' &
               redis-server --port 7002 --cluster-enabled yes --cluster-config-file n2.conf --cluster-node-timeout 5000 --appendonly no --save '' &

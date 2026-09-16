@@ -139,6 +139,12 @@ class TestBroker(Generic[Broker, EnterType]):
             yield broker
 
         finally:
+            if self.with_real:
+                # The real `broker.start()` started the fakes, and `_fake_close` hides
+                # them from `broker.stop()` (see #3046): stop them here or they leak.
+                for sub in self._fake_subscribers:
+                    await sub.stop()
+
             self._fake_close(broker)
 
     @contextmanager
@@ -211,18 +217,16 @@ class TestBroker(Generic[Broker, EnterType]):
                     pass
 
             if is_real:
-                mock = MagicMock()
-                publisher.set_test(mock=mock, with_fake=False)
+                # A real subscriber keeps its own record; the publisher gets a copy
+                publisher.set_test(with_fake=False)
                 for h in sub.calls:
                     h.handler.set_test()
-                    assert h.handler.mock
-                    h.handler.mock.side_effect = mock
+                    h.handler._recorder.mirror_to(publisher._recorder)
 
             else:
                 handler = sub.calls[0].handler
                 handler.set_test()
-                assert handler.mock
-                publisher.set_test(mock=handler.mock, with_fake=True)
+                publisher.set_test(recorder=handler._recorder, with_fake=True)
 
         patch_broker_calls(broker)
 
@@ -237,8 +241,7 @@ class TestBroker(Generic[Broker, EnterType]):
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         for p in broker.publishers:
-            if getattr(p, "_fake_handler", None):
-                p.reset_test()
+            p.reset_test()
 
         # Fakes are registered with `persistent=False`, so the broker holds them weakly
         # and they outlive us until the next collection (see issue #2990).

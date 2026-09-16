@@ -65,11 +65,6 @@ _docs *params:
 docs-build:
   just _docs build
 
-[doc("Build API Reference")]
-[group("docs")]
-docs-build-api:
-  just _docs build-api-docs
-
 [doc("Update release notes")]
 [group("docs")]
 docs-update-release-notes:

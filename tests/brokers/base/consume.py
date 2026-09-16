@@ -24,9 +24,11 @@ class MultibrokerTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
+        # A sync handler runs in a thread per broker, and two threads racing
+        # between `mock()` and the count check leave `event` unset
         @broker1.subscriber(*args, **kwargs)
         @broker2.subscriber(*args2, **kwargs2)
-        def subscriber(m) -> None:
+        async def subscriber(m) -> None:
             mock()
             if mock.call_count == 1:
                 event.set()

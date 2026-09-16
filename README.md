@@ -22,7 +22,7 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/), you already know **Fas
 [![Discussions](https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions)](https://github.com/ag2ai/faststream/discussions)
 [![FastStream](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json)](https://faststream.ag2.ai)
 [![Telegram](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftg.chirizxc.workers.dev%2Fpython_faststream&query=%24.online_members&suffix=%20online&label=&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZD0iTTEyIDI0YzYuNjI3IDAgMTItNS4zNzMgMTItMTJTMTguNjI3IDAgMTIgMCAwIDUuMzczIDAgMTJzNS4zNzMgMTIgMTIgMTJaIiBmaWxsPSJ1cmwoI2EpIi8%2BPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik01LjQyNSAxMS44NzFhNzk2LjQxNCA3OTYuNDE0IDAgMCAxIDYuOTk0LTMuMDE4YzMuMzI4LTEuMzg4IDQuMDI3LTEuNjI4IDQuNDc3LTEuNjM4LjEgMCAuMzIuMDIuNDcuMTQuMTIuMS4xNS4yMy4xNy4zMy4wMi4xLjA0LjMxLjAyLjQ3LS4xOCAxLjg5OC0uOTYgNi41MDQtMS4zNiA4LjYyMi0uMTcuOS0uNSAxLjE5OS0uODE5IDEuMjI5LS43LjA2LTEuMjI5LS40Ni0xLjg5OC0uOS0xLjA2LS42ODktMS42NDktMS4xMTktMi42NzgtMS43OTgtMS4xOS0uNzgtLjQyLTEuMjA5LjI2LTEuOTA4LjE4LS4xOCAzLjI0Ny0yLjk3OCAzLjMwNy0zLjIyOC4wMS0uMDMuMDEtLjE1LS4wNi0uMjEtLjA3LS4wNi0uMTctLjA0LS4yNS0uMDItLjExLjAyLTEuNzg4IDEuMTQtNS4wNTYgMy4zNDgtLjQ4LjMzLS45MDkuNDktMS4yOTkuNDgtLjQzLS4wMS0xLjI0OC0uMjQtMS44NjgtLjQ0LS43NS0uMjQtMS4zNDktLjM3LTEuMjk5LS43OS4wMy0uMjIuMzMtLjQ0Ljg5LS42NjlaIiBmaWxsPSIjZmZmIi8%2BPGRlZnM%2BPGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMTEuOTkiIHkxPSIwIiB4Mj0iMTEuOTkiIHkyPSIyMy44MSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIHN0b3AtY29sb3I9IiMyQUFCRUUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMyMjlFRDkiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48L3N2Zz4K)](https://t.me/python_faststream)\
-[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20FastStream%20Guru-006BFF)](https://gurubase.io/g/faststream)
+[![Context7](https://img.shields.io/badge/Context7-Ask%20AI-003257)](https://context7.com/ag2ai/faststream)
 </div>
 
 ---
@@ -50,7 +50,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - **Extensible**: Use extensions for lifespans, custom serialization and middleware
 
-- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin-deprecated)
+- [**Integrations**](#any-framework): **FastStream** is fully compatible with any HTTP framework you want — including a dedicated [**FastAPI** plugin](#fastapi-plugin)
 
 That is **FastStream**: everything a messaging service needs around your handlers, and nothing between you and your broker.
 
@@ -75,7 +75,7 @@ That is **FastStream**: everything a messaging service needs around your handler
   - [Dependencies](#dependencies)
   - [HTTP Frameworks integrations](#http-frameworks-integrations)
     - [Any Framework](#any-framework)
-    - [**FastAPI** Plugin (deprecated)](#fastapi-plugin-deprecated)
+    - [**FastAPI** Plugin](#fastapi-plugin)
   - [Benchmarks](#benchmarks)
   - [Stay in touch](#stay-in-touch)
   - [Contributors](#contributors)
@@ -93,11 +93,9 @@ That is **FastStream**: everything a messaging service needs around your handler
 <details>
 <summary><b>Versioning Policy</b></summary>
 
-FastStream has a stable public API. Only major updates may introduce breaking changes.
+FastStream has a stable public API and follows [Semantic Versioning](https://semver.org/). Only major updates may introduce breaking changes: minor releases add features and keep backward compatibility, patch releases fix bugs.
 
-Prior to FastStream's 1.0 release, each minor update is considered a major and can introduce breaking changes, but these changes were communicated through two-versions deprecation warnings prior to being fully removed. So features deprecated in the 0.4 version were only removed in version 0.6.
-
-Our team is working toward the stable 1.0 version.
+Anything scheduled for removal is first deprecated with a warning for at least one minor release, and removed only in the next major. The 1.0.0 release closed the 0.x cycle by removing everything deprecated during it.
 </details>
 
 ---
@@ -389,39 +387,15 @@ if __name__ == "__main__":
     web.run_app(app)
 ```
 
-### **FastAPI** Plugin (deprecated)
+### **FastAPI** Plugin
 
-> **Deprecated.** The integration has been moved to the **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)** package and will be removed in the 1.0.0 version:
->
-> ```bash
-> pip install faststream_fastapi
-> ```
+The **FastAPI** integration is shipped as its own package, **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**:
 
-Also, **FastStream** can be used as part of **FastAPI**.
-
-Just import a **StreamRouter** you need and declare the message handler with the same `@router.subscriber(...)` and `@router.publisher(...)` decorators.
-
-```python
-from fastapi import FastAPI
-from pydantic import BaseModel
-
-from faststream.kafka.fastapi import KafkaRouter
-
-router = KafkaRouter("localhost:9092")
-
-class Incoming(BaseModel):
-    m: dict
-
-@router.subscriber("test")
-@router.publisher("response")
-async def hello(m: Incoming):
-    return {"response": "Hello, world!"}
-
-app = FastAPI()
-app.include_router(router)
+```bash
+pip install faststream_fastapi
 ```
 
-More integration features can be found [here](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/)
+It provides a **StreamRouter** for every broker, so you can declare message handlers inside a **FastAPI** application with the same `@router.subscriber(...)` and `@router.publisher(...)` decorators. See the package README for the details.
 
 ---
 

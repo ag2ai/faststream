@@ -327,7 +327,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             # Stop handler at `exit()` call
             await self.stop()
 
-            if app := self.outer_config.fd_config.context.get("app"):
+            if app := self.outer_config.context.get("app"):
                 app.exit()
 
         except Exception:  # nosec B110
@@ -336,7 +336,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     async def process_message(self, msg: MsgType) -> "Response":
         """Execute all message processing stages."""
-        context = self.outer_config.fd_config.context
+        context = self.outer_config.context
         logger_state = self.outer_config.logger
 
         async with AsyncExitStack() as stack:

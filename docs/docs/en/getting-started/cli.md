@@ -26,7 +26,7 @@ pip install 'faststream[cli]'
 
 ## AsyncAPI Schema
 
-Generate your AsyncAPI document as a `.json` or `.yaml` file from your code, or host it directly as a styled HTML page. Learn more about [hosting options](../asyncapi/hosting){.internal-link}
+Generate your AsyncAPI document as a `.json` or `.yaml` file from your code, or host it directly as a styled HTML page. Learn more about [hosting options](asyncapi/hosting.md){.internal-link}
 
 ## Publishing messages
 
@@ -41,11 +41,11 @@ faststream publish main:app '{"name": "John"}' --subject 'my-subject'
 The primary command to launch a **FastStream** application `faststream run`.
 This command supports a variety of options to customize your application runtime:
 
-* [Scaling](.#scaling){.internal-link}
-* [ASGI Support](.#asgi-support){.internal-link}
-* [Extra options](.#extra-options){.internal-link}
-* [Environment Management](.#environment-management){.internal-link}
-* [Logging Configuration](.#logging-configuration){.internal-link}
+* [Scaling](#scaling){.internal-link}
+* [ASGI Support](#asgi-support){.internal-link}
+* [Extra options](#extra-options){.internal-link}
+* [Environment Management](#environment-management){.internal-link}
+* [Logging Configuration](#logging-configuration){.internal-link}
 
 ### Scaling
 
@@ -73,7 +73,7 @@ Worker 2 started
 
 ### ASGI Support
 
-Running your app as ASGI. For details, see [*ASGI Support*](../asgi){.internal-link}
+Running your app as ASGI. For details, see [*ASGI Support*](asgi.md){.internal-link}
 
 ### Hot Reload
 
@@ -128,7 +128,7 @@ All passed values can be of type `#!python bool`, `#!python str` or `#!python li
 
 ### Logging Configuration
 
-You can pass any custom flags for logging configuration, it's `--log-level` or `--log-config` for detailed logging configuration. See [here](../observability/logging#logging-levels){.internal-link}
+You can pass any custom flags for logging configuration, it's `--log-level` or `--log-config` for detailed logging configuration. See [here](observability/logging.md#logging-levels){.internal-link}
 
 ### Event Loop
 

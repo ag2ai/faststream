@@ -48,24 +48,3 @@ class TestRedisSentinelBrokerUnit:
             assert client.connection_pool.service_name == "mymaster"
         finally:
             await connection.disconnect()
-
-
-@pytest.mark.redis()
-class TestRedisSentinelFastAPIRouterUnit:
-    """RedisSentinelRouter (FastAPI) must build a Sentinel-backed broker."""
-
-    def test_router_builds_sentinel_broker(self) -> None:
-        from faststream.redis.fastapi import RedisSentinelRouter
-
-        router = RedisSentinelRouter(sentinels=SENTINELS, sentinel_master_name="mymaster")
-        assert isinstance(router.broker, RedisSentinelBroker)
-        connection = router.broker.config.broker_config.connection
-        assert isinstance(connection, RedisSentinelConnectionState)
-        assert connection._master_name == "mymaster"
-        assert connection._sentinels == SENTINELS
-
-    def test_router_requires_master_name(self) -> None:
-        from faststream.redis.fastapi import RedisSentinelRouter
-
-        with pytest.raises(SetupError, match="sentinel_master_name"):
-            RedisSentinelRouter(sentinels=SENTINELS)

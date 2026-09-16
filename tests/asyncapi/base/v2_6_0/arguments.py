@@ -15,11 +15,8 @@ from tests.marks import PYDANTIC_V2, pydantic_v2
 from .basic import AsyncAPI260Factory
 
 
-class FastAPICompatible(AsyncAPI260Factory):
-    is_fastapi: bool = False
-
+class ArgumentsTestcase(AsyncAPI260Factory):
     broker_class: type[BrokerUsecase]
-    dependency_builder = staticmethod(Depends)
 
     def test_custom_naming(self) -> None:
         broker = self.broker_class()
@@ -571,8 +568,8 @@ class FastAPICompatible(AsyncAPI260Factory):
         def dep2(name2: str) -> str:
             return name2
 
-        dependencies = (self.dependency_builder(dep2),)
-        message = self.dependency_builder(dep)
+        dependencies = (Depends(dep2),)
+        message = Depends(dep)
 
         @broker.subscriber("test", dependencies=dependencies)
         async def handle(id: int, message=message) -> None: ...
@@ -623,21 +620,6 @@ class FastAPICompatible(AsyncAPI260Factory):
             ],
             "title": "Handle:Message:Payload",
         })
-
-        fastapi_payload = schema["components"]["schemas"].get("Handle:Message:Payload")
-        if self.is_fastapi:
-            if fastapi_payload:
-                assert fastapi_payload == IsPartialDict({
-                    "anyOf": [
-                        {"$ref": "#/components/schemas/Sub2"},
-                        {"$ref": "#/components/schemas/Sub"},
-                    ],
-                })
-
-            expected_schema = (
-                IsPartialDict({"$ref": "#/components/schemas/Handle:Message:Payload"})
-                | expected_schema
-            )
 
         assert schema["components"]["messages"][key]["payload"] == expected_schema, (
             schema["components"]
@@ -752,10 +734,6 @@ class FastAPICompatible(AsyncAPI260Factory):
 
         assert "Handle:Message:Payload" in list(payload.keys())
         assert "HandleDefault:Message:Payload" in list(payload.keys())
-
-
-class ArgumentsTestcase(FastAPICompatible):
-    dependency_builder = staticmethod(Depends)
 
     def test_pydantic_field(self) -> None:
         broker = self.broker_class()

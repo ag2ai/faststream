@@ -8,7 +8,9 @@ from typing_extensions import TypeVar
 from faststream._internal.broker.router import BrokerRouter
 from faststream.api.broker import BrokerUsecase
 
-_BrokerT = TypeVar("_BrokerT", bound=BrokerUsecase[Any, Any], default=Any)
+_BrokerT = TypeVar(
+    "_BrokerT", bound=BrokerUsecase[Any, Any], default=BrokerUsecase[Any, Any]
+)
 
 
 class BaseTestcaseConfig(Generic[_BrokerT]):

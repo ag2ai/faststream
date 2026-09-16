@@ -86,7 +86,7 @@ class ObjStoreWatchSubscriber(
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self.outer_config.fd_config.context
+        context = self.outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
@@ -125,7 +125,7 @@ class ObjStoreWatchSubscriber(
         timeout = 5
         sleep_interval = timeout / 10
 
-        context = self.outer_config.fd_config.context
+        context = self.outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
@@ -173,7 +173,7 @@ class ObjStoreWatchSubscriber(
 
         self.subscription = UnsubscribeAdapter["ObjectStore.ObjectWatcher"](obj_watch)
 
-        context = self.outer_config.fd_config.context
+        context = self.outer_config.context
 
         while self.running:
             with suppress(TimeoutError):

@@ -65,7 +65,7 @@ class BrokerUsecase(
 
     @property
     def context(self) -> "ContextRepo":
-        return self.config.fd_config.context
+        return self.config.context
 
     @property
     def provider(self) -> Provider:
@@ -103,7 +103,7 @@ class BrokerUsecase(
             log_context.pop("message_id", None)
             self.config.logger.params_storage.register_subscriber(log_context)
 
-        self.config.logger._setup(self.config.fd_config.context)
+        self.config.logger._setup(self.config.context)
 
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""

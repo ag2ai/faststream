@@ -22,6 +22,11 @@
   <meta name="twitter:image" content="{{ config.extra.social_image }}" />
 {% endblock %}
 
+{% block scripts %}
+  {{ super() }}
+  <script src="https://context7.com/widget.js" data-library="/ag2ai/faststream" data-color="#003257"></script>
+{% endblock %}
+
 {% block outdated %}
   You're not viewing the latest version.
   <a href="{{ '../' ~ base_url }}">

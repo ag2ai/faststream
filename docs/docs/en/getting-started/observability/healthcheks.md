@@ -148,7 +148,7 @@ services:
       test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping"]
 
   redis:
-    image: redis:7.2
+    image: redis:8-alpine
     container_name: redis-local
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]

@@ -7,7 +7,7 @@ description: Use when writing or modifying FastStream library source code under 
 
 ## Public vs internal split
 
-- `faststream/_internal/` holds shared machinery: `broker/` (abstract `BrokerUsecase`, registrator, router), `endpoint/`, `di/` (fast-depends integration), `context/`, `configs/`, `logger/`, `testing/`, `cli/`, `fastapi/`, `utils/`.
+- `faststream/_internal/` holds shared machinery: `broker/` (abstract `BrokerUsecase`, registrator, router), `endpoint/`, `di/` (fast-depends integration), `context/`, `configs/`, `logger/`, `testing/`, `cli/`, `utils/`.
 - Broker packages (`faststream/kafka/`, `rabbit/`, `nats/`, `redis/`, `confluent/`, `mqtt/`) are thin public layers over `_internal`.
 - Cross-broker public packages: `faststream/middlewares/`, `params/`, `response/`, `specification/`, `message/`, `asgi/`, `opentelemetry/`, `prometheus/`.
 
@@ -33,7 +33,7 @@ faststream/<broker>/
 └── exceptions.py      # broker-specific exceptions
 ```
 
-Brokers also carry optional integration subpackages where supported — kafka has `fastapi/`, `helpers/`, `opentelemetry/`, `prometheus/`, and `schemas/` — follow kafka's structure when adding these to another broker.
+Brokers also carry optional integration subpackages where supported — kafka has `helpers/`, `opentelemetry/`, `prometheus/`, and `schemas/` — follow kafka's structure when adding these to another broker.
 
 ## Feature mirroring
 
