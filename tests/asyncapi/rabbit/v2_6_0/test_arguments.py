@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
@@ -8,7 +9,7 @@ from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 class TestArguments(ArgumentsTestcase):
     broker_class = RabbitBroker
 
-    def test_subscriber_bindings(self, snapshot_json) -> None:
+    def test_subscriber_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -21,7 +22,7 @@ class TestArguments(ArgumentsTestcase):
 
         assert schema == snapshot_json
 
-    def test_subscriber_fanout_bindings(self, snapshot_json) -> None:
+    def test_subscriber_fanout_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -34,7 +35,7 @@ class TestArguments(ArgumentsTestcase):
 
         assert schema == snapshot_json
 
-    def test_subscriber_headers_bindings(self, snapshot_json) -> None:
+    def test_subscriber_headers_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -46,7 +47,7 @@ class TestArguments(ArgumentsTestcase):
         schema = self.get_spec(broker).to_jsonable()
         assert schema == snapshot_json
 
-    def test_subscriber_xdelay_bindings(self, snapshot_json) -> None:
+    def test_subscriber_xdelay_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -59,7 +60,9 @@ class TestArguments(ArgumentsTestcase):
 
         assert schema == snapshot_json
 
-    def test_subscriber_consistent_hash_bindings(self, snapshot_json) -> None:
+    def test_subscriber_consistent_hash_bindings(
+        self, snapshot_json: SnapshotAssertion
+    ) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -71,7 +74,9 @@ class TestArguments(ArgumentsTestcase):
         schema = self.get_spec(broker).to_jsonable()
         assert schema == snapshot_json
 
-    def test_subscriber_modules_hash_bindings(self, snapshot_json) -> None:
+    def test_subscriber_modules_hash_bindings(
+        self, snapshot_json: SnapshotAssertion
+    ) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(

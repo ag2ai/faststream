@@ -1,7 +1,7 @@
 from typing import Any
 
 import pytest
-from dirty_equals import IsPartialDict
+from syrupy.assertion import SnapshotAssertion
 
 from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit import (
@@ -24,7 +24,7 @@ class TestRouter(RouterTestcase):
     route_class = RabbitRoute
     publisher_class = RabbitPublisher
 
-    def test_prefix(self) -> None:
+    def test_prefix(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         router = self.router_class(prefix="test_")
@@ -36,37 +36,7 @@ class TestRouter(RouterTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema["channels"] == IsPartialDict({
-            "test_test:_:Handle": {
-                "servers": ["development"],
-                "bindings": {
-                    "amqp": {
-                        "is": "routingKey",
-                        "bindingVersion": "0.2.0",
-                        "queue": {
-                            "name": "test_test",
-                            "durable": True,
-                            "exclusive": False,
-                            "autoDelete": False,
-                            "vhost": "/",
-                        },
-                        "exchange": {"type": "default", "vhost": "/"},
-                    },
-                },
-                "publish": {
-                    "bindings": {
-                        "amqp": {
-                            "cc": "test_key",
-                            "ack": True,
-                            "bindingVersion": "0.2.0",
-                        },
-                    },
-                    "message": {
-                        "$ref": "#/components/messages/test_test:_:Handle:Message",
-                    },
-                },
-            },
-        }), schema["channels"]
+        assert schema == snapshot_json
 
 
 @pytest.mark.rabbit()
