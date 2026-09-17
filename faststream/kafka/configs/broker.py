@@ -6,7 +6,6 @@ from typing import Any, Optional
 
 import aiokafka
 import aiokafka.admin
-from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
@@ -62,9 +61,9 @@ class KafkaBrokerConfig(BrokerConfig):
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
 
-    @override
-    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
-        return _context_annotations()
+    default_driver_annotations: "Mapping[Any, Any]" = field(
+        default_factory=_context_annotations,
+    )
 
     @property
     def admin_client(self) -> "aiokafka.admin.client.AIOKafkaAdminClient":

@@ -2,8 +2,6 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
-from typing_extensions import override
-
 from faststream._internal._compat import HAS_OPENTELEMETRY
 from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
@@ -57,13 +55,11 @@ class MQTTBrokerConfig(BrokerConfig):
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
 
-    @override
-    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
-        return _context_annotations()
+    default_driver_annotations: "Mapping[Any, Any]" = field(
+        default_factory=_context_annotations,
+    )
 
     def __post_init__(self) -> None:
-        super().__post_init__()
-
         for m in self.broker_middlewares:
             self._validate_middleware(m)
 

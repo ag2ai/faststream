@@ -1,6 +1,5 @@
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
 from typing_extensions import TypeVar as TypeVar313
@@ -53,22 +52,19 @@ class BrokerConfig:
 
     # subscriber options
     underlying_driver_annotations: Mapping[Any, Any] = field(default_factory=dict)
+    default_driver_annotations: Mapping[Any, Any] = field(default_factory=dict)
     broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:
+    @property
+    def resolved_underlying_driver_annotations(self) -> Mapping[Any, Any]:
         # A broker's own rows are the defaults; anything the user passed wins.
-        self.underlying_driver_annotations = MappingProxyType(
-            {
-                **self._default_driver_annotations(),
-                **self.underlying_driver_annotations,
-            },
-        )
-
-    def _default_driver_annotations(self) -> Mapping[Any, Any]:
-        return {}
+        return {
+            **self.default_driver_annotations,
+            **self.underlying_driver_annotations,
+        }
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

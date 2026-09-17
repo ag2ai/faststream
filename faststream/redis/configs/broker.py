@@ -1,8 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
-
-from typing_extensions import override
 
 from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
@@ -86,9 +84,9 @@ class RedisBrokerConfig(BrokerConfig):
 
     message_format: type["MessageFormat"]
 
-    @override
-    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
-        return _context_annotations()
+    default_driver_annotations: "Mapping[Any, Any]" = field(
+        default_factory=_context_annotations,
+    )
 
     async def connect(self) -> None:
         self.producer.connect(
@@ -102,9 +100,9 @@ class RedisBrokerConfig(BrokerConfig):
 
 @dataclass(kw_only=True)
 class RedisRouterConfig(BrokerConfig):
-    @override
-    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
-        return _context_annotations()
+    default_driver_annotations: "Mapping[Any, Any]" = field(
+        default_factory=_context_annotations,
+    )
 
     @property
     def connection(self) -> ConnectionError:

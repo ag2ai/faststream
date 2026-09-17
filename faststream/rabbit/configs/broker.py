@@ -2,8 +2,6 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from typing_extensions import override
-
 from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
 from faststream.rabbit.helpers.channel_manager import FakeChannelManager
@@ -64,9 +62,9 @@ class RabbitBrokerConfig(BrokerConfig):
     virtual_host: str = ""
     app_id: str | None = None
 
-    @override
-    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
-        return _context_annotations()
+    default_driver_annotations: "Mapping[Any, Any]" = field(
+        default_factory=_context_annotations,
+    )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

@@ -320,7 +320,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
         check_context_annotations(
             func,
-            self._outer_config.underlying_driver_annotations,
+            self._outer_config.resolved_underlying_driver_annotations,
         )
 
         handler = super().__call__(func)

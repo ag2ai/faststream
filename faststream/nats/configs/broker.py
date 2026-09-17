@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from typing_extensions import TypedDict, override
+from typing_extensions import TypedDict
 
 from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
@@ -73,9 +73,9 @@ class NatsBrokerConfig(BrokerConfig):
     kv_declarer: KVBucketDeclarer = field(default_factory=KVBucketDeclarer)
     os_declarer: OSBucketDeclarer = field(default_factory=OSBucketDeclarer)
 
-    @override
-    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
-        return _context_annotations()
+    default_driver_annotations: "Mapping[Any, Any]" = field(
+        default_factory=_context_annotations,
+    )
 
     def connect(self, connection: "Client") -> None:
         stream = connection.jetstream(**self.js_options)

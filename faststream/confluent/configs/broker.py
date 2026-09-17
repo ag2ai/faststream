@@ -3,8 +3,6 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from typing_extensions import override
-
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
@@ -85,13 +83,11 @@ class KafkaBrokerConfig(BrokerConfig):
         default_factory=FakeConfluentFastProducer,
     )
 
-    @override
-    def _default_driver_annotations(self) -> "Mapping[Any, Any]":
-        return _context_annotations()
+    default_driver_annotations: "Mapping[Any, Any]" = field(
+        default_factory=_context_annotations,
+    )
 
     def __post_init__(self) -> None:
-        super().__post_init__()
-
         self.builder = ConsumerBuilder(
             config=self.connection_config,
             admin=self.admin,
