@@ -34,6 +34,8 @@ This object serves as a unified **FastStream** wrapper around the native broker 
 !!! note
     A record with a `None value` is a Kafka tombstone, the delete marker on a compacted topic. `#!python msg.tombstone` is `#!python True` for it, keeping it distinct from an empty payload (`#!python b""`), and a `#!python None`-able body parameter of a **FastAPI** subscriber resolves to `#!python None` instead of failing validation.
 
+    A `#!python batch=True` subscriber does not populate the flag - per-record tombstones in a batch are left for a follow-up.
+
     Publish one with `#!python await broker.publish(None, "topic", key=b"...")`.
 
 For example, if you would like to access the headers of an incoming message, you would do so like this:
