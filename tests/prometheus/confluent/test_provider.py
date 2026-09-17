@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from faststream._internal.kafka import TOMBSTONE
 from faststream.confluent.prometheus.provider import (
     BatchConfluentMetricsSettingsProvider,
     ConfluentMetricsSettingsProvider,
@@ -49,6 +50,20 @@ class TestKafkaMetricsSettingsProvider(
 
         assert attrs == expected_attrs
 
+    def test_get_consume_attrs_from_a_tombstone(self, queue: str) -> None:
+        message = SimpleNamespace(
+            body=TOMBSTONE,
+            raw_message=SimpleNamespace(topic=lambda: queue),
+        )
+
+        attrs = self.get_settings_provider().get_consume_attrs_from_message(message)
+
+        assert attrs == {
+            "destination_name": queue,
+            "message_size": 0,
+            "messages_count": 1,
+        }
+
 
 @pytest.mark.confluent()
 class TestBatchConfluentMetricsSettingsProvider(
@@ -74,6 +89,24 @@ class TestBatchConfluentMetricsSettingsProvider(
         attrs = provider.get_consume_attrs_from_message(message)
 
         assert attrs == expected_attrs
+
+    def test_get_consume_attrs_from_a_batch_holding_a_tombstone(
+        self,
+        queue: str,
+    ) -> None:
+        body = [b"Hi", TOMBSTONE]
+        message = SimpleNamespace(
+            body=body,
+            raw_message=[SimpleNamespace(topic=lambda: queue) for _ in body],
+        )
+
+        attrs = self.get_settings_provider().get_consume_attrs_from_message(message)
+
+        assert attrs == {
+            "destination_name": queue,
+            "message_size": 2,
+            "messages_count": 2,
+        }
 
 
 @pytest.mark.confluent()

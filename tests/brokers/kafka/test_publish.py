@@ -8,7 +8,10 @@ from aiokafka.structs import RecordMetadata
 from faststream import Context
 from faststream.kafka import KafkaPublishMessage, KafkaResponse
 from faststream.kafka.exceptions import BatchBufferOverflowException
-from tests.brokers.base.publish import BrokerPublishTestcase
+from tests.brokers.base.publish import (
+    BrokerPublishTestcase,
+    KafkaTombstonePublishTestcase,
+)
 
 from .basic import KafkaTestcaseConfig
 
@@ -16,7 +19,13 @@ from .basic import KafkaTestcaseConfig
 @pytest.mark.kafka()
 @pytest.mark.connected()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
-class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
+class TestPublish(
+    KafkaTestcaseConfig,
+    BrokerPublishTestcase,
+    KafkaTombstonePublishTestcase,
+):
+    response_cls = KafkaResponse
+
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()

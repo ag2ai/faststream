@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, FastStream, Response, TestApp
 from faststream._internal._compat import dump_json, model_to_json
+from faststream._internal.kafka import TOMBSTONE
 from faststream.context import ContextRepo
 from faststream.exceptions import SubscriberNotFound
 
@@ -657,3 +658,66 @@ class BrokerPublishTestcase(BaseTestcaseConfig):
         assert event2.is_set()
         mock.assert_called_once_with("APP", "BROKER 1")
         mock2.assert_called_once_with("APP", "BROKER 2")
+
+
+# NOTE: kafka/confluent only - other brokers have no tombstone concept.
+@pytest.mark.asyncio()
+class KafkaTombstonePublishTestcase(BaseTestcaseConfig):
+    response_cls: type[Any]
+
+    @staticmethod
+    def get_message_value(raw_message: Any) -> bytes | None:
+        return raw_message.value
+
+    async def test_publish_tombstone_sends_a_real_tombstone(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(self.get_message_value(msg.raw_message))
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish(TOMBSTONE, queue, key=b"tombstone-key")
+            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+
+        assert value is None
+
+    async def test_publish_tombstone_without_key_raises(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            with pytest.raises(ValueError, match="requires a key"):
+                await br.publish(TOMBSTONE, queue)
+
+    async def test_publish_batch_with_tombstone(self, queue: str) -> None:
+        pub_broker = self.get_broker(apply_types=True)
+
+        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @pub_broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any = Context("message")) -> None:
+            await values.put(self.get_message_value(msg.raw_message))
+
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
+            await br.publish_batch(
+                b"hi",
+                self.response_cls(TOMBSTONE, key=b"batch-tombstone-key"),
+                topic=queue,
+            )
+
+            received = [
+                await asyncio.wait_for(values.get(), timeout=self.timeout)
+                for _ in range(2)
+            ]
+
+        assert b"hi" in received
+        assert None in received

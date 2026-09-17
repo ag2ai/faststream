@@ -8,7 +8,11 @@ import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.kafka.tombstone import (
+    encode_batch_or_tombstone,
+    encode_or_tombstone,
+)
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
     TestBroker,
@@ -196,12 +200,9 @@ class FakeProducer(AsyncConfluentFastProducer):
         """Publish a batch of messages to the Kafka broker."""
         serializer = self.broker.config.fd_config._serializer
 
-        if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
-        else:
-            encoded = [
-                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
-            ]
+        encoded = await encode_batch_or_tombstone(
+            cmd.batch_bodies, self.codec, serializer, cmd.key_for
+        )
 
         for handler in _find_handler(
             self.subscribers,
@@ -351,12 +352,14 @@ async def build_message(
     id_generator: IdGenerator = gen_cor_id,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    if message is None:
-        # keep a real tombstone (message.value() is None) distinct from b""
-        msg, content_type = None, None
-    else:
-        codec_instance = codec or DefaultCodec()
-        msg, content_type = await codec_instance.encode(message, serializer)
+    msg, content_type = await encode_or_tombstone(
+        message,
+        codec or DefaultCodec(),
+        serializer,
+        key=key,
+        # confluent tombstones any None body, keyed or not, unlike aiokafka
+        none_is_tombstone=True,
+    )
     k = key or b""
     headers = {
         "content-type": content_type or "",
@@ -379,7 +382,7 @@ async def build_message(
 
 
 def _build_mock_message(
-    body: bytes,
+    body: bytes | None,
     content_type: str | None,
     topic: str,
     partition: int | None = None,

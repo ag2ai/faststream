@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, TypeAlias
 
+from faststream._internal.kafka import TOMBSTONE, Tombstone
 from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
 
@@ -27,6 +28,7 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_KAFKA) from e
 
 __all__ = (
+    "TOMBSTONE",
     "ConsumerRecord",
     "KafkaBroker",
     "KafkaMessage",
@@ -40,5 +42,6 @@ __all__ = (
     "RecordMetadata",
     "TestApp",
     "TestKafkaBroker",
+    "Tombstone",
     "TopicPartition",
 )

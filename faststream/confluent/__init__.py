@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, TypeAlias
 
+from faststream._internal.kafka import TOMBSTONE, Tombstone
 from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
 
@@ -24,6 +25,7 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_CONFLUENT) from e
 
 __all__ = (
+    "TOMBSTONE",
     "ConfluentParserType",
     "KafkaBroker",
     "KafkaMessage",
@@ -35,6 +37,7 @@ __all__ = (
     "KafkaRouter",
     "TestApp",
     "TestKafkaBroker",
+    "Tombstone",
     "Topic",
     "TopicPartition",
 )

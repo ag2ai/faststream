@@ -4,7 +4,11 @@ from typing import TYPE_CHECKING, Any, Optional
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.kafka.tombstone import (
+    encode_batch_or_tombstone,
+    encode_or_tombstone,
+)
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
@@ -139,10 +143,14 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        if cmd.body is None:
-            message, content_type = None, None
-        else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+        message, content_type = await encode_or_tombstone(
+            cmd.body,
+            self.codec,
+            self.serializer,
+            key=cmd.key,
+            # confluent tombstones any None body, keyed or not, unlike aiokafka
+            none_is_tombstone=True,
+        )
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -166,14 +174,9 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
-        if isinstance(self.codec, BatchCodecProto):
-            encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer
-            )
-        else:
-            encoded_batch = [
-                await self.codec.encode(msg, self.serializer) for msg in cmd.batch_bodies
-            ]
+        encoded_batch = await encode_batch_or_tombstone(
+            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for
+        )
 
         for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:

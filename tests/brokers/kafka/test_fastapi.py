@@ -3,9 +3,18 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from faststream import Context
 from faststream.kafka import KafkaRouter
-from faststream.kafka.fastapi import KafkaRouter as StreamRouter
-from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
+from faststream.kafka.fastapi import (
+    KafkaMessage,
+    KafkaRouter as StreamRouter,
+)
+from tests.brokers.base.fastapi import (
+    FastAPILocalTestcase,
+    FastAPITestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+    _Foo,
+)
 
 from .basic import KafkaMemoryTestcaseConfig
 
@@ -39,9 +48,47 @@ class TestKafkaRouter(FastAPITestcase):
         assert event.is_set()
         mock.assert_called_with(["hi"])
 
+    async def test_external_tombstone_resolves_to_none(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        router = self.router_class()
+        received: list[tuple[object, bytes | None]] = []
+
+        @router.subscriber(queue)
+        async def handler(
+            msg: _Foo | None = None,
+            raw: KafkaMessage = Context("message"),
+        ) -> None:
+            received.append((msg, raw.raw_message.value))
+            if len(received) == 2:
+                event.set()
+
+        async with router.broker as br:
+            await br.start()
+
+            await br.publish(b'{"x": 5}', queue, key=b"k1")
+            # bypass the encoder to prove this works for a tombstone
+            # produced by any client, not only faststream's publish(None)
+            await br._producer._producer.producer.send(
+                topic=queue,
+                key=b"k2",
+                value=None,
+            )
+
+            await asyncio.wait_for(event.wait(), timeout=3)
+
+        assert (_Foo(x=5), b'{"x": 5}') in received
+        assert (None, None) in received
+
 
 @pytest.mark.kafka()
-class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
+class TestRouterLocal(
+    KafkaMemoryTestcaseConfig,
+    FastAPILocalTestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
 
