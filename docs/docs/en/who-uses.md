@@ -93,8 +93,17 @@ Packages built on top of **FastStream** by the community:
 
 ## Add Your Project
 
-Using **FastStream** in production? Open a pull request adding your entry to
+Using **FastStream** in production? There are two lists, and they serve different purposes.
+
+**[`ADOPTERS.md`](https://github.com/ag2ai/faststream/blob/main/ADOPTERS.md){.external-link target="_blank"} — maintained by adopters themselves.**
+Add your organization along with the brokers you run, your use case and your scale. That last part
+is what other teams are really looking for, and only you can supply it. The quickest route is
+[editing the file in the browser](https://github.com/ag2ai/faststream/edit/main/ADOPTERS.md){.external-link target="_blank"} —
+GitHub opens the pull request for you.
+
+**This page — compiled by us** from public repositories and package metadata. If we have missed a
+project, open a pull request against
 [`docs/docs/en/who-uses.md`](https://github.com/ag2ai/faststream/blob/main/docs/docs/en/who-uses.md){.external-link target="_blank"},
 or tell us in the [discussions](https://github.com/ag2ai/faststream/discussions){.external-link target="_blank"}.
 
-If you are listed and would prefer not to be, open an issue — no explanation needed and no questions asked.
+If you are listed on either and would prefer not to be, open an issue — no explanation needed and no questions asked.
