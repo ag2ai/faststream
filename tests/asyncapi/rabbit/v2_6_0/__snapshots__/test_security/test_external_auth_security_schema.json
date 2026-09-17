@@ -1,0 +1,30 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {},
+    "securitySchemes": {
+      "rabbitmq-external": {
+        "type": "X509"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "amqps",
+      "protocolVersion": "0.9.1",
+      "security": [
+        {
+          "rabbitmq-external": []
+        }
+      ],
+      "url": "amqps://localhost:5671/?auth=EXTERNAL"
+    }
+  }
+}

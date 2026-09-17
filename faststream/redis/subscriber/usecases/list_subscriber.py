@@ -108,7 +108,7 @@ class _ListHandlerMixin(LogicSubscriber):
             channel=self.list_sub.name,
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
@@ -131,7 +131,7 @@ class _ListHandlerMixin(LogicSubscriber):
         sleep_interval = timeout / 10
         raw_message = None
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:

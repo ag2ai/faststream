@@ -42,6 +42,16 @@ class Address:
         self._syntax = syntax
         self._compiled: tuple[Pattern[str] | None, str] | None = None
 
+    @classmethod
+    def literal(cls, value: str) -> "Address":
+        """An Address read as characters: what it says is what it names.
+
+        Kafka topics are the case this exists for. A topic is handed to the broker
+        as written, so reading one as a template would report capture groups that
+        nothing ever fills. A Router prefix added later keeps the address literal.
+        """
+        return _LiteralAddress(value)
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._declaration!r})"
 
@@ -58,6 +68,10 @@ class Address:
     def regex(self) -> Pattern[str] | None:
         """Captures each Path parameter out of an incoming message's address."""
         return self._compile()[0]
+
+    def describe(self) -> str:
+        """Name this address the way an error message should."""
+        return repr(self.template)
 
     def add_prefix(self, prefix: str) -> "Address":
         """Decorate the template with a Router prefix; the Broker address follows."""
@@ -145,6 +159,26 @@ def match_path(pattern: Pattern[str] | None, subject: str) -> dict[str, Any]:
     if pattern is not None and (match := pattern.match(subject)):
         return match.groupdict()
     return {}
+
+
+class _LiteralAddress(Address):
+    """An Address that is not a template: its declaration is its Broker address.
+
+    Nothing is compiled, so a `{` in it is a character, and `{{` is two of them.
+    """
+
+    __slots__ = ()
+
+    def __init__(self, value: str) -> None:
+        self._declaration = value
+        self.template = value
+        self._compiled = (None, value)
+
+    def add_prefix(self, prefix: str) -> Address:
+        if not prefix:
+            return self
+
+        return _LiteralAddress(f"{prefix}{self._declaration}")
 
 
 def _escape_literal_braces(path: str) -> str:

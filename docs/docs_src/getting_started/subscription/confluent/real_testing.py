@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from faststream.exceptions import SetupError
 from faststream.confluent import TestKafkaBroker
 
 from .pydantic_fields import broker, handle
@@ -13,7 +14,8 @@ async def test_handle() -> None:
         await handle.wait_call(timeout=30)
         handle.mock.assert_called_once_with({"name": "John", "user_id": 1})
 
-    assert not handle.mock.called  # mock is reset
+    with pytest.raises(SetupError):  # the mock leaves with the test broker
+        handle.mock.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_validation_error() -> None:

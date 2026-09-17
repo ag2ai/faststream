@@ -1,0 +1,32 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {},
+    "securitySchemes": {
+      "user-password": {
+        "type": "userPassword"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {},
+  "servers": {
+    "development": {
+      "host": "user:pass@localhost:5672",
+      "pathname": "/",
+      "protocol": "amqp",
+      "protocolVersion": "0.9.1",
+      "security": [
+        {
+          "$ref": "#/components/securitySchemes/user-password"
+        }
+      ]
+    }
+  }
+}

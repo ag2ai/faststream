@@ -99,25 +99,17 @@ class StreamSub(NameRequired):
         if last_id is None:
             last_id = ">" if group and consumer else "$"
 
-        if group and consumer:
-            if last_id != ">":
-                if polling_interval:
-                    warnings.warn(
-                        message="`polling_interval` is not supported by consumer group with last_id other than `>`",
-                        category=RuntimeWarning,
-                        stacklevel=1,
-                    )
-
-                if no_ack:
-                    warnings.warn(
-                        message="`no_ack` is not supported by consumer group with last_id other than `>`",
-                        category=RuntimeWarning,
-                        stacklevel=1,
-                    )
-
-            elif no_ack:
+        if group and consumer and last_id != ">":
+            if polling_interval:
                 warnings.warn(
-                    message="`no_ack` has no effect with consumer group",
+                    message="`polling_interval` is not supported by consumer group with last_id other than `>`",
+                    category=RuntimeWarning,
+                    stacklevel=1,
+                )
+
+            if no_ack:
+                warnings.warn(
+                    message="`no_ack` is not supported by consumer group with last_id other than `>`",
                     category=RuntimeWarning,
                     stacklevel=1,
                 )

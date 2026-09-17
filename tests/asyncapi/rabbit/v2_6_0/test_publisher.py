@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
@@ -8,7 +9,7 @@ from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 class TestArguments(PublisherTestcase):
     broker_class = RabbitBroker
 
-    def test_just_exchange(self) -> None:
+    def test_just_exchange(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class("amqp://guest:guest@localhost:5672/vhost")
 
         @broker.publisher(exchange="test-ex")
@@ -16,39 +17,9 @@ class TestArguments(PublisherTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema["channels"] == {
-            "_:test-ex:Publisher": {
-                "bindings": {
-                    "amqp": {
-                        "bindingVersion": "0.2.0",
-                        "exchange": {
-                            "autoDelete": False,
-                            "durable": True,
-                            "name": "test-ex",
-                            "type": "direct",
-                            "vhost": "/vhost",
-                        },
-                        "is": "routingKey",
-                    },
-                },
-                "subscribe": {
-                    "bindings": {
-                        "amqp": {
-                            "ack": True,
-                            "bindingVersion": "0.2.0",
-                            "deliveryMode": 1,
-                            "mandatory": True,
-                        },
-                    },
-                    "message": {
-                        "$ref": "#/components/messages/_:test-ex:Publisher:Message",
-                    },
-                },
-                "servers": ["development"],
-            },
-        }, schema["channels"]
+        assert schema == snapshot_json
 
-    def test_publisher_bindings(self) -> None:
+    def test_publisher_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.publisher(
@@ -58,30 +29,10 @@ class TestArguments(PublisherTestcase):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
-        assert schema["channels"][key]["bindings"] == {
-            "amqp": {
-                "bindingVersion": "0.2.0",
-                "exchange": {
-                    "autoDelete": False,
-                    "durable": True,
-                    "name": "test-ex",
-                    "type": "topic",
-                    "vhost": "/",
-                },
-                "is": "routingKey",
-                "queue": {
-                    "autoDelete": True,
-                    "durable": True,
-                    "exclusive": False,
-                    "name": "test",
-                    "vhost": "/",
-                },
-            },
-        }
+        assert schema == snapshot_json
 
-    def test_useless_queue_bindings(self) -> None:
+    def test_useless_queue_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.publisher(
@@ -92,39 +43,9 @@ class TestArguments(PublisherTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema["channels"] == {
-            "_:test-ex:Publisher": {
-                "bindings": {
-                    "amqp": {
-                        "bindingVersion": "0.2.0",
-                        "exchange": {
-                            "autoDelete": False,
-                            "durable": True,
-                            "name": "test-ex",
-                            "type": "fanout",
-                            "vhost": "/",
-                        },
-                        "is": "routingKey",
-                    },
-                },
-                "subscribe": {
-                    "bindings": {
-                        "amqp": {
-                            "ack": True,
-                            "bindingVersion": "0.2.0",
-                            "deliveryMode": 1,
-                            "mandatory": True,
-                        },
-                    },
-                    "message": {
-                        "$ref": "#/components/messages/_:test-ex:Publisher:Message",
-                    },
-                },
-                "servers": ["development"],
-            },
-        }
+        assert schema == snapshot_json
 
-    def test_reusable_exchange(self) -> None:
+    def test_reusable_exchange(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class("amqp://guest:guest@localhost:5672/vhost")
 
         @broker.publisher(exchange="test-ex", routing_key="key1")
@@ -133,66 +54,4 @@ class TestArguments(PublisherTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema["channels"] == {
-            "key1:test-ex:Publisher": {
-                "bindings": {
-                    "amqp": {
-                        "bindingVersion": "0.2.0",
-                        "exchange": {
-                            "autoDelete": False,
-                            "durable": True,
-                            "name": "test-ex",
-                            "type": "direct",
-                            "vhost": "/vhost",
-                        },
-                        "is": "routingKey",
-                    },
-                },
-                "subscribe": {
-                    "bindings": {
-                        "amqp": {
-                            "ack": True,
-                            "bindingVersion": "0.2.0",
-                            "cc": "key1",
-                            "deliveryMode": 1,
-                            "mandatory": True,
-                        },
-                    },
-                    "message": {
-                        "$ref": "#/components/messages/key1:test-ex:Publisher:Message",
-                    },
-                },
-                "servers": ["development"],
-            },
-            "key2:test-ex:Publisher": {
-                "bindings": {
-                    "amqp": {
-                        "bindingVersion": "0.2.0",
-                        "exchange": {
-                            "autoDelete": False,
-                            "durable": True,
-                            "name": "test-ex",
-                            "type": "direct",
-                            "vhost": "/vhost",
-                        },
-                        "is": "routingKey",
-                    },
-                },
-                "subscribe": {
-                    "bindings": {
-                        "amqp": {
-                            "ack": True,
-                            "bindingVersion": "0.2.0",
-                            "cc": "key2",
-                            "deliveryMode": 1,
-                            "priority": 10,
-                            "mandatory": True,
-                        },
-                    },
-                    "message": {
-                        "$ref": "#/components/messages/key2:test-ex:Publisher:Message",
-                    },
-                },
-                "servers": ["development"],
-            },
-        }, schema["channels"]
+        assert schema == snapshot_json

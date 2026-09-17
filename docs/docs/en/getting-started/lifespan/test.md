@@ -10,7 +10,7 @@ search:
 
 # Events Testing
 
-In the most cases you are testing your subscriber/publisher functions, but sometimes you need to trigger some lifespan hooks in your tests too.
+In most cases you are testing your [subscriber](../subscription/test.md){.internal-link} and [publisher](../publishing/test.md){.internal-link} functions, but sometimes you need to trigger some lifespan hooks in your tests too.
 
 For this reason, **FastStream** has a special **TestApp** patcher working as a regular async context manager.
 

@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit import (
@@ -23,7 +24,7 @@ class TestRouter(RouterTestcase):
     route_class = RabbitRoute
     publisher_class = RabbitPublisher
 
-    def test_prefix(self) -> None:
+    def test_prefix(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         router = self.router_class(prefix="test_")
@@ -35,79 +36,7 @@ class TestRouter(RouterTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "asyncapi": "3.0.0",
-            "defaultContentType": "application/json",
-            "servers": {
-                "development": {
-                    "host": "guest:guest@localhost:5672",
-                    "pathname": "/",
-                    "protocol": "amqp",
-                    "protocolVersion": "0.9.1",
-                },
-            },
-            "channels": {
-                "test_test:_:Handle": {
-                    "address": "test_key",
-                    "servers": [{"$ref": "#/servers/development"}],
-                    "messages": {
-                        "SubscribeMessage": {
-                            "$ref": "#/components/messages/test_test:_:Handle:SubscribeMessage",
-                        },
-                    },
-                    "bindings": {
-                        "amqp": {
-                            "is": "queue",
-                            "bindingVersion": "0.3.0",
-                            "queue": {
-                                "name": "test_test",
-                                "durable": True,
-                                "exclusive": False,
-                                "autoDelete": False,
-                                "vhost": "/",
-                            },
-                        },
-                    },
-                },
-            },
-            "operations": {
-                "test_test:_:HandleSubscribe": {
-                    "action": "receive",
-                    "bindings": {
-                        "amqp": {
-                            "cc": [
-                                "test_key",
-                            ],
-                            "ack": True,
-                            "bindingVersion": "0.3.0",
-                        },
-                    },
-                    "messages": [
-                        {
-                            "$ref": "#/channels/test_test:_:Handle/messages/SubscribeMessage",
-                        },
-                    ],
-                    "channel": {"$ref": "#/channels/test_test:_:Handle"},
-                },
-            },
-            "components": {
-                "messages": {
-                    "test_test:_:Handle:SubscribeMessage": {
-                        "title": "test_test:_:Handle:SubscribeMessage",
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {
-                            "$ref": "#/components/schemas/Handle:Message:Payload",
-                        },
-                    },
-                },
-                "schemas": {
-                    "Handle:Message:Payload": {"title": "Handle:Message:Payload"},
-                },
-            },
-        }, schema
+        assert schema == snapshot_json
 
 
 @pytest.mark.rabbit()

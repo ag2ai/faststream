@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit.fastapi import RabbitRouter
@@ -32,20 +33,11 @@ class TestRouterPublisher(PublisherTestcase):
 
 
 @pytest.mark.rabbit()
-def test_fastapi_security_schema() -> None:
+def test_fastapi_security_schema(snapshot_json: SnapshotAssertion) -> None:
     security = SASLPlaintext(username="user", password="pass", use_ssl=False)
 
     router = RabbitRouter(security=security)
 
     schema = get_3_0_0_schema(router.broker)
 
-    assert schema["servers"]["development"] == {
-        "protocol": "amqp",
-        "protocolVersion": "0.9.1",
-        "security": [{"$ref": "#/components/securitySchemes/user-password"}],
-        "host": "user:pass@localhost:5672",
-        "pathname": "/",
-    }
-    assert schema["components"]["securitySchemes"] == {
-        "user-password": {"type": "userPassword"},
-    }
+    assert schema == snapshot_json

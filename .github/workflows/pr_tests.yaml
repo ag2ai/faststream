@@ -26,6 +26,7 @@ jobs:
   test-basic:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 7
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
@@ -62,6 +63,7 @@ jobs:
   test-macos-latest:
     if: github.event.pull_request.draft == false
     runs-on: macos-latest
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -93,6 +95,7 @@ jobs:
   test-windows-latest:
     if: github.event.pull_request.draft == false
     runs-on: windows-latest
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -124,6 +127,7 @@ jobs:
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -149,6 +153,7 @@ jobs:
       - test-basic
       - test-kafka-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       kafka:
         image: confluentinc/cp-kafka:8.0.0
@@ -197,6 +202,7 @@ jobs:
   test-confluent-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -222,6 +228,7 @@ jobs:
       - test-basic
       - test-confluent-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       kafka:
         image: confluentinc/cp-kafka:8.0.0
@@ -270,6 +277,7 @@ jobs:
   test-rabbit-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -295,6 +303,7 @@ jobs:
       - test-basic
       - test-rabbit-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       rabbitmq:
         image: rabbitmq:3.13-alpine
@@ -331,6 +340,7 @@ jobs:
   test-nats-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -356,6 +366,7 @@ jobs:
       - test-basic
       - test-nats-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Start NATS with JetStream
         run: |
@@ -398,6 +409,7 @@ jobs:
   test-mqtt-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -423,6 +435,7 @@ jobs:
       - test-basic
       - test-mqtt-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       artemis:
         image: apache/activemq-artemis:latest-alpine
@@ -461,6 +474,7 @@ jobs:
   test-redis-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -483,6 +497,7 @@ jobs:
   test-redis-real:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs:
       - test-basic
       - test-redis-smoke
@@ -522,6 +537,7 @@ jobs:
   test-redis-cluster-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -547,6 +563,7 @@ jobs:
       - test-basic
       - test-redis-cluster-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Start Redis Cluster
         run: |
@@ -605,6 +622,7 @@ jobs:
       - test-redis-cluster-real
       - test-mqtt-real
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

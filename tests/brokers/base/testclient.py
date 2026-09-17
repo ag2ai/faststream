@@ -6,11 +6,19 @@ from unittest.mock import Mock
 
 import anyio
 import pytest
+from dirty_equals import IsPartialDict
+from pydantic import BaseModel
 
+from faststream.exceptions import SetupError
 from tests.tools import spy_decorator
 
 from .consume import BrokerConsumeTestcase
 from .publish import BrokerPublishTestcase
+
+
+class BodyModel(BaseModel):
+    name: str
+    age: int
 
 
 class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
@@ -279,3 +287,223 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             # test request
             data = await br.request(ModelA(param1=1), queue)
             assert json.loads(data.body) == {"param2": 1}, data.body
+
+    async def test_publisher_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        publisher2 = broker.publisher(queue + "2")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle() -> None:
+            await publisher2.publish(
+                BodyModel(name="John", age=19),
+                headers={"key": "value"},
+                correlation_id="cid",
+            )
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "2")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def handle2(body: BodyModel) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await broker.publish("", queue)
+
+            # The publisher answers with what its subscriber received
+            await publisher2.assert_called_once_with(
+                {"name": "John", "age": 19},
+                headers={"key": "value"},
+                correlation_id="cid",
+            )
+            await publisher2.assert_called_once_with(BodyModel(name="John", age=19))
+
+            with pytest.raises(AssertionError, match=r"(?s)body:.*headers:"):
+                await publisher2.assert_called_once_with(
+                    {"city": "Moscow"},
+                    headers={"key": "other"},
+                )
+
+        # The publisher of a real subscriber leaves the test broker with it
+        with pytest.raises(SetupError, match="is not under a test broker"):
+            publisher2.mock.assert_not_called()
+
+    async def test_mock_is_only_available_under_test_broker(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "2")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle() -> None: ...
+
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            handle.mock.assert_not_called()
+
+        with pytest.raises(SetupError, match="is not under a test broker"):
+            publisher.mock.assert_not_called()
+
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            await handle.assert_called_once_with()
+
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            await handle.assert_called_with()
+
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            await handle.assert_any_call()
+
+        async with self.patch_broker(broker):
+            handle.mock.assert_not_called()
+            publisher.mock.assert_not_called()
+
+        # Leaving the test broker takes the mock away again
+        with pytest.raises(SetupError, match="`handle` is not under a test broker"):
+            handle.mock.assert_not_called()
+
+    async def test_subscriber_assertion_checks_body_fields_and_context(
+        self, queue: str
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(body: BodyModel) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await broker.publish(
+                BodyModel(name="John", age=19),
+                queue,
+                headers={"key": "value"},
+                correlation_id="cid",
+            )
+
+            # Headers match as a subset: the framework adds its own beside `key`
+            await handle.assert_called_once_with(
+                {"name": "John", "age": 19},
+                headers={"key": "value"},
+                correlation_id="cid",
+                context={"broker": broker, "message.correlation_id": "cid"},
+            )
+            await handle.assert_called_once_with(BodyModel(name="John", age=19))
+            await handle.assert_called_once_with(IsPartialDict(name="John"))
+
+            # Every mismatch is reported at once, not just the first one
+            with pytest.raises(AssertionError, match=r"(?s)body:.*headers:"):
+                await handle.assert_called_once_with(
+                    {"city": "Moscow"},
+                    headers={"key": "other"},
+                )
+
+    async def test_subscriber_assert_called_with_reads_the_last_call(
+        self, queue: str
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(body: BodyModel) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await broker.publish(
+                BodyModel(name="John", age=19), queue, headers={"n": "1"}
+            )
+            await broker.publish(
+                BodyModel(name="Jane", age=20), queue, headers={"n": "2"}
+            )
+
+            await handle.assert_called_with(
+                {"name": "Jane", "age": 20}, headers={"n": "2"}
+            )
+
+            with pytest.raises(AssertionError, match=r"(?s)body:.*headers:"):
+                await handle.assert_called_with(
+                    {"name": "John", "age": 19},
+                    headers={"n": "1"},
+                )
+
+            # The count is still the mock's business
+            with pytest.raises(AssertionError, match="Called 2 times"):
+                await handle.assert_called_once_with({"name": "Jane", "age": 20})
+
+    async def test_subscriber_assert_any_call_searches_every_call(
+        self, queue: str
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(body: BodyModel) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await broker.publish(
+                BodyModel(name="John", age=19), queue, headers={"n": "1"}
+            )
+            await broker.publish(
+                BodyModel(name="Jane", age=20), queue, headers={"n": "2"}
+            )
+
+            await handle.assert_any_call({"name": "John", "age": 19}, headers={"n": "1"})
+            await handle.assert_any_call({"name": "Jane", "age": 20}, headers={"n": "2"})
+
+            # Every recorded call is listed with its own mismatches
+            with pytest.raises(
+                AssertionError,
+                match=r"(?s)call 1:.*body:.*headers:.*call 2:.*body:.*headers:",
+            ):
+                await handle.assert_any_call({"city": "Moscow"}, headers={"n": "3"})
+
+    async def test_assertions_fail_on_an_endpoint_nobody_called(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle() -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            for assertion in (
+                handle.assert_called_once_with,
+                handle.assert_called_with,
+                handle.assert_any_call,
+            ):
+                with pytest.raises(AssertionError, match="`handle` was not called"):
+                    await assertion("hello")
+
+    async def test_publisher_assertions_share_the_recorded_calls(
+        self, queue: str
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        publisher = broker.publisher(queue + "2")
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle() -> None:
+            await publisher.publish(BodyModel(name="John", age=19), correlation_id="1")
+            await publisher.publish(BodyModel(name="Jane", age=20), correlation_id="2")
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await broker.publish("", queue)
+
+            await publisher.assert_called_with(
+                {"name": "Jane", "age": 20}, correlation_id="2"
+            )
+            await publisher.assert_any_call(
+                {"name": "John", "age": 19}, correlation_id="1"
+            )
+
+            with pytest.raises(AssertionError, match="Called 2 times"):
+                await publisher.assert_called_once_with({"name": "Jane", "age": 20})

@@ -1,5 +1,3 @@
-from collections.abc import Generator
-from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import override
@@ -56,11 +54,8 @@ class ContextRepoComposition(ContextRepo):
                 return variable
         return default
 
-    @contextmanager
-    @override
-    def scope(self, key: str, value: Any) -> Generator[None, None, None]:
-        with self._inner_context.scope(key, value):
-            yield
+    # `scope()` and `scopes()` need no override: they route through `set_local` and
+    # `reset_local`, which already land on the inner context.
 
     @override
     def get(self, key: str, default: Any = None) -> Any:

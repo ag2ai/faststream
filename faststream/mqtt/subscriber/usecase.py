@@ -169,7 +169,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         with anyio.move_on_after(timeout):
             raw_msg = await self._subscription.get_message()
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         return await process_msg(
             msg=raw_msg,
             middlewares=(m(raw_msg, context=context) for m in self._broker_middlewares),
@@ -183,7 +183,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
             await self._create_subscription()
 
         assert self._subscription is not None
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
         async for raw_msg in self._subscription:
             msg: MQTTMessage = await process_msg(  # type: ignore[assignment]
