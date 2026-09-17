@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
+from faststream.exceptions import SetupError
 from faststream.kafka import TopicPartition
 from faststream.kafka.annotations import KafkaMessage
 from faststream.kafka.message import FAKE_CONSUMER
@@ -193,6 +194,21 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
         async with self.patch_broker(broker) as br:
             await br.publish_batch("hello", topic=queue)
             m.mock.assert_called_once_with(["hello"])
+
+    async def test_batch_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue, batch=True)
+        async def m(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch({"n": 1}, {"n": 2}, topic=queue)
+
+            await m.assert_called_once_with([{"n": 1}, {"n": 2}])
+
+            # A batch has one header set per message, so there is no single answer
+            with pytest.raises(SetupError, match="received a batch"):
+                await m.assert_called_once_with(headers={"key": "value"})
 
     async def test_batch_publisher_mock(
         self,

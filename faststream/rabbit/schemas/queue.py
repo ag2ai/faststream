@@ -106,7 +106,9 @@ class RabbitQueue(NameRequired):
 
     def routing_template(self) -> str:
         """Return the Address template of object."""
-        return self.routing_address.template or self.name
+        if self.routing_address:
+            return self.routing_address.template
+        return self.name
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
         new_q: RabbitQueue = deepcopy(self)

@@ -5,7 +5,10 @@ from itertools import chain
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
-from aiokafka import ConsumerRecord, TopicPartition
+from aiokafka import (
+    ConsumerRecord,
+    TopicPartition as AIOKafkaTopicPartition,
+)
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import override
 
@@ -80,9 +83,13 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return [f"{self._outer_config.prefix}{t}" for t in self._topics]
 
     @property
-    def partitions(self) -> list[TopicPartition]:
+    def partitions(self) -> list[AIOKafkaTopicPartition]:
+        """The assignment as the consumer receives it: the client library's tuples, prefixed.
+
+        Declared with `faststream.kafka.TopicPartition`; handed to aiokafka as its own.
+        """
         return [
-            TopicPartition(
+            AIOKafkaTopicPartition(
                 topic=f"{self._outer_config.prefix}{p.topic}",
                 partition=p.partition,
             )
@@ -161,7 +168,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         ((raw_message,),) = raw_messages.values()
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         async_parser, async_decoder = self._get_parser_and_decoder()
 
@@ -182,7 +189,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             "You can't use `get_one` method if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async for raw_message in self.consumer:

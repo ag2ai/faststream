@@ -2,7 +2,6 @@ __pycache__
 dist
 .idea
 .zed
-.claude
 venv*
 .venv*
 .env
@@ -26,8 +25,32 @@ docs/site_build/
 docs/docs/SUMMARY.md
 docs/docs/en/api/faststream/
 
-# https://github.com/colbymchenry/codegraph setup
-mcp.json
-.codegraph
+# local AI agent tooling
+.claude
+.cursor
+.scratch/
+docs/agents/
+docs/adr/
+CONTEXT.md
+AGENTS.md
+CLAUDE.md
+
+# locally installed agent skills (project-owned ones are un-ignored below)
+.agents/skills/*
+!.agents/skills/code-architecture/
+!.agents/skills/dev-workflow/
+!.agents/skills/documentation-writing/
+!.agents/skills/testing-patterns/
+skills-lock.json
+
+# local agent config
 .mcp.json
+mcp.json
+# Added by codegraph
+.codegraph
 codegraph.mdc
+# Added by code-review-graph
+.code-review-graph/
+# Added by graphify
+graphify-out/
+.graphifyignore

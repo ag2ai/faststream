@@ -1,6 +1,6 @@
 site_name: FastStream
 # description to improve website indexing
-site_description: FastStream Python messaging framework documentation
+site_description: Asynchronous Python framework for event-driven services — a thin client for Kafka, RabbitMQ, NATS, Redis and MQTT with AsyncAPI docs and in-memory testing.
 site_url: https://faststream.ag2.ai/
 site_author: AG2AI Inc.
 copyright: '&copy; 2026 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
@@ -65,9 +65,7 @@ extra_css:
   - stylesheets/extra.css
 
 extra_javascript:
-  - javascripts/extra.js
-  - javascripts/gurubase-widget.js
-  - javascripts/theme-switch.js
+  - javascripts/context7-widget.js
 
 plugins:
   - search:
@@ -77,8 +75,6 @@ plugins:
       manual: true
   - macros:                      # Jinja templates
       include_dir: includes
-      include_yaml:
-        - people: ../docs/data/people.yml
   - mkdocstrings:                # Generate References
       default_handler: python
       handlers:
@@ -140,6 +136,7 @@ hooks:
 markdown_extensions:
   - toc:
       permalink: "#"             # replace TOC block symbol
+      permalink_title: Anchor link to this section for reference
       toc_depth: 3
   - mdx_include:
       base_path: .
@@ -160,20 +157,27 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra:
+  # landing page <title>; inner pages stay "<page> - FastStream"
+  site_tagline: Python framework for event-driven services
+
   analytics:
     provider: google
     property: G-HDTMP5FFHP
   social_image: https://opengraph.githubassets.com/1671805243.560327/ag2ai/faststream
   social:
-    # Discord link should be first
-    - icon: fontawesome/brands/discord
-      link: https://discord.gg/qFm6aSqq59
+    # Discussions link should be first
+    - icon: octicons/comment-discussion-24
+      link: https://github.com/ag2ai/faststream/discussions
+      name: FastStream discussions on GitHub
     - icon: fontawesome/brands/github-alt
       link: https://github.com/ag2ai/faststream
+      name: FastStream source code on GitHub
     - icon: fontawesome/brands/twitter
       link: https://x.com/ag2oss
+      name: AG2AI on X
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/ag2ai/
+      name: AG2AI on LinkedIn
 
   version:
     provider: mike

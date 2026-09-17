@@ -11,8 +11,9 @@ from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
+
+    from faststream.kafka.schemas import TopicPartition
 
 
 @dataclass(kw_only=True)

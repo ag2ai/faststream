@@ -26,6 +26,7 @@ jobs:
   test-basic:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 7
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
@@ -62,6 +63,7 @@ jobs:
   test-macos-latest:
     if: github.event.pull_request.draft == false
     runs-on: macos-latest
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -93,6 +95,7 @@ jobs:
   test-windows-latest:
     if: github.event.pull_request.draft == false
     runs-on: windows-latest
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -124,6 +127,7 @@ jobs:
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -149,6 +153,7 @@ jobs:
       - test-basic
       - test-kafka-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       kafka:
         image: confluentinc/cp-kafka:8.0.0
@@ -197,6 +202,7 @@ jobs:
   test-confluent-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -222,6 +228,7 @@ jobs:
       - test-basic
       - test-confluent-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       kafka:
         image: confluentinc/cp-kafka:8.0.0
@@ -270,6 +277,7 @@ jobs:
   test-rabbit-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -295,6 +303,7 @@ jobs:
       - test-basic
       - test-rabbit-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       rabbitmq:
         image: rabbitmq:3.13-alpine
@@ -331,6 +340,7 @@ jobs:
   test-nats-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -356,6 +366,7 @@ jobs:
       - test-basic
       - test-nats-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Start NATS with JetStream
         run: |
@@ -398,6 +409,7 @@ jobs:
   test-mqtt-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -423,6 +435,7 @@ jobs:
       - test-basic
       - test-mqtt-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       artemis:
         image: apache/activemq-artemis:latest-alpine
@@ -461,6 +474,7 @@ jobs:
   test-redis-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -483,12 +497,13 @@ jobs:
   test-redis-real:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs:
       - test-basic
       - test-redis-smoke
     services:
       redis:
-        image: redis:alpine
+        image: redis:8-alpine
         ports:
           - 6379:6379
     steps:
@@ -522,6 +537,7 @@ jobs:
   test-redis-cluster-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -547,10 +563,11 @@ jobs:
       - test-basic
       - test-redis-cluster-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Start Redis Cluster
         run: |
-          docker run -d --name redis-cluster --network host redis:7-alpine \
+          docker run -d --name redis-cluster --network host redis:8-alpine \
             sh -c "
               redis-server --port 7001 --cluster-enabled yes --cluster-config-file n1.conf --cluster-node-timeout 5000 --appendonly no --save '' &
               redis-server --port 7002 --cluster-enabled yes --cluster-config-file n2.conf --cluster-node-timeout 5000 --appendonly no --save '' &
@@ -605,6 +622,7 @@ jobs:
       - test-redis-cluster-real
       - test-mqtt-real
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -657,6 +675,6 @@ jobs:
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}

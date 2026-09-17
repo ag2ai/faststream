@@ -148,7 +148,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
@@ -168,7 +168,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             "You can't use iterator method if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async with self._queue_obj.iterator() as queue_iter:

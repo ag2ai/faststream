@@ -134,6 +134,26 @@ def test_scope(context: ContextRepo) -> None:
     assert context.get("key2") is None
 
 
+def test_scopes(context: ContextRepo) -> None:
+    @apply_types(context__=context)
+    def use(key=Context(), key2=Context()) -> None:
+        assert key == 1
+        assert key2 == 2
+
+    with context.scopes((("key", 1), ("key2", 2))):
+        use()
+
+    assert context.get("key") is None
+    assert context.get("key2") is None
+
+
+def test_scopes_restores_a_repeated_key(context: ContextRepo) -> None:
+    with context.scopes((("key", "first"), ("key", "second"))):
+        assert context.get("key") == "second"
+
+    assert context.get("key") is None
+
+
 def test_default(context: ContextRepo) -> None:
     @apply_types(context__=context)
     def use(

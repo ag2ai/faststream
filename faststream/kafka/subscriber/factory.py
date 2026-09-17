@@ -17,10 +17,10 @@ from .usecase import (
 )
 
 if TYPE_CHECKING:
-    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
 
     from faststream.kafka.configs import KafkaBrokerConfig
+    from faststream.kafka.schemas import TopicPartition
 
 
 def create_subscriber(

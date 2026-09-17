@@ -88,6 +88,18 @@ async def base_handler(
     ...
 ```
 
+### Literal braces
+
+If your topic name legitimately contains `{` or `}` characters (e.g. `cache{shard}`), escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
+
+```python
+@broker.subscriber("cache{{shard}}.logs.{level}")
+async def handler(body: str, level: str = Path()):
+    ...
+```
+
+This subscribes to the topic `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.
+
 ## Concurrent processing
 
 There are two possible modes of concurrent message processing:

@@ -43,7 +43,7 @@ class TestRouter(RouterTestcase):
             },
             "channels": {
                 "test_test:Handle": {
-                    "address": "test_test:Handle",
+                    "address": "test_test",
                     "servers": [{"$ref": "#/servers/development"}],
                     "messages": {
                         "SubscribeMessage": {

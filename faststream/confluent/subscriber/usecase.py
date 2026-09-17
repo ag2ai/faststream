@@ -18,7 +18,7 @@ from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
-from faststream.confluent.schemas import TopicPartition
+from faststream.confluent.schemas import Topic, TopicPartition
 
 if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -65,8 +65,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return self._outer_config.client_id
 
     @property
-    def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+    def topics(self) -> list[Topic]:
+        return [t.add_prefix(self._outer_config.prefix) for t in self._topics]
 
     @property
     def partitions(self) -> list[TopicPartition]:
@@ -111,7 +111,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         raw_message = await self.consumer.getone(timeout=timeout)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         async_parser, async_decoder = self._get_parser_and_decoder()
 
@@ -131,7 +131,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             "You can't use iterator if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         timeout = 5.0
@@ -200,8 +200,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        topics = self.topics or (f"{p.topic}-{p.partition}" for p in self.partitions)
-        return [f"{self._outer_config.prefix}{t}" for t in topics]
+        if topics := self.topics:
+            return [t.name for t in topics]
+
+        return [f"{p.topic}-{p.partition}" for p in self.partitions]
 
     @staticmethod
     def build_log_context(
@@ -239,7 +241,7 @@ class DefaultSubscriber(LogicSubscriber[Message]):
         if message is None:
             topic = ",".join(self.topic_names)
         else:
-            topic = message.raw_message.topic() or ",".join(self.topics)
+            topic = message.raw_message.topic() or ",".join(self.topic_names)
 
         return self.build_log_context(
             message=message,

@@ -31,6 +31,7 @@ class NatsPublisherSpecification(
 
         return {
             self.name: PublisherSpec(
+                address=self.subject.template,
                 description=self.config.description_,
                 operation=Operation(
                     message=Message(

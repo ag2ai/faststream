@@ -94,3 +94,17 @@ You can also use the **Redis Pub/Sub** pattern feature to encode some data direc
 ```python linenums="1" hl_lines="1 8 12"
 {! docs_src/redis/pub_sub/pattern_data.py !}
 ```
+
+### Literal braces
+
+If your channel name legitimately contains `{` or `}` characters, escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
+
+```python
+channel = PubSub("cache{{shard}}.logs.{level}")
+
+@broker.subscriber(channel)
+async def handler(body: str, level: str = Path()):
+    ...
+```
+
+This subscribes to the channel `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.

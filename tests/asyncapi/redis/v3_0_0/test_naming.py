@@ -20,7 +20,7 @@ class TestNaming(NamingTestCase):
             "asyncapi": "3.0.0",
             "channels": {
                 "test:Handle": {
-                    "address": "test:Handle",
+                    "address": "test",
                     "bindings": {
                         "redis": {
                             "bindingVersion": "custom",

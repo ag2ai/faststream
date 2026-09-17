@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 from zmqtt import QoS
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
-from faststream.mqtt.path import compile_mqtt_path
+from faststream.mqtt.path import build_mqtt_address
 
 from .config import MQTTSubscriberConfig, MQTTSubscriberSpecificationConfig
 from .specification import MQTTSubscriberSpecification
@@ -31,20 +31,19 @@ def create_subscriber(
     description_: str | None = None,
     include_in_schema: bool = True,
 ) -> SubscriberType:
-    path_regex, mqtt_topic = compile_mqtt_path(topic)
+    address = build_mqtt_address(topic)
 
     subscriber_config = MQTTSubscriberConfig(
-        topic=mqtt_topic,
+        address=address,
         qos=qos,
         shared=shared,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
-        path_regex=path_regex,
     )
 
     specification_config = MQTTSubscriberSpecificationConfig(
-        topic=topic,
+        address=address,
         qos=qos,
         shared=shared,
         title_=title_,

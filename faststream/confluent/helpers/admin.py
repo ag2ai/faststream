@@ -1,15 +1,13 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from confluent_kafka.admin import (  # type: ignore[attr-defined]
-    AdminClient,
-    NewTopic,
-)
+from confluent_kafka.admin import AdminClient
 
 from .client import _LazyLoggerProxy
 
 if TYPE_CHECKING:
     from faststream._internal.logger import LoggerState
+    from faststream.confluent.schemas import Topic
 
     from .config import ConfluentFastConfig
 
@@ -49,9 +47,12 @@ class AdminService:
         )
         return self.admin_client
 
-    def create_topics(self, topics: list[str]) -> list[CreateResult]:
+    def create_topics(self, topics: list["Topic"]) -> list[CreateResult]:
+        if not topics:
+            return []
+
         create_result = self.client.create_topics(
-            [NewTopic(topic, num_partitions=1, replication_factor=1) for topic in topics],
+            [topic.to_confluent() for topic in topics],
         )
 
         final_results = []

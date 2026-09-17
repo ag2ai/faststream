@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class TopicPartition:
     __slots__ = (
+        "declare",
         "leader_epoch",
         "metadata",
         "offset",
@@ -29,12 +30,27 @@ class TopicPartition:
         offset: int = -1001,
         metadata: str | None = None,
         leader_epoch: int | None = None,
+        *,
+        declare: bool = True,
     ) -> None:
+        """Initialize the Kafka topic partition.
+
+        Args:
+            topic: Kafka topic name.
+            partition: Partition number to assign.
+            offset: Offset to start consuming from.
+            metadata: Application-specific metadata to attach to the partition.
+            leader_epoch: Leader epoch of the offset.
+            declare: Whether to create the topic automatically or just connect to it.
+                Missing topics are not created and their absence is not reported,
+                so set it to `False` for topics provisioned by someone else.
+        """
         self.topic = topic
         self.partition = partition
         self.offset = offset
         self.metadata = metadata
         self.leader_epoch = leader_epoch
+        self.declare = declare
 
     def to_confluent(self) -> ConfluentPartition:
         kwargs: _TopicKwargs = {
@@ -55,4 +71,5 @@ class TopicPartition:
             offset=self.offset,
             metadata=self.metadata,
             leader_epoch=self.leader_epoch,
+            declare=self.declare,
         )

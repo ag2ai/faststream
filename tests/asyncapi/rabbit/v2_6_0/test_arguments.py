@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
@@ -8,7 +9,7 @@ from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 class TestArguments(ArgumentsTestcase):
     broker_class = RabbitBroker
 
-    def test_subscriber_bindings(self) -> None:
+    def test_subscriber_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -18,30 +19,10 @@ class TestArguments(ArgumentsTestcase):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
-        assert schema["channels"][key]["bindings"] == {
-            "amqp": {
-                "bindingVersion": "0.2.0",
-                "exchange": {
-                    "autoDelete": False,
-                    "durable": True,
-                    "name": "test-ex",
-                    "type": "topic",
-                    "vhost": "/",
-                },
-                "is": "routingKey",
-                "queue": {
-                    "autoDelete": True,
-                    "durable": True,
-                    "exclusive": False,
-                    "name": "test",
-                    "vhost": "/",
-                },
-            },
-        }
+        assert schema == snapshot_json
 
-    def test_subscriber_fanout_bindings(self) -> None:
+    def test_subscriber_fanout_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -51,23 +32,10 @@ class TestArguments(ArgumentsTestcase):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
-        assert schema["channels"][key]["bindings"] == {
-            "amqp": {
-                "bindingVersion": "0.2.0",
-                "exchange": {
-                    "autoDelete": False,
-                    "durable": True,
-                    "name": "test-ex",
-                    "type": "fanout",
-                    "vhost": "/",
-                },
-                "is": "routingKey",
-            },
-        }
+        assert schema == snapshot_json
 
-    def test_subscriber_headers_bindings(self) -> None:
+    def test_subscriber_headers_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -77,23 +45,9 @@ class TestArguments(ArgumentsTestcase):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        assert schema == snapshot_json
 
-        assert schema["channels"][key]["bindings"] == {
-            "amqp": {
-                "bindingVersion": "0.2.0",
-                "exchange": {
-                    "autoDelete": False,
-                    "durable": True,
-                    "name": "test-ex",
-                    "type": "headers",
-                    "vhost": "/",
-                },
-                "is": "routingKey",
-            },
-        }
-
-    def test_subscriber_xdelay_bindings(self) -> None:
+    def test_subscriber_xdelay_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -103,23 +57,12 @@ class TestArguments(ArgumentsTestcase):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
-        assert schema["channels"][key]["bindings"] == {
-            "amqp": {
-                "bindingVersion": "0.2.0",
-                "exchange": {
-                    "autoDelete": False,
-                    "durable": True,
-                    "name": "test-ex",
-                    "type": "x-delayed-message",
-                    "vhost": "/",
-                },
-                "is": "routingKey",
-            },
-        }
+        assert schema == snapshot_json
 
-    def test_subscriber_consistent_hash_bindings(self) -> None:
+    def test_subscriber_consistent_hash_bindings(
+        self, snapshot_json: SnapshotAssertion
+    ) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -129,23 +72,11 @@ class TestArguments(ArgumentsTestcase):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        assert schema == snapshot_json
 
-        assert schema["channels"][key]["bindings"] == {
-            "amqp": {
-                "bindingVersion": "0.2.0",
-                "exchange": {
-                    "autoDelete": False,
-                    "durable": True,
-                    "name": "test-ex",
-                    "type": "x-consistent-hash",
-                    "vhost": "/",
-                },
-                "is": "routingKey",
-            },
-        }
-
-    def test_subscriber_modules_hash_bindings(self) -> None:
+    def test_subscriber_modules_hash_bindings(
+        self, snapshot_json: SnapshotAssertion
+    ) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(
@@ -155,18 +86,5 @@ class TestArguments(ArgumentsTestcase):
         async def handle(msg) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
-        assert schema["channels"][key]["bindings"] == {
-            "amqp": {
-                "bindingVersion": "0.2.0",
-                "exchange": {
-                    "autoDelete": False,
-                    "durable": True,
-                    "name": "test-ex",
-                    "type": "x-modulus-hash",
-                    "vhost": "/",
-                },
-                "is": "routingKey",
-            },
-        }
+        assert schema == snapshot_json

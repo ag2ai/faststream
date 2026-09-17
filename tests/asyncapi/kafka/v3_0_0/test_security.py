@@ -29,7 +29,7 @@ basic_schema = {
     },
     "channels": {
         "test_1:TestTopic": {
-            "address": "test_1:TestTopic",
+            "address": "test_1",
             "servers": [{"$ref": "#/servers/development"}],
             "messages": {
                 "SubscribeMessage": {
@@ -39,7 +39,7 @@ basic_schema = {
             "bindings": {"kafka": {"topic": "test_1", "bindingVersion": "0.4.0"}},
         },
         "test_2:Publisher": {
-            "address": "test_2:Publisher",
+            "address": "test_2",
             "servers": [{"$ref": "#/servers/development"}],
             "messages": {
                 "Message": {"$ref": "#/components/messages/test_2:Publisher:Message"},

@@ -66,7 +66,8 @@ class FastAPICompatible(AsyncAPI300Factory):
         operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
 
         assert channel_key == "."
-        assert schema["channels"][channel_key]["address"] == "/"
+        # the title names the channel; `address` stays the address subscribed to
+        assert schema["channels"][channel_key]["address"] == "test"
 
         assert operation_key == ".Subscribe"
 

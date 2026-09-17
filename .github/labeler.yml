@@ -57,6 +57,13 @@ Observability:
       - faststream/prometheus/**
       - docs/docs/en/getting-started/observability/**
 
+AsyncAPI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - faststream/specification/**
+      - faststream/**/specification.py
+      - docs/docs/en/getting-started/asyncapi/**
+
 dependencies:
   - changed-files:
     - any-glob-to-any-file:

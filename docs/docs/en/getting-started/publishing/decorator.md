@@ -25,7 +25,7 @@ It creates a structured DataPipeline unit with an input and output. The order of
 
     :fontawesome-solid-square-xmark:{.x_mark} **No testing support** - This method lacks full [`Testing`](./test.md) support.
 
-    :fontawesome-solid-square-xmark:{.x_mark} **No broker availability from Context** - You cannot leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :fontawesome-solid-square-xmark:{.x_mark} **No broker availability from Context** - You cannot leverage **FastStream's** [`Context`](../context.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :fontawesome-solid-square-xmark:{.x_mark} **Not reusable** - This method cannot be reused.
 

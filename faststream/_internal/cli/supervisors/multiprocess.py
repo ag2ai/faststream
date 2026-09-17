@@ -2,6 +2,7 @@ import signal
 from typing import TYPE_CHECKING
 
 from faststream._internal.cli.supervisors.basereload import BaseReload
+from faststream._internal.cli.supervisors.utils import stop_process
 from faststream._internal.logger import logger
 
 SIGKILL: int | None = getattr(signal, "SIGKILL", None)
@@ -37,9 +38,8 @@ class Multiprocess(BaseReload):
 
     def shutdown(self) -> None:
         for worker_id, process in enumerate(self.processes):
-            process.terminate()
             logger.info("Stopping child process %s [%s]", worker_id, process.pid)
-            process.join()
+            stop_process(process)
 
         logger.info("Stopping parent process [%s]", self.pid)
 

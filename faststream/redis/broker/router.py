@@ -32,10 +32,10 @@ class RedisPublisher(ArgsContainer):
 
     def __init__(
         self,
-        channel: str | None = None,
+        channel: Union[str, "PubSub"] | None = None,
         *,
-        list: str | None = None,
-        stream: str | None = None,
+        list: Union[str, "ListSub"] | None = None,
+        stream: Union[str, "StreamSub"] | None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
         title: str | None = None,
