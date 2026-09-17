@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
+from faststream._internal.kafka.tombstone import Tombstone, value_or_tombstone
 from faststream._internal.utils.path import match_path
 from faststream.kafka.message import (
     FAKE_CONSUMER,
@@ -43,7 +44,7 @@ class AioKafkaParser:
         value = message.value
 
         return self.msg_class(
-            body=value or b"",
+            body=value_or_tombstone(value),
             no_body=value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
@@ -60,6 +61,10 @@ class AioKafkaParser:
         msg: "StreamMessage[ConsumerRecord]",
     ) -> "DecodedMessage":
         """Decodes a message."""
+        # NOTE: a tombstone carries no payload, so any content-type on it is a lie
+        if isinstance(msg.body, Tombstone):
+            return msg.body
+
         return decode_message(msg)
 
 
@@ -76,7 +81,7 @@ class AioKafkaBatchParser(AioKafkaParser):
         last = message[-1]
 
         for m in message:
-            body.append(m.value or b"")
+            body.append(value_or_tombstone(m.value))
             batch_headers.append({i: j.decode() for i, j in m.headers})
 
         headers = next(iter(batch_headers), {})
@@ -102,4 +107,7 @@ class AioKafkaBatchParser(AioKafkaParser):
         # super() should be here due python can't find it in comprehension
         super_obj = cast("AioKafkaParser", super())
 
-        return [decode_message(await super_obj.parse_message(m)) for m in msg.raw_message]
+        return [
+            await super_obj.decode_message(await super_obj.parse_message(m))
+            for m in msg.raw_message
+        ]

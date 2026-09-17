@@ -10,8 +10,11 @@ from .keys import (
     key_for_index,
     realign_keys,
 )
+from .tombstone import TOMBSTONE, Tombstone
 
 __all__ = (
+    "TOMBSTONE",
+    "Tombstone",
     "extract_per_message_keys_and_bodies",
     "key_for_index",
     "realign_keys",
