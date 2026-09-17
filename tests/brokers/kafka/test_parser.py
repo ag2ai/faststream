@@ -43,5 +43,6 @@ async def test_parse_message_flags_only_a_null_value(
     parser = AioKafkaParser(msg_class=KafkaMessage, regex=None)
     parsed = await parser.parse_message(_record(value))
 
+    assert parsed.no_body is tombstone
     assert parsed.tombstone is tombstone
     assert parsed.body == (value or b"")

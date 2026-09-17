@@ -174,7 +174,7 @@ def build_faststream_to_fastapi_parser(
 
         fastapi_body: dict[str, Any] | list[Any] | None
         if first_arg is not None:
-            if message.tombstone:
+            if message.no_body:
                 fastapi_body, path = None, {}
             elif isinstance(body, dict):
                 path = fastapi_body = body or {}

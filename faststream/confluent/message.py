@@ -59,6 +59,10 @@ class KafkaMessage(
         if not is_manual:
             self.committed = AckStatus.ACKED
 
+    @property
+    def tombstone(self) -> bool:
+        return self.no_body
+
     async def ack(self) -> None:
         """Acknowledge the Kafka message."""
         if self.is_manual and not self.committed:

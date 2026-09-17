@@ -35,5 +35,6 @@ async def test_parse_message_flags_only_a_null_value(
 ) -> None:
     parsed = await AsyncConfluentParser().parse_message(_fake_message(value))
 
+    assert parsed.no_body is tombstone
     assert parsed.tombstone is tombstone
     assert parsed.body == (value or b"")

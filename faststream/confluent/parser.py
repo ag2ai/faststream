@@ -45,7 +45,7 @@ class AsyncConfluentParser:
 
         return KafkaMessage(
             body=body,
-            tombstone=value is None,
+            no_body=value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
