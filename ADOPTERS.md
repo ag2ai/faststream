@@ -120,8 +120,8 @@ needed.
 A job posting is the organization speaking for itself: "this is our stack, come work with it". It is
 weaker evidence than a manifest — it says what the team expects to work with, not what we can read in
 code — and postings disappear within weeks, so every link below goes to an archived snapshot, with the
-date we saw it. FastStream appears in the **stack or requirements** of each posting; postings that
-only mention it as a "nice to have" are not listed.
+date we saw it. The middle column says where FastStream appears: in the team's stack, in the
+requirements, or as a "nice to have" — the last one is the weakest signal, and it is marked as such.
 
 **If this is your organization:** same as above — move your row to the confirmed table and fill in
 what you actually run, or ask us to remove it.
@@ -130,16 +130,21 @@ what you actually run, or ask us to remove it.
 
 | Organization | What the posting says | Posting |
 | --- | --- | --- |
-| Bell Integrator | Python developer: "Frameworks: FastAPI, LangChain / LangGraph, FastStream" in the stack | [hh.ru](https://web.archive.org/web/20260918174045/https://hh.ru/vacancy/137010660), open as of 2026-09-18 |
+| Artificial Seed — Bilbao, Spain | Senior Python backend engineer: "nice to have: experience with FastStream" | [hh.ru](https://web.archive.org/web/20260918174306/https://hh.ru/vacancy/137175705), open as of 2026-09-18 |
+| Bell Integrator | Python developer: "Frameworks: FastAPI, LangChain / LangGraph, FastStream" in the stack | [hh.ru](https://hh.ru/vacancy/137010660), open as of 2026-09-18 (archived snapshot pending) |
 | Bureau 1440 (Бюро 1440) — satellite internet | Senior data services developer (Python): "Kafka (FastStream)" in the stack | [Habr Career](https://web.archive.org/web/20260917210933/https://career.habr.com/vacancies/1000167287), open as of 2026-09-17 |
-| Data World | QA fullstack (Python): "Stack: Python, FastAPI, FastStream, NATS, Kafka, PostgreSQL, OpenSearch" | [hh.ru](https://web.archive.org/web/20260918174050/https://hh.ru/vacancy/137201126), open as of 2026-09-18 |
+| Data World | QA fullstack (Python): "Stack: Python, FastAPI, FastStream, NATS, Kafka, PostgreSQL, OpenSearch" | [hh.ru](https://hh.ru/vacancy/137201126), open as of 2026-09-18 (archived snapshot pending) |
 | Etalon (ООО Эталон) | Python backend developer: "Tech stack: Python, FastAPI, FastStream, PySide/PyQt, SQLAlchemy, PostgreSQL, TimescaleDB" | [hh.ru](https://web.archive.org/web/20250216175133/https://hh.ru/vacancy/116760887), closed 2025-03-06 |
 | Kuper (Купер) — grocery delivery | Python team lead, anti-fraud: FastStream among the technologies, next to FastAPI, Faust, ARQ and Kafka | [getmatch](https://web.archive.org/web/20260917212720/https://getmatch.ru/vacancies/17393-python-team-lead-antifrod), closed |
+| Platforma Tretye Mnenie (Платформа Третье Мнение) — medical AI | Python developer: "nice to have: experience with Apache Kafka in production, experience with FastStream" | [hh.ru](https://hh.ru/vacancy/136862604), open as of 2026-09-18 (archived snapshot pending) |
 | RBC (РБК) — media | Python developer: "work with FastAPI, FastStream and other frameworks" | [hh.ru](https://web.archive.org/web/20260917212800/https://hh.ru/vacancy/125997975), closed 2025-10-31 |
 | RocketData | Senior Python developer: "Our stack: Python 3.11+, Django + REST Framework, FastAPI, Celery, FastStream, Kubernetes; brokers: RabbitMQ, Kafka" | [hh.ru](https://web.archive.org/web/20260917212924/https://hh.ru/vacancy/119577133), closed 2025-05-16 |
-| Rostelecom IT (Ростелеком ИТ) | Senior Python developer: "Stack: Python 3.12+, Docker, K8S, FastAPI, ..., Aiopika, FastStream (kafka), dishka, prefect, MLFlow" | [hh.ru](https://web.archive.org/web/20260918174051/https://hh.ru/vacancy/137356756), open as of 2026-09-18 |
-| Solution (ООО Солюшен) | Python fullstack developer: "asynchronous data exchange between services via Kafka and RabbitMQ (using FastStream)" | [hh.ru](https://web.archive.org/web/20260918174335/https://hh.ru/vacancy/136878677), open as of 2026-09-18 |
+| Rostelecom IT (Ростелеком ИТ) | Senior Python developer: "Stack: Python 3.12+, Docker, K8S, FastAPI, ..., Aiopika, FastStream (kafka), dishka, prefect, MLFlow" | [hh.ru](https://hh.ru/vacancy/137356756), open as of 2026-09-18 (archived snapshot pending) |
+| Runity (Рунити) — hosting and domains | PHP developer migrating to Python: "an advantage: knowledge of FastAPI, SQLAlchemy, FastStream" | [hh.ru](https://web.archive.org/web/20260918174305/https://hh.ru/vacancy/137089267), open as of 2026-09-18 |
+| Sber IT (Сбер. IT) | Middle Python ML engineer, AI agents: "nice to have: experience with distributed task and message queues, stream processing — celery, taskiq, rabbitmq, Kafka, faststream" | [hh.ru](https://hh.ru/vacancy/137494675), open as of 2026-09-18 (archived snapshot pending) |
+| Solution (ООО Солюшен) | Python fullstack developer: "asynchronous data exchange between services via Kafka and RabbitMQ (using FastStream)" | [hh.ru](https://hh.ru/vacancy/136878677), open as of 2026-09-18 (archived snapshot pending) |
 | SPOTParking (ООО Спутник) | Python developer (middle): "FastAPI, PyMongo[beanie], AioPika[FastStream]" | [hh.ru](https://web.archive.org/web/20260917212842/https://hh.ru/vacancy/116147115), closed 2025-05-30 |
+| TMGT (АО ТМГТ) — payments | Python tech lead / staff backend engineer: "a strong plus: Temporal, Debezium CDC, FastStream, AWS EKS, Helm or ArgoCD" | [hh.ru](https://hh.ru/vacancy/136199617), open as of 2026-09-18 (archived snapshot pending) |
 | VADAROD (ЗАО Водород) | Python developer (middle+): "message brokers (RabbitMQ, Kafka) and async processing (Celery, Faust, FastStream)" in the requirements | [hh.ru](https://web.archive.org/web/20260917212903/https://hh.ru/vacancy/117513184), closed 2025-04-19 |
 
 The same list with a little more detail, plus tools that ship a FastStream integration of their own,
