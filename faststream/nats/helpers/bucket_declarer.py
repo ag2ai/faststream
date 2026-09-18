@@ -38,6 +38,7 @@ class KVBucketDeclarer:
         placement: Optional["Placement"] = None,
         republish: Optional["RePublish"] = None,
         direct: bool | None = None,
+        limit_marker_ttl: float | None = None,  # in seconds
         # custom
         declare: bool = True,
     ) -> "KeyValue":
@@ -56,6 +57,7 @@ class KVBucketDeclarer:
                         placement=placement,
                         republish=republish,
                         direct=direct,
+                        limit_marker_ttl=limit_marker_ttl,
                     ),
                 )
             else:

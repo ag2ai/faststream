@@ -75,7 +75,6 @@ class NatsRequestsTestcase(RequestsTestcase):
 @pytest.mark.connected()
 @pytest.mark.nats()
 class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
-
     @pytest.mark.asyncio()
     async def test_broker_request_with_message_ttl(
         self,
@@ -83,7 +82,6 @@ class TestRealRequests(NatsTestcaseConfig, NatsRequestsTestcase):
     ) -> None:
         stream = JStream(queue, allow_msg_ttl=True)
         broker = self.get_broker()
-
 
         @broker.subscriber(queue, stream=stream)
         async def handler(msg):

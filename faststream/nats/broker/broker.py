@@ -709,6 +709,7 @@ class NatsBroker(
         placement: Optional["Placement"] = None,
         republish: Optional["RePublish"] = None,
         direct: bool | None = None,
+        limit_marker_ttl: float | None = None,  # in seconds
         # custom
         declare: bool = True,
     ) -> "KeyValue":
@@ -726,6 +727,7 @@ class NatsBroker(
             republish=republish,
             direct=direct,
             declare=declare,
+            limit_marker_ttl=limit_marker_ttl,
         )
 
     async def object_storage(

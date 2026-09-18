@@ -59,6 +59,7 @@ class JStream(NameRequired):
         allow_msg_schedules: bool | None = None,
         declare: bool = True,
         allow_msg_ttl: bool | None = None,
+        subject_delete_marker_ttl: float | None = None,  # in seconds
     ) -> None:
         """Initialized JS stream.
 
@@ -136,6 +137,8 @@ class JStream(NameRequired):
                 Whether to create stream automatically or just connect to it.
             allow_msg_ttl:
                 Should allow per-message TTL via Nats-TTL header.
+            subject_delete_marker_ttl:
+                Enables server-side delete markers for TTL/purge events, observable by watchers.
         """
         super().__init__(name)
 
@@ -171,6 +174,7 @@ class JStream(NameRequired):
             allow_msg_schedules=allow_msg_schedules,
             subjects=[],  # use subjects from builder in declaration
             allow_msg_ttl=allow_msg_ttl,
+            subject_delete_marker_ttl=subject_delete_marker_ttl,
         )
 
 

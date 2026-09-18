@@ -963,3 +963,47 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             resume_resp = await stream_context.resume_consumer(stream.name, consumer_name)
 
             assert resume_resp.paused is False
+
+    async def test_kv_limit_marker_ttl_watcher_observes_expiry(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            bucket = await br.key_value(queue + "1", limit_marker_ttl=3.0)
+            await bucket.create(queue, b"test_message", msg_ttl=1.0)
+            watcher = await bucket.watch(queue, include_history=True)
+
+            entry = await watcher.updates(timeout=3.0)
+            assert entry.key == queue
+            assert entry.operation is None
+
+            none_entry = await watcher.updates(timeout=3.0)
+            assert none_entry is None
+
+            await asyncio.sleep(1.5)
+
+            expiry_entry = await watcher.updates(timeout=5.0)
+            assert expiry_entry.key == queue
+            assert expiry_entry.operation == "PURGE"
+
+    async def test_stream_sub_delete_marker_ttl(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+        stream = JStream(queue, allow_msg_ttl=True, subject_delete_marker_ttl=4.0)
+        subscriber = broker.subscriber(queue, stream=stream)
+        async with self.patch_broker(broker):
+            await broker.start()
+            await broker.publish("test_message", queue, msg_ttl=1.0, stream=stream.name)
+            message = await subscriber.get_one(timeout=5)
+
+            await asyncio.sleep(2)
+            message = await subscriber.get_one(timeout=5)
+            assert message.headers["Nats-Marker-Reason"] == "MaxAge"
+
+            await asyncio.sleep(4)
+            message = await subscriber.get_one(timeout=5)
+            assert message is None
