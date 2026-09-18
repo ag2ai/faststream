@@ -57,6 +57,13 @@ any organization's name or logo beyond this list.
 
 ## Adopters
 
+Two tables, because the two kinds of entry are not the same thing.
+
+### Confirmed by the organization
+
+Added by someone from the organization itself. This is the list that matters — if you belong here,
+please move your row up from the table below, or add a new one.
+
 <!-- Please keep the table sorted alphabetically by organization. -->
 
 | Organization | Brokers | Use case | Environment | Scale | Contact |
@@ -64,5 +71,49 @@ any organization's name or logo beyond this list.
 | [AG2](https://github.com/ag2ai) | NATS, Kafka | Event transport for agent workloads; FastStream is maintained here | — | — | [@Lancetnik](https://github.com/Lancetnik) |
 | [Raiffeisenbank](https://habr.com/ru/companies/raiffeisenbank/articles/885792/) | Kafka, RabbitMQ | Event-driven backend services; the team contributed the Prometheus middleware upstream | — | — | — |
 
-> The two entries above were seeded from these organizations' own public statements so the table
-> does not start empty. Everyone else, please add yourselves.
+### Observed from public sources — please confirm
+
+We found these in public repositories: a manifest or source file in the organization's own
+repository declares FastStream. **Nobody from the organization has confirmed the entry**, and the
+details below are what we could infer, which is never the interesting part.
+
+**If this is your organization:** move your row to the table above and fill in what you actually run
+— brokers, environment, scale. That is a minute of work and it is the part other teams read. If you
+would rather not be listed at all, open an issue or a pull request removing the row; no explanation
+needed.
+
+| Organization | Who they are | Evidence |
+| --- | --- | --- |
+| [Aeluin Technologies](https://github.com/Aeluin-Technologies) | data integration and analytics vendor | [Galadril](https://github.com/Aeluin-Technologies/Galadril) |
+| [AgentArea](https://github.com/agentarea) | control layer for agent teams | [agentarea](https://github.com/agentarea/agentarea) |
+| [Catasto Open](https://github.com/catasto-open) | Italian land registry | [catasto-cdc](https://github.com/catasto-open/catasto-cdc) |
+| [CTIC](https://github.com/fundacionctic) | CTIC Technology Centre, Spain | [connector-building-blocks](https://github.com/fundacionctic/connector-building-blocks) |
+| [Data Cellar](https://github.com/Data-Cellar) | EU federated energy dataspace | [participant-template](https://github.com/Data-Cellar/participant-template) |
+| [ECMWF](https://github.com/ecmwf) | European Centre for Medium-Range Weather Forecasts | [IonBeam](https://github.com/ecmwf/IonBeam) |
+| [EggAI](https://github.com/eggai-tech) | agentic workforce automation | [EggAI](https://github.com/eggai-tech/EggAI) |
+| [Gravitate](https://pypi.org/project/bb-integrations-library/) | AI platform for the fuel supply chain | [bb-integrations-library](https://pypi.org/project/bb-integrations-library/) |
+| [hao.vc](https://github.com/hao-vc) | builders of AI-autonomous orchestrators | [haolib](https://github.com/hao-vc/haolib) |
+| [HBB (AI·SW Maestro 17th)](https://github.com/SW-Maestro-17th-HBB) | dev team in a Korean software talent programme | [Kkori-AI](https://github.com/SW-Maestro-17th-HBB/Kkori-AI) |
+| [Hydro-Québec](https://github.com/hq-opensource) | Quebec's public electricity utility | [building-intelligence](https://github.com/hq-opensource/building-intelligence) |
+| [it@M](https://github.com/it-at-m) | IT services provider of the City of Munich | [zammad-ai](https://github.com/it-at-m/zammad-ai), [riski](https://github.com/it-at-m/riski) |
+| [IT'IS Foundation](https://github.com/ITISFoundation) | Foundation for Research on Information Technologies in Society | [osparc-simcore](https://github.com/ITISFoundation/osparc-simcore) |
+| [KIWIQ](https://github.com/rcortx) | multi-agent AI vendor | [kiwiq](https://github.com/rcortx/kiwiq) |
+| [Lemma](https://github.com/lemma-work) | runtime for agent-built software | [lemma-platform](https://github.com/lemma-work/lemma-platform) |
+| [LMDDC](https://github.com/lmddc-lu) | Luxembourg Media & Digital Design Centre | [alice.skilltech.tools](https://github.com/lmddc-lu/alice.skilltech.tools) |
+| [MWS](https://github.com/MTSWebServices) | MTS Web Services | [data-rentgen](https://github.com/MTSWebServices/data-rentgen) |
+| [NCATS (NIH) / PolusAI](https://github.com/PolusAI) | National Center for Advancing Translational Sciences | [aithena](https://github.com/PolusAI/aithena) |
+| [NERSC](https://github.com/NERSC) | National Energy Research Scientific Computing Center, US DOE | [interactEM](https://github.com/NERSC/interactEM) |
+| [NHS Lancashire & South Cumbria SDE](https://github.com/lsc-sde) | NHS secure data environment | [neulander-core](https://github.com/lsc-sde/neulander-core) |
+| [Numberly](https://github.com/numberly) | marketing technology company | [reviewate](https://github.com/numberly/reviewate) |
+| [QCrBox](https://github.com/QCrBox) | Quantum Crystallography Toolbox | [QCrBox](https://github.com/QCrBox/QCrBox) |
+| [Red Hat](https://github.com/app-sre) | enterprise open-source vendor | [qontract-reconcile](https://github.com/app-sre/qontract-reconcile) |
+| [Rubin Observatory / LSST](https://github.com/lsst-sqre) | Science Quality and Reliability Engineering team | [Safir](https://github.com/lsst-sqre/safir) |
+| [spoo.me](https://github.com/spoo-me) | link management service | [spoo](https://github.com/spoo-me/spoo) |
+| [TL;DR.tv](https://pypi.org/project/tldr-common/) | TL;DR.tv platform team | [tldr-common](https://pypi.org/project/tldr-common/) |
+| [TogetherCrew](https://github.com/TogetherCrew) | open-source community tooling | [hivemind-bot](https://github.com/TogetherCrew/hivemind-bot) |
+| [traide AI](https://github.com/traide) | AI for customs processes | [traide-core-python](https://github.com/traide/traide-core-python) |
+| [Waldiez](https://github.com/waldiez) | multi-agent AI orchestration platforms | [runner](https://github.com/waldiez/runner) |
+| [xi.effect / Sovlium](https://github.com/xi-effect) | education platform | [xi.back-2](https://github.com/xi-effect/xi.back-2) |
+
+The same list with a little more detail, plus tools that ship a FastStream integration of their own,
+lives on the [Used By](https://faststream.ag2.ai/latest/who-uses/) page.

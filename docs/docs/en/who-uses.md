@@ -55,6 +55,23 @@ of their own.
 | **TogetherCrew** | open-source community tooling | [hivemind-bot](https://github.com/TogetherCrew/hivemind-bot){.external-link target="_blank"} — their LLM bot |
 | **TL;DR.tv** | TL;DR.tv platform team | [tldr-common](https://pypi.org/project/tldr-common/){.external-link target="_blank"} — shared utilities and models |
 
+## Hiring for FastStream
+
+Organizations that listed **FastStream** in the stack of a public job posting. A posting says the
+team expects to work with **FastStream** — it is a weaker signal than a dependency in a repository,
+and it is listed separately for that reason. Postings expire, so each links to an archived snapshot.
+
+| Name | Posting |
+| --- | --- |
+| **Bureau 1440** | [Senior data services developer](https://web.archive.org/web/20260917210933/https://career.habr.com/vacancies/1000167287){.external-link target="_blank"} — "Kafka (FastStream)" in the stack |
+| **Kuper** | [Python team lead, anti-fraud](https://web.archive.org/web/20260917212720/https://getmatch.ru/vacancies/17393-python-team-lead-antifrod){.external-link target="_blank"} |
+| **Rostelecom** | [Python developer](https://web.archive.org/web/20260917212802/https://dreamjob.ru/employers/109329/vakansii/121354728){.external-link target="_blank"} |
+| **RBC** | [Python developer](https://web.archive.org/web/20260917212800/https://hh.ru/vacancy/125997975){.external-link target="_blank"} |
+| **Etalon** | [Python developer](https://web.archive.org/web/20260917212822/https://hh.ru/vacancy/116760887){.external-link target="_blank"} |
+| **RocketData** | [Senior Python developer](https://web.archive.org/web/20260917212924/https://hh.ru/vacancy/119577133){.external-link target="_blank"} |
+| **SPOTParking** | [Python developer](https://web.archive.org/web/20260917212842/https://hh.ru/vacancy/116147115){.external-link target="_blank"} |
+| **VADAROD** | [Python developer](https://web.archive.org/web/20260917212903/https://hh.ru/vacancy/117513184){.external-link target="_blank"} |
+
 ## Tools Shipping a FastStream Integration
 
 These are not users but neighbouring projects that took on maintaining an integration of their own.
