@@ -208,6 +208,11 @@ For detailed instructions on building and serving the documentation, please refe
   feature. An unrelated change makes the diff harder to review and ties a trivial fix to a long discussion.
 * Files maintained by the release process (`docs/docs/en/release.md`, `uv.lock`) are not part of a
   contribution and are rejected by CI.
+* **The CLA is signed before review starts.** We do not spend a review round on a contribution we cannot merge.
+* **Discussion happens in the pull request, not in a private message.** A decision made in a chat is invisible
+  to the next contributor who hits the same question — and to us, six months later.
+* A design question with no consequence for the merge does not block it. If it can be answered afterwards,
+  we merge and answer afterwards.
 
 ## When a maintainer edits your branch
 
@@ -216,6 +221,10 @@ When that happens you are owed two things:
 
 * a comment listing **what** was changed and which parts were the maintainer's own preference rather than a project requirement;
 * a warning **before** any force-push, so your local branch does not diverge silently.
+
+A maintainer changing behaviour in your branch follows the same rules as you do: the change is explained
+in the pull request and comes with a test. A silent behaviour change relies on one person noticing it,
+which is not something the project can repeat.
 
 If a change was made on top of your work without an explanation, ask — the explanation is the part that
 makes the next contribution easier, and it is our job to provide it.

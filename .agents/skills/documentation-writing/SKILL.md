@@ -72,6 +72,17 @@ All example code must follow idiomatic FastStream usage:
 - Use `Annotated[str, Path()]` for subject path params and `Annotated[..., Context()]` for context access (built-ins: `broker`, `context`, `logger`, `message`).
 - Import only from public packages — never `faststream._internal`.
 
+## What review checks in docs
+
+Docs are the largest source of review findings in this project's history — 73 events, a quarter of them
+about behaviour rather than wording.
+
+- **Every claim is verified against the code of the current version.** Docs drift silently: a sentence true at 0.5 survives into 0.6 and becomes a lie no test catches (#2425, #2457, #2885, #2534).
+- **A feature is documented for every broker that has it**, not only for the one it was written against (#2238).
+- **LLM output is checked by the author before it is committed.** Generated prose reads plausible and states things the code does not do (#2421, #3042).
+- A risky pattern is not published at all; when a snippet relies on an assumption (idempotency, ordering, a single consumer), the assumption is stated next to it (#3011).
+- The example is minimal: no test scaffolding, no defensive code around a guaranteed key, nothing the point does not need.
+
 ## Build & serve
 
 - `just docs-serve` — live dev server on port 8000.
