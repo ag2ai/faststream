@@ -24,7 +24,7 @@ Pick whichever is easiest:
 1. **Edit this file in the browser** — [edit ADOPTERS.md](https://github.com/ag2ai/faststream/edit/main/ADOPTERS.md).
    GitHub creates the fork and the pull request for you; no clone needed.
 2. **Open a pull request** the usual way.
-3. **Tell us in [Discussions](https://github.com/ag2ai/faststream/discussions)** if you would rather
+3. **Comment on [issue #3143](https://github.com/ag2ai/faststream/issues/3143)** if you would rather
    not open a pull request, and we will add the entry for you.
 
 Add a row to the table below. Everything except the name is optional — a name and a link are already

@@ -99,11 +99,12 @@ Using **FastStream** in production? There are two lists, and they serve differen
 Add your organization along with the brokers you run, your use case and your scale. That last part
 is what other teams are really looking for, and only you can supply it. The quickest route is
 [editing the file in the browser](https://github.com/ag2ai/faststream/edit/main/ADOPTERS.md){.external-link target="_blank"} —
-GitHub opens the pull request for you.
+GitHub opens the pull request for you. If you would rather not open one, comment on
+[issue #3143](https://github.com/ag2ai/faststream/issues/3143){.external-link target="_blank"} and we will add the row for you.
 
 **This page — compiled by us** from public repositories and package metadata. If we have missed a
 project, open a pull request against
 [`docs/docs/en/who-uses.md`](https://github.com/ag2ai/faststream/blob/main/docs/docs/en/who-uses.md){.external-link target="_blank"},
-or tell us in the [discussions](https://github.com/ag2ai/faststream/discussions){.external-link target="_blank"}.
+or comment on [issue #3143](https://github.com/ag2ai/faststream/issues/3143){.external-link target="_blank"}.
 
 If you are listed on either and would prefer not to be, open an issue — no explanation needed and no questions asked.
