@@ -105,6 +105,6 @@ GitHub opens the pull request for you. If you would rather not open one, comment
 **This page — compiled by us** from public repositories and package metadata. If we have missed a
 project, open a pull request against
 [`docs/docs/en/who-uses.md`](https://github.com/ag2ai/faststream/blob/main/docs/docs/en/who-uses.md){.external-link target="_blank"},
-or tell us in the [discussions](https://github.com/ag2ai/faststream/discussions){.external-link target="_blank"}.
+or comment on [issue #3143](https://github.com/ag2ai/faststream/issues/3143){.external-link target="_blank"}.
 
 If you are listed on either and would prefer not to be, open an issue — no explanation needed and no questions asked.

@@ -439,7 +439,7 @@ integration of their own.
 
 See the full list on the [Used By](https://faststream.ag2.ai/latest/who-uses/) page.
 
-Running **FastStream** in production? Add your organization to [`ADOPTERS.md`](https://github.com/ag2ai/faststream/blob/main/ADOPTERS.md) — a directory maintained by adopters themselves, with the brokers and scale they run.
+Running **FastStream** in production? Add your organization to [`ADOPTERS.md`](https://github.com/ag2ai/faststream/blob/main/ADOPTERS.md) — a directory maintained by adopters themselves, with the brokers and scale they run. Not up for a pull request? Comment on [issue #3143](https://github.com/ag2ai/faststream/issues/3143) and we will add you.
 
 ---
 
