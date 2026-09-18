@@ -198,6 +198,17 @@ just pre-commit-all
 
 For detailed instructions on building and serving the documentation, please refer to the [documentation contribution guide](./docs.md){.internal-link}.
 
+## Opening a pull request
+
+* **One open pull request at a time.** If you are not a maintainer, please land the one you have before
+  opening the next. Review is the bottleneck in this project, and a queue from a single author pushes back
+  everyone else's work.
+* **One pull request, one change.** Unrelated fixes — a typo you spotted, a lint failure in another module,
+  a dependency bump — belong in their own pull request. They are welcome; they just do not travel with a
+  feature. An unrelated change makes the diff harder to review and ties a trivial fix to a long discussion.
+* Files maintained by the release process (`docs/docs/en/release.md`, `uv.lock`) are not part of a
+  contribution and are rejected by CI.
+
 ## When a maintainer edits your branch
 
 Maintainers sometimes push directly to a pull request branch instead of asking for another round.

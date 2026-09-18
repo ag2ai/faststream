@@ -657,6 +657,32 @@ jobs:
           path: htmlcov
 
   # https://github.com/marketplace/actions/alls-green#why
+  pr-hygiene:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Files maintained by the release process
+        if: >
+          github.event.pull_request.author_association != 'OWNER' &&
+          github.event.pull_request.author_association != 'MEMBER' &&
+          !contains(github.event.pull_request.labels.*.name, 'release')
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          bad=$(git diff --name-only "origin/$BASE_REF...HEAD" \
+                | grep -E '^(uv\.lock|docs/docs/en/release\.md)$' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::These files are maintained by the release process. Please drop them from the PR: $bad"
+            exit 1
+          fi
+
   check: # This job does nothing and is only used for the branch protection
     # from: https://github.com/re-actors/alls-green
     # Important: For this to work properly, it is a must to have the job always
@@ -670,6 +696,7 @@ jobs:
       - coverage-combine
       - test-macos-latest
       - test-windows-latest
+      - pr-hygiene
 
     runs-on: ubuntu-latest
 
