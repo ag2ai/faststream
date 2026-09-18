@@ -42,6 +42,17 @@ All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start(
 1. Find the closest analogue in another broker (kafka is usually the most complete) and follow its shape and naming.
 2. Keep the public API identical across brokers unless the feature is inherently broker-specific.
 3. Broker-specific features stay in the broker package — don't leak them into `_internal/`.
+4. **Kafka has two backends.** A fix in `faststream/kafka/` (aiokafka) is mirrored into `faststream/confluent/` in the same PR, and vice versa (#2932).
+5. Logic that does not depend on the broker lives in the shared class, and values shared by all brokers go through one common type (e.g. `Address`) rather than a per-broker string (#3072, #3042).
+6. An invariant is established once, at the entry point — not re-derived by every reader. Two names for one value is a bug, not a convenience (#3072).
+
+## Option surface
+
+- A user-facing option exists at **every** level it can reasonably be set: `broker` → `router` → `subscriber`/`publisher` → FastAPI router. The innermost level wins; each level gets its own test (#2871, #2827, #3026).
+- The inverse also holds: an option that belongs to one object stays on that object and is not duplicated upward. A route-scoped setting does not become an application-level setting (#2777).
+- One knob, not two. Prefer a single parameter over a `bool` + `str` pair; `None` disables it (#2894).
+- A default that depends on a neighbouring parameter is derived through the `EMPTY` sentinel, not by guessing inside the body (#2894).
+- Behaviour that differs by **broker/server version** lives in the versioned implementation, not behind `if self._version` scattered through the broker (#2819). (Python and Pydantic differences go through `_compat` — see Typing.)
 
 ## Typing
 
@@ -58,7 +69,33 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 ## Public API
 
 - Every `__init__.py` declares `__all__` explicitly.
+- **Every name in `__all__` must resolve at runtime.** A name imported only under `if TYPE_CHECKING:` passes mypy and fails in production: `docs/create_api_docs.py` walks `__all__` and calls `getattr(module, name)` (#2841 → #2898).
 - Optional dependencies are guarded with try/except raising an `ImportError` that tells the user which extra to install — see `faststream/kafka/__init__.py`.
+- Driver exceptions are **not** re-exported through FastStream. Driver types are used by importing the driver (#2911, #2819).
+- A distinct connection mode (Cluster, Sentinel) is its own broker class, not a flag on the existing one (#2895).
+- An endpoint returns the result itself. No envelope, no wrapper object around it (#2777).
+
+## Invariants review checks by hand
+
+Nothing below is caught by ruff, mypy or the test suite. Every entry is backed by a bug that reached `main`
+or a rewrite that landed on top of a merged contribution.
+
+**Compatibility**
+
+- Identity semantics and any behaviour pinned by an existing test are a contract. They change on a bug report, not on the way past (#2796).
+- A new positional parameter goes **after** the existing ones. Anything that cannot preserve the old call sites waits for a major release (#2894, #2828, #2777).
+- New code does not introduce a deprecated API, even when the surrounding module still uses one (#2819).
+- A pattern the framework cannot support is forbidden loudly, with a link to the docs — not patched around so it half-works (#2828).
+
+**Errors and lifecycle**
+
+- An infrastructure failure gets its own exception type; it is not folded into a generic one (#2855).
+- A configuration error is terminal: stop the consumer, do not retry. Retrying a permanent failure hides it and burns the broker (#3049 → #3115).
+- One failure, one exception — the same condition raises the same type on every consumption path (`get_one`, iterator, subscriber) (#3049).
+- A configuration conflict warns at **registration** time, with `stacklevel` pointing at the user's line, and only when the values actually differ (#3026, #2849).
+- A parameter filter never silently drops user intent. If an option cannot be honoured, say so — do not pass a subset on (#2935: TLS settings were dropped silently).
+- `connect()` → `setup_logger()` ordering is a contract, and an object is removed from its registry only after `stop()` completes (#2859, #3108).
+- A string built for a log line is not reused as an address, key or identifier. Display and identity are separate values (#3041 → #3070).
 
 ## Style
 

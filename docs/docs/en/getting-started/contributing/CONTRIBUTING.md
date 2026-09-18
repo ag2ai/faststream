@@ -198,6 +198,17 @@ just pre-commit-all
 
 For detailed instructions on building and serving the documentation, please refer to the [documentation contribution guide](./docs.md){.internal-link}.
 
+## When a maintainer edits your branch
+
+Maintainers sometimes push directly to a pull request branch instead of asking for another round.
+When that happens you are owed two things:
+
+* a comment listing **what** was changed and which parts were the maintainer's own preference rather than a project requirement;
+* a warning **before** any force-push, so your local branch does not diverge silently.
+
+If a change was made on top of your work without an explanation, ask — the explanation is the part that
+makes the next contribution easier, and it is our job to provide it.
+
 ## Commits
 
 Please, use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) to name your commits and PR's.

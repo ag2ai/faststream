@@ -186,6 +186,15 @@ The same run grades the tests already there, and it is how a suite shrinks. Two 
 
 **Never import from a `conftest.py`.** pytest loads conftest modules specially (their fixtures are injected into the collected files), so importing from one — `from .conftest import Settings` or `from tests.brokers.redis.conftest import ...` — can produce a duplicated/mismatched module and confusing collection errors. When conftest and a test file need the same object, declare it in a plain helper module next to them (e.g. `tests/brokers/redis/settings.py`, `basic.py`) and import it from both.
 
+## What a change must cover
+
+- **An `assert` inside a handler is swallowed** — the broker catches the exception and the test passes. Assert on a `mock` from outside the handler instead (#3010, #3016, #3129).
+- Exercise the feature through the **public API**, end to end, not by calling internals directly (#2827).
+- A promise made in the docs is verified against a **real broker**, not against the client kwargs the code happens to pass (#3129).
+- A Redis feature is covered on **Cluster** as well, not only on the standalone broker (#3049).
+- Behaviour gated by a broker/driver version carries the gate on **every** test it affects, with the marker declared in `tests/marks.py` (#3049).
+- A drive-by fix shipped inside a feature PR gets its own regression test — otherwise it silently reverts later (#3026).
+
 ## Related skills
 
 - **dev-workflow** — docker broker management and the full just recipe matrix.
