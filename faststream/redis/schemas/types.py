@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Mapping, Sequence
+from ssl import VerifyMode
 from typing import Annotated, Any
 
 from fast_depends import Provider
@@ -116,6 +117,27 @@ class RedisClusterParams(RedisBrokerParams, total=False):
     startup_nodes: Annotated[
         Iterable[tuple[str, int]],
         "Explicit seed node addresses. Auto-discovered when omitted. Defaults to ``None``.",
+    ]
+    # RedisCluster takes no `ssl_context`: TLS is tuned through these options instead.
+    ssl: Annotated[bool, "Connect over TLS. Defaults to ``False``."]
+    ssl_ca_certs: Annotated[
+        str | None, "Path to the CA certificates file. Defaults to ``None``."
+    ]
+    ssl_ca_data: Annotated[
+        str | None, "CA certificates as a PEM string. Defaults to ``None``."
+    ]
+    ssl_cert_reqs: Annotated[
+        str | VerifyMode,
+        'Whether the server certificate is required. Defaults to ``"required"``.',
+    ]
+    ssl_certfile: Annotated[
+        str | None, "Path to the client certificate. Defaults to ``None``."
+    ]
+    ssl_keyfile: Annotated[
+        str | None, "Path to the client private key. Defaults to ``None``."
+    ]
+    ssl_check_hostname: Annotated[
+        bool, "Verify the server hostname. Default follows redis-py."
     ]
 
 
