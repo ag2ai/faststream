@@ -114,6 +114,7 @@ or a rewrite that landed on top of a merged contribution.
 - `ping(timeout)` honours the timeout it was given (#2212).
 - **A class-level container with no eviction is a leak.** Anything keyed per instance and never cleaned belongs to the instance (#2661).
 - Static data is separated from dynamic once, at initialisation, not re-computed on the hot path (#2555).
+- The access-log cost (about 30 of 57 µs per message) is stdout I/O, not record building: `Logger.log` already short-circuits on level, so an `isEnabledFor` guard buys 0.02 µs. Dropping those records changes what `log_level` means — a public-API decision, not an optimisation (#3130).
 - `connect()` → `setup_logger()` ordering is a contract. Shutdown order is `running = False` → wait for in-flight → `super().stop()` under the lock, and an object is removed from its registry only after `stop()` completes (#2531, #2859, #3108).
 - A string built for a log line is not reused as an address, key or identifier. Display and identity are separate values (#3041 → #3070).
 
@@ -129,6 +130,16 @@ or a rewrite that landed on top of a merged contribution.
 - ruff uses `select = ["ALL"]` with curated ignores in `ruff.toml` — don't assume a rule is disabled; run `just linter` to check.
 - Line length 90, double quotes, Google-style docstrings.
 - `just mypy` must pass before a PR.
+
+### Module layout
+
+- **Public first.** A module opens with the class or function it exists for, then the rest of the public surface by significance, then `_`-prefixed helpers. Quote an annotation (`syntax: "AddressSyntax"`) when the headline class refers to something defined below it. A reorder gets its own commit, so it cannot hide a behaviour change (#3072).
+- **A helper that never reads `self` is a module-level function** (`_name` in the library). `PLR6301` enforces it in `faststream/` only: an override takes `@override`, a hook users subclass keeps `self` under `# noqa: PLR6301`. Test classes, class-scoped fixtures and testcase hooks stay methods (#3049, #3158).
+- **A heavy import stays lazy.** The AsyncAPI generators (`specification/asyncapi/v2_6_0`, `v3_0_0`) build pydantic models on import: hoisting them cost `import faststream` +28 ms and 71 modules. Before moving a local import to the top, run `python -X importtime -c "import faststream"`; a module that must stay lazy is listed in `banned-module-level-imports` in `ruff.toml`, so the lint holds it there (#3158).
+
+### Docstrings
+
+A docstring is a one-line summary, or a Google `Args:` section when parameters need explaining — measure the neighbours: none of `faststream/rabbit/*.py` has a module docstring, and their functions carry one-liners. The reasoning goes in a comment (#3109).
 
 ### Comments
 

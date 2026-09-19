@@ -47,6 +47,14 @@ Extra pytest args pass through: `just test tests/brokers/kafka -vv`. Run pytest 
 - 30s per-test timeout; xdist parallelism — tests must be order-independent.
 - Coverage sources include `faststream/`, `tests/`, `docs/docs_src/`, and `examples/`.
 
+## Branches and PRs
+
+- **List the open PRs before continuing earlier work**: `gh pr list --state open`, and read the titles in the same area. Merged history shows what shipped, not what is in flight (#3150 redid what open #3137 already had).
+- **The main checkout is shared between sessions.** Run `git branch --show-current` right before each commit, and do multi-step branch work in a `git worktree` under `.claude/worktrees/`.
+- **Rewriting a PR's commits**: rebase onto the fresh `origin/main` first, then `reset --soft origin/main` and recommit. A soft reset straight onto a main that has moved keeps the old tree, and the new commit reverts whatever merged in between. Before pushing, `git diff --stat origin/main` lists only the PR's own files.
+- **Stacked PRs** use the `gh stack` extension. `gh stack link <stack> <pr>` puts a PR in a stack — a base branch alone does not. Merge bottom-up with `gh pr merge <n> --squash`, then `gh stack sync`. Linking can flip a PR to draft, and every test job skips drafts: check `gh pr view <n> --json isDraft`. Once one PR of a stack has merged the stack cannot grow; form a new one from the open PRs with `gh stack link --remote origin <pr> <pr> ...`, bottom to top.
+- A force-push to a PR branch waits for the maintainer's word; `main` dismisses stale approvals on every push.
+
 ## Related skills
 
 - **testing-patterns** — markers, base testcases, fixtures.

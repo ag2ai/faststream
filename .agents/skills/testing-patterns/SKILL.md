@@ -160,6 +160,9 @@ mirror. An equality that already fails on a missing delivery stands alone; the
 - **An awaitable dropped on purpose is written `_ = ...`**: `_ = tg.start_soon(app.run)`, `_ = await br.publish(..., no_confirm=True)`. A bare statement reads as a forgotten `await`, which is what `unused-awaitable` reports.
 - **`# type: ignore[code]` is for what nothing else expresses**, always with its code and before any `# noqa`: `subscriber(*args, **kwargs)` from `get_subscriber_params()` resolves to `Any` (`untyped-decorator`), a test overriding a base test with other fixtures (`override`), a name redefined on purpose (`no-redef`), a call missing a required argument to prove it raises (`call-arg`).
 
+- **A declaration-only handler with a return type** (`-> int: ...`) is covered by the `empty-body` override for `tests.asyncapi.*`, and a dynamic model used as an annotation (`msg: create_model(...)`) becomes a real `class ...(BaseModel)`.
+- mypy's incremental cache can report phantom errors right after an edit; a cold run (`rm -rf .mypy_cache`) is the source of truth.
+
 A typing problem that turns out to live in `faststream/` is fixed there, in its own PR with a case in `tests/mypy/`, not papered over in the test.
 
 ## Regression tests
@@ -183,6 +186,8 @@ git checkout -- faststream/
 ```
 
 The same run grades the tests already there, and it is how a suite shrinks. Two tests red for one reason are one test: keep the one whose declaration carries more (an escaped brace *beside* a Path parameter over an escaped brace alone), delete the other, and check what a broker already gets from `test_router.py` or `test_path.py` before keeping a third.
+
+A white-box test survives only when the state it guards is **reachable**. When a reviewer calls an internal test redundant, settle it by mutation: break the code, run every suite against each break, keep the tests that go red where the others stay green. Then show the guarded state through the public path — a state no call site can produce is not worth its guard, so drop the test and take the simpler implementation.
 
 ## In-memory vs real broker
 
@@ -209,8 +214,20 @@ The same run grades the tests already there, and it is how a suite shrinks. Two 
 - A drive-by fix shipped inside a feature PR gets its own regression test — otherwise it silently reverts later (#3026).
 - **A fix comes with a red test.** The test must fail on the code before the fix; a test written after the fact only proves the current behaviour (#2366).
 - **Inverting a flag while renaming a parameter needs a test for the inversion.** `passive` → `declare` are opposites, and the sign was lost in some call sites and not others (#2236).
-- A flaky test is fixed by its cause, never by a retry, a sleep or a wider timeout.
+- A flaky test is fixed by its cause, never by a retry, a sleep or a wider timeout — see **Flakes and leaks**.
 - Base testcases take their subscriber arguments from `self.get_subscriber_params(...)` — a hard-coded signature passes on the base broker and fails on Confluent (#2366).
+
+## Flakes and leaks
+
+**De-flaking removes the race and keeps the path.** Cut the nondeterminism around the behaviour — who triggers it, when, what races what — and keep the production path the test exercised. Replacing a real `SIGINT` with `should_exit.set()` made `tests/cli/supervisors/test_multiprocess.py` stable and stopped covering the handler the fix had changed. Keep the trigger real and move it under the test's control (send the signal from the test, at a known moment), make the *outcome* deterministic (workers that only sleep), then break the path in the source and watch the test go red.
+
+Before believing a `connected` failure, rule out the container:
+
+- A just-restarted Kafka fails nearly everything for a minute or two, and a long-running one runs out of Java heap; recreate the compose brokers with `down -v`.
+- `tests/brokers/kafka/settings.py` hardcodes `localhost:9092`, so `just test-all` cannot reach Kafka from inside the dev container — run Kafka `connected` files with direct pytest on the host.
+- A Kafka test that publishes right after `start()` reads from `earliest` (`get_subscriber_params` sets it): `latest` is resolved asynchronously and skips a message published first (#3187).
+
+An unraisable `ResourceWarning` lands on whichever test runs at GC time. To pin it to the test that leaked, load a `-p` plugin that calls `gc.collect()` after each `pytest_runtest_call`. `PYTHONTRACEMALLOC` is inherited by the CLI subprocess tests and times ~30 of them out, so exclude `tests/cli` when using it. `filterwarnings = ["error"]` is off by choice: nats-py, starlette and our own FastAPI deprecation would each need a filter (#3186).
 
 ## Related skills
 
