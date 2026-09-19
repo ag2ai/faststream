@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.response import KafkaPublishMessage
+    from faststream.confluent.types import KafkaSendableMessage
     from faststream.response.response import PublishCommand
 
     from .config import KafkaPublisherConfig
@@ -226,7 +226,7 @@ class BatchPublisher(LogicPublisher):
     @override
     async def publish(
         self,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str = "",
         key: bytes | str | None = None,
         partition: int | None = None,

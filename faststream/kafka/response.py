@@ -17,6 +17,7 @@ from faststream.response.response import (
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
+    from faststream.kafka.types import KafkaSendableMessage
 
 
 class KafkaResponse(Response):
@@ -69,9 +70,9 @@ class KafkaResponse(Response):
 class KafkaPublishCommand(BatchPublishCommand):
     def __init__(
         self,
-        message: "SendableMessage | KafkaPublishMessage",
+        message: "KafkaSendableMessage",
         /,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str,
         _publish_type: PublishType,
         key: bytes | Any | None = None,

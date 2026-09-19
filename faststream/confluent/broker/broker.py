@@ -55,7 +55,7 @@ if TYPE_CHECKING:
     )
     from faststream.confluent.helpers.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.response import KafkaPublishMessage
+    from faststream.confluent.types import KafkaSendableMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -463,7 +463,7 @@ class KafkaBroker(
     @override
     async def publish_batch(  # type: ignore[override]
         self,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str,
         partition: int | None = None,
         timestamp_ms: int | None = None,
