@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Wrap FastStream message processing in middlewares to add retries, metrics and error handling
+  to many handlers without touching their business logic.
 search:
   boost: 10
 ---
@@ -21,7 +24,7 @@ In this section, you will find a list of available middlewares and detailed info
 
 ## Basic: Middlewares Flow
 
-![flow](../../../assets/img/middlewares-flow.svg){ width=300 height=100 }
+![flow](../../assets/img/middlewares-flow.svg){ width=300 height=100 }
 
 It is important to mention the **`parser`**, **`filter`**, **`decoder`** and **`publish`** - they are service functions, FastStream uses them during event processing. More details below:
 

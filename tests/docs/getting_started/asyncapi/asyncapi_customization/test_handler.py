@@ -3,9 +3,11 @@ from dirty_equals import IsPartialDict
 from docs.docs_src.getting_started.asyncapi.asyncapi_customization.custom_handler import (
     app,
 )
+from faststream.specification import AsyncAPI
 
 
 def test_handler_customization() -> None:
+    assert isinstance(app.schema, AsyncAPI)
     app.schema.schema_version = "2.6.0"
     schema = app.schema.to_specification().to_jsonable()
 

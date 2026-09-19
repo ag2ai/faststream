@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Produce and consume Apache Kafka topics from asynchronous Python with FastStream:
+  partitions, consumer groups and declarative handlers.
 search:
   boost: 10
 ---

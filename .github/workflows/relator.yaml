@@ -18,7 +18,10 @@ jobs:
   notify:
     name: "Send Telegram notification for new issue or opened pull request"
     runs-on: ubuntu-latest
-    if: github.actor != 'dependabot[bot]' && (github.event.action == 'opened' || github.event.action == 'reopened')
+    if: |
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'Lancetnik' &&
+      (github.event.action == 'opened' || github.event.action == 'reopened')
     steps:
       - name: Send Telegram notification for new issue or opened pull request
         uses: reagento/relator@879d895c8d7f44cfe7471bda4f5449c233e6f986 # v1.7.1

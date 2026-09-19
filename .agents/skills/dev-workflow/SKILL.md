@@ -33,13 +33,13 @@ Extra pytest args pass through: `just test tests/brokers/kafka -vv`. Run pytest 
 ## Lint & static analysis (run before any PR, in this order)
 
 1. `just linter` — runs `ruff format` (rewrites files in place), then `ruff check --exit-non-zero-on-fix` (reports fixable issues without applying them), then codespell (alias: `just lint`). Expect formatting changes in your working tree after running it.
-2. `just mypy` — strict mode over `faststream/` and `tests/mypy/`.
+2. `just mypy` — strict mode over `faststream/` and all of `tests/`; `docs/docs_src/` with the annotation checks relaxed.
 3. `just static-analysis` — mypy + bandit + semgrep; `just zizmor` separately for GitHub Actions workflows.
 4. `just pre-commit` — pre-commit hooks on modified files (`just pre-commit-all` for the whole tree).
 
 ## Docs recipes
 
-- `just docs-serve` — live server; `just docs-build` — static build (details in the **documentation-writing** skill).
+- `just docs-serve` — live server; `just docs-build` — static build; `just docs-check` — the docs PR gate (details in the **documentation-writing** skill).
 
 ## CI expectations
 

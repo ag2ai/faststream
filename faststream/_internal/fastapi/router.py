@@ -27,7 +27,7 @@ from fastapi.routing import APIRoute, APIRouter
 from fastapi.utils import generate_unique_id
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from starlette.routing import BaseRoute, _DefaultLifespan
+from starlette.routing import BaseRoute, _DefaultLifespan  # noqa: PLC2701
 from typing_extensions import override
 
 from faststream._internal.application import StartAbleApplication
@@ -394,7 +394,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
         def download_app_json_schema() -> Response:
             return Response(
-                content=json.dumps(
+                content=json.dumps(  # noqa: TID251
                     self.schema.to_specification().to_jsonable(),
                     indent=2,
                 ),
@@ -481,7 +481,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
     def include_router(  # type: ignore[override]
         self,
-        router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType]"],
+        router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType, Any]"],
         *,
         prefix: str = "",
         tags: list[str | Enum] | None = None,

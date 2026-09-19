@@ -1,3 +1,9 @@
+---
+description: >-
+  Control when FastStream acknowledges, rejects or requeues a message with the ack_policy
+  parameter and the AckPolicy enum.
+---
+
 # Acknowledgment
 
 Due to the possibility of unexpected errors during message processing, FastStream provides an `ack_policy` parameter that allows users to control how messages are handled. This parameter determines when and how messages should be acknowledged or rejected based on the result of the message processing.

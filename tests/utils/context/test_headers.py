@@ -15,23 +15,18 @@ async def test_nats_headers() -> None:
     async def h(
         name: str = Header(),
         id_: int = Header("id"),
-    ) -> int:
-        assert name == "john"
-        assert id_ == 1
-        return 1
+    ) -> dict[str, str | int]:
+        return {"name": name, "id": id_}
 
     async with TestNatsBroker(broker) as br:
-        assert (
-            await (
-                await br.request(
-                    "",
-                    "in",
-                    headers={
-                        "name": "john",
-                        "id": "1",
-                    },
-                    timeout=1.0,
-                )
-            ).decode()
-            == 1
-        )
+        assert await (
+            await br.request(
+                "",
+                "in",
+                headers={
+                    "name": "john",
+                    "id": "1",
+                },
+                timeout=1.0,
+            )
+        ).decode() == {"name": "john", "id": 1}

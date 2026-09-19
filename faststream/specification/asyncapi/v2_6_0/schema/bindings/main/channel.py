@@ -73,8 +73,8 @@ class ChannelBinding(BaseModel):
         ):
             return cls(redis=redis)
 
-        if binding.sqs and (sqs := sqs_bindings.ChannelBinding.from_sub(binding.sqs)):
-            return cls(sqs=sqs)
+        if binding.sqs:
+            return cls(sqs=sqs_bindings.ChannelBinding.from_sub(binding.sqs))
 
         return None
 
@@ -110,7 +110,7 @@ class ChannelBinding(BaseModel):
         ):
             return cls(redis=redis)
 
-        if binding.sqs and (sqs := sqs_bindings.ChannelBinding.from_pub(binding.sqs)):
-            return cls(sqs=sqs)
+        if binding.sqs:
+            return cls(sqs=sqs_bindings.ChannelBinding.from_pub(binding.sqs))
 
         return None

@@ -16,7 +16,7 @@ def mqtt_version(request: pytest.FixtureRequest) -> str:
     return "5.0"
 
 
-def test_feature_not_supported_311():
+def test_feature_not_supported_311() -> None:
     with pytest.raises(
         FeatureNotSupportedException, match=r"Opentelementry don`t work in 3.1.1 mqtt"
     ):
@@ -26,7 +26,7 @@ def test_feature_not_supported_311():
         )
 
 
-def test_router_feature_not_supported_311():
+def test_router_feature_not_supported_311() -> None:
     router = MQTTRouter(middlewares=(MQTTTelemetryMiddleware(),))
     with pytest.raises(
         FeatureNotSupportedException, match=r"Opentelementry don`t work in 3.1.1 mqtt"
@@ -38,7 +38,7 @@ def test_router_feature_not_supported_311():
 
 @pytest.mark.connected()
 @pytest.mark.mqtt()
-class TestTelemetry(MQTTTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
+class TestTelemetry(MQTTTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "mqtt"
     include_messages_counters = True
     telemetry_middleware_class = MQTTTelemetryMiddleware

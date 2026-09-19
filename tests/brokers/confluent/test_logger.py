@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import pytest
 
@@ -17,12 +18,13 @@ class TestLogger(ConfluentTestcaseConfig):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
-        def subscriber(m) -> None: ...
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        def subscriber(m: Any) -> None: ...
 
         await broker.start()
 
-        for sub in broker.subscribers:
+        subscribers: list[Any] = broker.subscribers
+        for sub in subscribers:
             consumer_logger = sub.consumer.logger_state.logger.logger
             assert consumer_logger == test_logger
 

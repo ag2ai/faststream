@@ -47,7 +47,7 @@ async def base_handler(body: str, msg: NatsMessage):
 
 ## Message Fields Access
 
-But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context.md#existing_fields){.internal-link} feature for this reason.
+But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context.md#existing-fields){.internal-link} feature for this reason.
 
 For example, you can access the `correlation_id` like this:
 

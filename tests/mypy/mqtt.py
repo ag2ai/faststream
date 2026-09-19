@@ -9,6 +9,8 @@ from faststream.mqtt import (
     Will,
     WillProperties,
 )
+from faststream.mqtt.fastapi import MQTTRouter as FastAPIRouter
+from faststream.mqtt.message import MQTTMessage
 from faststream.mqtt.subscriber.usecase import (
     MQTTConcurrentSubscriber,
     MQTTDefaultSubscriber,
@@ -49,6 +51,16 @@ async def check_multiple_test_brokers() -> None:
         await br2.publish(None, "test")
 
 
+async def check_subscriber_message_type(broker: MQTTBroker | MQTTRouter) -> None:
+    subscriber = broker.subscriber("test")
+
+    message = await subscriber.get_one()
+    assert_type(message, MQTTMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, MQTTMessage)
+
+
 def check_subscriber_instance_type(broker: MQTTBroker | MQTTRouter) -> None:
     sub1 = broker.subscriber("test")
     assert_type(sub1, MQTTDefaultSubscriber)
@@ -64,3 +76,6 @@ def check_decorated_handler_type(broker: MQTTBroker | MQTTRouter) -> None:
     def handle() -> None: ...
 
     assert_type(handle, HandlerCallWrapper[[], None])
+
+
+FastAPIRouter().include_router(MQTTRouter())

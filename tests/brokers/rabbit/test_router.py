@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -50,13 +51,14 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         pub_broker = self.get_broker(apply_types=True)
         pub_broker.include_router(router)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request(
-            "",
-            "in.john.2",
-            queue + "1",
-        )
+            await br.request(
+                "",
+                "in.john.2",
+                queue + "1",
+            )
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
@@ -93,13 +95,14 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         pub_broker = self.get_broker(apply_types=True)
         pub_broker.include_router(router)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request(
-            "",
-            "in.john.2",
-            queue + "1",
-        )
+            await br.request(
+                "",
+                "in.john.2",
+                queue + "1",
+            )
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
@@ -115,7 +118,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         r_queue = RabbitQueue(queue)
 
         @router.subscriber(r_queue)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         broker.include_router(router)
@@ -145,7 +148,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         exchange = RabbitExchange(f"{queue}exch")
 
         @router.subscriber(r_queue, exchange=exchange)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         broker.include_router(router)
@@ -168,7 +171,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
     async def test_delayed_handlers_with_queue(
         self, queue: str, event: asyncio.Event
     ) -> None:
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         r_queue = RabbitQueue(queue)

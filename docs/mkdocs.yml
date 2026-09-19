@@ -5,7 +5,7 @@ site_url: https://faststream.ag2.ai/
 site_author: AG2AI Inc.
 copyright: '&copy; 2026 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
 
-docs_dir: docs
+docs_dir: docs/en
 
 watch:
   - docs
@@ -15,11 +15,15 @@ watch:
 
 repo_name: ag2ai/faststream
 repo_url: https://github.com/ag2ai/faststream
-edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs
+edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs/en
 
 exclude_docs: |
-  navigation_template.txt
   SUMMARY.md
+
+# `just docs-check` builds with --strict, so a broken link or anchor fails the PR
+validation:
+  anchors: warn
+  unrecognized_links: warn
 
 theme:
   name: material
@@ -71,6 +75,11 @@ plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   # - meta                         # (insiders) use .meta.yml files
+  - privacy:                     # self-host Google Fonts: no render-blocking third-party CSS
+      assets_include:
+        - fonts.googleapis.com/*
+        - fonts.gstatic.com/*
+      links: false
   - glightbox:                   # image zoom
       manual: true
   - macros:                      # Jinja templates
@@ -102,15 +111,6 @@ plugins:
             show_docstring_attributes: false
             show_signature_annotations: true
             load_external_modules: true
-  - i18n:
-      docs_structure: folder
-      reconfigure_material: true
-      reconfigure_search: true
-      languages:
-        - locale: en
-          default: true
-          name: en - English
-          build: true
   - git-revision-date-localized: # show page edition date
       enabled: !ENV [CI, false]
       type: timeago
@@ -145,8 +145,7 @@ markdown_extensions:
   - admonition                   # !!! note blocks support
   - pymdownx.details             # admonition collapsible
   - pymdownx.superfences         # highlight code syntax
-  - pymdownx.highlight:
-      anchor_linenums: true      # allows link to codeline
+  - pymdownx.highlight
   - pymdownx.inlinehilite        # inline code highlighting `#!python <code>`
   - pymdownx.tabbed:
       alternate_style: true      # create tabs group
@@ -159,6 +158,8 @@ markdown_extensions:
 extra:
   # landing page <title>; inner pages stay "<page> - FastStream"
   site_tagline: Python framework for event-driven services
+  # nav sections whose name joins the page <title>: see `broker_qualifier`
+  title_sections: [Kafka, RabbitMQ, MQTT, NATS, Redis]
 
   analytics:
     provider: google
