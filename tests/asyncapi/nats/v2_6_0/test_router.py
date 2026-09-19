@@ -2,7 +2,6 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.nats import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
 from faststream.specification.base import Specification
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
@@ -76,7 +75,7 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = NatsRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(NatsBroker(routers=broker))
 
 
@@ -84,5 +83,5 @@ class TestRouterArguments(ArgumentsTestcase):
 class TestRouterPublisher(PublisherTestcase):
     broker_class = NatsRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(NatsBroker(routers=broker))

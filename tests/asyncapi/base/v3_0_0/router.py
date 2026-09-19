@@ -2,21 +2,14 @@ from typing import Any
 
 from dirty_equals import IsStr
 
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.broker.router import (
-    ArgsContainer,
-    BrokerRouter,
-    SubscriberRoute,
-)
-
 from .basic import AsyncAPI300Factory
 
 
 class RouterTestcase(AsyncAPI300Factory):
-    broker_class: type[BrokerUsecase]
-    router_class: type[BrokerRouter]
-    publisher_class: type[ArgsContainer]
-    route_class: type[SubscriberRoute]
+    broker_class: Any
+    router_class: Any
+    publisher_class: Any
+    route_class: Any
 
     def test_delay_subscriber(self) -> None:
         broker = self.broker_class()

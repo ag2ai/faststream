@@ -9,8 +9,8 @@ from dirty_equals import IsDict, IsPartialDict, IsStr
 from fast_depends import Depends
 
 from faststream import Context
-from faststream._internal.broker import BrokerUsecase
-from tests.marks import PYDANTIC_V2, pydantic_v2
+from faststream._internal._compat import PYDANTIC_V2
+from tests.marks import pydantic_v2
 
 from .basic import AsyncAPI260Factory
 
@@ -18,8 +18,8 @@ from .basic import AsyncAPI260Factory
 class FastAPICompatible(AsyncAPI260Factory):
     is_fastapi: bool = False
 
-    broker_class: type[BrokerUsecase]
-    dependency_builder = staticmethod(Depends)
+    broker_class: Any
+    dependency_builder: Any = staticmethod(Depends)
 
     def test_custom_naming(self) -> None:
         broker = self.broker_class()
@@ -615,7 +615,7 @@ class FastAPICompatible(AsyncAPI260Factory):
 
         assert key == IsStr(regex=r"test[\w:]*:Handle:Message"), key
 
-        expected_schema = IsPartialDict({
+        expected_schema: Any = IsPartialDict({
             "discriminator": "type",
             "oneOf": [
                 {"$ref": "#/components/schemas/Sub2"},
@@ -755,7 +755,7 @@ class FastAPICompatible(AsyncAPI260Factory):
 
 
 class ArgumentsTestcase(FastAPICompatible):
-    dependency_builder = staticmethod(Depends)
+    dependency_builder: Any = staticmethod(Depends)
 
     def test_pydantic_field(self) -> None:
         broker = self.broker_class()
@@ -843,7 +843,7 @@ class ArgumentsTestcase(FastAPICompatible):
         async def handle(user: User) -> None: ...
 
         @dataclass
-        class User:
+        class User:  # type: ignore[no-redef]
             id: int
             email: str = ""
 

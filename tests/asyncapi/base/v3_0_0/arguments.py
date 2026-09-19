@@ -11,8 +11,6 @@ from fastapi import Depends as APIDepends
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.fastapi import StreamRouter
 from tests.marks import pydantic_v2
 
 from .basic import AsyncAPI300Factory
@@ -21,8 +19,8 @@ from .basic import AsyncAPI300Factory
 class FastAPICompatible(AsyncAPI300Factory):
     is_fastapi: bool = False
 
-    broker_class: BrokerUsecase | StreamRouter
-    dependency_builder = staticmethod(APIDepends)
+    broker_class: Any
+    dependency_builder: Any = staticmethod(APIDepends)
 
     def test_default_naming(self) -> None:
         broker = self.broker_class()
@@ -720,7 +718,7 @@ class FastAPICompatible(AsyncAPI300Factory):
 
 
 class ArgumentsTestcase(FastAPICompatible):
-    dependency_builder = staticmethod(Depends)
+    dependency_builder: Any = staticmethod(Depends)
 
     def test_pydantic_field(self) -> None:
         broker = self.broker_class()
@@ -808,7 +806,7 @@ class ArgumentsTestcase(FastAPICompatible):
         async def handle(user: User) -> None: ...
 
         @dataclass
-        class User:
+        class User:  # type: ignore[no-redef]
             id: int
             email: str = ""
 

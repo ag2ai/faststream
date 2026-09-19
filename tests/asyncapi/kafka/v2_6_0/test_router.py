@@ -2,7 +2,6 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.kafka import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
 from faststream.specification import Specification
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
@@ -76,7 +75,7 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = KafkaRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(KafkaBroker(routers=broker))
 
 
@@ -84,5 +83,5 @@ class TestRouterArguments(ArgumentsTestcase):
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(KafkaBroker(routers=broker))

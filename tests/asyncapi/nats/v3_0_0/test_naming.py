@@ -14,7 +14,7 @@ class TestNaming(NamingTestCase):
         """A JetStream consumer may address a stream through `filter_subjects` and no `subject`."""
         broker = self.broker_class()
 
-        @broker.subscriber(
+        @broker.subscriber(  # type: ignore[untyped-decorator]
             stream=JStream("stream"),
             pull_sub=PullSub(),
             durable="durable",
@@ -36,7 +36,7 @@ class TestNaming(NamingTestCase):
     def test_multiple_filter_subjects_without_subject(self) -> None:
         broker = self.broker_class()
 
-        @broker.subscriber(
+        @broker.subscriber(  # type: ignore[untyped-decorator]
             stream=JStream("stream"),
             pull_sub=PullSub(),
             durable="durable",
