@@ -446,7 +446,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
                     ),
                 )
 
-                tg.start_soon(c.start)
+                _ = tg.start_soon(c.start)
 
         self._post_start()
 
@@ -458,7 +458,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
         if self.consumer_subgroup:
             async with anyio.create_task_group() as tg:
                 for consumer in self.consumer_subgroup:
-                    tg.start_soon(consumer.stop)
+                    _ = tg.start_soon(consumer.stop)
 
             self.consumer_subgroup = []
 

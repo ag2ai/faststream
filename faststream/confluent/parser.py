@@ -108,8 +108,4 @@ def _parse_msg_headers(headers: "_HeadersInput") -> dict[str, str]:
         seq: Sequence[tuple[str, bytes | str | None]] = list(headers.items())
     else:
         seq = headers
-    return {
-        i: (j if isinstance(j, str) else (j.decode() if j is not None else ""))
-        for i, j in seq
-        if j is not None
-    }
+    return {i: (j if isinstance(j, str) else j.decode()) for i, j in seq if j is not None}

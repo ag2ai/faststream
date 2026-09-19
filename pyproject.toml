@@ -202,6 +202,14 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
 
+enable_error_code = [
+    "possibly-undefined",
+    "redundant-expr",
+    "truthy-bool",
+    "truthy-iterable",
+    "unused-awaitable",
+]
+
 [[tool.mypy.overrides]]
 # Cross-broker testcases hold the broker as `Any`: each broker spells
 # `subscriber()` differently, so its decorator cannot be typed there.
