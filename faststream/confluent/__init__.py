@@ -11,6 +11,7 @@ ConfluentParserType: TypeAlias = ParserProto["Message"]
 try:
     from .annotations import KafkaMessage
     from .broker import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
+    from .helpers.config import ConfluentConfig
     from .response import KafkaPublishCommand, KafkaPublishMessage, KafkaResponse
     from .schemas import Topic, TopicPartition
     from .testing import TestKafkaBroker
@@ -24,6 +25,7 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_CONFLUENT) from e
 
 __all__ = (
+    "ConfluentConfig",
     "ConfluentParserType",
     "KafkaBroker",
     "KafkaMessage",
