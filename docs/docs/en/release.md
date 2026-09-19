@@ -2025,7 +2025,7 @@ To collect **Prometheus** metrics for your **FastStream** application you just n
 pip install 'faststream[prometheus]'
 ```
 
-And use **PrometheusMiddleware**. Also, it could be helpful to use our [**ASGI**](https://faststream.airt.ai/latest/getting-started/asgi/) to serve metrics endpoint in the same app.
+And use **PrometheusMiddleware**. Also, it could be helpful to use our [**ASGI**](https://faststream.ag2.ai/latest/getting-started/asgi/) to serve metrics endpoint in the same app.
 
 ```python
 from prometheus_client import CollectorRegistry, make_asgi_app
@@ -2051,7 +2051,7 @@ app = AsgiFastStream(
 
 Moreover, we have a ready-to-use [**Grafana** dashboard](https://grafana.com/grafana/dashboards/22130-faststream-metrics/) you can just import and use!
 
-To find more information about **Prometheus** support, just visit [our documentation](https://faststream.airt.ai/latest/getting-started/prometheus/).
+To find more information about **Prometheus** support, just visit [our documentation](https://faststream.ag2.ai/latest/getting-started/observability/prometheus/).
 
 ### All changes
 
@@ -2152,7 +2152,7 @@ subscriber = broker.subscriber("in")
 msg = await subscriber.get_one(timeout=5.0)
 ```
 
-4. And the last one: @draincoder continues to develop OTEL support! Now he provides us with an ability to use **OTEL spans** and **baggage** in a comfortable **FastStream**-style. Just take a look at the [new documentation section](https://faststream.airt.ai/latest/getting-started/opentelemetry/#baggage)
+4. And the last one: @draincoder continues to develop OTEL support! Now he provides us with an ability to use **OTEL spans** and **baggage** in a comfortable **FastStream**-style. Just take a look at the [new documentation section](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/baggage/)
 
 Big thanks to all new and old contributors who makes such a great release!
 
@@ -2242,7 +2242,7 @@ async def test():
 #### Exception Middleware
 
 Community asked and community did! Sorry, we've been putting off this job for too long. Thanks for @Rusich90 to help us!
-Now you can wrap your application by a suitable exception handlers. Just check the new [documentation](https://faststream.airt.ai/latest/getting-started/middlewares/exception/) to learn more.
+Now you can wrap your application by a suitable exception handlers. Just check the new [documentation](https://faststream.ag2.ai/latest/getting-started/middlewares/exception/) to learn more.
 
 #### Details
 
@@ -2334,7 +2334,7 @@ async def handler(msg):
 
 #### ASGI
 
-Also, we added a new huge feature - [**ASGI** support](https://faststream.airt.ai/latest/getting-started/asgi/#other-asgi-compatibility)!
+Also, we added a new huge feature - [**ASGI** support](https://faststream.ag2.ai/latest/getting-started/asgi/#other-asgi-compatibility)!
 
 Nope, we are not HTTP-framework now, but it is a little ASGI implementation to provide you with an ability to host documentation, use k8s http-probes and serve metrics in the same with you broker runtime without any dependencies.
 
@@ -2560,7 +2560,7 @@ async def handler():
 
 This is the time for a new **NATS** features! **FastStream** supports **NATS Key-Value** and **Object Storage** subscription features in a native way now (big thx for @sheldygg)!
 
-1. KeyValue creation and watching API added (you can read updated [documentation section](https://faststream.airt.ai/latest/nats/jetstream/key-value/) for changes):
+1. KeyValue creation and watching API added (you can read updated [documentation section](https://faststream.ag2.ai/latest/nats/jetstream/key-value/) for changes):
 
    ```python
     from faststream import FastStream, Logger
@@ -2579,7 +2579,7 @@ This is the time for a new **NATS** features! **FastStream** supports **NATS Key
         await kv.put("some-key", b"1")
    ```
 
-2. ObjectStore API added as well (you can read updated [documentation section](https://faststream.airt.ai/latest/nats/jetstream/object/) for changes):
+2. ObjectStore API added as well (you can read updated [documentation section](https://faststream.ag2.ai/latest/nats/jetstream/object/) for changes):
 
     ```python
     from faststream import FastStream, Logger
@@ -2659,7 +2659,7 @@ broker = NatsBroker(
 app = FastStream(broker)
 ```
 
-To find detail information just visit our documentation about [telemetry](https://faststream.airt.ai/latest/getting-started/opentelemetry/)
+To find detail information just visit our documentation about [telemetry](https://faststream.ag2.ai/latest/getting-started/observability/opentelemetry/)
 
 P.S. The release includes basic OpenTelemetry support - messages tracing & basic metrics. Baggage support and correct spans linking in batch processing case will be added soon.
 
@@ -2788,7 +2788,7 @@ You can find more information about it in the official [**aiokafka** doc](https:
 
 `pattern` option was added too, but it is still experimental and does not support `Path`
 
-3. [`Path`](https://faststream.airt.ai/latest/nats/message/#subject-pattern-access) feature performance was increased. Also, `Path` is suitable for NATS `PullSub` batch subscription as well now.
+3. [`Path`](https://faststream.ag2.ai/latest/nats/message/#subject-pattern-access) feature performance was increased. Also, `Path` is suitable for NATS `PullSub` batch subscription as well now.
 
 ```python
 from faststream import NatsBroker, PullSub
@@ -2839,7 +2839,7 @@ async def handler(msg: dict[str, Any]):
     ...
  ```
 
-This is the preferred syntax for [filtering](https://faststream.airt.ai/latest/getting-started/subscription/filtering/) now (the old one will be removed in `0.6.0`)
+This is the preferred syntax for [filtering](https://faststream.ag2.ai/latest/getting-started/subscription/filtering/) now (the old one will be removed in `0.6.0`)
 
  3. The `router.publisher()` function now returns the correct `Publisher` object you can use later (after broker startup).
 
@@ -3019,7 +3019,7 @@ async def handler(msg: dict[str, Any]):
     ...
  ```
 
-This is the preferred syntax for [filtering](https://faststream.airt.ai/latest/getting-started/subscription/filtering/) now (the old one will be removed in `0.6.0`)
+This is the preferred syntax for [filtering](https://faststream.ag2.ai/latest/getting-started/subscription/filtering/) now (the old one will be removed in `0.6.0`)
 
  3. The `router.publisher()` function now returns the correct `Publisher` object you can use later (after broker startup).
 
@@ -3263,7 +3263,7 @@ async def handle_msg(user: str, user_id: int) -> str:
 
 For more information, please visit the documentation at:
 
-https://faststream.airt.ai/latest/confluent/
+https://faststream.ag2.ai/latest/confluent/
 
 #### List of Changes
 
@@ -4075,7 +4075,7 @@ Also, the original message `Context` annotation was copied from `faststream.[bro
 
 ### Features
 
-[**FastStream**](https://faststream.airt.ai/latest/) simplifies the process of writing producers and consumers for message queues, handling all the
+[**FastStream**](https://faststream.ag2.ai/latest/) simplifies the process of writing producers and consumers for message queues, handling all the
 parsing, networking and documentation generation automatically.
 
 Making streaming microservices has never been easier. Designed with junior developers in mind, **FastStream** simplifies your work while keeping the door open for more advanced use-cases. Here's a look at the core features that make **FastStream** a go-to framework for modern, data-centric microservices.
