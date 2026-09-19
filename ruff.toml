@@ -37,7 +37,10 @@ ignore = [
     "TD",
     "FIX",
     "SLOT",
-    "ARG",
+    "ARG002",
+    "ARG003",
+    "ARG004",
+    "ARG005",
     "EXE",
 
     "ASYNC109",
@@ -61,7 +64,6 @@ ignore = [
     # preview
     "CPY",
     "PLC2801",
-    "PLW1641",
     "RUF029",
     "RUF067",
 
@@ -84,9 +86,7 @@ ignore = [
     "DOC502",
 
     "FBT", # FIXME
-    "PLW2901", # FIXME
     "BLE001", # FIXME
-    "S110", # FIXME
     "PLR0917"  # FIXME
 ]
 
@@ -116,6 +116,7 @@ ignore = [
 "**/_compat.py" = [
     "PYI063",
     "PLW3201",
+    "ARG001",   # shims mirror a third-party signature
     "PLC2701",
     "TID251",
 ]
@@ -123,6 +124,7 @@ ignore = [
 "tests/**/*.py" = [
     "ANN",  # FIXME
     "S",
+    "ARG001",  # a handler takes the message whether it reads it or not
     "PLR6301",
     "PLC2701",  # tests reach into faststream._internal by design
     "TID251",
@@ -146,6 +148,10 @@ ignore = [
 "docs/*.py" = [
     "ALL",      # FIXME
 ]
+
+[lint.flake8-unused-arguments]
+# fakes and pass-through wrappers accept anything; a named parameter must be used
+ignore-variadic-names = true
 
 [lint.flake8-tidy-imports]
 # optional dependencies, imported only where they are needed

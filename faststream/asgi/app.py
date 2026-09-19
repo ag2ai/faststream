@@ -132,7 +132,7 @@ class AsgiFastStream(Application):
             if asyncapi_route.asyncapi_json_path:
 
                 @get(include_in_schema=asyncapi_route.include_in_schema)
-                async def json_handler(scope: "Scope") -> AsgiResponse:
+                async def json_handler(scope: "Scope") -> AsgiResponse:  # noqa: ARG001
                     return JSONResponse(self.schema.to_specification().to_jsonable())
 
                 self.routes.append((asyncapi_route.asyncapi_json_path, json_handler))

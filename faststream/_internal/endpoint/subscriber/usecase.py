@@ -332,7 +332,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             if app := self._outer_config.context.get("app"):
                 app.exit()
 
-        except Exception:  # nosec B110
+        except Exception:  # noqa: S110
             # All other exceptions were logged by CriticalLogMiddleware
             pass
 

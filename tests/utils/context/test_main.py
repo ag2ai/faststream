@@ -209,6 +209,8 @@ async def test_context_with_custom_object_implementing_comparison(
     context: ContextRepo,
 ) -> None:
     class User:
+        __hash__ = None
+
         def __init__(self, user_id: int) -> None:
             self.user_id = user_id
 
