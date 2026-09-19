@@ -62,7 +62,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         def subscriber(m: Any) -> None:
             event.set()
 
@@ -81,7 +81,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)
@@ -100,7 +100,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)
@@ -244,12 +244,12 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def h1(msg: Any) -> None: ...
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
-        @broker.subscriber(*args2, **kwargs2)
+        @broker.subscriber(*args2, **kwargs2)  # type: ignore[untyped-decorator]
         async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:

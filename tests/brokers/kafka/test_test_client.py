@@ -111,7 +111,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)
@@ -133,7 +133,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)

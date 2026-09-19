@@ -11,6 +11,7 @@ from .basic import RabbitMemoryTestcaseConfig, RabbitTestcaseConfig
 
 class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
+        assert self.msg
         self.msg._Message__lock = False
         self.msg.body *= 2
 

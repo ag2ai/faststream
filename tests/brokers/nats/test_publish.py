@@ -99,7 +99,7 @@ async def test_publish_with_schedule(
     @pub_broker.subscriber(
         schedule_target, stream=JStream(queue, allow_msg_schedules=True)
     )
-    async def handle(body: dict, msg: NatsMessage) -> None:
+    async def handle(body: dict[str, Any], msg: NatsMessage) -> None:
         mock(body)
         event.set()
 

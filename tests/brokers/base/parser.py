@@ -5,13 +5,11 @@ from unittest.mock import MagicMock
 import anyio
 import pytest
 
-from faststream.message.message import StreamMessage
-
 from .basic import BaseTestcaseConfig
 
 
 @pytest.mark.asyncio()
-class LocalCustomParserTestcase(BaseTestcaseConfig):
+class LocalCustomParserTestcase(BaseTestcaseConfig[Any]):
     async def test_local_parser(
         self,
         mock: MagicMock,
@@ -215,7 +213,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue, decoder=custom_decoder)
         sub = broker.subscriber(*args, **kwargs)
 
-        async def iter_messages() -> None:
+        async def iter_messages() -> Any:
             await sub.start()
             start_event.set()
 
@@ -259,7 +257,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue, decoder=custom_decoder)
         sub = broker.subscriber(*args, **kwargs)
 
-        async def get_msg() -> StreamMessage:
+        async def get_msg() -> Any:
             await sub.start()
             event.set()
             msg = await sub.get_one(timeout=self.timeout)

@@ -30,7 +30,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, max_workers=2)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> None:
             mock()
 
@@ -66,7 +66,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, stream=stream)
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         def subscriber(m: Any) -> None:
             event.set()
 
@@ -83,7 +83,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             assert isinstance(result, PubAck), result
         assert event.is_set()
 
-    async def test_consume_with_filter(
+    async def test_consume_with_filter(  # type: ignore[override]
         self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
         consume_broker = self.get_broker()
@@ -175,7 +175,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.MANUAL,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: NatsMessage) -> None:
             mock(msg.raw_message._ackd)
             event.set()
@@ -693,11 +693,12 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             await br.start()
             bucket = await br.object_storage(queue)
 
-            new_object_id = None
+            new_object_id: Any = None
 
             async def consume() -> None:
                 nonlocal new_object_id
                 new_object_event = await subscriber.get_one(timeout=5)
+                assert new_object_event
                 new_object_id = await new_object_event.decode()
 
             async def publish() -> None:
@@ -904,7 +905,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
             index_message = 0
             async for new_object_event in subscriber:
-                new_object_id = await new_object_event.decode()
+                new_object_id: Any = await new_object_event.decode()
                 new_object = await bucket.get(new_object_id)
 
                 assert new_object.data == expected_messages[index_message]

@@ -142,7 +142,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         broker = self.get_broker()
 
         with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish("hello", channel=queue, pipeline=None)  # type: ignore[arg-type]
+            await broker.publish("hello", channel=queue, pipeline=None)
 
     async def test_publish_batch_with_pipeline_warns(
         self,
@@ -152,7 +152,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         broker = self.get_broker()
 
         with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish_batch("x", "y", list=queue, pipeline=None)  # type: ignore[arg-type]
+            await broker.publish_batch("x", "y", list=queue, pipeline=None)
 
     async def test_channel_publish(
         self,

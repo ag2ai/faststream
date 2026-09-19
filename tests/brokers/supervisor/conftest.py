@@ -21,7 +21,9 @@ def subscriber_with_task_mixin() -> Any:
 
 @pytest.fixture(autouse=True)
 def disable_supervisor(monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
-    cache = TaskCallbackSupervisor._TaskCallbackSupervisor__cache
+    # mypy does not resolve name-mangled attributes
+    supervisor: Any = TaskCallbackSupervisor
+    cache = supervisor._TaskCallbackSupervisor__cache
     cache.clear()
     monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")
     yield

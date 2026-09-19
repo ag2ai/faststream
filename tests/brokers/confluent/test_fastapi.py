@@ -24,7 +24,7 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @router.subscriber(*args, **kwargs)
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
@@ -55,7 +55,7 @@ class TestRouterLocal(ConfluentMemoryTestcaseConfig, FastAPILocalTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @router.subscriber(*args, **kwargs)
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)

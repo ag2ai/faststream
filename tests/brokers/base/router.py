@@ -7,7 +7,6 @@ import pytest
 from faststream import Context
 from faststream._internal.broker.router import (
     ArgsContainer,
-    BrokerRouter,
     SubscriberRoute,
 )
 from tests.brokers.base.middlewares import LocalMiddlewareTestcase
@@ -21,9 +20,6 @@ class RouterTestcase(
 ):
     route_class: type[SubscriberRoute]
     publisher_class: type[ArgsContainer]
-
-    def get_router(self, **kwargs: Any) -> BrokerRouter:
-        raise NotImplementedError
 
     async def test_router_dynamic_objects(
         self,

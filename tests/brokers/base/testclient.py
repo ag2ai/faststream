@@ -67,7 +67,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         # until the next collection, which is exactly what hid the bug.
         assert len(broker.subscribers) == 1, len(broker.subscribers)
 
-        second_client = self.patch_broker(broker)
+        second_client: Any = self.patch_broker(broker)
         async with second_client as br:
             # This client owns its own fake, so the collector cannot take it away
             # mid-test and leave `publish()` raising `SubscriberNotFound`.
@@ -253,7 +253,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         publisher = test_broker.publisher(queue)  # noqa: F841
 
-        test_client = self.patch_broker(test_broker, with_real=True)
+        test_client: Any = self.patch_broker(test_broker, with_real=True)
         async with test_client:
             (fake,) = test_client._fake_subscribers
             fake.stop = spy_decorator(fake.stop)

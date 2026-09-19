@@ -18,7 +18,7 @@ class TestConnection(BrokerConnectionTestcase):
     @pytest.mark.asyncio()
     async def test_connect_handover_config_to_init(
         self,
-        settings: dict[str, str],
+        settings: Any,
     ) -> None:
         broker = self.broker(
             host=settings.host,

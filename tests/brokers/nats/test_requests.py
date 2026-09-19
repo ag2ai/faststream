@@ -11,6 +11,7 @@ from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
+        assert self.msg
         self.msg.data *= 2
 
     async def consume_scope(
@@ -32,7 +33,7 @@ class NatsRequestsTestcase(RequestsTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, stream=stream_name)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> str:
             return "Response"
 
@@ -58,7 +59,7 @@ class NatsRequestsTestcase(RequestsTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, stream=stream_name)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> str:
             return "Response"
 

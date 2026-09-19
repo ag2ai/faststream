@@ -201,9 +201,9 @@ class TestClusterFastProducerUnit:
     @pytest.fixture()
     def producer(
         self,
-        mock_connection: ConnectionState,
+        mock_connection: ConnectionState[Any],
         mock_cluster_state: AsyncMock,
-    ) -> RedisFastProducer:
+    ) -> RedisClusterFastProducer:
 
         return RedisClusterFastProducer(
             connection=mock_connection,

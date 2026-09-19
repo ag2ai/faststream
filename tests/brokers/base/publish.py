@@ -110,7 +110,7 @@ parametrized = (
 )
 
 
-class BrokerPublishTestcase(BaseTestcaseConfig):
+class BrokerPublishTestcase(BaseTestcaseConfig[Any]):
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(
         ("message", "message_type", "expected_message"),

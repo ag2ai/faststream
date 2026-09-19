@@ -11,6 +11,7 @@ from tests.brokers.redis.basic import RedisClusterMemoryTestcaseConfig
 
 class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
+        assert self.msg
         data, headers = BinaryMessageFormatV1.parse(self.msg["data"])
         data *= 2
         self.msg["data"] = await BinaryMessageFormatV1.encode(

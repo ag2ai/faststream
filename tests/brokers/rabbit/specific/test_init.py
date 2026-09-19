@@ -13,4 +13,5 @@ async def test_set_max() -> None:
     )
     async with broker:
         await broker.start()
+        assert broker._channel
         assert broker._channel._prefetch_count == 10

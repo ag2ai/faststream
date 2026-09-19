@@ -219,6 +219,8 @@ module = [
     "tests.integrations.msgspec.test_serialization",
     "tests.opentelemetry.basic",
     "tests.prometheus.basic",
+    "tests.brokers.base.*",
+    "tests.brokers.redis.stream_claim",
 ]
 disallow_untyped_decorators = false
 

@@ -101,7 +101,7 @@ async def test_nats_batch_path() -> None:
 
     broker = NatsBroker()
 
-    @broker.subscriber("in.{name}.{id}", stream="test", pull_sub=PullSub(batch=True))  # type: ignore[untyped-decorator]
+    @broker.subscriber("in.{name}.{id}", stream="test", pull_sub=PullSub(batch=True))
     async def h(
         name: str = Path(),
         id_: int = Path("id"),

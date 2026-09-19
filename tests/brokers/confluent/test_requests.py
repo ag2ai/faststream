@@ -11,6 +11,7 @@ from .basic import ConfluentMemoryTestcaseConfig
 
 class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
+        assert self.msg
         self.msg._raw_msg *= 2
 
     async def consume_scope(

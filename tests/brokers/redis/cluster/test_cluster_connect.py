@@ -26,7 +26,7 @@ class TestClusterConnection(BrokerConnectionTestcase):
         return {"url": settings.url, "startup_nodes": settings.startup_nodes}
 
     @pytest.mark.asyncio()
-    async def test_connect(  # type: ignore[override]
+    async def test_connect(
         self,
         settings_cluster: SettingsCluster,
     ) -> None:
@@ -204,7 +204,7 @@ class TestClusterStreamAutoclaim:
         # Create stream and pending messages directly via the cluster client
         async with broker:
             await broker.start()
-            c = broker.config.broker_config.connection.client
+            c = await broker.connect()
 
             await c.xadd(stream, {"data": b"m1"})
             await c.xadd(stream, {"data": b"m2"})
@@ -260,7 +260,7 @@ class TestClusterStreamAutoclaim:
 
         async with broker:
             await broker.start()
-            c = broker.config.broker_config.connection.client
+            c = await broker.connect()
 
             for i in range(5):
                 await c.xadd(stream, {"data": f"msg-{i}".encode()})
