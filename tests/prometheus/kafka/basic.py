@@ -26,7 +26,7 @@ class BaseKafkaPrometheusSettings(KafkaTestcaseConfig):
         args, kwargs = super().get_subscriber_params(*args, **kwargs)
         return args, {
             "group_id": "test",
-            "ack_policy": AckPolicy.REJECT_ON_ERROR,
+            "ack_policy": AckPolicy.ACK,
             **kwargs,
         }
 
