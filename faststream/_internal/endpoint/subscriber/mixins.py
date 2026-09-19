@@ -25,7 +25,7 @@ class TasksMixin(SubscriberUsecase[Any]):
         func_kwargs: dict[str, Any] | None = None,
         *,
         restart_on_failure: bool = True,
-    ) -> asyncio.Task[Any]:
+    ) -> None:
         args = func_args or ()
         kwargs = func_kwargs or {}
         task = asyncio.create_task(func(*args, **kwargs))
@@ -38,7 +38,6 @@ class TasksMixin(SubscriberUsecase[Any]):
         )
         task.add_done_callback(callback)
         self.tasks.append(task)
-        return task
 
     async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
@@ -71,7 +70,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         super().__init__(*args, **kwargs)
 
     def start_consume_task(self) -> None:
-        _ = self.add_task(self._serve_consume_queue)
+        self.add_task(self._serve_consume_queue)
 
     async def _serve_consume_queue(
         self,
