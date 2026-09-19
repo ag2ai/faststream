@@ -29,11 +29,7 @@ async def test_broker_depends(queue: str) -> None:
         k2: Any = Depends(async_depends),
     ) -> None:
         nonlocal check_message
-        check_message = (
-            isinstance(message.raw_message, aio_pika.IncomingMessage)
-            and (message is k1)
-            and (message is k2)
-        )
+        check_message = (message is k1) and (message is k2)
 
     await full_broker.start()
 

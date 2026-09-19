@@ -157,6 +157,7 @@ mirror. An equality that already fails on a missing delivery stands alone; the
 - **A value that is wrong on purpose goes through `Any`**, not an ignore: `router: Any = NatsRouter()` before handing it to a Kafka broker, `channel_manager: Any = FakeChannelManager(mock)` for a stand-in. The same goes for private internals (`producer: Any = broker._producer`).
 - **The raw client comes from the public API**: `client = await br.connect()`, never `br._connection`, which is `None`-able.
 - **Narrow with an assertion the test already implies** — `assert message`, `assert isinstance(point, HistogramDataPoint)` — and put a repeated one in a small module-level helper.
+- **An awaitable dropped on purpose is written `_ = ...`**: `_ = tg.start_soon(app.run)`, `_ = await br.publish(..., no_confirm=True)`. A bare statement reads as a forgotten `await`, which is what `unused-awaitable` reports.
 - **`# type: ignore[code]` is for what nothing else expresses**, always with its code and before any `# noqa`: `subscriber(*args, **kwargs)` from `get_subscriber_params()` resolves to `Any` (`untyped-decorator`), a test overriding a base test with other fixtures (`override`), a name redefined on purpose (`no-redef`), a call missing a required argument to prove it raises (`call-arg`).
 
 A typing problem that turns out to live in `faststream/` is fixed there, in its own PR with a case in `tests/mypy/`, not papered over in the test.

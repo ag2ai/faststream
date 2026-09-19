@@ -203,6 +203,8 @@ disallow_untyped_decorators = true
 disallow_any_unimported = false
 
 enable_error_code = [
+    "exhaustive-match",
+    "ignore-without-code",
     "possibly-undefined",
     "redundant-expr",
     "truthy-bool",
