@@ -52,3 +52,14 @@ def test_use_only_confluent_router() -> None:
 
     with pytest.raises(SetupError):
         broker.include_routers(routers)
+
+
+@pytest.mark.confluent()
+def test_max_workers_ignored_by_batch(queue: str) -> None:
+    broker = KafkaBroker()
+
+    with pytest.warns(RuntimeWarning, match="`max_workers` option is ignored") as record:
+        broker.subscriber(queue, batch=True, max_workers=2)
+
+    # the warning points at the line that registered the subscriber
+    assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
