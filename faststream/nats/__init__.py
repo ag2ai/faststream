@@ -28,6 +28,14 @@ try:
     from .broker import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
     from .response import NatsPublishCommand, NatsResponse
     from .schemas import JStream, KvWatch, ObjWatch, PubAck, PullSub, Schedule
+    from .security import (
+        NatsCredentials,
+        NatsJWT,
+        NatsNKey,
+        NatsSecurity,
+        NatsToken,
+        NatsUserPassword,
+    )
     from .testing import TestNatsBroker
 
 except ImportError as e:
@@ -48,13 +56,19 @@ __all__ = (
     "JStream",
     "KvWatch",
     "NatsBroker",
+    "NatsCredentials",
+    "NatsJWT",
     "NatsMessage",
+    "NatsNKey",
     "NatsParserType",
     "NatsPublishCommand",
     "NatsPublisher",
     "NatsResponse",
     "NatsRoute",
     "NatsRouter",
+    "NatsSecurity",
+    "NatsToken",
+    "NatsUserPassword",
     "ObjWatch",
     "Placement",
     "PubAck",
