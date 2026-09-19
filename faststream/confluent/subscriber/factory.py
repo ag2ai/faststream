@@ -1,5 +1,5 @@
 import warnings
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.constants import EMPTY
@@ -100,7 +100,7 @@ def _validate_input_for_misconfigure(
     max_workers: int,
     batch: bool,
     group_id: str | None,
-    partitions: Iterable["TopicPartition"],
+    partitions: Sequence["TopicPartition"],
 ) -> None:
     if batch and max_workers > 1:
         warnings.warn(

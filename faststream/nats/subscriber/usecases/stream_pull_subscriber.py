@@ -66,7 +66,7 @@ class PullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self.consume})
+        _ = self.add_task(self._consume_pull, func_kwargs={"cb": self.consume})
 
     async def _consume_pull(
         self,
@@ -86,7 +86,7 @@ class PullStreamSubscriber(
             if messages:
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
-                        tg.start_soon(cb, msg)
+                        _ = tg.start_soon(cb, msg)
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
@@ -103,7 +103,7 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
+        _ = self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
 
 
 class BatchPullStreamSubscriber(
@@ -218,7 +218,7 @@ class BatchPullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull)
+        _ = self.add_task(self._consume_pull)
 
     async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""

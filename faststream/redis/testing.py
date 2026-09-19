@@ -145,7 +145,7 @@ class TestRedisBroker(
                         "_connect",
                         wraps=partial(self._fake_connect, broker),
                     ):
-                        await broker.connect()
+                        _ = await broker.connect()
                     cluster_stack.enter_context(self._patch_producer(broker))
             async with super()._create_ctx() as brokers:
                 yield brokers

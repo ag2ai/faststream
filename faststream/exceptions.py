@@ -105,8 +105,8 @@ class StartupValidationError(FastStreamException, ValueError):
         missed_fields: Iterable[str] = (),
         invalid_fields: Iterable[str] = (),
     ) -> None:
-        self.missed_fields = missed_fields
-        self.invalid_fields = invalid_fields
+        self.missed_fields = tuple(missed_fields)
+        self.invalid_fields = tuple(invalid_fields)
 
     def __str__(self) -> str:
         return (

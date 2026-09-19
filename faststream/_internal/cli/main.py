@@ -170,9 +170,7 @@ def run(
             _run(run_args)
 
         else:
-            reload_dirs = []
-            if module_path:
-                reload_dirs.append(str(module_path))
+            reload_dirs = [str(module_path)]
             if app_dir != ".":
                 reload_dirs.append(app_dir)
 

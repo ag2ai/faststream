@@ -166,7 +166,7 @@ class RedisClusterBroker(RedisBroker):
         self._connection = None
 
     async def start(self) -> None:
-        await self.connect()
+        _ = await self.connect()
         await super().start()
 
     async def publish_batch(  # type: ignore[override]

@@ -71,7 +71,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         super().__init__(*args, **kwargs)
 
     def start_consume_task(self) -> None:
-        self.add_task(self._serve_consume_queue)
+        _ = self.add_task(self._serve_consume_queue)
 
     async def _serve_consume_queue(
         self,
@@ -82,7 +82,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         """
         async with anyio.create_task_group() as tg:
             async for msg in self.receive_stream:
-                tg.start_soon(self._consume_msg, msg)
+                _ = tg.start_soon(self._consume_msg, msg)
 
     async def _consume_msg(self, msg: "MsgType") -> None:
         """Proxy method to call `self.consume` with semaphore block."""

@@ -137,7 +137,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._run_consume_loop, (self.consumer,))
+            _ = self.add_task(self._run_consume_loop, (self.consumer,))
 
     async def stop(self) -> None:
         await super().stop()
@@ -446,19 +446,19 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
                     ),
                 )
 
-                tg.start_soon(c.start)
+                _ = tg.start_soon(c.start)
 
         self._post_start()
 
         if self.calls:
             for c in self.consumer_subgroup:
-                self.add_task(self._run_consume_loop, (c,))
+                _ = self.add_task(self._run_consume_loop, (c,))
 
     async def stop(self) -> None:
         if self.consumer_subgroup:
             async with anyio.create_task_group() as tg:
                 for consumer in self.consumer_subgroup:
-                    tg.start_soon(consumer.stop)
+                    _ = tg.start_soon(consumer.stop)
 
             self.consumer_subgroup = []
 
