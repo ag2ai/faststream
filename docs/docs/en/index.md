@@ -20,23 +20,23 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
   <br/>
 
   <a href="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml" target="_blank">
-    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main" alt="Test Passing"/>
+    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main" alt="FastStream tests status"/>
   </a>
 
   <a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/ag2ai/faststream" target="_blank">
-      <img src="https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg" alt="Coverage"/>
+      <img src="https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg" alt="FastStream test coverage"/>
   </a>
 
   <a href="https://www.pepy.tech/projects/faststream" target="_blank">
-    <img src="https://static.pepy.tech/personalized-badge/faststream?period=month&units=international_system&left_color=grey&right_color=green&left_text=downloads/month" alt="Downloads"/>
+    <img src="https://static.pepy.tech/personalized-badge/faststream?period=month&units=international_system&left_color=grey&right_color=green&left_text=downloads/month" alt="FastStream monthly downloads from PyPI"/>
   </a>
 
   <a href="https://pypi.org/project/faststream" target="_blank">
-    <img src="https://img.shields.io/pypi/v/faststream?label=PyPI" alt="Package version">
+    <img src="https://img.shields.io/pypi/v/faststream?label=PyPI" alt="FastStream version on PyPI">
   </a>
 
   <a href="https://pypi.org/project/faststream" target="_blank">
-    <img src="https://img.shields.io/pypi/pyversions/faststream.svg" alt="Supported Python versions">
+    <img src="https://img.shields.io/pypi/pyversions/faststream.svg" alt="Python versions supported by FastStream">
   </a>
 
   <br/>
@@ -63,7 +63,7 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
       <img alt="Discussions" src="https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions"/>
   </a>
 
-  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
+  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fen%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
 
   <a href="https://t.me/python_faststream" target="_blank">
     <img alt="Telegram" src="https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram"/>
@@ -514,7 +514,7 @@ You can learn more about **CLI** features [here](./getting-started/cli.md){.inte
 
 The availability of such documentation significantly simplifies the integration of services: you can immediately see what channels and message formats the application works with. And most importantly, it won't cost anything - **FastStream** has already created the docs for you!
 
-![HTML-page](../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
+![AsyncAPI HTML documentation that FastStream generated for a Kafka subscriber and publisher](assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
 
 ---
 
@@ -661,5 +661,5 @@ support!
 Thanks to all of these amazing people who made the project better!
 
 <a href="https://github.com/ag2ai/faststream/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=ag2ai/faststream"/>
+  <img src="https://contrib.rocks/image?repo=ag2ai/faststream" alt="Avatars of FastStream contributors on GitHub"/>
 </a>

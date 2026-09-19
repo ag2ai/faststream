@@ -21,13 +21,13 @@ repos:
     -   id: check-added-large-files
         exclude: |
             (?x)^(
-                docs/docs/SUMMARY.md|
+                docs/docs/en/SUMMARY.md|
                 docs/docs/en/api/.meta.yml
             )$
     -   id: end-of-file-fixer
         exclude: |
             (?x)(
-                ^docs/docs/SUMMARY.md$|
+                ^docs/docs/en/SUMMARY.md$|
                 ^docs/docs/en/api/.meta.yml$|
                 ^docs/site_root/
             )
