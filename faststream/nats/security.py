@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
 from nats.aio.client import Credentials, RawCredentials
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from faststream.security import BaseSecurity, SASLPlaintext
 
@@ -70,10 +70,12 @@ class NatsToken(NatsSecurity):
         )
         self.token = token
 
+    @override
     def get_requirement(self) -> list[dict[str, Any]]:
         """Get the AsyncAPI requirement for NATS token authentication."""
         return [{"nats-token": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, Any]]:
         """Get the AsyncAPI schema for NATS token authentication."""
         return {
@@ -110,10 +112,12 @@ class NatsUserPassword(NatsSecurity):
         self.username = username
         self.password = password
 
+    @override
     def get_requirement(self) -> list[dict[str, Any]]:
         """Get the AsyncAPI requirement for NATS user/password authentication."""
         return [{"nats-user-password": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, Any]]:
         """Get the AsyncAPI schema for NATS user/password authentication."""
         return {"nats-user-password": {"type": "userPassword"}}
@@ -141,10 +145,12 @@ class NatsCredentials(NatsSecurity):
         )
         self.credentials = credentials
 
+    @override
     def get_requirement(self) -> list[dict[str, Any]]:
         """Get the AsyncAPI requirement for NATS credentials authentication."""
         return [{"nats-jwt": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, Any]]:
         """Get the AsyncAPI schema for NATS credentials authentication."""
         return {
@@ -253,10 +259,12 @@ class NatsNKey(NatsSecurity):
         self.seed = str(seed_file)
         self.seed_is_file = True
 
+    @override
     def get_requirement(self) -> list[dict[str, Any]]:
         """Get the AsyncAPI requirement for NATS NKey authentication."""
         return [{"nats-nkey": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, Any]]:
         """Get the AsyncAPI schema for NATS NKey authentication."""
         return {
@@ -340,10 +348,12 @@ class NatsJWT(NatsSecurity):
         self.jwt_cb = jwt_cb
         self.signature_cb = signature_cb
 
+    @override
     def get_requirement(self) -> list[dict[str, Any]]:
         """Get the AsyncAPI requirement for NATS JWT authentication."""
         return [{"nats-jwt": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, Any]]:
         """Get the AsyncAPI schema for NATS JWT authentication."""
         return {
