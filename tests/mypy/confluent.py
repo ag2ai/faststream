@@ -52,6 +52,9 @@ async def check_response_type() -> None:
 async def check_publish_type(fake_bool: bool = True) -> None:
     broker = KafkaBroker()
 
+    publish_default = await broker.publish(None, "test")
+    assert_type(publish_default, Message | None)
+
     publish_with_confirm = await broker.publish(None, "test", no_confirm=True)
     assert_type(publish_with_confirm, asyncio.Future[Message | None])
 
@@ -80,6 +83,9 @@ async def check_publisher_publish_type(
 ) -> None:
     p1 = broker.publisher("test", batch=False)
     assert_type(p1, DefaultPublisher)
+
+    publish_default = await p1.publish(None, "test")
+    assert_type(publish_default, Message | None)
 
     publish_without_confirm = await p1.publish(None, "test", no_confirm=True)
     assert_type(publish_without_confirm, asyncio.Future[Message | None])
