@@ -481,7 +481,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
     def include_router(  # type: ignore[override]
         self,
-        router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType]"],
+        router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType, Any]"],
         *,
         prefix: str = "",
         tags: list[str | Enum] | None = None,

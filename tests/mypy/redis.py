@@ -40,6 +40,7 @@ from faststream.redis.subscriber.usecases import (
     StreamConcurrentSubscriber,
     StreamSubscriber,
 )
+from faststream.redis.testing import PEL
 
 
 async def check_multiple_test_brokers() -> None:
@@ -52,6 +53,9 @@ async def check_multiple_test_brokers() -> None:
     ) as (br1, br2):
         await br1.publish(None, "test")
         await br2.publish(None, "test")
+
+    async with TestRedisBroker(RedisBroker(), pel=PEL()) as br1:
+        await br1.publish(None, "test")
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -499,6 +503,8 @@ RedisBroker().include_routers(RedisRouter())
 RedisRouter(routers=[RedisRouter()])
 RedisRouter().include_router(RedisRouter())
 RedisRouter().include_routers(RedisRouter())
+
+FastAPIRouter().include_router(RedisRouter())
 
 
 # `RedisPublisher` is documented as a copy of `RedisRegistrator.publisher(...)`

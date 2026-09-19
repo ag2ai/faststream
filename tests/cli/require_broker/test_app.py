@@ -409,8 +409,8 @@ async def test_stop_with_sigint(async_mock: AsyncMock, app: FastStream) -> None:
         patch.object(app.broker, "stop", async_mock.broker_stopped_sigint),
     ):
         async with anyio.create_task_group() as tg:
-            tg.start_soon(app.run)
-            tg.start_soon(_kill, signal.SIGINT)
+            _ = tg.start_soon(app.run)
+            _ = tg.start_soon(_kill, signal.SIGINT)
 
     async_mock.broker_run_sigint.assert_called_once()
     async_mock.broker_stopped_sigint.assert_called_once()
@@ -424,8 +424,8 @@ async def test_stop_with_sigterm(async_mock: AsyncMock, app: FastStream) -> None
         patch.object(app.broker, "stop", async_mock.broker_stopped_sigterm),
     ):
         async with anyio.create_task_group() as tg:
-            tg.start_soon(app.run)
-            tg.start_soon(_kill, signal.SIGTERM)
+            _ = tg.start_soon(app.run)
+            _ = tg.start_soon(_kill, signal.SIGTERM)
 
     async_mock.broker_run_sigterm.assert_called_once()
     async_mock.broker_stopped_sigterm.assert_called_once()
@@ -450,8 +450,8 @@ async def test_run_asgi(async_mock: AsyncMock, app: FastStream) -> None:
         patch.object(app.broker, "stop", async_mock.broker_stopped),
     ):
         async with anyio.create_task_group() as tg:
-            tg.start_soon(app.run)
-            tg.start_soon(_kill, signal.SIGINT)
+            _ = tg.start_soon(app.run)
+            _ = tg.start_soon(_kill, signal.SIGINT)
 
     async_mock.broker_run.assert_called_once()
     async_mock.broker_stopped.assert_called_once()

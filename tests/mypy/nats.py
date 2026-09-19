@@ -516,6 +516,8 @@ NatsRouter(routers=[NatsRouter()])
 NatsRouter().include_router(NatsRouter())
 NatsRouter().include_routers(NatsRouter())
 
+FastAPIRouter().include_router(NatsRouter())
+
 
 @NatsBroker().subscriber("test", stream="stream", pull_sub=PullSub(batch=True))
 async def handle_pull_batch() -> None: ...

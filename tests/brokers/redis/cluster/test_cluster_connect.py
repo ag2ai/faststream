@@ -32,7 +32,7 @@ class TestClusterConnection(BrokerConnectionTestcase):
     ) -> None:
         kwargs = self.get_broker_args(settings_cluster)
         broker = self.broker(**kwargs)
-        await broker.connect()
+        _ = await broker.connect()
         assert await self.ping(broker)
         await broker.stop()
 
