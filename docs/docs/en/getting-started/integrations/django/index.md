@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Run FastStream subscribers alongside a Django project, either mounted through ASGI or
+  started as a separate management command.
 search:
   boost: 10
 ---

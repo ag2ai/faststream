@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Configure FastStream through environment variables and Pydantic Settings to keep broker URLs
+  and credentials out of your source code.
 search:
   boost: 10
 ---

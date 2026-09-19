@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Consume events with the broker-agnostic subscriber decorator — the same Python syntax for
+  Kafka topics, RabbitMQ queues, NATS subjects and Redis channels.
 search:
   boost: 10
 ---
