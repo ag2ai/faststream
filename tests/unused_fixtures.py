@@ -26,7 +26,7 @@ def pytest_collection_finish(session: pytest.Session) -> None:
 def _never_requested(session: pytest.Session) -> list[str]:
     used = {
         fixturedef
-        for item in session.items
+        for item in _tests(session)
         for fixturedefs in item._fixtureinfo.name2fixturedefs.values()
         for fixturedef in fixturedefs
     }
@@ -44,11 +44,10 @@ def _requested_not_read(session: pytest.Session) -> list[str]:
     # a fixture wanted for its side effect belongs in `@pytest.mark.usefixtures`
     unread: dict[str, list[str]] = {}
 
-    for item in session.items:
-        func = getattr(item, "function", None)
+    for item in _tests(session):
         # decorators such as `freeze_time` wrap the test in their own module
-        func = func and inspect.unwrap(func)
-        if func is None or TESTS_ROOT not in Path(inspect.getfile(func)).parents:
+        func = inspect.unwrap(item.function)
+        if TESTS_ROOT not in Path(inspect.getfile(func)).parents:
             continue
 
         location = _location(func)
@@ -66,6 +65,10 @@ def _requested_not_read(session: pytest.Session) -> list[str]:
     return sorted(
         f"{', '.join(names)} @ {location}" for location, names in unread.items() if names
     )
+
+
+def _tests(session: pytest.Session) -> list[pytest.Function]:
+    return [item for item in session.items if isinstance(item, pytest.Function)]
 
 
 def _location(func: Callable[..., Any] | None) -> str:
