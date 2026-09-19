@@ -196,50 +196,46 @@ class TestProcessorUnit:
 
 
 @pytest.mark.parametrize(
-    ("broker", "test_broker_module"),
+    ("package", "broker"),
     (
         pytest.param(
-            "faststream.kafka.broker.broker:KafkaBroker",
-            "faststream.kafka.testing",
+            "faststream.kafka",
+            "KafkaBroker",
             marks=(pytest.mark.kafka(), require_aiokafka),
         ),
         pytest.param(
-            "faststream.confluent.broker.broker:KafkaBroker",
-            "faststream.confluent.testing",
+            "faststream.confluent",
+            "KafkaBroker",
             marks=(pytest.mark.confluent(), require_confluent),
         ),
         pytest.param(
-            "faststream.nats.broker.broker:NatsBroker",
-            "faststream.nats.testing",
+            "faststream.nats",
+            "NatsBroker",
             marks=(pytest.mark.nats(), require_nats),
         ),
         pytest.param(
-            "faststream.rabbit.broker.broker:RabbitBroker",
-            "faststream.rabbit.testing",
+            "faststream.rabbit",
+            "RabbitBroker",
             marks=(pytest.mark.rabbit(), require_aiopika),
         ),
         pytest.param(
-            "faststream.redis.broker.broker:RedisBroker",
-            "faststream.redis.testing",
+            "faststream.redis",
+            "RedisBroker",
             marks=(pytest.mark.redis(), require_redis),
         ),
         pytest.param(
-            "faststream.mqtt.broker.broker:MQTTBroker",
-            "faststream.mqtt.testing",
+            "faststream.mqtt",
+            "MQTTBroker",
             marks=(pytest.mark.mqtt(), require_mqtt),
         ),
     ),
 )
-def test_test_broker_found_without_importing_it(
-    broker: str,
-    test_broker_module: str,
-) -> None:
-    module, name = broker.split(":")
+def test_test_broker_found_without_importing_it(package: str, broker: str) -> None:
     # a fresh interpreter: this session has imported every TestBroker already
     code = (
-        f"from {module} import {name}\n"
+        f"from {package} import {broker}\n"
         "from faststream._internal.testing.broker import find_test_broker\n"
-        f"print(find_test_broker({name}()).__module__)"
+        f"print(find_test_broker({broker}()).__module__)"
     )
 
     result = subprocess.run(
@@ -249,4 +245,4 @@ def test_test_broker_found_without_importing_it(
         check=True,
     )
 
-    assert result.stdout.strip() == test_broker_module
+    assert result.stdout.strip() == f"{package}.testing"
