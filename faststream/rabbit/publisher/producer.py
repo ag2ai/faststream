@@ -227,23 +227,23 @@ class _RPCCallback:
         self.queue = callback_queue
 
     async def __aenter__(self) -> "MemoryObjectReceiveStream[IncomingMessage]":
-        send_response_stream: MemoryObjectSendStream[AbstractIncomingMessage]
-        receive_response_stream: MemoryObjectReceiveStream[AbstractIncomingMessage]
+        self.send_response_stream: MemoryObjectSendStream[AbstractIncomingMessage]
+        self.receive_response_stream: MemoryObjectReceiveStream[AbstractIncomingMessage]
 
         (
-            send_response_stream,
-            receive_response_stream,
+            self.send_response_stream,
+            self.receive_response_stream,
         ) = anyio.create_memory_object_stream(max_buffer_size=1)
         await self.lock.acquire()
 
         self.consumer_tag = await self.queue.consume(
-            callback=send_response_stream.send,
+            callback=self.send_response_stream.send,
             no_ack=True,
         )
 
         return cast(
             "MemoryObjectReceiveStream[IncomingMessage]",
-            receive_response_stream,
+            self.receive_response_stream,
         )
 
     async def __aexit__(
@@ -254,3 +254,5 @@ class _RPCCallback:
     ) -> None:
         self.lock.release()
         await self.queue.cancel(self.consumer_tag)
+        self.send_response_stream.close()
+        self.receive_response_stream.close()
