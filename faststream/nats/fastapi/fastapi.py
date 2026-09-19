@@ -1,9 +1,7 @@
 import logging
-import warnings
 from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Literal,
     Optional,
@@ -28,7 +26,7 @@ from nats.aio.client import (
 from nats.js import api
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from typing_extensions import deprecated, overload, override
+from typing_extensions import overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
@@ -38,7 +36,6 @@ from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.nats.broker import NatsBroker
-from faststream.nats.security import warn_deprecated_security_args
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -118,56 +115,14 @@ class NatsRouter(StreamRouter["Msg"]):
         dont_randomize: bool = False,
         flusher_queue_size: int = DEFAULT_MAX_FLUSHER_QUEUE_SIZE,
         no_echo: bool = False,
-        tls_hostname: Annotated[
-            str | None,
-            deprecated(
-                "Use `security=NatsSecurity(...)` instead. "
-                "This argument will be removed in 1.0.0."
-            ),
-        ] = EMPTY,
-        token: Annotated[
-            str | None,
-            deprecated(
-                "Use `security=NatsToken(...)` instead. "
-                "This argument will be removed in 1.0.0."
-            ),
-        ] = EMPTY,
+        tls_hostname: str | None = None,
+        token: str | None = None,
         drain_timeout: int = DEFAULT_DRAIN_TIMEOUT,
-        signature_cb: Annotated[
-            Optional["SignatureCallback"],
-            deprecated(
-                "Use `security=NatsJWT(...)` instead. "
-                "This argument will be removed in 1.0.0."
-            ),
-        ] = EMPTY,
-        user_jwt_cb: Annotated[
-            Optional["JWTCallback"],
-            deprecated(
-                "Use `security=NatsJWT(...)` instead. "
-                "This argument will be removed in 1.0.0."
-            ),
-        ] = EMPTY,
-        user_credentials: Annotated[
-            Optional["Credentials"],
-            deprecated(
-                "Use `security=NatsCredentials(...)` instead. "
-                "This argument will be removed in 1.0.0."
-            ),
-        ] = EMPTY,
-        nkeys_seed: Annotated[
-            str | None,
-            deprecated(
-                "Use `security=NatsNKey.from_file(...)` instead. "
-                "This argument will be removed in 1.0.0."
-            ),
-        ] = EMPTY,
-        nkeys_seed_str: Annotated[
-            str | None,
-            deprecated(
-                "Use `security=NatsNKey.from_seed(...)` instead. "
-                "This argument will be removed in 1.0.0."
-            ),
-        ] = EMPTY,
+        signature_cb: Optional["SignatureCallback"] = None,
+        user_jwt_cb: Optional["JWTCallback"] = None,
+        user_credentials: Optional["Credentials"] = None,
+        nkeys_seed: str | None = None,
+        nkeys_seed_str: str | None = None,
         inbox_prefix: str | bytes = DEFAULT_INBOX_PREFIX,
         pending_size: int = DEFAULT_PENDING_SIZE,
         flush_timeout: float | None = None,
@@ -333,96 +288,73 @@ class NatsRouter(StreamRouter["Msg"]):
                 Read more about it in the
                 [FastAPI docs about how to Generate Clients](https://fastapi.tiangolo.com/advanced/generate-clients/#custom-generate-unique-id-function).
         """
-        legacy_security = {
-            name: value
-            for name, value in {
-                "tls_hostname": tls_hostname,
-                "token": token,
-                "signature_cb": signature_cb,
-                "user_jwt_cb": user_jwt_cb,
-                "user_credentials": user_credentials,
-                "nkeys_seed": nkeys_seed,
-                "nkeys_seed_str": nkeys_seed_str,
-            }.items()
-            if value is not EMPTY and value is not None
-        }
-        if legacy_security:
-            warn_deprecated_security_args(*legacy_security)
-
-        with warnings.catch_warnings():
-            if legacy_security:
-                warnings.filterwarnings(
-                    "ignore",
-                    message="The NATS security arguments .*",
-                    category=DeprecationWarning,
-                )
-            super().__init__(
-                servers,
-                error_cb=error_cb,
-                disconnected_cb=disconnected_cb,
-                closed_cb=closed_cb,
-                discovered_server_cb=discovered_server_cb,
-                reconnected_cb=reconnected_cb,
-                name=name,
-                pedantic=pedantic,
-                verbose=verbose,
-                allow_reconnect=allow_reconnect,
-                connect_timeout=connect_timeout,
-                reconnect_time_wait=reconnect_time_wait,
-                max_reconnect_attempts=max_reconnect_attempts,
-                ping_interval=ping_interval,
-                max_outstanding_pings=max_outstanding_pings,
-                dont_randomize=dont_randomize,
-                flusher_queue_size=flusher_queue_size,
-                no_echo=no_echo,
-                tls_hostname=tls_hostname,
-                token=token,
-                drain_timeout=drain_timeout,
-                signature_cb=signature_cb,
-                user_jwt_cb=user_jwt_cb,
-                user_credentials=user_credentials,
-                nkeys_seed=nkeys_seed,
-                nkeys_seed_str=nkeys_seed_str,
-                inbox_prefix=inbox_prefix,
-                pending_size=pending_size,
-                flush_timeout=flush_timeout,
-                specification=specification,
-                # broker options
-                graceful_timeout=graceful_timeout,
-                id_generator=id_generator,
-                decoder=decoder,
-                parser=parser,
-                middlewares=middlewares,
-                security=security,
-                specification_url=specification_url,
-                protocol=protocol,
-                protocol_version=protocol_version,
-                description=description,
-                logger=logger,
-                log_level=log_level,
-                specification_tags=specification_tags,
-                schema_url=schema_url,
-                setup_state=setup_state,
-                context=context,
-                # FastAPI kwargs
-                prefix=prefix,
-                tags=tags,
-                dependencies=dependencies,
-                default_response_class=default_response_class,
-                responses=responses,
-                callbacks=callbacks,
-                routes=routes,
-                redirect_slashes=redirect_slashes,
-                default=default,
-                dependency_overrides_provider=dependency_overrides_provider,
-                route_class=route_class,
-                on_startup=on_startup,
-                on_shutdown=on_shutdown,
-                deprecated=deprecated,
-                include_in_schema=include_in_schema,
-                lifespan=lifespan,
-                generate_unique_id_function=generate_unique_id_function,
-            )
+        super().__init__(
+            servers,
+            error_cb=error_cb,
+            disconnected_cb=disconnected_cb,
+            closed_cb=closed_cb,
+            discovered_server_cb=discovered_server_cb,
+            reconnected_cb=reconnected_cb,
+            name=name,
+            pedantic=pedantic,
+            verbose=verbose,
+            allow_reconnect=allow_reconnect,
+            connect_timeout=connect_timeout,
+            reconnect_time_wait=reconnect_time_wait,
+            max_reconnect_attempts=max_reconnect_attempts,
+            ping_interval=ping_interval,
+            max_outstanding_pings=max_outstanding_pings,
+            dont_randomize=dont_randomize,
+            flusher_queue_size=flusher_queue_size,
+            no_echo=no_echo,
+            tls_hostname=tls_hostname,
+            token=token,
+            drain_timeout=drain_timeout,
+            signature_cb=signature_cb,
+            user_jwt_cb=user_jwt_cb,
+            user_credentials=user_credentials,
+            nkeys_seed=nkeys_seed,
+            nkeys_seed_str=nkeys_seed_str,
+            inbox_prefix=inbox_prefix,
+            pending_size=pending_size,
+            flush_timeout=flush_timeout,
+            specification=specification,
+            # broker options
+            graceful_timeout=graceful_timeout,
+            id_generator=id_generator,
+            decoder=decoder,
+            parser=parser,
+            middlewares=middlewares,
+            security=security,
+            specification_url=specification_url,
+            protocol=protocol,
+            protocol_version=protocol_version,
+            description=description,
+            logger=logger,
+            log_level=log_level,
+            specification_tags=specification_tags,
+            schema_url=schema_url,
+            setup_state=setup_state,
+            context=context,
+            # FastAPI kwargs
+            prefix=prefix,
+            tags=tags,
+            dependencies=dependencies,
+            default_response_class=default_response_class,
+            responses=responses,
+            callbacks=callbacks,
+            routes=routes,
+            redirect_slashes=redirect_slashes,
+            default=default,
+            dependency_overrides_provider=dependency_overrides_provider,
+            route_class=route_class,
+            on_startup=on_startup,
+            on_shutdown=on_shutdown,
+            deprecated=deprecated,
+            include_in_schema=include_in_schema,
+            lifespan=lifespan,
+            generate_unique_id_function=generate_unique_id_function,
+        )
 
     @overload  # type: ignore[override]
     def subscriber(
