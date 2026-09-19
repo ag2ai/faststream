@@ -98,6 +98,7 @@ ignore = [
 
 "benchmarks/**/*.py" = [
     "T201",
+    "PLR6301",
     "PLC2701",
     "TID251",
 ]
@@ -122,6 +123,7 @@ ignore = [
 "tests/**/*.py" = [
     "ANN",  # FIXME
     "S",
+    "PLR6301",
     "PLC2701",  # tests reach into faststream._internal by design
     "TID251",
     "TID253",
@@ -132,8 +134,12 @@ ignore = [
     "RUF045",
 ]
 
-# docs_src modules build a broker on import and share a file across brokers under require_* marks
+# these files mix brokers under require_* marks, and docs_src modules build a broker on import
 "tests/{docs,examples}/**/*.py" = [
+    "PLC0415",
+]
+
+"tests/{cli/test_publish,cli/conftest,utils/context/test_path,utils/context/test_headers}.py" = [
     "PLC0415",
 ]
 

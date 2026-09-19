@@ -2,9 +2,16 @@ import ssl
 import warnings
 from typing import Any
 
+import anyio
 import pytest
+from redis.asyncio.connection import DefaultParser, Encoder
 
-from faststream.redis import RedisClusterBroker, RedisRouter
+from faststream._internal.configs import ConfigComposition
+from faststream.exceptions import IncorrectState
+from faststream.redis import RedisBroker, RedisClusterBroker, RedisRouter
+from faststream.redis.broker import RedisClusterBroker as SubpackageRedisClusterBroker
+from faststream.redis.configs.state import RedisClusterConnectionState
+from faststream.redis.parser import BinaryMessageFormatV1
 from faststream.security import BaseSecurity, SASLPlaintext
 
 pytestmark = pytest.mark.redis_cluster
@@ -139,8 +146,6 @@ class TestClusterBrokerConfig:
         assert len(broker.routers) == 1
 
     def test_connection_state_type(self) -> None:
-        from faststream.redis.configs.state import RedisClusterConnectionState
-
         broker = RedisClusterBroker()
         assert isinstance(
             broker.config.broker_config.connection,
@@ -148,15 +153,11 @@ class TestClusterBrokerConfig:
         )
 
     def test_message_format_default(self) -> None:
-        from faststream.redis.parser import BinaryMessageFormatV1
-
         broker = RedisClusterBroker()
         assert broker.message_format is BinaryMessageFormatV1
 
     def test_full_redis_broker_compatible_api(self) -> None:
         """All RedisBroker __init__ params should be accepted (drop-in compatible)."""
-        from redis.asyncio.connection import DefaultParser, Encoder
-
         broker = RedisClusterBroker(
             url="redis://localhost:6379",
             host="localhost",
@@ -184,35 +185,24 @@ class TestRedisClusterConnectionState:
     """Unit tests for RedisClusterConnectionState."""
 
     def test_initial_state(self) -> None:
-        from faststream.redis.configs.state import RedisClusterConnectionState
-
         state = RedisClusterConnectionState()
         assert not state
         assert state._client is None
 
     def test_initial_state_with_options(self) -> None:
-        from faststream.redis.configs.state import RedisClusterConnectionState
-
         state = RedisClusterConnectionState({"host": "127.0.0.1", "port": 7000})
         assert not state
 
     def test_client_raises_before_connect(self) -> None:
-        from faststream.exceptions import IncorrectState
-        from faststream.redis.configs.state import RedisClusterConnectionState
-
         state = RedisClusterConnectionState()
         with pytest.raises(IncorrectState):
             _ = state.client
 
     def test_bool_false_before_connect(self) -> None:
-        from faststream.redis.configs.state import RedisClusterConnectionState
-
         state = RedisClusterConnectionState()
         assert not bool(state)
 
     def test_options_stored(self) -> None:
-        from faststream.redis.configs.state import RedisClusterConnectionState
-
         state = RedisClusterConnectionState({"startup_nodes": ["node1"]})
         assert state._options["startup_nodes"] == ["node1"]
 
@@ -221,8 +211,6 @@ class TestClusterBrokerInheritance:
     """Ensure RedisClusterBroker properly inherits from RedisBroker."""
 
     def test_is_redis_broker_subclass(self) -> None:
-        from faststream.redis import RedisBroker
-
         assert issubclass(RedisClusterBroker, RedisBroker)
 
     def test_has_required_methods(self) -> None:
@@ -241,14 +229,10 @@ class TestClusterBrokerInheritance:
             assert hasattr(broker, attr)
 
     def test_broker_uses_config_composition(self) -> None:
-        from faststream._internal.configs import ConfigComposition
-
         broker = RedisClusterBroker()
         assert isinstance(broker.config, ConfigComposition)
 
     def test_start_stop_lifecycle(self) -> None:
-        import anyio
-
         async def test() -> None:
             broker = RedisClusterBroker()
             assert broker._connection is None
@@ -349,13 +333,5 @@ class TestClusterSecurity:
         assert opts.get("password") == "pass"
 
 
-def test_exported_from_redis_package() -> None:
-    from faststream.redis import RedisClusterBroker as Exported
-
-    assert Exported is RedisClusterBroker
-
-
 def test_exported_from_broker_subpackage() -> None:
-    from faststream.redis.broker import RedisClusterBroker as Exported
-
-    assert Exported is RedisClusterBroker
+    assert SubpackageRedisClusterBroker is RedisClusterBroker

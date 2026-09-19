@@ -9,6 +9,7 @@ import asyncio
 from typing import Any
 
 import pytest
+from redis.cluster import RedisCluster as _SyncRC
 
 from faststream.redis import RedisClusterBroker, StreamSub
 from tests.brokers.base.connection import BrokerConnectionTestcase
@@ -301,8 +302,6 @@ class TestClusterPubSub:
         event: asyncio.Event,
     ) -> None:
         """Pub/Sub via sync cluster wrapper."""
-        from redis.cluster import RedisCluster as _SyncRC
-
         if not hasattr(_SyncRC, "publish"):
             pytest.skip("sync cluster pubsub not available")
 
