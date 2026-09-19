@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -11,6 +13,14 @@ from faststream.asgi.factories.asyncapi.try_it_out import (
     _iter_broker_destinations,
 )
 from faststream.kafka import KafkaBroker, TestKafkaBroker
+from tests.marks import (
+    require_aiokafka,
+    require_aiopika,
+    require_confluent,
+    require_mqtt,
+    require_nats,
+    require_redis,
+)
 
 
 def _payload(channel: str, body: Any) -> dict[str, Any]:
@@ -183,3 +193,60 @@ class TestProcessorUnit:
     def test_empty_brokers_rejected(self) -> None:
         with pytest.raises(ValueError, match="at least one broker"):
             TryItOutProcessor()
+
+
+@pytest.mark.parametrize(
+    ("broker", "test_broker_module"),
+    (
+        pytest.param(
+            "faststream.kafka.broker.broker:KafkaBroker",
+            "faststream.kafka.testing",
+            marks=(pytest.mark.kafka(), require_aiokafka),
+        ),
+        pytest.param(
+            "faststream.confluent.broker.broker:KafkaBroker",
+            "faststream.confluent.testing",
+            marks=(pytest.mark.confluent(), require_confluent),
+        ),
+        pytest.param(
+            "faststream.nats.broker.broker:NatsBroker",
+            "faststream.nats.testing",
+            marks=(pytest.mark.nats(), require_nats),
+        ),
+        pytest.param(
+            "faststream.rabbit.broker.broker:RabbitBroker",
+            "faststream.rabbit.testing",
+            marks=(pytest.mark.rabbit(), require_aiopika),
+        ),
+        pytest.param(
+            "faststream.redis.broker.broker:RedisBroker",
+            "faststream.redis.testing",
+            marks=(pytest.mark.redis(), require_redis),
+        ),
+        pytest.param(
+            "faststream.mqtt.broker.broker:MQTTBroker",
+            "faststream.mqtt.testing",
+            marks=(pytest.mark.mqtt(), require_mqtt),
+        ),
+    ),
+)
+def test_test_broker_found_without_importing_it(
+    broker: str,
+    test_broker_module: str,
+) -> None:
+    module, name = broker.split(":")
+    # a fresh interpreter: this session has imported every TestBroker already
+    code = (
+        f"from {module} import {name}\n"
+        "from faststream._internal.testing.broker import find_test_broker\n"
+        f"print(find_test_broker({name}()).__module__)"
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout.strip() == test_broker_module
