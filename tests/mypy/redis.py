@@ -10,6 +10,7 @@ from faststream.redis import (
     Redis,
     RedisBroker,
     RedisChannelMessage,
+    RedisClusterBroker,
     RedisListMessage,
     RedisMessage as Message,
     RedisPublisher,
@@ -67,6 +68,13 @@ async def custom_decoder(
 ) -> DecodedMessage:
     return await original(msg)
 
+
+RedisClusterBroker(
+    ssl=True,
+    ssl_ca_certs="ca.pem",
+    ssl_certfile="client.pem",
+    ssl_keyfile="client.key",
+)
 
 RedisBroker(decoder=sync_decoder)
 RedisBroker(decoder=async_decoder)
