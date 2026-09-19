@@ -147,7 +147,7 @@ class CodecTestcase(BaseTestcaseConfig):
 
         assert mock.called, "codec.encode was not called on publish"
 
-    async def test_default_codec_encode_matches_encode_message(self, queue: str) -> None:
+    async def test_default_codec_encode_matches_encode_message(self) -> None:
         codec = DefaultCodec()
 
         test_cases = [

@@ -50,7 +50,6 @@ class TestTestclient(
 
     async def test_direct_not_found(
         self,
-        queue: str,
     ) -> None:
         broker = self.get_broker()
 

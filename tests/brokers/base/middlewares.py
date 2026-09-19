@@ -795,7 +795,6 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
     async def test_exception_middleware_decoder_error(
         self,
         queue: str,
-        mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
         async def decoder(

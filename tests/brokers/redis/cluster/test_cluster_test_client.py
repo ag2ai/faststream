@@ -152,10 +152,9 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
-        queue: str,
     ) -> None:
         pytest.skip("Real-cluster testclient requires running cluster")
 
     @pytest.mark.connected()
-    async def test_real_respect_middleware(self, queue: str) -> None:
+    async def test_real_respect_middleware(self) -> None:
         pytest.skip("Real-cluster middleware test requires running cluster")

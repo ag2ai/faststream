@@ -607,7 +607,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_get_one_with_filter(
         self,
         queue: str,
-        stream: JStream,
     ) -> None:
         broker = self.get_broker(apply_types=True)
         subscriber = broker.subscriber(
@@ -641,7 +640,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_get_one_kv(
         self,
         queue: str,
-        stream: JStream,
     ) -> None:
         broker = self.get_broker(apply_types=True)
         subscriber = broker.subscriber(queue, kv_watch=queue + "1")
@@ -673,7 +671,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_get_one_kv_timeout(
         self,
         queue: str,
-        stream: JStream,
         mock: MagicMock,
     ) -> None:
         broker = self.get_broker(apply_types=True)
@@ -688,7 +685,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_get_one_os(
         self,
         queue: str,
-        stream: JStream,
     ) -> None:
         broker = self.get_broker(apply_types=True)
         subscriber = broker.subscriber(queue, obj_watch=True)
@@ -721,7 +717,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_get_one_os_timeout(
         self,
         queue: str,
-        stream: JStream,
         mock: MagicMock,
     ) -> None:
         broker = self.get_broker(apply_types=True)

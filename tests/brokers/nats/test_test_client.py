@@ -83,7 +83,6 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
     @pytest.mark.connected()
     async def test_inbox_prefix_with_real(
         self,
-        queue: str,
     ) -> None:
         broker = self.get_broker(inbox_prefix="test")
 
