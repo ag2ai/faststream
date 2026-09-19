@@ -90,7 +90,7 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
         router: "Registrator[MsgType, Any]",
         *,
         prefix: str = "",
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[MsgType]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:

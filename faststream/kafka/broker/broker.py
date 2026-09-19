@@ -234,7 +234,7 @@ class KafkaBroker(
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
         # AsyncAPI args
@@ -348,7 +348,7 @@ class KafkaBroker(
                 Custom codec object.
             parser (Optional[CustomCallable]):
                 Custom parser object.
-            dependencies (Iterable[Dependant]):
+            dependencies (Sequence[Dependant]):
                 Dependencies to apply to all broker subscribers.
             middlewares (Sequence[BrokerMiddlewarep[Any, Any]]):
                 Middlewares to apply to all broker publishers/subscribers.

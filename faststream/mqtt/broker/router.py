@@ -69,7 +69,7 @@ class MQTTRoute(SubscriberRoute):
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         max_workers: int = 1,
@@ -109,7 +109,7 @@ class MQTTRouter(
         prefix: str = "",
         handlers: Iterable[MQTTRoute] = (),
         *,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         parser: Optional["CustomCallable"] = None,
