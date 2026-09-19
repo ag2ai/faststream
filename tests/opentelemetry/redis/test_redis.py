@@ -19,12 +19,16 @@ from tests.brokers.redis.test_consume import (
     TestConsumeStream,
 )
 from tests.brokers.redis.test_publish import TestPublish as PublishCase
-from tests.opentelemetry.basic import LocalTelemetryTestcase
+from tests.opentelemetry.basic import (
+    LocalTelemetryTestcase,
+    counter_point,
+    histogram_point,
+)
 
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
+class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "redis"
     include_messages_counters = True
     telemetry_middleware_class = RedisTelemetryMiddleware
@@ -52,7 +56,7 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         args, kwargs = self.get_subscriber_params(list=ListSub(queue, batch=True))
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == expected_baggage_batch
@@ -71,14 +75,12 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         spans = self.get_spans(trace_exporter)
         _, publish, create_process, process = spans
 
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
-        assert (
-            process.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert (publish.attributes or {})[
+            SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
+        ] == expected_msg_count
+        assert (process.attributes or {})[
+            SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
+        ] == expected_msg_count
         assert len(create_process.links) == expected_link_count
         assert create_process.links[0].attributes == expected_link_attrs
         self.assert_metrics(metrics, count=expected_msg_count)
@@ -109,7 +111,7 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         args, kwargs = self.get_subscriber_params(list=ListSub(queue))
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == expected_baggage_batch
@@ -134,17 +136,16 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         create_processes = [spans[2], spans[4], spans[6]]
 
         assert len(spans) == expected_span_count
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert (publish.attributes or {})[
+            SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
+        ] == expected_msg_count
         for cp in create_processes:
             assert len(cp.links) == expected_link_count
 
-        assert proc_msg.data.data_points[0].value == expected_msg_count
-        assert pub_msg.data.data_points[0].value == expected_msg_count
-        assert proc_dur.data.data_points[0].count == expected_msg_count
-        assert pub_dur.data.data_points[0].count == expected_pub_batch_count
+        assert counter_point(proc_msg).value == expected_msg_count
+        assert counter_point(pub_msg).value == expected_msg_count
+        assert histogram_point(proc_dur).count == expected_msg_count
+        assert histogram_point(pub_dur).count == expected_pub_batch_count
 
         assert {1, "hi", 3} == {r.result() for r in result}
 
@@ -171,7 +172,7 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         args, kwargs = self.get_subscriber_params(list=ListSub(queue, batch=True))
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert len(baggage.get_all_batch()) == expected_msg_count
             assert baggage.get_all() == expected_baggage
@@ -210,10 +211,10 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         assert len(spans) == expected_span_count
         assert len(create_process.links) == expected_link_count
-        assert proc_msg.data.data_points[0].value == expected_msg_count
-        assert pub_msg.data.data_points[0].value == expected_msg_count
-        assert proc_dur.data.data_points[0].count == expected_process_batch_count
-        assert pub_dur.data.data_points[0].count == expected_msg_count
+        assert counter_point(proc_msg).value == expected_msg_count
+        assert counter_point(pub_msg).value == expected_msg_count
+        assert histogram_point(proc_dur).count == expected_process_batch_count
+        assert histogram_point(pub_dur).count == expected_msg_count
 
         assert event.is_set()
         mock.assert_called_once_with(["buy", "hi"])

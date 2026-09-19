@@ -209,6 +209,8 @@ module = [
     "tests.asgi.testcase",
     "tests.asyncapi.base.*",
     "tests.integrations.msgspec.test_serialization",
+    "tests.opentelemetry.basic",
+    "tests.prometheus.basic",
 ]
 disallow_untyped_decorators = false
 

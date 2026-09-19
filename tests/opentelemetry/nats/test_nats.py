@@ -14,7 +14,11 @@ from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from tests.brokers.nats.basic import NatsTestcaseConfig
 from tests.brokers.nats.test_consume import TestConsume as ConsumeCase
 from tests.brokers.nats.test_publish import TestPublish as PublishCase
-from tests.opentelemetry.basic import LocalTelemetryTestcase
+from tests.opentelemetry.basic import (
+    LocalTelemetryTestcase,
+    counter_point,
+    histogram_point,
+)
 
 
 @pytest.fixture()
@@ -24,7 +28,7 @@ def stream(queue: str) -> Any:
 
 @pytest.mark.connected()
 @pytest.mark.nats()
-class TestTelemetry(NatsTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
+class TestTelemetry(NatsTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "nats"
     include_messages_counters = True
     telemetry_middleware_class = NatsTelemetryMiddleware
@@ -55,7 +59,7 @@ class TestTelemetry(NatsTestcaseConfig, LocalTelemetryTestcase):  # type: ignore
             pull_sub=PullSub(1, batch=True, timeout=30.0),
         )
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any) -> None:
             mock(m)
             event.set()
@@ -76,14 +80,13 @@ class TestTelemetry(NatsTestcaseConfig, LocalTelemetryTestcase):  # type: ignore
 
         assert len(create_batch.links) == expected_msg_count
         assert len(spans) == expected_span_count
-        assert (
-            process.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
-        assert proc_msg.data.data_points[0].value == expected_msg_count
-        assert pub_msg.data.data_points[0].value == expected_msg_count
-        assert proc_dur.data.data_points[0].count == expected_proc_batch_count
-        assert pub_dur.data.data_points[0].count == expected_msg_count
+        assert (process.attributes or {})[
+            SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
+        ] == expected_msg_count
+        assert counter_point(proc_msg).value == expected_msg_count
+        assert counter_point(pub_msg).value == expected_msg_count
+        assert histogram_point(proc_dur).count == expected_proc_batch_count
+        assert histogram_point(pub_dur).count == expected_msg_count
 
         assert event.is_set()
         mock.assert_called_once_with(["hi"])

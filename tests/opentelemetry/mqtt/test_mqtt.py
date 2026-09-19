@@ -38,7 +38,7 @@ def test_router_feature_not_supported_311() -> None:
 
 @pytest.mark.connected()
 @pytest.mark.mqtt()
-class TestTelemetry(MQTTTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
+class TestTelemetry(MQTTTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "mqtt"
     include_messages_counters = True
     telemetry_middleware_class = MQTTTelemetryMiddleware

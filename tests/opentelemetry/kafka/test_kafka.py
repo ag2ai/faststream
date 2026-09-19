@@ -13,15 +13,21 @@ from opentelemetry.trace import SpanKind
 
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.opentelemetry import Baggage, CurrentBaggage
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
-from faststream.opentelemetry.middleware import MessageAction as Action
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MessageAction as Action,
+)
 from tests.brokers.kafka.basic import KafkaTestcaseConfig
-from tests.opentelemetry.basic import LocalTelemetryTestcase
+from tests.opentelemetry.basic import (
+    LocalTelemetryTestcase,
+    counter_point,
+    histogram_point,
+)
 
 
 @pytest.mark.kafka()
 @pytest.mark.connected()
-class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
+class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "kafka"
     include_messages_counters = True
     telemetry_middleware_class = KafkaTelemetryMiddleware
@@ -32,9 +38,9 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         action: str,
         queue: str,
         msg: str,
-        parent_span_id: str | None = None,
+        parent_span_id: int | None = None,
     ) -> None:
-        attrs = span.attributes
+        attrs = span.attributes or {}
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system
         assert attrs[SpanAttr.MESSAGING_MESSAGE_CONVERSATION_ID] == IsUUID
         assert span.name == f"{self.destination_name(queue)} {action}"
@@ -57,6 +63,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
             assert attrs[SpanAttr.MESSAGING_OPERATION] == action
 
         if parent_span_id:
+            assert span.parent
             assert span.parent.span_id == parent_span_id
 
     async def test_batch(
@@ -84,7 +91,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == expected_baggage_batch
@@ -111,14 +118,12 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         spans = self.get_spans(trace_exporter)
         _, publish, create_process, process = spans
 
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
-        assert (
-            process.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert (publish.attributes or {})[
+            SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
+        ] == expected_msg_count
+        assert (process.attributes or {})[
+            SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
+        ] == expected_msg_count
         assert len(create_process.links) == expected_link_count
         assert create_process.links[0].attributes == expected_link_attrs
         self.assert_metrics(metrics, count=expected_msg_count)
@@ -148,7 +153,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == []
@@ -179,17 +184,16 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         create_processes = [spans[2], spans[4], spans[6]]
 
         assert len(spans) == expected_span_count
-        assert (
-            publish.attributes[SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT]
-            == expected_msg_count
-        )
+        assert (publish.attributes or {})[
+            SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
+        ] == expected_msg_count
         for cp in create_processes:
             assert len(cp.links) == expected_link_count
 
-        assert proc_msg.data.data_points[0].value == expected_msg_count
-        assert pub_msg.data.data_points[0].value == expected_msg_count
-        assert proc_dur.data.data_points[0].count == expected_msg_count
-        assert pub_dur.data.data_points[0].count == expected_pub_batch_count
+        assert counter_point(proc_msg).value == expected_msg_count
+        assert counter_point(pub_msg).value == expected_msg_count
+        assert histogram_point(proc_dur).count == expected_msg_count
+        assert histogram_point(pub_dur).count == expected_pub_batch_count
 
         assert {1, "hi", 3} == {r.result() for r in result}
 
@@ -216,7 +220,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert len(baggage.get_all_batch()) == expected_msg_count
@@ -252,10 +256,10 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         assert len(spans) == expected_span_count
         assert len(create_process.links) == expected_link_count
-        assert proc_msg.data.data_points[0].value == expected_msg_count
-        assert pub_msg.data.data_points[0].value == expected_msg_count
-        assert proc_dur.data.data_points[0].count == expected_process_batch_count
-        assert pub_dur.data.data_points[0].count == expected_msg_count
+        assert counter_point(proc_msg).value == expected_msg_count
+        assert counter_point(pub_msg).value == expected_msg_count
+        assert histogram_point(proc_dur).count == expected_process_batch_count
+        assert histogram_point(pub_dur).count == expected_msg_count
 
         assert event.is_set()
         mock.assert_called_once_with(["buy", "hi"])
