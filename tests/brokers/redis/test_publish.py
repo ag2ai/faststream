@@ -208,10 +208,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
     ) -> None:
         broker = self.get_broker(apply_types=True)
 
-        destination = {type_queue: queue + "resp"}
+        source: dict[str, Any] = {type_queue: queue}
+        destination: dict[str, Any] = {type_queue: queue + "resp"}
         publisher = broker.publisher(**destination)
 
-        @broker.subscriber(**{type_queue: queue})
+        @broker.subscriber(**source)  # type: ignore[untyped-decorator]
         async def m(msg: str, pipe: Pipeline) -> None:
             for _ in range(5):
                 # publish 5 messages by publisher
@@ -222,7 +223,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
             await pipe.execute()
 
-        @broker.subscriber(**destination)
+        @broker.subscriber(**destination)  # type: ignore[untyped-decorator]
         async def resp(msg: str) -> None:
             mock(msg)
             if mock.call_count == 10:
@@ -232,7 +233,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
             await br.start()
 
             tasks = (
-                asyncio.create_task(br.publish("", **{type_queue: queue})),
+                asyncio.create_task(br.publish("", **source)),
                 asyncio.create_task(event.wait()),
             )
             await asyncio.wait(tasks, timeout=3)

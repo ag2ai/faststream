@@ -27,6 +27,7 @@ class TestRedisSentinelBrokerUnit:
             sentinel_kwargs={"socket_timeout": 1.0},
         )
         connection = broker.config.broker_config.connection
+        assert isinstance(connection, RedisSentinelConnectionState)
         assert connection._sentinel_kwargs == {"socket_timeout": 1.0}
 
     def test_requires_sentinels(self) -> None:
@@ -35,7 +36,7 @@ class TestRedisSentinelBrokerUnit:
 
     def test_requires_master_name(self) -> None:
         with pytest.raises(SetupError, match="sentinel_master_name"):
-            RedisSentinelBroker(sentinels=SENTINELS)
+            RedisSentinelBroker(sentinels=SENTINELS)  # type: ignore[call-arg]
 
     @pytest.mark.asyncio()
     async def test_connect_builds_sentinel_pool(self) -> None:
@@ -43,6 +44,7 @@ class TestRedisSentinelBrokerUnit:
             sentinels=SENTINELS, sentinel_master_name="mymaster", db=1
         )
         connection = broker.config.broker_config.connection
+        assert isinstance(connection, RedisSentinelConnectionState)
         client = await connection.connect()
         try:
             assert isinstance(client.connection_pool, SentinelConnectionPool)

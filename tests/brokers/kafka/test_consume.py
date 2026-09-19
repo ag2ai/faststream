@@ -330,10 +330,11 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            producer: Any = br._producer
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._producer._producer.producer.send(queue, key=b""),
+                        producer._producer.producer.send(queue, key=b""),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -359,10 +360,11 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            producer: Any = br._producer
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._producer._producer.producer.send(queue, key=b""),
+                        producer._producer.producer.send(queue, key=b""),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -380,7 +382,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, max_workers=2)
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> None:
             mock()
             if event.is_set():
@@ -577,7 +579,7 @@ class TestListener(KafkaTestcaseConfig):
     ) -> None:
         consume_broker = self.get_broker()
 
-        class CustomListener(ConsumerRebalanceListener):
+        class CustomListener(ConsumerRebalanceListener):  # type: ignore[misc]
             def on_partitions_revoked(self, revoked: set[str]) -> None:
                 mock.on_partitions_revoked()
 
@@ -604,7 +606,7 @@ class TestListener(KafkaTestcaseConfig):
     async def test_listener_async(self, queue: str, mock: MagicMock) -> None:
         consume_broker = self.get_broker()
 
-        class CustomListener(ConsumerRebalanceListener):
+        class CustomListener(ConsumerRebalanceListener):  # type: ignore[misc]
             async def on_partitions_revoked(self, revoked: set[str]) -> None:
                 mock.on_partitions_revoked()
 

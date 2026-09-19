@@ -73,7 +73,7 @@ class TestArguments(ArgumentsTestcase):
     def test_stream_group_subscriber(self) -> None:
         broker = self.broker_class()
 
-        @broker.subscriber(stream=StreamSub("test", group="group", consumer="consumer"))  # type: ignore[untyped-decorator]
+        @broker.subscriber(stream=StreamSub("test", group="group", consumer="consumer"))
         async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()

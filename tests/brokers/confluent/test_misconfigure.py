@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream import AckPolicy
@@ -43,15 +45,15 @@ def test_wrong_destination(queue: str) -> None:
 @pytest.mark.confluent()
 def test_use_only_confluent_router() -> None:
     broker = KafkaBroker()
-    router = NatsRouter()
+    router: Any = NatsRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [KafkaRouter(), NatsRouter()]
+    routers: list[Any] = [KafkaRouter(), NatsRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)
 
 
 @pytest.mark.confluent()

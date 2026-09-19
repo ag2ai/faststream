@@ -25,7 +25,9 @@ async def test_task_failing(subscriber_with_task_mixin: Any) -> None:
         await task
 
     assert len(subscriber_with_task_mixin.tasks) > 1
-    assert len(TaskCallbackSupervisor._TaskCallbackSupervisor__cache) == 1
+    # mypy does not resolve name-mangled attributes
+    supervisor: Any = TaskCallbackSupervisor
+    assert len(supervisor._TaskCallbackSupervisor__cache) == 1
 
 
 @pytest.mark.asyncio()

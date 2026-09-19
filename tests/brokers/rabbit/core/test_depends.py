@@ -68,6 +68,8 @@ async def test_different_consumers_has_different_messages(
     await full_broker.request(queue="test_different_consume_1")
     await full_broker.request(queue="test_different_consume_2")
 
+    assert message1
+    assert message2
     assert isinstance(message1.raw_message, aio_pika.IncomingMessage)
     assert isinstance(message2.raw_message, aio_pika.IncomingMessage)
     assert message1 != message2

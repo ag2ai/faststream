@@ -30,7 +30,7 @@ class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> Any:
             return msg
 
@@ -123,9 +123,10 @@ class TestFormats:
         async with broker:
             await broker.start()
 
+            client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.publish(queue, message)),
+                    asyncio.create_task(client.publish(queue, message)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -170,9 +171,10 @@ class TestFormats:
         async with broker:
             await broker.start()
 
+            client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.publish(queue, message)),
+                    asyncio.create_task(client.publish(queue, message)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -222,9 +224,10 @@ class TestFormats:
         async with broker:
             await broker.start()
 
+            client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.publish(queue, "hello world")),
+                    asyncio.create_task(client.publish(queue, "hello world")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -298,12 +301,11 @@ class TestTestBrokerFormats:
         async with broker:
             await broker.start()
 
+            client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.xadd(queue, data)),
-                    asyncio.create_task(
-                        broker._connection.xadd(queue, {"data": json.dumps(data)})
-                    ),
+                    asyncio.create_task(client.xadd(queue, data)),
+                    asyncio.create_task(client.xadd(queue, {"data": json.dumps(data)})),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,

@@ -87,8 +87,9 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(inbox_prefix="test")
 
         async with self.patch_broker(broker, with_real=True) as br:
-            assert br._connection._inbox_prefix == b"test"
-            assert "test" in str(br._connection.new_inbox())
+            connection = await br.connect()
+            assert connection._inbox_prefix == b"test"
+            assert "test" in str(connection.new_inbox())
 
     async def test_respect_middleware(self, queue: str) -> None:
         routes: list[Any] = []

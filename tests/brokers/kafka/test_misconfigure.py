@@ -91,15 +91,15 @@ def test_max_workers_configuration(queue: str) -> None:
 @pytest.mark.kafka()
 def test_use_only_kafka_router() -> None:
     broker = KafkaBroker()
-    router = NatsRouter()
+    router: Any = NatsRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [KafkaRouter(), NatsRouter(), RabbitRouter()]
+    routers: list[Any] = [KafkaRouter(), NatsRouter(), RabbitRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)
 
 
 @pytest.mark.kafka()

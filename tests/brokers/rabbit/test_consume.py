@@ -37,7 +37,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
                 (asyncio.create_task(event.wait()),),
                 timeout=3,
             )
-            assert isinstance(result, ConfirmationFrameType), result
+            assert isinstance(result, ConfirmationFrameType), result  # type: ignore[arg-type]
 
         assert event.is_set()
 

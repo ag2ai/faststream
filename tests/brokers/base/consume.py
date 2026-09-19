@@ -15,7 +15,7 @@ from .basic import BaseTestcaseConfig
 
 
 @pytest.mark.asyncio()
-class MultibrokerTestcase(BaseTestcaseConfig):
+class MultibrokerTestcase(BaseTestcaseConfig[Any]):
     async def test_multi_consume(
         self, queue: str, mock: MagicMock, event: asyncio.Event, event2: asyncio.Event
     ) -> None:
@@ -133,7 +133,7 @@ class MultibrokerTestcase(BaseTestcaseConfig):
 
 
 @pytest.mark.asyncio()
-class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig):
+class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig[Any]):
     async def test_consume(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker()
 

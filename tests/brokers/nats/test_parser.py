@@ -25,7 +25,7 @@ class TestCustomParser(NatsTestcaseConfig, CustomParserTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> Any:
             return msg
 

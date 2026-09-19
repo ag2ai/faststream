@@ -7,7 +7,7 @@ import pytest
 from .basic import BaseTestcaseConfig
 
 
-class RequestsTestcase(BaseTestcaseConfig):
+class RequestsTestcase(BaseTestcaseConfig[Any]):
     def get_middleware(self, **kwargs: Any) -> Any:
         raise NotImplementedError
 

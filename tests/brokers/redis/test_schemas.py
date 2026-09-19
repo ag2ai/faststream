@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.exceptions import SetupError
@@ -58,7 +60,9 @@ def test_stream_group() -> None:
         ),
     ),
 )
-def test_stream_claim_min_idle_time_misconfiguration(kwargs: dict, match: str) -> None:
+def test_stream_claim_min_idle_time_misconfiguration(
+    kwargs: dict[str, Any], match: str
+) -> None:
     with pytest.raises(SetupError, match=match):
         StreamSub("test", **kwargs)
 

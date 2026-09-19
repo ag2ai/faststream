@@ -1,4 +1,5 @@
 import warnings
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,7 +8,6 @@ from faststream.confluent import KafkaBroker, KafkaRouter, Topic, TopicPartition
 from faststream.confluent.helpers.admin import AdminService
 from faststream.confluent.helpers.client import AsyncConfluentConsumer
 from faststream.confluent.helpers.config import ConfluentFastConfig
-from faststream.confluent.subscriber.usecase import LogicSubscriber
 from faststream.confluent.testing import TestKafkaBroker
 from tests.tools import spy_decorator
 
@@ -123,7 +123,8 @@ class TestSubscriberTopics:
         @subscriber
         async def handler(msg: str) -> None: ...
 
-        assert subscriber.specification.topics == ["test"]
+        specification: Any = subscriber.specification
+        assert specification.topics == ["test"]
 
 
 @pytest.mark.confluent()
@@ -137,8 +138,8 @@ class TestRouterPrefix:
     def build_subscriber(
         self,
         *topics: str | Topic,
-        **kwargs: object,
-    ) -> LogicSubscriber:
+        **kwargs: Any,
+    ) -> Any:
         router = KafkaRouter(prefix="prefix_")
         router.subscriber(*topics, **kwargs)
 

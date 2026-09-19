@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, call
 
 import pytest
+from typing_extensions import Self
 
 from faststream import Context
 from faststream._internal.basic_types import DecodedMessage
@@ -15,12 +16,13 @@ from .basic import BaseTestcaseConfig
 
 
 @pytest.mark.asyncio()
-class MiddlewaresOrderTestcase(BaseTestcaseConfig):
+class MiddlewaresOrderTestcase(BaseTestcaseConfig[Any]):
     async def test_broker_middleware_order(self, queue: str, mock: MagicMock) -> None:
         class InnerMiddleware(BaseMiddleware):
-            async def __aenter__(self) -> None:
+            async def __aenter__(self) -> Self:
                 mock.enter_inner()
                 mock.enter("inner")
+                return self
 
             async def __aexit__(self, *args: Any) -> None:
                 mock.exit_inner()
@@ -28,22 +30,23 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
             async def consume_scope(
                 self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
-            ) -> None:
+            ) -> Any:
                 mock.consume_inner()
                 mock.sub("inner")
                 return await call_next(msg)
 
             async def publish_scope(
                 self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
-            ) -> None:
+            ) -> Any:
                 mock.publish_inner()
                 mock.pub("inner")
                 return await call_next(cmd)
 
         class OuterMiddleware(BaseMiddleware):
-            async def __aenter__(self) -> None:
+            async def __aenter__(self) -> Self:
                 mock.enter_outer()
                 mock.enter("outer")
+                return self
 
             async def __aexit__(self, *args: Any) -> None:
                 mock.exit_outer()
@@ -51,14 +54,14 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
             async def consume_scope(
                 self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
-            ) -> None:
+            ) -> Any:
                 mock.consume_outer()
                 mock.sub("outer")
                 return await call_next(msg)
 
             async def publish_scope(
                 self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
-            ) -> None:
+            ) -> Any:
                 mock.publish_outer()
                 mock.pub("outer")
                 return await call_next(cmd)
@@ -280,7 +283,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
 
 @pytest.mark.asyncio()
-class LocalMiddlewareTestcase(BaseTestcaseConfig):
+class LocalMiddlewareTestcase(BaseTestcaseConfig[Any]):
     async def test_subscriber_middleware(
         self,
         queue: str,
@@ -377,9 +380,9 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
 
             async def after_processed(
                 self,
-                exc_type: type[BaseException] | None,
-                exc_val: BaseException | None,
-                exc_tb: TracebackType | None,
+                exc_type: type[BaseException] | None = None,
+                exc_val: BaseException | None = None,
+                exc_tb: TracebackType | None = None,
             ) -> Any:
                 mock.end()
                 return await super().after_processed(exc_type, exc_val, exc_tb)
@@ -423,9 +426,9 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
 
             async def after_processed(
                 self,
-                exc_type: type[BaseException] | None,
-                exc_val: BaseException | None,
-                exc_tb: TracebackType | None,
+                exc_type: type[BaseException] | None = None,
+                exc_val: BaseException | None = None,
+                exc_tb: TracebackType | None = None,
             ) -> Any:
                 mock.end()
                 return await super().after_processed(exc_type, exc_val, exc_tb)
@@ -557,7 +560,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
 
 
 @pytest.mark.asyncio()
-class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
+class ExceptionMiddlewareTestcase(BaseTestcaseConfig[Any]):
     async def test_exception_middleware_default_msg(
         self,
         queue: str,
@@ -774,8 +777,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid1 = ExceptionMiddleware()
 
         @mid1.add_handler(ValueError)
-        async def value_error_handler(exc: Any) -> str:
-            return "value"
+        async def value_error_handler(exc: Any) -> None: ...
 
         mid2 = ExceptionMiddleware(handlers={ValueError: value_error_handler})
 

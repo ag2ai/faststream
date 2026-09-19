@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -8,9 +8,12 @@ from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream.message.utils import encode_message
 from tests.brokers.base.basic import BaseTestcaseConfig
 
+if TYPE_CHECKING:
+    from faststream._internal.basic_types import SendableMessage
+
 
 @pytest.mark.asyncio()
-class CodecTestcase(BaseTestcaseConfig):
+class CodecTestcase(BaseTestcaseConfig[Any]):
     async def test_codec_decode_called(
         self,
         mock: MagicMock,
@@ -150,7 +153,7 @@ class CodecTestcase(BaseTestcaseConfig):
     async def test_default_codec_encode_matches_encode_message(self) -> None:
         codec = DefaultCodec()
 
-        test_cases = [
+        test_cases: list[SendableMessage] = [
             None,
             b"raw bytes",
             "hello string",
@@ -167,7 +170,7 @@ class CodecTestcase(BaseTestcaseConfig):
 
 
 @pytest.mark.asyncio()
-class BatchCodecTestcase(BaseTestcaseConfig):
+class BatchCodecTestcase(BaseTestcaseConfig[Any]):
     async def test_batch_codec_decode_batch_called(
         self,
         mock: MagicMock,

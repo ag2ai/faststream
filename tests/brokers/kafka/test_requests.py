@@ -11,6 +11,7 @@ from .basic import KafkaMemoryTestcaseConfig
 
 class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
+        assert self.msg
         self.msg.value *= 2
 
     async def consume_scope(

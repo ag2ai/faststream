@@ -53,15 +53,15 @@ def test_manual_ack_with_max_workers_via_router_default() -> None:
 @pytest.mark.redis()
 def test_use_only_redis_router() -> None:
     broker = RedisBroker()
-    router = NatsRouter()
+    router: Any = NatsRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [RedisRouter(), NatsRouter()]
+    routers: list[Any] = [RedisRouter(), NatsRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)
 
 
 @pytest.mark.redis()
