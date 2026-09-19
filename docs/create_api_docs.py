@@ -340,7 +340,7 @@ def render_navigation(api: str, public_api: str) -> None:
     )
 
     summary = "\n".join(filter(bool, (x.rstrip() for x in summary.split("\n"))))
-    (DOCS_DIR / "SUMMARY.md").write_text(summary)
+    (DOCS_CONTENT_DIR / "SUMMARY.md").write_text(summary)
 
 
 def create_api_docs() -> None:

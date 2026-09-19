@@ -63,7 +63,7 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
       <img alt="Discussions" src="https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions"/>
   </a>
 
-  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
+  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fen%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
 
   <a href="https://t.me/python_faststream" target="_blank">
     <img alt="Telegram" src="https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram"/>
@@ -514,7 +514,7 @@ You can learn more about **CLI** features [here](./getting-started/cli.md){.inte
 
 The availability of such documentation significantly simplifies the integration of services: you can immediately see what channels and message formats the application works with. And most importantly, it won't cost anything - **FastStream** has already created the docs for you!
 
-![HTML-page](../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
+![HTML-page](assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
 
 ---
 

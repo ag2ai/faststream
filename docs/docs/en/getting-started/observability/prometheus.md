@@ -163,10 +163,10 @@ You can import the [**Grafana dashboard**](https://grafana.com/grafana/dashboard
 
 Enter the dashboard **URL** `https://grafana.com/grafana/dashboards/22130-faststream-metrics/` (or just the **ID**, `22130`), and click on **Load**.
 
-![HTML-page](../../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
 `Import dashboard`
 
 An [example](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"} application with configured **metrics**, **Prometheus** and **Grafana**.
 
-![HTML-page](../../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
 `Grafana dashboard`
