@@ -130,6 +130,8 @@ class CLIThread:
 
     def wait(self, timeout: float) -> None:
         self.process.wait(timeout)
+        # the process can exit before the poll thread drains its stderr pipe
+        self.__std_poll_thread.join(timeout)
 
     def signint(self) -> None:
         if IS_WINDOWS:
