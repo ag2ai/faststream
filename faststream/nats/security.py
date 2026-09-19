@@ -12,17 +12,6 @@ if TYPE_CHECKING:
     from ssl import SSLContext
 
 
-_LEGACY_SECURITY_TARGETS: Final[dict[str, str]] = {
-    "tls_hostname": "NatsSecurity",
-    "token": "NatsToken",
-    "signature_cb": "NatsJWT",
-    "user_jwt_cb": "NatsJWT",
-    "user_credentials": "NatsCredentials",
-    "nkeys_seed": "NatsNKey.from_file",
-    "nkeys_seed_str": "NatsNKey.from_seed",
-}
-
-
 def warn_deprecated_security_args(*arguments: str) -> None:
     names = ", ".join(f"`{name}`" for name in arguments)
     replacements = ", ".join(
@@ -367,6 +356,17 @@ class NatsJWT(NatsSecurity):
                 "x-nats-credential-source": "callbacks",
             },
         }
+
+
+_LEGACY_SECURITY_TARGETS: Final[dict[str, str]] = {
+    "tls_hostname": NatsSecurity.__name__,
+    "token": NatsToken.__name__,
+    "signature_cb": NatsJWT.__name__,
+    "user_jwt_cb": NatsJWT.__name__,
+    "user_credentials": NatsCredentials.__name__,
+    "nkeys_seed": f"{NatsNKey.__name__}.from_file",
+    "nkeys_seed_str": f"{NatsNKey.__name__}.from_seed",
+}
 
 
 def parse_security(security: BaseSecurity | None) -> dict[str, Any]:
