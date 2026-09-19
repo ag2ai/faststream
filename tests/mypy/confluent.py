@@ -3,7 +3,13 @@ import asyncio
 from confluent_kafka import Message
 from typing_extensions import assert_type
 
-from faststream.confluent import KafkaBroker, KafkaMessage, KafkaRouter, TestKafkaBroker
+from faststream.confluent import (
+    KafkaBroker,
+    KafkaMessage,
+    KafkaPublishMessage,
+    KafkaRouter,
+    TestKafkaBroker,
+)
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
@@ -54,6 +60,19 @@ async def check_publish_type(fake_bool: bool = True) -> None:
 
     publish_confirm_bool = await broker.publish(None, topic="test", no_confirm=fake_bool)
     assert_type(publish_confirm_bool, Message | asyncio.Future[Message | None] | None)
+
+
+async def check_publish_batch_per_message_attributes() -> None:
+    broker = KafkaBroker()
+
+    await broker.publish_batch(
+        KafkaPublishMessage("user:1", key=b"user1"),
+        "user:2",
+        topic="test",
+    )
+
+    publisher = broker.publisher("test", batch=True)
+    await publisher.publish(KafkaPublishMessage("user:1", key=b"user1"), "user:2")
 
 
 async def check_publisher_publish_type(

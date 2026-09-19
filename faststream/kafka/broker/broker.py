@@ -61,6 +61,7 @@ if TYPE_CHECKING:
         CustomCallable,
     )
     from faststream.kafka.message import KafkaMessage
+    from faststream.kafka.response import KafkaPublishMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -675,7 +676,7 @@ class KafkaBroker(
     @overload  # type: ignore[override]
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -688,7 +689,7 @@ class KafkaBroker(
     @overload
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -701,7 +702,7 @@ class KafkaBroker(
     @overload
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -713,7 +714,7 @@ class KafkaBroker(
 
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
