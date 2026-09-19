@@ -275,6 +275,7 @@ timeout = 30
 # whole-item one on the first failure, and rerunfailures retries inside it.
 timeout_func_only = true
 addopts = "--strict-markers --strict-config -q -m 'not slow'"
+xfail_strict = true
 testpaths = ["tests"]
 markers = [
     "rabbit",

@@ -77,7 +77,10 @@ def test_max_workers_configuration(queue: str) -> None:
     sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.ACK_FIRST)
     assert isinstance(sub, ConcurrentDefaultSubscriber)
 
-    sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.REJECT_ON_ERROR)
+    with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+        sub = broker.subscriber(
+            queue, max_workers=3, ack_policy=AckPolicy.REJECT_ON_ERROR
+        )
     assert isinstance(sub, ConcurrentBetweenPartitionsSubscriber)
 
     with pytest.raises(SetupError):

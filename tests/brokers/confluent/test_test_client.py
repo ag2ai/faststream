@@ -37,14 +37,16 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_message_nack_seek(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
-        @broker.subscriber(
-            queue,
-            group_id=f"{queue}-consume",
-            auto_offset_reset="earliest",
-            ack_policy=AckPolicy.REJECT_ON_ERROR,
-        )
-        async def m(msg: KafkaMessage) -> None:
-            await msg.nack()
+        with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+
+            @broker.subscriber(
+                queue,
+                group_id=f"{queue}-consume",
+                auto_offset_reset="earliest",
+                ack_policy=AckPolicy.REJECT_ON_ERROR,
+            )
+            async def m(msg: KafkaMessage) -> None:
+                await msg.nack()
 
         async with self.patch_broker(broker) as br:
             with patch.object(
