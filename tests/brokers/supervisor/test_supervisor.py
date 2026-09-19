@@ -31,6 +31,23 @@ async def test_task_failing(subscriber_with_task_mixin: Any) -> None:
 
 
 @pytest.mark.asyncio()
+async def test_task_failed_after_stop_is_not_restarted(
+    subscriber_with_task_mixin: Any,
+) -> None:
+    async def failing_task() -> Any:
+        raise ValueError
+
+    task = asyncio.create_task(failing_task())
+    with suppress(ValueError):
+        await task
+
+    # `stop()` clears the tasks before a late done callback runs
+    TaskCallbackSupervisor(failing_task, None, None, subscriber_with_task_mixin)(task)
+
+    assert subscriber_with_task_mixin.tasks == []
+
+
+@pytest.mark.asyncio()
 async def test_task_failing_without_restart(subscriber_with_task_mixin: Any) -> None:
     async def failing_task() -> Any:
         raise ValueError
