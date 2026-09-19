@@ -2,13 +2,11 @@ from typing import Any
 
 import pydantic
 
-from faststream._internal.broker import BrokerUsecase
-
 from .basic import AsyncAPI260Factory
 
 
 class PublisherTestcase(AsyncAPI260Factory):
-    broker_class: type[BrokerUsecase]
+    broker_class: Any
 
     def test_publisher_with_description(self) -> None:
         broker = self.broker_class()

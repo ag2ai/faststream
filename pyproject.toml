@@ -207,9 +207,15 @@ disallow_any_unimported = false
 # `subscriber()` differently, so its decorator cannot be typed there.
 module = [
     "tests.asgi.testcase",
+    "tests.asyncapi.base.*",
     "tests.integrations.msgspec.test_serialization",
 ]
 disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+# AsyncAPI tests declare handlers only for their signature: the body never runs.
+module = ["tests.asyncapi.*"]
+disable_error_code = ["empty-body"]
 
 [tool.pyright]
 # Public API surface only: `tests/mypy` exercises the documented API the way a

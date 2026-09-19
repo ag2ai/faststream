@@ -4,9 +4,10 @@ from faststream import FastStream
 from faststream._internal.broker.broker import BrokerUsecase
 from faststream.specification import AsyncAPI
 from faststream.specification.base import Specification
+from tests.asyncapi.base.basic import SpecificationFactory
 
 
-class AsyncAPI260Factory:
+class AsyncAPI260Factory(SpecificationFactory):
     def get_spec(self, *brokers: BrokerUsecase[Any, Any, Any]) -> Specification:
         factory = AsyncAPI(schema_version="2.6.0")
         for broker in brokers:
