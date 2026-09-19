@@ -24,6 +24,7 @@ search:
     - [Context](getting-started/context.md)
     - [Custom Serialization](getting-started/serialization/index.md)
         - [Parser](getting-started/serialization/parser.md)
+        - [Codec](getting-started/serialization/codec.md)
         - [Decoder](getting-started/serialization/decoder.md)
         - [Examples](getting-started/serialization/examples.md)
     - [Lifespan](getting-started/lifespan/index.md)

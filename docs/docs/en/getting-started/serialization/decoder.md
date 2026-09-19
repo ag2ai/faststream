@@ -8,6 +8,11 @@ search:
   boost: 10
 ---
 
+!!! warning "Superseded by Codec"
+    The `decoder=` parameter has been superseded by the new **Codec** system, which handles both encoding and decoding in a single interface. See [Custom Codec](./codec.md){.internal-link} for the recommended approach.
+
+    Note: `codec=` and `decoder=` cannot be used together — specifying both will raise a `ValueError`.
+
 # Custom Decoder
 
 At this stage, the body of a **StreamMessage** is transformed into the format that it will take when it enters your handler function. This stage is the one you will need to redefine more often.

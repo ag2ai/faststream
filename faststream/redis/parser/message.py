@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.parser import DefaultCodec
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
+    from faststream.response.response import PublishCommand
 
 
 class MessageFormat(ABC):
@@ -31,31 +30,28 @@ class MessageFormat(ABC):
     async def build(
         cls,
         *,
-        message: Union[Sequence["SendableMessage"], "SendableMessage"],
-        reply_to: str | None,
-        headers: dict[str, Any] | None,
-        correlation_id: str,
+        cmd: "PublishCommand",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> "MessageFormat":
         codec_instance = codec or DefaultCodec()
-        payload, content_type = await codec_instance.encode(message, serializer)  # type: ignore[arg-type]
+        encoded = await codec_instance.encode(cmd, serializer)
 
         headers_to_send = {
-            "correlation_id": correlation_id,
+            "correlation_id": cmd.correlation_id or "",
         }
 
-        if content_type:
-            headers_to_send["content-type"] = content_type
+        if encoded.content_type:
+            headers_to_send["content-type"] = encoded.content_type
 
-        if reply_to:
-            headers_to_send["reply_to"] = reply_to
+        if cmd.reply_to:
+            headers_to_send["reply_to"] = cmd.reply_to
 
-        if headers is not None:
-            headers_to_send.update(headers)
+        if cmd.headers is not None:
+            headers_to_send.update(cmd.headers)
 
         return cls(
-            data=payload,
+            data=encoded.body,
             headers=headers_to_send,
         )
 
@@ -64,10 +60,7 @@ class MessageFormat(ABC):
     async def encode(
         cls,
         *,
-        message: Union[Sequence["SendableMessage"], "SendableMessage"],
-        reply_to: str | None,
-        headers: dict[str, Any] | None,
-        correlation_id: str,
+        cmd: "PublishCommand",
         serializer: Optional["SerializerProto"] = None,
         codec: Optional["CodecProto"] = None,
     ) -> bytes:

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
 
 from faststream.message.utils import decode_message, encode_message
@@ -7,10 +8,19 @@ from faststream.message.utils import decode_message, encode_message
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
-    from faststream._internal.basic_types import DecodedMessage, SendableMessage
+    from faststream._internal.basic_types import DecodedMessage
     from faststream.message import StreamMessage
+    from faststream.response.response import PublishCommand
 
 MsgType = TypeVar("MsgType")
+
+
+@dataclass(frozen=True)
+class EncodedMessage:
+    """Result of codec encoding."""
+
+    body: bytes
+    content_type: str | None = None
 
 
 class ParserProto(Protocol[MsgType]):
@@ -64,9 +74,9 @@ class CodecProto(Protocol):
     @abstractmethod
     async def encode(
         self,
-        msg: "SendableMessage",
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-    ) -> tuple[bytes, str | None]: ...
+    ) -> "EncodedMessage": ...
 
 
 @runtime_checkable
@@ -74,9 +84,9 @@ class BatchCodecProto(Protocol):
     @abstractmethod
     async def encode_batch(
         self,
-        msgs: Sequence["SendableMessage"],
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-    ) -> list[tuple[bytes, str | None]]: ...
+    ) -> list["EncodedMessage"]: ...
 
     @abstractmethod
     async def decode_batch(
@@ -85,13 +95,14 @@ class BatchCodecProto(Protocol):
     ) -> list["DecodedMessage"]: ...
 
 
-class DefaultCodec:
+class DefaultCodec(CodecProto):
     async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
         return decode_message(msg)
 
     async def encode(
         self,
-        msg: "SendableMessage",
+        cmd: "PublishCommand",
         serializer: "SerializerProto | None" = None,
-    ) -> tuple[bytes, str | None]:
-        return encode_message(msg, serializer)
+    ) -> "EncodedMessage":
+        body, content_type = encode_message(cmd.body, serializer)
+        return EncodedMessage(body=body, content_type=content_type)

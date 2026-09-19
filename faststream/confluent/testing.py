@@ -23,6 +23,8 @@ from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SubscriberNotFound
 from faststream.message import gen_cor_id
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -197,10 +199,18 @@ class FakeProducer(AsyncConfluentFastProducer):
         serializer = self.broker.config.fd_config._serializer
 
         if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
+            encoded = await self.codec.encode_batch(cmd, serializer)
         else:
             encoded = [
-                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
+                await self.codec.encode(
+                    PublishCommand(
+                        body=body,
+                        destination=cmd.destination,
+                        _publish_type=cmd.publish_type,
+                    ),
+                    serializer,
+                )
+                for body in cmd.batch_bodies
             ]
 
         for handler in _find_handler(
@@ -210,8 +220,8 @@ class FakeProducer(AsyncConfluentFastProducer):
         ):
             messages = [
                 _build_mock_message(
-                    body=body,
-                    content_type=content_type,
+                    body=item.body,
+                    content_type=item.content_type,
                     topic=cmd.destination,
                     partition=cmd.partition,
                     timestamp_ms=cmd.timestamp_ms,
@@ -221,7 +231,7 @@ class FakeProducer(AsyncConfluentFastProducer):
                     reply_to=cmd.reply_to,
                     id_generator=self.broker.config.id_generator,
                 )
-                for message_position, (body, content_type) in enumerate(encoded)
+                for message_position, item in enumerate(encoded)
             ]
 
             if isinstance(handler, BatchSubscriber):
@@ -356,7 +366,11 @@ async def build_message(
         msg, content_type = None, None
     else:
         codec_instance = codec or DefaultCodec()
-        msg, content_type = await codec_instance.encode(message, serializer)
+        publish_cmd = PublishCommand(
+            body=message, destination=topic, _publish_type=PublishType.PUBLISH
+        )
+        encoded = await codec_instance.encode(publish_cmd, serializer)
+        msg, content_type = encoded.body, encoded.content_type
     k = key or b""
     headers = {
         "content-type": content_type or "",
