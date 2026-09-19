@@ -3,7 +3,8 @@ import pytest
 from faststream import FastStream, TestApp
 from faststream.rabbit import RabbitBroker, TestRabbitBroker
 
-app = FastStream(RabbitBroker())
+broker = RabbitBroker()
+app = FastStream(broker)
 
 
 @app.after_startup
@@ -14,7 +15,7 @@ async def handle():
 @pytest.mark.asyncio
 async def test_lifespan():
     async with (
-        TestRabbitBroker(app.broker, connect_only=True),
+        TestRabbitBroker(broker, connect_only=True),
         TestApp(app),
     ):
         # test something
