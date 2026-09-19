@@ -20,7 +20,7 @@ Never inline non-trivial code in markdown. Put a runnable Python file in `docs/d
 {!> docs_src/getting_started/publishing/kafka/broker.py !}
 ```
 
-New `docs_src` snippets should get a test under `tests/docs/<topic>/test_<feature>.py` — one test file covers all broker variants via require marks (e.g. `@require_aiokafka`), not one file per broker subdir (see the **testing-patterns** skill). Some examples are intentionally untested; the exemptions are listed in the coverage `omit` list in `pyproject.toml`.
+New `docs_src` snippets should get a test under `tests/docs/<topic>/test_<feature>.py` — one test file covers all broker variants via require marks (e.g. `@require_aiokafka`), not one file per broker subdir (see the **testing-patterns** skill). Some examples are intentionally untested; the exemptions are listed in the coverage `omit` list in `pyproject.toml`. `tests/docs/test_snippets_are_tested.py` holds the line: a `docs_src` file that no test imports (directly, or through another tested snippet) fails it unless it is in `omit`. Its `NOT_TESTED_YET` set is the backlog from before the check — take an entry out when you test it, never add one.
 
 A snippet test imports the runnable objects from the module and exercises them in-memory — never a bare `import module` (it tests nothing and trips ruff `F401`):
 
