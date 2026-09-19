@@ -2,6 +2,7 @@ import asyncio
 import gc
 import json
 from abc import abstractmethod
+from typing import Any
 from unittest.mock import Mock
 
 import anyio
@@ -31,7 +32,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test")
-        async def handler1(msg) -> None: ...
+        async def handler1(msg: Any) -> None: ...
 
         # protect publishers from gc
         pub1 = broker.publisher("test2")  # noqa: F841
@@ -55,7 +56,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test")
-        async def handler(msg) -> None: ...
+        async def handler(msg: Any) -> None: ...
 
         pub = broker.publisher("test2")  # noqa: F841
 
@@ -81,7 +82,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(test_broker) as br:
@@ -99,7 +100,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         @publisher
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> str:
+        async def m(msg: Any) -> str:
             return "response"
 
         async with self.patch_broker(test_broker) as br:
@@ -117,13 +118,13 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         @publisher
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> str:
+        async def m(msg: Any) -> str:
             return "response"
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @test_broker.subscriber(*args2, **kwargs2)
-        async def handler_response(msg) -> None: ...
+        async def handler_response(msg: Any) -> None: ...
 
         async with self.patch_broker(test_broker) as br:
             await br.start()
@@ -143,7 +144,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             await publisher.publish("response")
 
         async with self.patch_broker(test_broker) as br:
@@ -158,7 +159,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg):  # pragma: no cover
+        async def m(msg: Any) -> Any:  # pragma: no cover
             raise ValueError
 
         async with self.patch_broker(test_broker) as br:
@@ -171,13 +172,13 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
     async def test_parser_exception_raises(self, queue: str) -> None:
         test_broker = self.get_broker()
 
-        def parser(msg):
+        def parser(msg: Any) -> Any:
             raise ValueError
 
         args, kwargs = self.get_subscriber_params(queue, parser=parser)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg):  # pragma: no cover
+        async def m(msg: Any) -> None:  # pragma: no cover
             pass
 
         async with self.patch_broker(test_broker) as br:
@@ -187,7 +188,9 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
                 await br.publish("hello", queue)
 
     @pytest.mark.asyncio()
-    async def test_broker_gets_patched_attrs_within_cm(self, fake_producer_cls) -> None:
+    async def test_broker_gets_patched_attrs_within_cm(
+        self, fake_producer_cls: Any
+    ) -> None:
         test_broker = self.get_broker()
         await test_broker.start()
 
@@ -229,7 +232,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             await publisher.publish(f"response: {msg}")
 
         async with self.patch_broker(test_broker, with_real=True) as br:

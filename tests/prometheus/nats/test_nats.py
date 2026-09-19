@@ -15,7 +15,7 @@ from .basic import BatchNatsPrometheusSettings, NatsPrometheusSettings
 
 
 @pytest.fixture()
-def stream(queue):
+def stream(queue: str) -> Any:
     return JStream(queue)
 
 
@@ -38,7 +38,7 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
         message = None
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m=Context("message")):
+        async def handler(m: Any = Context("message")) -> None:
             event.set()
 
             nonlocal message

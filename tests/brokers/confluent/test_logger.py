@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import pytest
 
@@ -18,7 +19,7 @@ class TestLogger(ConfluentTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        def subscriber(m) -> None: ...
+        def subscriber(m: Any) -> None: ...
 
         await broker.start()
 

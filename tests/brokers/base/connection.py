@@ -12,7 +12,7 @@ class BrokerConnectionTestcase:
         return {}
 
     @pytest.mark.asyncio()
-    async def ping(self, broker) -> bool:
+    async def ping(self, broker: Any) -> bool:
         return await broker.ping(timeout=5.0)
 
     @pytest.mark.asyncio()

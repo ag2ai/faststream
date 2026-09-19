@@ -27,7 +27,7 @@ class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestc
         message = None
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m=Context("message")) -> None:
+        async def handler(m: Any = Context("message")) -> None:
             event.set()
 
             nonlocal message

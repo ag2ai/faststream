@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.redis import RedisBroker
@@ -66,7 +68,7 @@ class TestNaming(NamingTestCase):
             pytest.param({"stream": "test"}, id="stream"),
         ),
     )
-    def test_subscribers_variations(self, args) -> None:
+    def test_subscribers_variations(self, args: Any) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(**args)
@@ -83,7 +85,7 @@ class TestNaming(NamingTestCase):
             pytest.param({"stream": "test"}, id="stream"),
         ),
     )
-    def test_publisher_variations(self, args) -> None:
+    def test_publisher_variations(self, args: Any) -> None:
         broker = self.broker_class()
 
         @broker.publisher(**args)

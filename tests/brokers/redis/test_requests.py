@@ -1,3 +1,6 @@
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 import pytest
 
 from faststream import BaseMiddleware
@@ -18,14 +21,16 @@ class Mid(BaseMiddleware):
             headers=headers,
         )
 
-    async def consume_scope(self, call_next, msg):
+    async def consume_scope(
+        self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
+    ) -> Any:
         msg.body *= 2
         return await call_next(msg)
 
 
 @pytest.mark.asyncio()
 class RedisRequestsTestcase(RequestsTestcase):
-    def get_middleware(self, **kwargs):
+    def get_middleware(self, **kwargs: Any) -> Any:
         return Mid
 
 

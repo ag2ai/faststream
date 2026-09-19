@@ -50,7 +50,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_batch(self, queue: str) -> None:
         consume_broker = self.get_broker()
 
-        msgs_queue = asyncio.Queue(maxsize=1)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
         @consume_broker.subscriber(queue, batch=True)
         async def handler(msg: Any) -> None:

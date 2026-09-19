@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -12,7 +14,7 @@ from tests.marks import (
 
 
 class BaseCase:
-    def test_running(self, data) -> None:
+    def test_running(self, data: Any) -> None:
         app, broker = data
 
         handlers = broker.subscribers
@@ -31,7 +33,7 @@ class BaseCase:
 @require_aiokafka
 class TestKafka(BaseCase):
     @pytest.fixture(scope="class")
-    def data(self):
+    def data(self) -> Any:
         from docs.docs_src.integrations.fastapi.kafka.router import app, core_router
 
         return (app, core_router.broker)
@@ -42,7 +44,7 @@ class TestKafka(BaseCase):
 @require_confluent
 class TestConfluent(BaseCase):
     @pytest.fixture(scope="class")
-    def data(self):
+    def data(self) -> Any:
         from docs.docs_src.integrations.fastapi.confluent.router import (
             app,
             core_router,
@@ -56,7 +58,7 @@ class TestConfluent(BaseCase):
 @require_nats
 class TestNats(BaseCase):
     @pytest.fixture(scope="class")
-    def data(self):
+    def data(self) -> Any:
         from docs.docs_src.integrations.fastapi.nats.router import app, core_router
 
         return (app, core_router.broker)
@@ -67,7 +69,7 @@ class TestNats(BaseCase):
 @require_aiopika
 class TestRabbit(BaseCase):
     @pytest.fixture(scope="class")
-    def data(self):
+    def data(self) -> Any:
         from docs.docs_src.integrations.fastapi.rabbit.router import app, core_router
 
         return (app, core_router.broker)
@@ -78,7 +80,7 @@ class TestRabbit(BaseCase):
 @require_redis
 class TestRedis(BaseCase):
     @pytest.fixture(scope="class")
-    def data(self):
+    def data(self) -> Any:
         from docs.docs_src.integrations.fastapi.redis.router import app, core_router
 
         return (app, core_router.broker)
@@ -89,7 +91,7 @@ class TestRedis(BaseCase):
 @require_mqtt
 class TestMQTT(BaseCase):
     @pytest.fixture(scope="class")
-    def data(self):
+    def data(self) -> Any:
         from docs.docs_src.integrations.fastapi.mqtt.router import app, core_router
 
         return (app, core_router.broker)

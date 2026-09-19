@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 import pytest
 
@@ -21,15 +22,15 @@ class Settings:
 
 
 @pytest.fixture()
-def exchange(queue):
+def exchange(queue: str) -> Any:
     return RabbitExchange(name=queue)
 
 
 @pytest.fixture(scope="session")
-def settings():
+def settings() -> Any:
     return Settings()
 
 
 @pytest.fixture()
-def router():
+def router() -> Any:
     return RabbitRouter()

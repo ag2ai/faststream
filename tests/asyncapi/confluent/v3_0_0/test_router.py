@@ -23,7 +23,7 @@ class TestRouter(RouterTestcase):
         router = self.router_class(prefix="test_")
 
         @router.subscriber("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         broker.include_router(router)
 

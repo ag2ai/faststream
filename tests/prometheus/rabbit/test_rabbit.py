@@ -13,7 +13,7 @@ from .basic import RabbitPrometheusSettings
 
 
 @pytest.fixture()
-def exchange(queue):
+def exchange(queue: str) -> Any:
     return RabbitExchange(name=queue)
 
 

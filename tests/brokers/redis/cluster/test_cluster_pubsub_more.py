@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -154,7 +155,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         @broker.subscriber(channel=f"headers-channel-{queue}")
         async def handler(
             body: str,
-            msg=Context("message"),
+            msg: Any = Context("message"),
         ) -> None:
             mock(
                 body=body,

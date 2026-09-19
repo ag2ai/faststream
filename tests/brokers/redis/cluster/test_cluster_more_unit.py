@@ -94,10 +94,10 @@ class TestClusterBrokerInheritanceExtra:
         broker = RedisClusterBroker()
 
         @broker.subscriber(list="l1")
-        async def h1(msg): ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(list="l2")
-        async def h2(msg): ...
+        async def h2(msg: Any) -> None: ...
 
         assert len(broker.subscribers) == 2
 
@@ -105,10 +105,10 @@ class TestClusterBrokerInheritanceExtra:
         broker = RedisClusterBroker()
 
         @broker.subscriber(stream="s1")
-        async def h1(msg): ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(stream="s2")
-        async def h2(msg): ...
+        async def h2(msg: Any) -> None: ...
 
         assert len(broker.subscribers) == 2
 
@@ -116,10 +116,10 @@ class TestClusterBrokerInheritanceExtra:
         broker = RedisClusterBroker()
 
         @broker.subscriber(channel="c1")
-        async def h1(msg): ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(channel="c2")
-        async def h2(msg): ...
+        async def h2(msg: Any) -> None: ...
 
         assert len(broker.subscribers) == 2
 
@@ -130,7 +130,7 @@ class TestClusterBrokerInheritanceExtra:
 
         @pub
         @broker.subscriber(list="l1")
-        async def h(msg): ...
+        async def h(msg: Any) -> None: ...
 
         assert len(broker.publishers) == 1
         assert len(broker.subscribers) == 1

@@ -24,11 +24,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=queue + "resp")
-        async def m(msg) -> str:
+        async def m(msg: Any) -> str:
             return ""
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -52,10 +52,10 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
     ) -> None:
         pub_broker = self.get_broker()
 
-        msgs_queue = asyncio.Queue(maxsize=2)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(list=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
@@ -82,11 +82,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=batch_list)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         @pub_broker.subscriber(list=batch_list)
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -113,11 +113,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(stream=queue)
         @pub_broker.publisher(stream=stream)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         @pub_broker.subscriber(stream=stream)
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -149,7 +149,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
             return RedisResponse(1, correlation_id="1")
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg=Context("message")) -> None:
+        async def resp(msg: Any = Context("message")) -> None:
             mock(
                 body=msg.body,
                 correlation_id=msg.correlation_id,

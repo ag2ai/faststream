@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -84,7 +85,7 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: i
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m, baggage: CurrentBaggage) -> None:
+        async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == expected_baggage_batch
             mock(m)
@@ -138,7 +139,7 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: i
             tracer_provider=tracer_provider,
         )
         broker = self.get_broker(middlewares=(mid,), apply_types=True)
-        msgs_queue = asyncio.Queue(maxsize=3)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=3)
         expected_msg_count = 3
         expected_link_count = 1
         expected_span_count = 8
@@ -148,7 +149,7 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: i
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg, baggage: CurrentBaggage) -> None:
+        async def handler(msg: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == []
             await msgs_queue.put(msg)
@@ -216,7 +217,7 @@ class TestTelemetry(ConfluentTestcaseConfig, LocalTelemetryTestcase):  # type: i
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m, baggage: CurrentBaggage) -> None:
+        async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert len(baggage.get_all_batch()) == expected_msg_count
             m.sort()
