@@ -154,7 +154,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         def subscriber(m: Any) -> None:
             event.set()
 
@@ -301,12 +301,12 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def h1(msg: Any) -> None: ...
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
-        @broker.subscriber(*args2, **kwargs2)
+        @broker.subscriber(*args2, **kwargs2)  # type: ignore[untyped-decorator]
         async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
