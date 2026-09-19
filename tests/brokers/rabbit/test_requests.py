@@ -28,6 +28,9 @@ class RabbitRequestsTestcase(RequestsTestcase):
         return Mid
 
 
+# A reply stream left open warns only when it is collected
+@pytest.mark.filterwarnings("error::ResourceWarning")
+@pytest.mark.filterwarnings("error::pytest.PytestUnraisableExceptionWarning")
 @pytest.mark.connected()
 @pytest.mark.rabbit()
 class TestRealRequests(RabbitTestcaseConfig, RabbitRequestsTestcase):
