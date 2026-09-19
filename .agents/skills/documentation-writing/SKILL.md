@@ -77,6 +77,7 @@ All example code must follow idiomatic FastStream usage:
 - `just docs-serve` — live dev server on port 8000.
 - `just docs-build` — build the static site.
 - `just docs-build-api` — regenerate the API reference.
+- `just docs-check` — the PR gate: strict build of the guides (broken links and anchors fail) plus `docs/check_site.py` (unique titles, canonicals, sitemap, JSON-LD, image `alt`), about 10 s. Run it before pushing a docs change.
 
 ## Related skills
 

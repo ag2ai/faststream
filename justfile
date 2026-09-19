@@ -65,6 +65,11 @@ _docs *params:
 docs-build:
   just _docs build
 
+[doc("Build the guides strictly and check the built site, as CI does")]
+[group("docs")]
+docs-check:
+  just _docs check
+
 [doc("Build API Reference")]
 [group("docs")]
 docs-build-api:

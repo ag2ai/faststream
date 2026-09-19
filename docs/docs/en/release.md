@@ -3902,7 +3902,7 @@ broker = RabbitBroker(
 
 ### New Functionalities
 
-Now, `Context` provides access to inner [dict keys too](./getting-started/context.md#existing_fields):
+Now, `Context` provides access to inner [dict keys too](./getting-started/context.md#existing-fields):
 
 ```python
 # headers is a `dict`
@@ -4082,19 +4082,19 @@ Making streaming microservices has never been easier. Designed with junior devel
 
 * **Multiple Brokers**: **FastStream** provides a unified API to work across multiple message brokers (**Kafka**, **RabbitMQ** support)
 
-* [**Pydantic Validation**](./faststream.md/#writing-app-code): Leverage [**Pydantic's**](https://docs.pydantic.dev/){.external-link target="_blank"} validation capabilities to serialize and validates incoming messages
+* [**Pydantic Validation**](./index.md#writing-app-code): Leverage [**Pydantic's**](https://docs.pydantic.dev/){.external-link target="_blank"} validation capabilities to serialize and validates incoming messages
 
-* [**Automatic Docs**](./faststream.md/#project-documentation): Stay ahead with automatic [AsyncAPI](https://www.asyncapi.com/){.external-link target="_blank"} documentation.
+* [**Automatic Docs**](./index.md#project-documentation): Stay ahead with automatic [AsyncAPI](https://www.asyncapi.com/){.external-link target="_blank"} documentation.
 
 * **Intuitive**: full typed editor support makes your development experience smooth, catching errors before they reach runtime
 
-* [**Powerful Dependency Injection System**](./faststream.md/#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system.
+* [**Powerful Dependency Injection System**](./index.md#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system.
 
-* [**Testable**](./faststream.md/#testing-the-service): supports in-memory tests, making your CI/CD pipeline faster and more reliable
+* [**Testable**](./index.md#testing-the-service): supports in-memory tests, making your CI/CD pipeline faster and more reliable
 
 * **Extendable**: use extensions for lifespans, custom serialization and middlewares
 
-* [**Integrations**](./faststream.md/#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](./faststream.md/#fastapi-plugin) especially)
+* [**Integrations**](./index.md#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](./index.md#fastapi-plugin-deprecated) especially)
 
 * **Built for Automatic Code Generation**: **FastStream** is optimized for automatic code generation using advanced models like GPT and Llama
 
