@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
+from typing_extensions import override
+
 if TYPE_CHECKING:
     from ssl import SSLContext
 
@@ -28,11 +30,11 @@ class BaseSecurity:
         self.use_ssl = use_ssl
         self.ssl_context = ssl_context
 
-    def get_requirement(self) -> list["dict[str, Any]"]:
+    def get_requirement(self) -> list["dict[str, Any]"]:  # noqa: PLR6301
         """Get the security requirements."""
         return []
 
-    def get_schema(self) -> dict[str, dict[str, str]]:
+    def get_schema(self) -> dict[str, dict[str, str]]:  # noqa: PLR6301
         """Get the security schema."""
         return {}
 
@@ -66,10 +68,12 @@ class SASLPlaintext(BaseSecurity):
         self.username = username
         self.password = password
 
+    @override
     def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/PLAINTEXT authentication."""
         return [{"user-password": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/PLAINTEXT authentication."""
         return {"user-password": {"type": "userPassword"}}
@@ -104,10 +108,12 @@ class SASLScram256(BaseSecurity):
         self.username = username
         self.password = password
 
+    @override
     def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/SCRAM-SHA-256 authentication."""
         return [{"scram256": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/SCRAM-SHA-256 authentication."""
         return {"scram256": {"type": "scramSha256"}}
@@ -142,10 +148,12 @@ class SASLScram512(BaseSecurity):
         self.username = username
         self.password = password
 
+    @override
     def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/SCRAM-SHA-512 authentication."""
         return [{"scram512": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/SCRAM-SHA-512 authentication."""
         return {"scram512": {"type": "scramSha512"}}
@@ -159,10 +167,12 @@ class SASLOAuthBearer(BaseSecurity):
 
     __slots__ = ("ssl_context", "use_ssl")
 
+    @override
     def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/OAUTHBEARER authentication."""
         return [{"oauthbearer": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/OAUTHBEARER authentication."""
         return {"oauthbearer": {"type": "oauth2"}}
@@ -176,10 +186,12 @@ class SASLGSSAPI(BaseSecurity):
 
     __slots__ = ("ssl_context", "use_ssl")
 
+    @override
     def get_requirement(self) -> list["dict[str, Any]"]:
         """Get the security requirements for SASL/GSSAPI authentication."""
         return [{"gssapi": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for SASL/GSSAPI authentication."""
         return {"gssapi": {"type": "gssapi"}}

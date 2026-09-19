@@ -25,7 +25,7 @@ class TasksMixin(SubscriberUsecase[Any]):
         func_kwargs: dict[str, Any] | None = None,
         *,
         restart_on_failure: bool = True,
-    ) -> asyncio.Task[Any]:
+    ) -> None:
         args = func_args or ()
         kwargs = func_kwargs or {}
         task = asyncio.create_task(func(*args, **kwargs))
@@ -38,7 +38,6 @@ class TasksMixin(SubscriberUsecase[Any]):
         )
         task.add_done_callback(callback)
         self.tasks.append(task)
-        return task
 
     async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
@@ -82,7 +81,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         """
         async with anyio.create_task_group() as tg:
             async for msg in self.receive_stream:
-                tg.start_soon(self._consume_msg, msg)
+                _ = tg.start_soon(self._consume_msg, msg)
 
     async def _consume_msg(self, msg: "MsgType") -> None:
         """Proxy method to call `self.consume` with semaphore block."""

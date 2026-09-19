@@ -201,7 +201,7 @@ Then, we initialize the settings of our application using the file passed to us 
 And put these settings in a global context:
 
 ```python linenums="14" hl_lines="4"
-{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-17] !}
 ```
 
 ??? note
@@ -213,12 +213,6 @@ And put these settings in a global context:
     @apply_types
     async def func(settings = Context()): ...
     ```
-
-As the last step we initialize our broker: now, when the application starts, it will be ready to receive messages:
-
-```python linenums="14" hl_lines="5"
-{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
-```
 
 ## Another example
 
@@ -234,32 +228,32 @@ Therefore, it is worth initializing the model in the `#!python @app.on_startup` 
 Also, we don't want the model to finish its work incorrectly when the application is stopped. To avoid this, we need to also define the `#!python @app.on_shutdown` hook:
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/kafka/ml.py!}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/confluent/ml.py!}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/rabbit/ml.py!}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/nats/ml.py!}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/redis/ml.py!}
     ```
 
 === "MQTT"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/mqtt/ml.py!}
     ```
 

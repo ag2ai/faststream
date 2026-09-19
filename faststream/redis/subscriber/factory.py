@@ -56,13 +56,13 @@ def create_subscriber(
         stream=stream,
         ack_policy=ack_policy,
         max_workers=max_workers,
-        message_format=message_format,
     )
 
     subscriber_config = RedisSubscriberConfig(
         channel_sub=PubSub.validate(channel),
-        list_sub=ListSub.validate(list),
-        stream_sub=StreamSub.validate(stream),
+        # `validate()` would bind these schemas to their non-batch parametrization
+        list_sub=ListSub(list) if isinstance(list, str) else list,
+        stream_sub=StreamSub(stream) if isinstance(stream, str) else stream,
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
@@ -107,7 +107,6 @@ def create_subscriber(
         )
 
         if subscriber_config.stream_sub.batch:
-            # TODO: raise warning if max_workers in `_validate_input_for_misconfigure`
             return StreamBatchSubscriber(subscriber_config, specification, calls)
 
         if max_workers > 1:
@@ -129,7 +128,6 @@ def create_subscriber(
         )
 
         if subscriber_config.list_sub.batch:
-            # TODO: raise warning if max_workers in `_validate_input_for_misconfigure`
             return ListBatchSubscriber(subscriber_config, specification, calls)
 
         if max_workers > 1:
@@ -152,9 +150,18 @@ def _validate_input_for_misconfigure(
     stream: Union["StreamSub", str, None],
     ack_policy: AckPolicy,
     max_workers: int,
-    message_format: type["MessageFormat"] | None,
 ) -> None:
     validate_options(channel=channel, list=list, stream=stream)
+
+    if max_workers > 1 and (
+        (isinstance(list, ListSub) and list.batch)
+        or (isinstance(stream, StreamSub) and stream.batch)
+    ):
+        warnings.warn(
+            "The `max_workers` option is ignored by a batch subscriber.",
+            RuntimeWarning,
+            stacklevel=4,
+        )
 
     if ack_policy is not EMPTY:
         if channel:

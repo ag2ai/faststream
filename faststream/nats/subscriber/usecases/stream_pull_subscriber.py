@@ -86,7 +86,7 @@ class PullStreamSubscriber(
             if messages:
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
-                        tg.start_soon(cb, msg)
+                        _ = tg.start_soon(cb, msg)
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):

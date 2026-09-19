@@ -10,6 +10,7 @@ from faststream.kafka import (
     ConsumerRecord,
     KafkaBroker,
     KafkaMessage,
+    KafkaPublishMessage,
     KafkaRoute,
     KafkaRouter,
     RecordMetadata,
@@ -371,6 +372,19 @@ async def check_publisher_publish_batch_result_type() -> None:
     assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
 
 
+async def check_publish_batch_per_message_attributes() -> None:
+    broker = KafkaBroker()
+
+    await broker.publish_batch(
+        KafkaPublishMessage("user:1", key=b"user1"),
+        "user:2",
+        topic="test",
+    )
+
+    publisher = broker.publisher("test", batch=True)
+    await publisher.publish(KafkaPublishMessage("user:1", key=b"user1"), "user:2")
+
+
 async def check_request_response_type() -> None:
     broker = KafkaBroker()
 
@@ -431,3 +445,5 @@ KafkaBroker().include_routers(KafkaRouter())
 KafkaRouter(routers=[KafkaRouter()])
 KafkaRouter().include_router(KafkaRouter())
 KafkaRouter().include_routers(KafkaRouter())
+
+FastAPIRouter().include_router(KafkaRouter())

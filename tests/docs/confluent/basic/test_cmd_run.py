@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -20,7 +21,7 @@ def test_run_cmd(
     monkeypatch: pytest.MonkeyPatch,
     confluent_basic_project: str,
 ) -> None:
-    async def patched_run(self: FastStream, *args, **kwargs) -> None:
+    async def patched_run(self: FastStream, *args: Any, **kwargs: Any) -> None:
         await self.start()
         await self.stop()
         mock()

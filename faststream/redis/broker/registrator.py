@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 
 from typing_extensions import overload, override
 
@@ -96,7 +96,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         self,
         channel: None = None,
         *,
-        list: str = ...,
+        list: Union[str, "ListSub[Literal[False]]"] = ...,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
@@ -106,12 +106,36 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: None = None,
     ) -> "ListSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: "ListSub[Literal[True]]" = ...,
+        stream: None = None,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        max_workers: None = None,
+    ) -> "ListBatchSubscriber": ...
 
     @overload
     def subscriber(
@@ -165,7 +189,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str = ...,
+        stream: Union[str, "StreamSub[Literal[False]]"] = ...,
         # broker arguments
         dependencies: Iterable["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -181,6 +205,29 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         include_in_schema: bool = True,
         max_workers: None = None,
     ) -> "StreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        channel: None = None,
+        *,
+        list: None = None,
+        stream: "StreamSub[Literal[True]]" = ...,
+        # broker arguments
+        dependencies: Iterable["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        max_workers: None = None,
+    ) -> "StreamBatchSubscriber": ...
 
     @overload
     def subscriber(
@@ -343,7 +390,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         self,
         channel: None = None,
         *,
-        list: str = ...,
+        list: Union[str, "ListSub[Literal[False]]"] = ...,
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
@@ -355,6 +402,24 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         schema: Any | None = None,
         include_in_schema: bool = True,
     ) -> "ListPublisher": ...
+
+    @overload
+    def publisher(
+        self,
+        channel: None = None,
+        *,
+        list: "ListSub[Literal[True]]" = ...,
+        stream: None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        message_format: type["MessageFormat"] | None = None,
+        persistent: bool = True,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        schema: Any | None = None,
+        include_in_schema: bool = True,
+    ) -> "ListBatchPublisher": ...
 
     @overload
     def publisher(

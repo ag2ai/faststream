@@ -91,12 +91,23 @@ def test_max_workers_configuration(queue: str) -> None:
 @pytest.mark.kafka()
 def test_use_only_kafka_router() -> None:
     broker = KafkaBroker()
-    router = NatsRouter()
+    router: Any = NatsRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [KafkaRouter(), NatsRouter(), RabbitRouter()]
+    routers: list[Any] = [KafkaRouter(), NatsRouter(), RabbitRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)
+
+
+@pytest.mark.kafka()
+def test_max_workers_ignored_by_batch(queue: str) -> None:
+    broker = KafkaBroker()
+
+    with pytest.warns(RuntimeWarning, match="`max_workers` option is ignored") as record:
+        broker.subscriber(queue, batch=True, max_workers=2)
+
+    # the warning points at the line that registered the subscriber
+    assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]

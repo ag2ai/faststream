@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -126,7 +127,7 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
     ) -> None:
         pub_broker = self.get_broker()
 
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         r = type(router)(
@@ -185,7 +186,9 @@ class TestRouterLocal(NatsMemoryTestcaseConfig, RouterLocalTestcase):
         broker = self.get_broker()
         broker.include_router(router)
 
-        _, subjects = broker._stream_builder.get(stream)
+        built = broker._stream_builder.get(stream)
+        assert built
+        _, subjects = built
         assert set(subjects) == {
             "user.registered",
             "user.client.1",

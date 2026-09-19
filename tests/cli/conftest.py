@@ -8,6 +8,7 @@ from collections.abc import Generator
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
 
 import pytest
 
@@ -17,7 +18,7 @@ from tests.cli import interfaces
 
 
 @pytest.fixture()
-def broker():
+def broker() -> Any:
     # separate import from e2e tests
     from faststream.rabbit import RabbitBroker
 
@@ -25,7 +26,7 @@ def broker():
 
 
 @pytest.fixture()
-def app_without_logger(broker) -> FastStream:
+def app_without_logger(broker: Any) -> FastStream:
     return FastStream(broker, logger=None)
 
 
@@ -35,12 +36,12 @@ def app_without_broker() -> FastStream:
 
 
 @pytest.fixture()
-def app(broker) -> FastStream:
+def app(broker: Any) -> FastStream:
     return FastStream(broker)
 
 
 @pytest.fixture()
-def faststream_tmp_path(tmp_path: "Path"):
+def faststream_tmp_path(tmp_path: "Path") -> Any:
     faststream_tmp = tmp_path / "faststream_templates"
     faststream_tmp.mkdir(exist_ok=True)
     return faststream_tmp
@@ -129,6 +130,8 @@ class CLIThread:
 
     def wait(self, timeout: float) -> None:
         self.process.wait(timeout)
+        # the process can exit before the poll thread drains its stderr pipe
+        self.__std_poll_thread.join(timeout)
 
     def signint(self) -> None:
         if IS_WINDOWS:

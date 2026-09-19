@@ -1,19 +1,18 @@
-import pydantic
+from typing import Any
 
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.fastapi import StreamRouter
+import pydantic
 
 from .basic import AsyncAPI300Factory
 
 
 class PublisherTestcase(AsyncAPI300Factory):
-    broker_class: BrokerUsecase | StreamRouter
+    broker_class: Any
 
     def test_publisher_with_description(self) -> None:
         broker = self.broker_class()
 
         @broker.publisher("test", description="test description")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -24,7 +23,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -40,7 +39,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -52,7 +51,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> int: ...
+        async def handle(msg: Any) -> int: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -68,7 +67,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> User: ...
+        async def handle(msg: Any) -> User: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -91,7 +90,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         pub = broker.publisher("test")
 
         @pub
-        async def handle(msg) -> int: ...
+        async def handle(msg: Any) -> int: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

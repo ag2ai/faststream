@@ -75,7 +75,7 @@ class SimpleParser:
     ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
         return (*self.config.message_format.parse(message["data"]), [])
 
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: "StreamMessage[Any]",
     ) -> DecodedMessage:

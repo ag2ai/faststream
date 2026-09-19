@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -25,7 +26,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
-        def h(m) -> None:
+        def h(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
@@ -36,7 +37,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
                 (asyncio.create_task(event.wait()),),
                 timeout=3,
             )
-            assert isinstance(result, ConfirmationFrameType), result
+            assert isinstance(result, ConfirmationFrameType), result  # type: ignore[arg-type]
 
         assert event.is_set()
 
@@ -50,7 +51,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
             queue=RabbitQueue(name=queue, declare=False),
             exchange=RabbitExchange(name=exchange.name, declare=False),
         )
-        def h(m) -> None:
+        def h(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(consume_broker, connect_only=True) as br:
@@ -178,7 +179,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
-        async def handler(msg: RabbitMessage):
+        async def handler(msg: RabbitMessage) -> None:
             await msg.nack()
             event.set()
             raise ValueError
@@ -243,7 +244,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(queue=queue, exchange=exchange)
-        async def handler(msg: RabbitMessage):
+        async def handler(msg: RabbitMessage) -> None:
             await msg.reject()
             event.set()
             raise ValueError

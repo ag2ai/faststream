@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
+from typing_extensions import override
+
 from faststream.prometheus import ConsumeAttrs, MetricsSettingsProvider
 from faststream.redis.response import RedisPublishCommand
 
@@ -15,6 +17,7 @@ class BaseRedisMetricsSettingsProvider(
     def __init__(self) -> None:
         self.messaging_system = "redis"
 
+    @override
     def get_publish_destination_name_from_cmd(
         self,
         cmd: RedisPublishCommand,
@@ -23,6 +26,7 @@ class BaseRedisMetricsSettingsProvider(
 
 
 class RedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
+    @override
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[dict[str, Any]]",
@@ -35,6 +39,7 @@ class RedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
 
 
 class BatchRedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
+    @override
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[dict[str, Any]]",

@@ -354,3 +354,5 @@ RabbitBroker().include_routers(RabbitRouter())
 RabbitRouter(routers=[RabbitRouter()])
 RabbitRouter().include_router(RabbitRouter())
 RabbitRouter().include_routers(RabbitRouter())
+
+FastAPIRouter().include_router(RabbitRouter())

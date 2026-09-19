@@ -1,18 +1,18 @@
-import pydantic
+from typing import Any
 
-from faststream._internal.broker import BrokerUsecase
+import pydantic
 
 from .basic import AsyncAPI260Factory
 
 
 class PublisherTestcase(AsyncAPI260Factory):
-    broker_class: type[BrokerUsecase]
+    broker_class: Any
 
     def test_publisher_with_description(self) -> None:
         broker = self.broker_class()
 
         @broker.publisher("test", description="test description")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -23,7 +23,7 @@ class PublisherTestcase(AsyncAPI260Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -39,7 +39,7 @@ class PublisherTestcase(AsyncAPI260Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -51,7 +51,7 @@ class PublisherTestcase(AsyncAPI260Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> int: ...
+        async def handle(msg: Any) -> int: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -67,7 +67,7 @@ class PublisherTestcase(AsyncAPI260Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> User: ...
+        async def handle(msg: Any) -> User: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -90,7 +90,7 @@ class PublisherTestcase(AsyncAPI260Factory):
         pub = broker.publisher("test")
 
         @pub
-        async def handle(msg) -> int: ...
+        async def handle(msg: Any) -> int: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -128,7 +128,7 @@ class PublisherTestcase(AsyncAPI260Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> TestModel: ...
+        async def handle(msg: Any) -> TestModel: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

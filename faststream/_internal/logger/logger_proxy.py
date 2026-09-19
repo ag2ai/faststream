@@ -2,6 +2,8 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from typing import Any, Optional
 
+from typing_extensions import override
+
 from faststream._internal.basic_types import LoggerProto
 from faststream.exceptions import IncorrectState
 
@@ -28,6 +30,7 @@ class NotSetLoggerObject(LoggerObject):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
+    @override
     def log(
         self,
         level: int,

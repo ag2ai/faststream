@@ -138,8 +138,9 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
     ) -> Generator["PublisherMiddleware", None, None]:
         context = self._outer_config.context
 
+        # a subscriber passes a generator, which is truthy even when empty
         yield from (
-            extra_middlewares
+            tuple(extra_middlewares)
             or (
                 m(None, context=context).publish_scope
                 for m in reversed(self._outer_config.broker_middlewares)

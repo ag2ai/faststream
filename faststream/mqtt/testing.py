@@ -64,7 +64,10 @@ def _broker_version(broker: MQTTBroker) -> MQTTVersion:
     return getattr(broker.config.broker_config, "version", "5.0")
 
 
-class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
+class TestMQTTBroker(
+    TestBroker[MQTTBroker, EnterType],
+    broker=MQTTBroker,
+):
     """In-memory test double for MQTTBroker.
 
     Routes published messages to matching subscribers without a real
@@ -149,6 +152,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         with change_producer(broker.config.broker_config, fake_producer):
             yield
 
+    @override
     async def _fake_connect(  # type: ignore[override]
         self,
         broker: MQTTBroker,

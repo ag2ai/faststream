@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -25,11 +26,11 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(queue)
         @pub_broker.publisher(queue + "1")
-        async def handle():
+        async def handle() -> Any:
             return NatsResponse(1, correlation_id="1")
 
         @pub_broker.subscriber(queue + "1")
-        async def handle_next(msg=Context("message")) -> None:
+        async def handle_next(msg: Any = Context("message")) -> None:
             mock(
                 body=msg.body,
                 correlation_id=msg.correlation_id,
@@ -61,7 +62,7 @@ class TestPublish(NatsTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
-        async def handle():
+        async def handle() -> Any:
             return NatsResponse("Hi!", correlation_id="1")
 
         async with self.patch_broker(pub_broker) as br:
@@ -98,7 +99,7 @@ async def test_publish_with_schedule(
     @pub_broker.subscriber(
         schedule_target, stream=JStream(queue, allow_msg_schedules=True)
     )
-    async def handle(body: dict, msg: NatsMessage) -> None:
+    async def handle(body: dict[str, Any], msg: NatsMessage) -> None:
         mock(body)
         event.set()
 

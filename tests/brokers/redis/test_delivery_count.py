@@ -59,8 +59,9 @@ class TestDeliveryCount(RedisTestcaseConfig):
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", stream=queue)
-            await br._connection.xgroup_create(queue, group, id="0")
-            await br._connection.xreadgroup(
+            client = await br.connect()
+            await client.xgroup_create(queue, group, id="0")
+            await client.xreadgroup(
                 groupname=group,
                 consumername="worker-1",
                 streams={queue: ">"},

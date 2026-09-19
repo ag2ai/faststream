@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -18,23 +19,27 @@ class TestTestclient(MQTTMemoryTestcaseConfig, BrokerTestclientTestcase):
         return FakeProducer
 
     async def test_consume_with_filter(
-        self, queue, mock, event: asyncio.Event, event2: asyncio.Event
-    ):
+        self, queue: str, mock: MagicMock, event: asyncio.Event, event2: asyncio.Event
+    ) -> None:
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
         await super().test_consume_with_filter(queue, mock, event, event2)
 
-    async def test_response(self, queue, mock, event: asyncio.Event):
+    async def test_response(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
         await super().test_response(queue, mock, event)
 
-    async def test_custom_id_generator(self, queue, mock):
+    async def test_custom_id_generator(self, queue: str, mock: MagicMock) -> None:
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
         await super().test_custom_id_generator(queue, mock)
 
-    async def test_reply_to(self, queue, mock, event: asyncio.Event):
+    async def test_reply_to(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
         if self.version == "3.1.1":
             pytest.skip(_SKIP_V311)
         await super().test_reply_to(queue, mock, event)

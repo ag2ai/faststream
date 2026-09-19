@@ -71,11 +71,11 @@ except ImportError:
     HAS_MSGSPEC = False
 
 if HAS_PYDANTIC and HAS_MSGSPEC:
-    SendableMessage: TypeAlias = Struct | BaseModel | BaseSendableMessage
+    SendableMessage: TypeAlias = Struct | BaseModel | BaseSendableMessage  # type: ignore[possibly-undefined]
 elif HAS_PYDANTIC:
-    SendableMessage: TypeAlias = BaseModel | BaseSendableMessage  # type: ignore[no-redef,misc]
+    SendableMessage: TypeAlias = BaseModel | BaseSendableMessage  # type: ignore[no-redef,misc,possibly-undefined]
 elif HAS_MSGSPEC:
-    SendableMessage: TypeAlias = Struct | BaseSendableMessage  # type: ignore[no-redef,misc]
+    SendableMessage: TypeAlias = Struct | BaseSendableMessage  # type: ignore[no-redef,misc,possibly-undefined]
 else:
     SendableMessage: TypeAlias = BaseSendableMessage  # type: ignore[no-redef,misc]
 
