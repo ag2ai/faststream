@@ -10,11 +10,11 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/), you already know **Fas
 
 [![Trendshift](https://trendshift.io/api/badge/repositories/19979)](https://trendshift.io/repositories/19979)
 
-[![Test Passing](https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main)](https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml)
-[![Coverage](https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/ag2ai/faststream)
-[![Downloads](https://static.pepy.tech/personalized-badge/faststream?period=month&units=international_system&left_color=grey&right_color=green&left_text=downloads/month)](https://www.pepy.tech/projects/faststream)
-[![Package version](https://img.shields.io/pypi/v/faststream?label=PyPI)](https://pypi.org/project/faststream)
-[![Supported Python versions](https://img.shields.io/pypi/pyversions/faststream.svg)](https://pypi.org/project/faststream)\
+[![FastStream tests status](https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main)](https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml)
+[![FastStream test coverage](https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/ag2ai/faststream)
+[![FastStream monthly downloads from PyPI](https://static.pepy.tech/personalized-badge/faststream?period=month&units=international_system&left_color=grey&right_color=green&left_text=downloads/month)](https://www.pepy.tech/projects/faststream)
+[![FastStream version on PyPI](https://img.shields.io/pypi/v/faststream?label=PyPI)](https://pypi.org/project/faststream)
+[![Python versions supported by FastStream](https://img.shields.io/pypi/pyversions/faststream.svg)](https://pypi.org/project/faststream)\
 [![CodeQL](https://github.com/ag2ai/faststream/actions/workflows/pr_codeql.yaml/badge.svg)](https://github.com/ag2ai/faststream/actions/workflows/pr_codeql.yaml)
 [![Dependency Review](https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml/badge.svg)](https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml)
 [![License](https://img.shields.io/github/license/ag2ai/faststream.svg)](https://github.com/ag2ai/faststream/blob/main/LICENSE)
@@ -328,7 +328,7 @@ You can learn more about **CLI** features [here](https://faststream.ag2.ai/lates
 
 The availability of such documentation significantly simplifies the integration of services: you can immediately see what channels and message formats the application works with. And most importantly, it won't cost anything - **FastStream** has already created the docs for you!
 
-![HTML-page](https://github.com/ag2ai/faststream/blob/main/docs/docs/en/assets/img/AsyncAPI-basic-html-short.png?raw=true)
+![AsyncAPI HTML documentation that FastStream generated for a Kafka subscriber and publisher](https://github.com/ag2ai/faststream/blob/main/docs/docs/en/assets/img/AsyncAPI-basic-html-short.png?raw=true)
 
 ---
 
@@ -464,5 +464,5 @@ support!
 Thanks to all of these amazing people who made the project better!
 
 <a href="https://github.com/ag2ai/faststream/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=ag2ai/faststream"/>
+  <img src="https://contrib.rocks/image?repo=ag2ai/faststream" alt="Avatars of FastStream contributors on GitHub"/>
 </a>

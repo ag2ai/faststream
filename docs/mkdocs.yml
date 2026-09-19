@@ -149,6 +149,8 @@ markdown_extensions:
 extra:
   # landing page <title>; inner pages stay "<page> - FastStream"
   site_tagline: Python framework for event-driven services
+  # nav sections whose name joins the page <title>: see `broker_qualifier`
+  title_sections: [Kafka, RabbitMQ, MQTT, NATS, Redis]
 
   analytics:
     provider: google

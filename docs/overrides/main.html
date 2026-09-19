@@ -8,7 +8,8 @@
   {%- if page and page.meta and page.meta.title -%}
     {{ page.meta.title }} - {{ config.site_name }}
   {%- elif page and page.title and not page.is_homepage -%}
-    {{ page.title | striptags }} - {{ config.site_name }}
+    {%- set qualifier = broker_qualifier() -%}
+    {{ page.title | striptags }}{% if qualifier %} - {{ qualifier }}{% endif %} - {{ config.site_name }}
   {%- elif config.extra.site_tagline -%}
     {{ config.site_name }} — {{ config.extra.site_tagline }}
   {%- else -%}
@@ -44,6 +45,20 @@
       {%- endif -%}
     {%- endfor -%}
     {{- found.url -}}
+  {%- endif -%}
+{%- endmacro %}
+
+{#-
+  Every broker has its own "Publishing" and "Acknowledgement" page, so the broker
+  section joins the title: "Publishing - Redis Streams" rather than "Publishing".
+-#}
+{% macro broker_qualifier() -%}
+  {%- set sections = (page.ancestors | reverse | map(attribute="title") | list)[:2] -%}
+  {%- if sections and sections[0] in config.extra.title_sections -%}
+    {%- if sections | length > 1 and sections[0] in sections[1] -%}
+      {%- set sections = sections[1:] -%}
+    {%- endif -%}
+    {{- sections | reject("in", page.title) | join(" ") -}}
   {%- endif -%}
 {%- endmacro %}
 
