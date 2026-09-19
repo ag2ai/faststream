@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Optional
 
 from zmqtt import Message, QoS
@@ -116,6 +116,7 @@ class MQTTRouter(
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: AckPolicy = EMPTY,
+        underlying_driver_annotations: Optional["Mapping[Any, Any]"] = None,
     ) -> None:
         super().__init__(
             handlers=handlers,
@@ -127,6 +128,7 @@ class MQTTRouter(
                 broker_parser=parser,
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             routers=routers,
         )

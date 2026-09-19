@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -97,6 +97,7 @@ class MQTTBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: Optional["Mapping[Any, Any]"] = None,
     ) -> None:
         url_options = parse_mqtt_url(url)
         secure_kwargs = parse_security(security)
@@ -195,6 +196,7 @@ class MQTTBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,

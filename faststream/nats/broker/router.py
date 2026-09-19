@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from nats.aio.msg import Msg
@@ -231,6 +231,7 @@ class NatsRouter(NatsRegistrator, BrokerRouter[Msg, NatsBrokerConfig]):
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: "AckPolicy" = EMPTY,
+        underlying_driver_annotations: Optional["Mapping[Any, Any]"] = None,
     ) -> None:
         """Initialize the NatsRouter instance.
 
@@ -254,6 +255,10 @@ class NatsRouter(NatsRegistrator, BrokerRouter[Msg, NatsBrokerConfig]):
             ack_policy:
                 Default acknowledgement policy for all subscribers in this router.
                 Can be overridden at the subscriber level. Defaults to None.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         super().__init__(
             handlers=handlers,
@@ -265,6 +270,7 @@ class NatsRouter(NatsRegistrator, BrokerRouter[Msg, NatsBrokerConfig]):
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,
                 prefix=prefix,
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             routers=routers,
         )
