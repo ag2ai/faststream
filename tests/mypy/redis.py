@@ -340,6 +340,10 @@ async def check_broker_publish_result_type(optional_stream: str | None = "test")
     assert_type(publish_with_confirm, int)
 
 
+def fake_bool() -> bool:
+    return True
+
+
 async def check_publisher_publish_result_types(
     broker: RedisBroker | RedisRouter | FastAPIRouter,
 ) -> None:
@@ -352,8 +356,14 @@ async def check_publisher_publish_result_types(
     assert_type(await p1.publish(None), int)
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher | ListPublisher)
+    assert_type(p2, ListBatchPublisher)
     assert_type(await p2.publish(None), int)
+
+    p2_plain = broker.publisher(list=ListSub("test"))
+    assert_type(p2_plain, ListPublisher)
+
+    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
+    assert_type(p2_unknown, ListBatchPublisher | ListPublisher)
 
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher)
@@ -441,7 +451,13 @@ def check_stream_subscriber_instance_type(
     assert_type(sub1, StreamSubscriber)
 
     sub2 = broker.subscriber(stream=StreamSub("test"))
-    assert_type(sub2, StreamSubscriber | StreamBatchSubscriber)
+    assert_type(sub2, StreamSubscriber)
+
+    sub2_batch = broker.subscriber(stream=StreamSub("test", batch=True))
+    assert_type(sub2_batch, StreamBatchSubscriber)
+
+    sub2_unknown = broker.subscriber(stream=StreamSub("test", batch=fake_bool()))
+    assert_type(sub2_unknown, StreamSubscriber | StreamBatchSubscriber)
 
     sub3 = broker.subscriber(stream="test", max_workers=2)
     assert_type(sub3, StreamConcurrentSubscriber)
@@ -454,7 +470,15 @@ def check_list_subscriber_instance_type(
     assert_type(sub1, ListSubscriber)
 
     sub2 = broker.subscriber(list=ListSub("test"))
-    assert_type(sub2, ListSubscriber | ListBatchSubscriber)
+    assert_type(sub2, ListSubscriber)
+
+    assert_type(RedisBroker().subscriber(list="test", persistent=False), ListSubscriber)
+
+    sub2_batch = broker.subscriber(list=ListSub("test", batch=True))
+    assert_type(sub2_batch, ListBatchSubscriber)
+
+    sub2_unknown = broker.subscriber(list=ListSub("test", batch=fake_bool()))
+    assert_type(sub2_unknown, ListSubscriber | ListBatchSubscriber)
 
     sub3 = broker.subscriber(list="test", max_workers=2)
     assert_type(sub3, ListConcurrentSubscriber)
@@ -484,3 +508,17 @@ RedisRouter(
         ),
     ),
 )
+
+
+@RedisBroker().subscriber(stream=StreamSub("test", batch=True))
+async def handle_stream_batch() -> None: ...
+
+
+@RedisBroker().subscriber(list=ListSub("test", batch=True))
+async def handle_list_batch() -> None: ...
+
+
+def accepts_any_list_sub(list_sub: ListSub) -> None: ...
+
+
+accepts_any_list_sub(ListSub("test", batch=True))
