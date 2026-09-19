@@ -67,10 +67,12 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=AckPolicy.ACK_FIRST,
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -123,10 +125,12 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=ack_policy,
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -178,10 +182,12 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=ack_policy,
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             event.set()
             raise Exception  # noqa: TRY002
@@ -218,10 +224,12 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=AckPolicy.NACK_ON_ERROR,
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             event.set()
             raise Exception  # noqa: TRY002
