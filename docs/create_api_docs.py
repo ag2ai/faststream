@@ -349,5 +349,15 @@ def create_api_docs() -> None:
     render_navigation(api=api, public_api=public_api)
 
 
+def on_page_context(context: Any, page: Any, **kwargs: Any) -> Any:
+    """Point every `public_api/` page's canonical link at its `api/` twin."""
+    # `public_api/` is a symlink to `api/`, so each symbol page is built twice;
+    # one canonical keeps search engines from indexing both copies
+    if page.url.startswith("public_api/") and page.canonical_url:
+        page.canonical_url = page.canonical_url.replace("/public_api/", "/api/", 1)
+
+    return context
+
+
 if __name__ == "__main__":
     create_api_docs()
