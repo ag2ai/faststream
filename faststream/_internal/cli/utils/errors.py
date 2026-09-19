@@ -1,11 +1,17 @@
+from typing import TYPE_CHECKING
+
 from typer.core import TyperOption
 
 from faststream.exceptions import StartupValidationError
 
-try:
+# type checkers see one click, or `TyperOption` stops matching the union of both
+if TYPE_CHECKING:
     from typer._click import exceptions as click_exceptions
-except ImportError:  # pragma: no cover - Typer < 0.26
-    from click import exceptions as click_exceptions  # type: ignore[no-redef]
+else:
+    try:
+        from typer._click import exceptions as click_exceptions
+    except ImportError:  # pragma: no cover - Typer < 0.26
+        from click import exceptions as click_exceptions
 
 try:
     from typer.rich_utils import rich_format_error
