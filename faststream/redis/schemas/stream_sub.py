@@ -1,6 +1,6 @@
 import warnings
 from copy import deepcopy
-from typing import Generic, Literal, overload
+from typing import Any, Generic, Literal, overload
 
 from typing_extensions import Self, TypeVar
 
@@ -11,6 +11,7 @@ from faststream.redis._compat import REDIS_V710, _REDIS_VERSION
 # Carries `batch` in the type, so `subscriber(stream=StreamSub(..., batch=True))`
 # resolves to the batch subscriber instead of a Union of both.
 BatchT_co = TypeVar("BatchT_co", bound=bool, default=bool, covariant=True)
+BatchT = TypeVar("BatchT", bound=bool, default=bool)
 
 
 class StreamSub(NameRequired, Generic[BatchT_co]):
@@ -219,6 +220,25 @@ class StreamSub(NameRequired, Generic[BatchT_co]):
         self.max_records = max_records
         self.min_idle_time = min_idle_time
         self.claim_min_idle_time = claim_min_idle_time
+
+    @overload
+    @classmethod
+    def validate(
+        cls, value: "str | StreamSub[BatchT]", **kwargs: Any
+    ) -> "StreamSub[BatchT]": ...
+
+    @overload
+    @classmethod
+    def validate(cls, value: None, **kwargs: Any) -> None: ...
+
+    @classmethod
+    def validate(
+        cls, value: "str | StreamSub[Any] | None", **kwargs: Any
+    ) -> "StreamSub[Any] | None":
+        # `Self` would resolve to the non-batch parametrization of the first `__init__`
+        if isinstance(value, str):
+            return cls(value, **kwargs)
+        return value
 
     def add_prefix(self, prefix: str) -> Self:
         new_stream = deepcopy(self)

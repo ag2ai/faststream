@@ -60,9 +60,8 @@ def create_subscriber(
 
     subscriber_config = RedisSubscriberConfig(
         channel_sub=PubSub.validate(channel),
-        # `validate()` would bind these schemas to their non-batch parametrization
-        list_sub=ListSub(list) if isinstance(list, str) else list,
-        stream_sub=StreamSub(stream) if isinstance(stream, str) else stream,
+        list_sub=ListSub.validate(list),
+        stream_sub=StreamSub.validate(stream),
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
