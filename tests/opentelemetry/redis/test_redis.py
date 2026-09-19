@@ -53,7 +53,7 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         args, kwargs = self.get_subscriber_params(list=ListSub(queue, batch=True))
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m, baggage: CurrentBaggage) -> None:
+        async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == expected_baggage_batch
             mock(m)
@@ -99,18 +99,18 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
             tracer_provider=tracer_provider,
         )
         broker = self.get_broker(middlewares=(mid,), apply_types=True)
-        msgs_queue = asyncio.Queue(maxsize=3)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=3)
         expected_msg_count = 3
         expected_link_count = 1
         expected_span_count = 8
         expected_pub_batch_count = 1
         expected_baggage = {"with_batch": "True"}
-        expected_baggage_batch = []
+        expected_baggage_batch: list[Any] = []
 
         args, kwargs = self.get_subscriber_params(list=ListSub(queue))
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg, baggage: CurrentBaggage) -> None:
+        async def handler(msg: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == expected_baggage_batch
             await msgs_queue.put(msg)
@@ -172,7 +172,7 @@ class TestTelemetry(RedisTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         args, kwargs = self.get_subscriber_params(list=ListSub(queue, batch=True))
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m, baggage: CurrentBaggage) -> None:
+        async def handler(m: Any, baggage: CurrentBaggage) -> None:
             assert len(baggage.get_all_batch()) == expected_msg_count
             assert baggage.get_all() == expected_baggage
             m.sort()

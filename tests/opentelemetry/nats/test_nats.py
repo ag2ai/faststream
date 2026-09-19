@@ -18,7 +18,7 @@ from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
 @pytest.fixture()
-def stream(queue):
+def stream(queue: str) -> Any:
     return JStream(queue)
 
 
@@ -56,7 +56,7 @@ class TestTelemetry(NatsTestcaseConfig, LocalTelemetryTestcase):  # type: ignore
         )
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> None:
+        async def handler(m: Any) -> None:
             mock(m)
             event.set()
 

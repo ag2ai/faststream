@@ -1,7 +1,9 @@
+from typing import Any
+
 import aio_pika
 import pytest
 
-from faststream import Depends
+from faststream import ContextRepo, Depends
 from faststream.rabbit import RabbitBroker
 from faststream.rabbit.annotations import RabbitMessage
 
@@ -12,10 +14,10 @@ from faststream.rabbit.annotations import RabbitMessage
 async def test_broker_depends(queue: str) -> None:
     full_broker = RabbitBroker(apply_types=True)
 
-    def sync_depends(message: RabbitMessage):
+    def sync_depends(message: RabbitMessage) -> Any:
         return message
 
-    async def async_depends(message: RabbitMessage):
+    async def async_depends(message: RabbitMessage) -> Any:
         return message
 
     check_message = None
@@ -23,8 +25,8 @@ async def test_broker_depends(queue: str) -> None:
     @full_broker.subscriber(queue)
     async def h(
         message: RabbitMessage,
-        k1=Depends(sync_depends),
-        k2=Depends(async_depends),
+        k1: Any = Depends(sync_depends),
+        k2: Any = Depends(async_depends),
     ) -> None:
         nonlocal check_message
         check_message = (
@@ -43,7 +45,7 @@ async def test_broker_depends(queue: str) -> None:
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 async def test_different_consumers_has_different_messages(
-    context,
+    context: ContextRepo,
 ) -> None:
     full_broker = RabbitBroker(apply_types=True)
 

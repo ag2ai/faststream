@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -16,7 +18,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.TOPIC),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -29,7 +31,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.FANOUT),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -42,7 +44,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.HEADERS),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
         assert schema == snapshot_json
@@ -54,7 +56,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.X_DELAYED_MESSAGE),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -69,7 +71,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.X_CONSISTENT_HASH),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
         assert schema == snapshot_json
@@ -83,7 +85,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.X_MODULUS_HASH),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

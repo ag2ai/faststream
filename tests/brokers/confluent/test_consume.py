@@ -23,12 +23,12 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_batch(self, queue: str) -> None:
         consume_broker = self.get_broker()
 
-        msgs_queue = asyncio.Queue(maxsize=1)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
         @consume_broker.subscriber(*args, **kwargs)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(consume_broker) as br:
@@ -52,7 +52,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
         @consume_broker.subscriber(*args, **kwargs)
-        def subscriber(m, msg: KafkaMessage) -> None:
+        def subscriber(m: Any, msg: KafkaMessage) -> None:
             check = all(
                 (
                     msg.headers,
@@ -163,7 +163,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         )
 
         @consume_broker.subscriber(*args, **kwargs)
-        async def handler(msg: KafkaMessage):
+        async def handler(msg: KafkaMessage) -> None:
             event.set()
             raise AckMessage
 
@@ -287,7 +287,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         )
 
         @broker2.subscriber(*args, **kwargs)
-        async def subscriber_with_auto_commit(m) -> None:
+        async def subscriber_with_auto_commit(m: Any) -> None:
             event2.set()
 
         async with self.patch_broker(consume_broker) as br:

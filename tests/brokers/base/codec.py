@@ -17,7 +17,7 @@ class CodecTestcase(BaseTestcaseConfig):
         queue: str,
     ) -> None:
         class TrackingCodec(DefaultCodec):
-            async def decode(self, msg):
+            async def decode(self, msg: Any) -> Any:
                 mock()
                 return await super().decode(msg)
 
@@ -27,7 +27,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue, codec=codec)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -45,7 +45,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             mock(m)
 
         async with self.patch_broker(broker) as br:
@@ -59,7 +59,7 @@ class CodecTestcase(BaseTestcaseConfig):
         queue: str,
     ) -> None:
         class TrackingCodec(DefaultCodec):
-            async def decode(self, msg):
+            async def decode(self, msg: Any) -> Any:
                 mock()
                 return await super().decode(msg)
 
@@ -68,7 +68,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue, codec=TrackingCodec())
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass
 
         # Rendering the schema composes the model once; starting composes it again
@@ -87,13 +87,13 @@ class CodecTestcase(BaseTestcaseConfig):
         broker = self.get_broker()
         codec = DefaultCodec()
 
-        async def my_decoder(msg, original):
+        async def my_decoder(msg: Any, original: Any) -> Any:
             return await original(msg)
 
         args, kwargs = self.get_subscriber_params(queue, codec=codec, decoder=my_decoder)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass  # pragma: no cover
 
         # ValueError raised inside _get_parser_and_decoder() during start(),
@@ -109,7 +109,7 @@ class CodecTestcase(BaseTestcaseConfig):
         queue: str,
     ) -> None:
         class TrackingCodec(DefaultCodec):
-            async def decode(self, msg):
+            async def decode(self, msg: Any) -> Any:
                 mock()
                 return await super().decode(msg)
 
@@ -118,7 +118,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -130,7 +130,7 @@ class CodecTestcase(BaseTestcaseConfig):
         mock = MagicMock()
 
         class TrackingCodec(DefaultCodec):
-            async def encode(self, msg, serializer=None):
+            async def encode(self, msg: Any, serializer: Any = None) -> Any:
                 mock()
                 return await super().encode(msg, serializer)
 
@@ -139,7 +139,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:

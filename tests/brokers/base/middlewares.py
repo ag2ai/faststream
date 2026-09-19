@@ -1,4 +1,7 @@
 import asyncio
+from collections.abc import Awaitable, Callable
+from types import TracebackType
+from typing import Any
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -19,16 +22,20 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
                 mock.enter_inner()
                 mock.enter("inner")
 
-            async def __aexit__(self, *args) -> None:
+            async def __aexit__(self, *args: Any) -> None:
                 mock.exit_inner()
                 mock.exit("inner")
 
-            async def consume_scope(self, call_next, msg) -> None:
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
+            ) -> None:
                 mock.consume_inner()
                 mock.sub("inner")
                 return await call_next(msg)
 
-            async def publish_scope(self, call_next, cmd) -> None:
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> None:
                 mock.publish_inner()
                 mock.pub("inner")
                 return await call_next(cmd)
@@ -38,16 +45,20 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
                 mock.enter_outer()
                 mock.enter("outer")
 
-            async def __aexit__(self, *args) -> None:
+            async def __aexit__(self, *args: Any) -> None:
                 mock.exit_outer()
                 mock.exit("outer")
 
-            async def consume_scope(self, call_next, msg) -> None:
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
+            ) -> None:
                 mock.consume_outer()
                 mock.sub("outer")
                 return await call_next(msg)
 
-            async def publish_scope(self, call_next, cmd) -> None:
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> None:
                 mock.publish_outer()
                 mock.pub("outer")
                 return await call_next(cmd)
@@ -57,7 +68,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -83,19 +94,25 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         mock: MagicMock,
     ) -> None:
         class InnerMiddleware(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.publish_inner()
                 mock("inner")
                 return await call_next(cmd)
 
         class MiddleMiddleware(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.publish_middle()
                 mock("middle")
                 return await call_next(cmd)
 
         class OuterMiddleware(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.publish_outer()
                 mock("outer")
                 return await call_next(cmd)
@@ -108,7 +125,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker):
@@ -126,19 +143,25 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         mock: MagicMock,
     ) -> None:
         class InnerMiddleware(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.publish_inner()
                 mock("inner")
                 return await call_next(cmd)
 
         class MiddleMiddleware(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.publish_middle()
                 mock("middle")
                 return await call_next(cmd)
 
         class OuterMiddleware(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.publish_outer()
                 mock("outer")
                 return await call_next(cmd)
@@ -152,7 +175,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @router2.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             pass
 
         router.include_router(router2)
@@ -169,19 +192,25 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
 
     async def test_consume_middleware_order(self, queue: str, mock: MagicMock) -> None:
         class InnerMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, cmd):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.consume_inner()
                 mock("inner")
                 return await call_next(cmd)
 
         class MiddleMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, cmd):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.consume_middle()
                 mock("middle")
                 return await call_next(cmd)
 
         class OuterMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, cmd):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock.consume_outer()
                 mock("outer")
                 return await call_next(cmd)
@@ -193,7 +222,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -211,17 +240,23 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         mock: MagicMock,
     ) -> None:
         class InnerMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, cmd):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock("inner")
                 return await call_next(cmd)
 
         class MiddleMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, cmd):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock("middle")
                 return await call_next(cmd)
 
         class OuterMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, cmd):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 mock("outer")
                 return await call_next(cmd)
 
@@ -232,7 +267,7 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @router2.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             pass
 
         router.include_router(router2)
@@ -253,7 +288,9 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         class TapMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, msg):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
+            ) -> Any:
                 mock.start(await msg.decode())
                 result = await call_next(msg)
                 mock.end()
@@ -265,7 +302,7 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> str:
+        async def handler(m: Any) -> str:
             mock.inner(m)
             return "end"
 
@@ -292,7 +329,9 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         class ErrorTraceMiddleware(BaseMiddleware):
-            async def consume_scope(self, call_next, msg):
+            async def consume_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
+            ) -> Any:
                 try:
                     return await call_next(msg)
                 except Exception as e:
@@ -304,7 +343,7 @@ class LocalMiddlewareTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler2(m):
+        async def handler2(m: Any) -> None:
             event.set()
             raise ValueError
 
@@ -332,11 +371,16 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         event: asyncio.Event,
     ) -> None:
         class mid(BaseMiddleware):  # noqa: N801
-            async def on_receive(self):
+            async def on_receive(self) -> Any:
                 mock.start(self.msg)
                 return await super().on_receive()
 
-            async def after_processed(self, exc_type, exc_val, exc_tb):
+            async def after_processed(
+                self,
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None,
+            ) -> Any:
                 mock.end()
                 return await super().after_processed(exc_type, exc_val, exc_tb)
 
@@ -347,7 +391,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> str:
+        async def handler(m: Any) -> str:
             event.set()
             return ""
 
@@ -373,11 +417,16 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         event2: asyncio.Event,
     ) -> None:
         class mid(BaseMiddleware):  # noqa: N801
-            async def on_receive(self):
+            async def on_receive(self) -> Any:
                 mock.start(self.msg)
                 return await super().on_receive()
 
-            async def after_processed(self, exc_type, exc_val, exc_tb):
+            async def after_processed(
+                self,
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None,
+            ) -> Any:
                 mock.end()
                 return await super().after_processed(exc_type, exc_val, exc_tb)
 
@@ -387,7 +436,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> str:
+        async def handler(m: Any) -> str:
             event.set()
             return ""
 
@@ -398,7 +447,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @broker.subscriber(*args2, **kwargs2)
-        async def handler2(m) -> str:
+        async def handler2(m: Any) -> str:
             event2.set()
             return ""
 
@@ -425,7 +474,9 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         event: asyncio.Event,
     ) -> None:
         class Mid(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 cmd.body *= 2
                 return await call_next(cmd)
 
@@ -434,13 +485,13 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m):
+        async def handler(m: Any) -> Any:
             return m
 
         args2, kwargs2 = self.get_subscriber_params(queue + "r")
 
         @broker.subscriber(*args2, **kwargs2)
-        async def handler_resp(m) -> None:
+        async def handler_resp(m: Any) -> None:
             mock(m)
             event.set()
 
@@ -465,7 +516,9 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         event: asyncio.Event,
     ) -> None:
         class Mid(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 cmd.body *= 2
                 mock.enter(cmd.body)
                 try:
@@ -482,7 +535,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(queue + "1")
         @broker.publisher(queue + "2")
-        async def handler(m):
+        async def handler(m: Any) -> Any:
             mock.inner(m)
             return m
 
@@ -514,7 +567,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ValueError, publish=True)
-        async def value_error_handler(exc) -> str:
+        async def value_error_handler(exc: Any) -> str:
             return "value"
 
         broker = self.get_broker(apply_types=True, middlewares=(mid,))
@@ -523,13 +576,13 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(queue + "1")
-        async def subscriber1(m):
+        async def subscriber1(m: Any) -> Any:
             raise ValueError
 
         args, kwargs = self.get_subscriber_params(queue + "1")
 
         @broker.subscriber(*args, **kwargs)
-        async def subscriber2(msg=Context("message")) -> None:
+        async def subscriber2(msg: Any = Context("message")) -> None:
             mock(await msg.decode())
             event.set()
 
@@ -556,7 +609,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ValueError, publish=True)
-        async def value_error_handler(exc):
+        async def value_error_handler(exc: Any) -> None:
             event.set()
             raise SkipMessage
 
@@ -565,13 +618,13 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(queue + "1")
-        async def subscriber1(m):
+        async def subscriber1(m: Any) -> Any:
             raise ValueError
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @broker.subscriber(*args2, **kwargs2)
-        async def subscriber2(msg=Context("message")) -> None:
+        async def subscriber2(msg: Any = Context("message")) -> None:
             mock(await msg.decode())
 
         async with self.patch_broker(broker) as br:
@@ -596,14 +649,14 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid = ExceptionMiddleware()
 
         @mid.add_handler(Exception)
-        async def value_error_handler(exc) -> None:
+        async def value_error_handler(exc: Any) -> None:
             mock()
 
         broker = self.get_broker(middlewares=(mid,))
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def subscriber(m):
+        async def subscriber(m: Any) -> None:
             event.set()
             raise SkipMessage
 
@@ -630,7 +683,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ValueError, publish=True)
-        async def value_error_handler(exc):
+        async def value_error_handler(exc: Any) -> None:
             event.set()
             raise exc
 
@@ -639,13 +692,13 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(queue + "1")
-        async def subscriber1(m):
+        async def subscriber1(m: Any) -> Any:
             raise ValueError
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @broker.subscriber(*args2, **kwargs2)
-        async def subscriber2(msg=Context("message")) -> None:
+        async def subscriber2(msg: Any = Context("message")) -> None:
             mock(await msg.decode())
 
         async with self.patch_broker(broker) as br:
@@ -670,11 +723,11 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ZeroDivisionError, publish=True)
-        async def zero_error_handler(exc) -> str:
+        async def zero_error_handler(exc: Any) -> str:
             return "zero"
 
         @mid.add_handler(ValueError, publish=True)
-        async def value_error_handler(exc) -> str:
+        async def value_error_handler(exc: Any) -> str:
             return "value"
 
         broker = self.get_broker(apply_types=True, middlewares=(mid,))
@@ -684,20 +737,20 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @publisher
-        async def subscriber1(m):
+        async def subscriber1(m: Any) -> Any:
             raise ZeroDivisionError
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @broker.subscriber(*args2, **kwargs2)
         @publisher
-        async def subscriber2(m):
+        async def subscriber2(m: Any) -> Any:
             raise ValueError
 
         args3, kwargs3 = self.get_subscriber_params(queue + "2")
 
         @broker.subscriber(*args3, **kwargs3)
-        async def subscriber3(msg=Context("message")) -> None:
+        async def subscriber3(msg: Any = Context("message")) -> None:
             mock(await msg.decode())
             if mock.call_count > 1:
                 event.set()
@@ -721,7 +774,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid1 = ExceptionMiddleware()
 
         @mid1.add_handler(ValueError)
-        async def value_error_handler(exc) -> str:
+        async def value_error_handler(exc: Any) -> str:
             return "value"
 
         mid2 = ExceptionMiddleware(handlers={ValueError: value_error_handler})
@@ -732,7 +785,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         mid1 = ExceptionMiddleware()
 
         @mid1.add_handler(ValueError, publish=True)
-        async def value_error_handler(exc) -> str:
+        async def value_error_handler(exc: Any) -> str:
             return "value"
 
         mid2 = ExceptionMiddleware(publish_handlers={ValueError: value_error_handler})
@@ -746,15 +799,15 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         event: asyncio.Event,
     ) -> None:
         async def decoder(
-            msg,
-            original_decoder,
+            msg: Any,
+            original_decoder: Any,
         ) -> DecodedMessage:
             raise ValueError
 
         mid = ExceptionMiddleware()
 
         @mid.add_handler(ValueError)
-        async def value_error_handler(exc) -> None:
+        async def value_error_handler(exc: Any) -> None:
             event.set()
 
         broker = self.get_broker(middlewares=(mid,), decoder=decoder)
@@ -762,7 +815,7 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def subscriber1(m):
+        async def subscriber1(m: Any) -> Any:
             raise ZeroDivisionError
 
         async with self.patch_broker(broker) as br:
@@ -795,11 +848,11 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         # Register parent handler BEFORE child handler
         @mid.add_handler(ExcAError, publish=True)
-        async def handle_a(exc) -> str:
+        async def handle_a(exc: Any) -> str:
             return "parent"
 
         @mid.add_handler(ExcBError, publish=True)
-        async def handle_b(exc) -> str:
+        async def handle_b(exc: Any) -> str:
             return "child"
 
         broker = self.get_broker(apply_types=True, middlewares=(mid,))
@@ -807,13 +860,13 @@ class ExceptionMiddlewareTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(queue + "1")
-        async def subscriber1(m):
+        async def subscriber1(m: Any) -> Any:
             raise ExcBError
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @broker.subscriber(*args2, **kwargs2)
-        async def subscriber2(msg=Context("message")) -> None:
+        async def subscriber2(msg: Any = Context("message")) -> None:
             mock(await msg.decode())
             event.set()
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pydantic
 
 from faststream._internal.broker import BrokerUsecase
@@ -13,7 +15,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test", description="test description")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -24,7 +26,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -40,7 +42,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -52,7 +54,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> int: ...
+        async def handle(msg: Any) -> int: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -68,7 +70,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> User: ...
+        async def handle(msg: Any) -> User: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -91,7 +93,7 @@ class PublisherTestcase(AsyncAPI300Factory):
         pub = broker.publisher("test")
 
         @pub
-        async def handle(msg) -> int: ...
+        async def handle(msg: Any) -> int: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import pytest
 
@@ -16,7 +17,7 @@ def test_set_level() -> None:
     assert app.logger.level == broker_logger.level == logging.ERROR
 
 
-def test_set_default(broker) -> None:
+def test_set_default(broker: Any) -> None:
     app = FastStream(broker)
     level = "wrong_level"
     set_log_level(get_log_level(level), app)

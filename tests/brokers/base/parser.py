@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import anyio
@@ -19,7 +20,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
     ) -> None:
         broker = self.get_broker()
 
-        async def custom_parser(msg, original):
+        async def custom_parser(msg: Any, original: Any) -> Any:
             msg = await original(msg)
             mock(msg.body)
             return msg
@@ -27,7 +28,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue, parser=custom_parser)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -52,14 +53,14 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
     ) -> None:
         broker = self.get_broker()
 
-        def custom_decoder(msg):
+        def custom_decoder(msg: Any) -> Any:
             mock(msg.body)
             return msg
 
         args, kwargs = self.get_subscriber_params(queue, decoder=custom_decoder)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -82,7 +83,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         event: asyncio.Event,
         queue: str,
     ) -> None:
-        def custom_decoder(msg):
+        def custom_decoder(msg: Any) -> Any:
             mock(msg.body)
             return msg
 
@@ -91,7 +92,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -117,7 +118,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
     ) -> None:
         broker = self.get_broker()
 
-        async def custom_parser(msg, original):
+        async def custom_parser(msg: Any, original: Any) -> Any:
             msg = await original(msg)
             mock(msg.body)
             return msg
@@ -127,7 +128,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.subscriber(*args2, **kwargs2)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             if event.is_set():
                 event2.set()
             else:
@@ -163,16 +164,16 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         sub = broker.subscriber(*args, **kwargs)
 
         @sub(filter=lambda m: m.content_type == "application/json")
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             event.set()
 
-        async def custom_parser(msg, original):
+        async def custom_parser(msg: Any, original: Any) -> Any:
             msg = await original(msg)
             mock(msg.body)
             return msg
 
         @sub(parser=custom_parser)
-        async def handle2(m) -> None:
+        async def handle2(m: Any) -> None:
             event2.set()
 
         async with self.patch_broker(broker) as br:
@@ -206,7 +207,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
 
         broker = self.get_broker()
 
-        async def custom_decoder(msg, original):
+        async def custom_decoder(msg: Any, original: Any) -> Any:
             mock()
             consumed_event.set()
             return await original(msg)
@@ -251,7 +252,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig):
         """Fixes https://github.com/ag2ai/faststream/issues/2554."""
         broker = self.get_broker()
 
-        async def custom_decoder(msg, original):
+        async def custom_decoder(msg: Any, original: Any) -> Any:
             mock()
             return await original(msg)
 
@@ -287,7 +288,7 @@ class CustomParserTestcase(LocalCustomParserTestcase):
         event: asyncio.Event,
         queue: str,
     ) -> None:
-        async def custom_parser(msg, original):
+        async def custom_parser(msg: Any, original: Any) -> Any:
             msg = await original(msg)
             mock(msg.body)
             return msg
@@ -297,7 +298,7 @@ class CustomParserTestcase(LocalCustomParserTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker) as br:

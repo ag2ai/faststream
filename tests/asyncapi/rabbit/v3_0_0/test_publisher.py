@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -13,7 +15,7 @@ class TestArguments(PublisherTestcase):
         broker = self.broker_class("amqp://guest:guest@localhost:5672/vhost")
 
         @broker.publisher(exchange="test-ex")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -26,7 +28,7 @@ class TestArguments(PublisherTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.TOPIC),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -39,7 +41,7 @@ class TestArguments(PublisherTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.FANOUT),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -50,7 +52,7 @@ class TestArguments(PublisherTestcase):
 
         @broker.publisher(exchange="test-ex", routing_key="key1")
         @broker.publisher(exchange="test-ex", routing_key="key2", priority=10)
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -115,7 +116,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         r_queue = RabbitQueue(queue)
 
         @router.subscriber(r_queue)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         broker.include_router(router)
@@ -145,7 +146,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         exchange = RabbitExchange(f"{queue}exch")
 
         @router.subscriber(r_queue, exchange=exchange)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         broker.include_router(router)
@@ -168,7 +169,7 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
     async def test_delayed_handlers_with_queue(
         self, queue: str, event: asyncio.Event
     ) -> None:
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         r_queue = RabbitQueue(queue)

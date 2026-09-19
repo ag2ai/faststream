@@ -93,5 +93,5 @@ def kafka_ascynapi_project() -> str:
 
 
 @pytest.fixture(autouse=True)
-def disable_supervisor(monkeypatch):
+def disable_supervisor(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "1")

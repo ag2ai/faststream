@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -16,7 +18,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.TOPIC),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -29,7 +31,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.FANOUT),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

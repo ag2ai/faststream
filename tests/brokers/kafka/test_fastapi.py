@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,7 +23,7 @@ class TestKafkaRouter(FastAPITestcase):
         router = self.router_class()
 
         @router.subscriber(queue, batch=True)
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -62,7 +63,7 @@ class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
         router = self.router_class()
 
         @router.subscriber(queue, batch=True)
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 

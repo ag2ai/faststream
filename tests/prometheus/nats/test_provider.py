@@ -1,5 +1,6 @@
 import random
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from nats.aio.msg import Msg
@@ -99,7 +100,7 @@ class TestBatchNatsMetricsSettingsProvider(
         ),
     ),
 )
-def test_settings_provider_factory(msg, expected_provider) -> None:
+def test_settings_provider_factory(msg: Any, expected_provider: Any) -> None:
     provider = settings_provider_factory(msg)
 
     assert isinstance(provider, type(expected_provider))

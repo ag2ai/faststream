@@ -38,11 +38,11 @@ class TestCaseMetrics:
         return MetricsManager(container, app_name=app_name)
 
     @pytest.fixture()
-    def app_name(self, request) -> str:
+    def app_name(self, request: pytest.FixtureRequest) -> str:
         return "youtube"
 
     @pytest.fixture()
-    def metrics_prefix(self, request) -> str:
+    def metrics_prefix(self, request: pytest.FixtureRequest) -> str:
         return "fs"
 
     @pytest.fixture()

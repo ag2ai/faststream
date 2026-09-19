@@ -100,7 +100,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
         message = None
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m=Context("message")) -> None:
+        async def handler(m: Any = Context("message")) -> None:
             event.set()
 
             nonlocal message
@@ -295,7 +295,7 @@ class LocalRPCPrometheusTestcase:
         message = None
 
         @broker.subscriber(queue)
-        async def handle(m=Context("message")):
+        async def handle(m: Any = Context("message")) -> Any:
             event.set()
 
             nonlocal message
@@ -324,7 +324,7 @@ class LocalRPCPrometheusTestcase:
 class LocalMetricsSettingsProviderTestcase:
     messaging_system: str
 
-    def get_middleware(self, **kwargs) -> BasePrometheusMiddleware:
+    def get_middleware(self, **kwargs: Any) -> BasePrometheusMiddleware:
         raise NotImplementedError
 
     @staticmethod

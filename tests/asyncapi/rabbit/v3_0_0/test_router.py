@@ -30,7 +30,7 @@ class TestRouter(RouterTestcase):
         router = self.router_class(prefix="test_")
 
         @router.subscriber(RabbitQueue("test", routing_key="key"))
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         broker.include_router(router)
 

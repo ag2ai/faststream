@@ -1,5 +1,6 @@
 import ssl
 import warnings
+from typing import Any
 
 import pytest
 
@@ -267,7 +268,7 @@ class TestClusterBrokerInheritance:
         ("redis://127.0.0.1:7000", "127.0.0.1", 7000),
     ),
 )
-def test_parametrized_urls(url, expected_host, expected_port) -> None:
+def test_parametrized_urls(url: Any, expected_host: Any, expected_port: Any) -> None:
     broker = RedisClusterBroker(url=url)
     s = broker.config.broker_config.connection
     nodes = s._options.get("startup_nodes", [])
@@ -284,7 +285,7 @@ def test_parametrized_urls(url, expected_host, expected_port) -> None:
         {"url": "redis://h1:7000"},
     ),
 )
-def test_different_parameter_forms(kwargs) -> None:
+def test_different_parameter_forms(kwargs: Any) -> None:
     broker = RedisClusterBroker(**kwargs)
     s = broker.config.broker_config.connection
     assert len(s._options["startup_nodes"]) == 1

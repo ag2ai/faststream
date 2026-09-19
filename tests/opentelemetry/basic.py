@@ -1,4 +1,5 @@
 import asyncio
+from types import TracebackType
 from typing import Any, cast
 from unittest.mock import MagicMock
 
@@ -182,7 +183,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> None:
+        async def handler(m: Any) -> None:
             mock(m)
             event.set()
 
@@ -224,13 +225,13 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(second_queue)
-        async def handler1(m):
+        async def handler1(m: Any) -> Any:
             return m
 
         args2, kwargs2 = self.get_subscriber_params(second_queue)
 
         @broker.subscriber(*args2, **kwargs2)
-        async def handler2(m) -> None:
+        async def handler2(m: Any) -> None:
             mock(m)
             event.set()
 
@@ -280,7 +281,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> None:
+        async def handler(m: Any) -> None:
             event.set()
 
         broker = self.patch_broker(broker)
@@ -317,7 +318,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> None:
+        async def handler(m: Any) -> None:
             mock(m)
             event.set()
 
@@ -352,7 +353,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m) -> None:
+        async def handler(m: Any) -> None:
             try:
                 raise ValueError
             finally:
@@ -389,7 +390,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m, span: CurrentSpan) -> None:
+        async def handler(m: Any, span: CurrentSpan) -> None:
             assert span is get_current_span()
             mock(m)
             event.set()
@@ -420,7 +421,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler1(m, baggage: CurrentBaggage) -> None:
+        async def handler1(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get("foo") == "bar"
             assert baggage.get_all() == expected_baggage
             assert baggage.get_all_batch() == []
@@ -463,7 +464,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(second_queue)
-        async def handler1(m, baggage: CurrentBaggage):
+        async def handler1(m: Any, baggage: CurrentBaggage) -> Any:
             baggage.clear()
             assert baggage.get_all() == {}
             return m
@@ -471,7 +472,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args2, kwargs2 = self.get_subscriber_params(second_queue)
 
         @broker.subscriber(*args2, **kwargs2)
-        async def handler2(m, baggage: CurrentBaggage) -> None:
+        async def handler2(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == {}
             mock(m)
             event.set()
@@ -512,7 +513,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         @broker.publisher(second_queue)
-        async def handler1(m, baggage: CurrentBaggage):
+        async def handler1(m: Any, baggage: CurrentBaggage) -> Any:
             baggage.set("bar", "baz")
             baggage.set("baz", "bar")
             baggage.remove("foo")
@@ -521,7 +522,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         args2, kwargs2 = self.get_subscriber_params(second_queue)
 
         @broker.subscriber(*args2, **kwargs2)
-        async def handler2(m, baggage: CurrentBaggage) -> None:
+        async def handler2(m: Any, baggage: CurrentBaggage) -> None:
             assert baggage.get_all() == expected_baggage
             mock(m)
             event.set()
@@ -562,7 +563,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             ctx = baggage.set_baggage(key, value, context=ctx)
 
         propagator = W3CBaggagePropagator()
-        headers = {}
+        headers: dict[str, Any] = {}
         propagator.inject(headers, context=ctx)
 
         @broker.subscriber(*args, **kwargs)
@@ -601,7 +602,12 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
                 if self.is_target:
                     type(self).target_taken = True
 
-            async def after_processed(self, exc_type, exc_val, exc_tb):
+            async def after_processed(
+                self,
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None,
+            ) -> Any:
                 if self.is_target:
                     mock(exc_val)
                     event.set()

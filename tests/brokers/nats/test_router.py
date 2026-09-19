@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -126,7 +127,7 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
     ) -> None:
         pub_broker = self.get_broker()
 
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         r = type(router)(

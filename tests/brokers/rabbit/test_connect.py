@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.rabbit import RabbitBroker
@@ -10,7 +12,7 @@ from tests.brokers.base.connection import BrokerConnectionTestcase
 class TestConnection(BrokerConnectionTestcase):
     broker: type[RabbitBroker] = RabbitBroker
 
-    def get_broker_args(self, settings):
+    def get_broker_args(self, settings: Any) -> Any:
         return {"url": settings.url}
 
     @pytest.mark.asyncio()
