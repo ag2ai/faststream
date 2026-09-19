@@ -114,6 +114,8 @@ lint = [
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "import-linter==2.15",
+    "actionlint-py==1.7.12.24",
+    "shellcheck-py==0.11.0.1",                          # actionlint runs it over `run:` scripts
     "mypy==1.19.1",
     "pyright==1.1.407",
     # type checkers extensions

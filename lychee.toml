@@ -1,0 +1,19 @@
+# External links of the guides and the README. `mkdocs build --strict` already
+# covers the internal ones.
+no_progress = true
+max_retries = 3
+timeout = 30
+accept = ["200..=299", "429"]
+
+exclude_path = [
+    # generated from GitHub releases and from the source tree
+    "docs/docs/en/release.md",
+    "docs/docs/en/api",
+]
+
+exclude = [
+    # addresses of the reader's own running application
+    '^https?://(localhost|127\.0\.0\.1)',
+    # answers 403 to anything that is not a browser
+    '^https://sentry\.io/?$',
+]

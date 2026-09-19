@@ -33,7 +33,7 @@ jobs:
           python-version: "3.12"
 
       - name: Set $PY environment variable
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
 
       - name: Install Dependencies
         shell: bash

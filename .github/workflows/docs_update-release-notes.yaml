@@ -40,7 +40,7 @@ jobs:
       - name: Check for changes
         id: git-check
         run: |
-          git diff --quiet || echo "::set-output name=changes_detected::true"
+          git diff --quiet || echo "changes_detected=true" >> "$GITHUB_OUTPUT"
 
       - name: Show git diff
         run: git diff

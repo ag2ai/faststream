@@ -46,6 +46,9 @@ jobs:
       - name: Install Dependencies
         run: |
           uv pip install --system --group optionals --group testing .
+      # every extra installed together, the way a user gets them: no lock
+      - name: Check the installed packages agree on their versions
+        run: uv pip check --system
       - name: Test
         run: >
           pytest --cov --cov-report=

@@ -154,6 +154,11 @@ zizmor:
 import-linter:
   just _static lint-imports
 
+[doc("Actionlint check")]
+[group("static analysis")]
+actionlint:
+  just _static actionlint
+
 [doc("Static analysis check")]
 [group("static analysis")]
 static-analysis: mypy pyright bandit semgrep import-linter

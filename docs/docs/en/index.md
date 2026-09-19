@@ -53,7 +53,7 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
     <img src="https://img.shields.io/github/license/ag2ai/faststream.svg" alt="License" width="120" height="20"/>
   </a>
 
-  <a href="https://github.com/ag2ai/faststream/blob/main/CODE_OF_CONDUCT.md" target="_blank">
+  <a href="https://github.com/ag2ai/faststream/blob/main/.github/CODE_OF_CONDUCT.md" target="_blank">
     <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct" width="156" height="20"/>
   </a>
 
@@ -93,7 +93,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/){.external-link target="_blank"} consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/){.external-link target="_blank"} exchanges and DLQ, [**NATS**](https://nats.io/){.external-link target="_blank"} JetStream and KeyValue, [**Redis**](https://redis.io/){.external-link target="_blank"} Streams, [**MQTT**](https://mqtt.org/){.external-link target="_blank"} QoS. Five first-class clients that happen to share their ergonomics.
 
-- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
+- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://msgspec.dev/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
 
 - [**Powerful Dependency Injection System**](#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system
 
@@ -251,7 +251,7 @@ to define messages using a declarative syntax, making it easy to specify the fie
 
 ### Msgspec serialization
 
-Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"}.
+Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://msgspec.dev/){.external-link target="_blank"}.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="1 4"

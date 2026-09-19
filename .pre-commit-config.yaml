@@ -118,3 +118,12 @@ repos:
         require_serial: true
         verbose: true
         pass_filenames: false
+
+    -   id: actionlint
+        name: actionlint
+        language: python
+        entry: just actionlint
+        files: ^\.github\/(workflows\/|actionlint\.yaml$)
+        require_serial: true
+        verbose: true
+        pass_filenames: false
