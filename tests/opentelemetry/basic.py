@@ -381,7 +381,6 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         queue: str,
         mock: MagicMock,
         tracer_provider: TracerProvider,
-        trace_exporter: InMemorySpanExporter,
         event: asyncio.Event,
     ) -> None:
         mid = self.telemetry_middleware_class(tracer_provider=tracer_provider)

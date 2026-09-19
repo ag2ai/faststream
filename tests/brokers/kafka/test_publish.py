@@ -140,7 +140,6 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     async def test_return_future(
         self,
         queue: str,
-        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker()
 
@@ -165,7 +164,6 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     async def test_raise_buffer_overflow_exception(
         self,
         queue: str,
-        mock: MagicMock,
     ) -> None:
         pub_broker = self.get_broker(max_batch_size=16)
 

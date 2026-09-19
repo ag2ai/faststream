@@ -356,7 +356,6 @@ class TestCaseMetrics:
         metrics_prefix: str,
         queue: str,
         broker: str,
-        messages_amount: int,
         status: PublishingStatus,
     ) -> None:
         manager = self.create_metrics_manager(

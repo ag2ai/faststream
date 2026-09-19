@@ -5,7 +5,6 @@ import pytest
 
 from faststream.rabbit import (
     RabbitExchange,
-    RabbitRouter,
 )
 
 
@@ -29,8 +28,3 @@ def exchange(queue: str) -> Any:
 @pytest.fixture(scope="session")
 def settings() -> Any:
     return Settings()
-
-
-@pytest.fixture()
-def router() -> Any:
-    return RabbitRouter()

@@ -70,7 +70,7 @@ async def test_ignore_cancellation_error(subscriber_with_task_mixin: Any) -> Any
     assert len(subscriber_with_task_mixin.tasks) == 1
 
 
-def test_supervisor_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_supervisor_cache() -> None:
     with patch("time.time") as mocked_time:
         mocked_time.return_value = 0
         cache = _SupervisorCache()
