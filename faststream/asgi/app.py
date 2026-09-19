@@ -322,7 +322,7 @@ class AsgiFastStream(Application):
         else:
             await send({"type": "lifespan.shutdown.complete"})
 
-    async def not_found(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
+    async def not_found(self, scope: "Scope", receive: "Receive", send: "Send") -> None:  # noqa: PLR6301
         not_found_msg = "Application doesn't support regular HTTP protocol."
 
         if scope["type"] == "websocket":

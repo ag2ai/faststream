@@ -165,6 +165,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     def __bool__(self) -> bool:
         return True
 
+    @override
     async def ping(self, timeout: float) -> bool:
         return True
 

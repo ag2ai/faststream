@@ -88,7 +88,7 @@ class AsyncConfluentParser:
             is_manual=self.is_manual,
         )
 
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: "StreamMessage[Message]",
     ) -> "DecodedMessage":

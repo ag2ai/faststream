@@ -120,6 +120,7 @@ class TestNatsBroker(
             es.enter_context(change_producer(broker.config, fake_producer))
             yield
 
+    @override
     async def _fake_connect(
         self,
         broker: NatsBroker,

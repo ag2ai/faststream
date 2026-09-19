@@ -477,7 +477,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         # which the `async for` protocol does not accept.
         raise NotImplementedError
 
-    def get_log_context(
+    def get_log_context(  # noqa: PLR6301
         self,
         message: Optional["StreamMessage[MsgType]"],
     ) -> dict[str, str]:

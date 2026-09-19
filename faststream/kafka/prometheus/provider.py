@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Union, cast
 
+from typing_extensions import override
+
 from faststream.message.message import MsgType, StreamMessage
 from faststream.prometheus import MetricsSettingsProvider
 
@@ -17,6 +19,7 @@ class BaseKafkaMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
     def __init__(self) -> None:
         self.messaging_system = "kafka"
 
+    @override
     def get_publish_destination_name_from_cmd(
         self,
         cmd: "PublishCommand",
@@ -25,6 +28,7 @@ class BaseKafkaMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
 
 
 class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRecord"]):
+    @override
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[ConsumerRecord]",
@@ -39,6 +43,7 @@ class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRec
 class BatchKafkaMetricsSettingsProvider(
     BaseKafkaMetricsSettingsProvider[tuple["ConsumerRecord", ...]],
 ):
+    @override
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[tuple[ConsumerRecord, ...]]",

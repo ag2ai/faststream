@@ -38,7 +38,7 @@ class EmptySubscriberState(SubscriberState):
         raise IncorrectState(msg)
 
     @kv_declarer.setter
-    def kv_declarer(self, v: "KVBucketDeclarer") -> None:
+    def kv_declarer(self, v: "KVBucketDeclarer") -> None:  # noqa: PLR6301
         msg = "Connection is not available yet. Please, setup the subscriber first."
         raise IncorrectState(msg)
 
@@ -48,7 +48,7 @@ class EmptySubscriberState(SubscriberState):
         raise IncorrectState(msg)
 
     @os_declarer.setter
-    def os_declarer(self, v: "OSBucketDeclarer") -> None:
+    def os_declarer(self, v: "OSBucketDeclarer") -> None:  # noqa: PLR6301
         msg = "Connection is not available yet. Please, setup the subscriber first."
         raise IncorrectState(msg)
 

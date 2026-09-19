@@ -60,10 +60,7 @@ ignore = [
 
     # preview
     "CPY",
-    "PLC0415",
-    "PLC2701",  # FIXME
     "PLC2801",
-    "PLR6301",
     "PLW1641",
     "RUF029",
     "RUF067",
@@ -100,7 +97,9 @@ ignore = [
 ]
 
 "benchmarks/**/*.py" = [
-    "T201"
+    "T201",
+    "PLC2701",
+    "TID251",
 ]
 
 # FIXME
@@ -116,11 +115,16 @@ ignore = [
 "**/_compat.py" = [
     "PYI063",
     "PLW3201",
+    "PLC2701",
+    "TID251",
 ]
 
 "tests/**/*.py" = [
     "ANN",  # FIXME
     "S",
+    "PLC2701",  # tests reach into faststream._internal by design
+    "TID251",
+    "TID253",
     "PLR0904",
     "PT030",  # FIXME
     "PLR0914",
@@ -128,9 +132,29 @@ ignore = [
     "RUF045",
 ]
 
+# docs_src modules build a broker on import and share a file across brokers under require_* marks
+"tests/{docs,examples}/**/*.py" = [
+    "PLC0415",
+]
+
 "docs/*.py" = [
     "ALL",      # FIXME
 ]
+
+[lint.flake8-tidy-imports]
+# optional dependencies, imported only where they are needed
+banned-module-level-imports = [
+    "yaml",
+    "uvloop",
+    "tomli",
+    "tomllib",
+    "faststream._internal.cli.supervisors.watchfiles",
+    "faststream._internal.cli.utils.errors",
+]
+
+[lint.flake8-tidy-imports.banned-api]
+"json.loads".msg = "use `faststream._internal._compat.json_loads`"
+"json.dumps".msg = "use `faststream._internal._compat.json_dumps`"
 
 [lint.isort]
 case-sensitive = true

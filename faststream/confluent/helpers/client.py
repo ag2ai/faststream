@@ -154,7 +154,7 @@ class AsyncConfluentProducer:
             return result_future
         return await result_future
 
-    def create_batch(self) -> "BatchBuilder":
+    def create_batch(self) -> "BatchBuilder":  # noqa: PLR6301
         """Creates a batch for sending multiple messages."""
         return BatchBuilder()
 
