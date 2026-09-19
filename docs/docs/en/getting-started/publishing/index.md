@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Publish messages from FastStream with broker.publish, the publisher decorator or a reusable
+  publisher object — in an application or as a plain client.
 search:
   boost: 10
 ---

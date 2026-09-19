@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Collect Prometheus metrics for FastStream publishers and subscribers with the built-in
+  middleware and expose them over the ASGI endpoint.
 search:
   boost: 10
 ---

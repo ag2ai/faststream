@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Wrap FastStream message processing in middlewares to add retries, metrics and error handling
+  to many handlers without touching their business logic.
 search:
   boost: 10
 ---

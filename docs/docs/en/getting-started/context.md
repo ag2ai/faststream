@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Share objects between FastStream handlers with the Context: application-wide fields,
+  per-message scope and the built-in broker, logger and message values.
 search:
   boost: 10
 ---

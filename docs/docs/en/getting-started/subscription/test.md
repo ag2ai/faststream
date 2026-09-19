@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Test FastStream subscribers in memory with TestBroker: no running Kafka, RabbitMQ, NATS or
+  Redis, and assertions straight on the handler mock.
 search:
   boost: 10
 ---
