@@ -28,7 +28,7 @@ pydantic_v2 = pytest.mark.skipif(
 
 
 try:
-    from faststream.confluent import KafkaBroker
+    from faststream.confluent import KafkaBroker as ConfluentBroker  # noqa: F401
 except ImportError:
     HAS_CONFLUENT = False
 else:
