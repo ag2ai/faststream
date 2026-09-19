@@ -101,6 +101,15 @@ repos:
         verbose: true
         pass_filenames: false
 
+    -   id: import-linter
+        name: import-linter
+        language: python
+        entry: just import-linter
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
     -   id: zizmor
         name: zizmor
         language: python

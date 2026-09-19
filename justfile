@@ -149,9 +149,14 @@ semgrep:
 zizmor:
   just _static zizmor .
 
+[doc("Import contracts check")]
+[group("static analysis")]
+import-linter:
+  just _static lint-imports
+
 [doc("Static analysis check")]
 [group("static analysis")]
-static-analysis: mypy pyright bandit semgrep
+static-analysis: mypy pyright bandit semgrep import-linter
 
 
 # Pre-commit
