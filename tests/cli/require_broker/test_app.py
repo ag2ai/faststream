@@ -362,6 +362,7 @@ async def test_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) -
         yield
         await async_mock.off()
 
+    assert app.broker
     app = FastStream(app.broker, lifespan=lifespan)
 
     with (
@@ -384,6 +385,7 @@ def test_sync_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) ->
         yield
         await async_mock.off()
 
+    assert app.broker
     app = FastStream(app.broker, lifespan=lifespan)
 
     with (

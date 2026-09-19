@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 import pytest
 
@@ -14,13 +13,16 @@ def test_set_level() -> None:
     set_log_level(logging.ERROR, app)
     broker._setup_logger()
     broker_logger = broker.config.logger.logger.logger
+    assert isinstance(app.logger, logging.Logger)
+    assert isinstance(broker_logger, logging.Logger)
     assert app.logger.level == broker_logger.level == logging.ERROR
 
 
-def test_set_default(broker: Any) -> None:
+def test_set_default(broker: RabbitBroker) -> None:
     app = FastStream(broker)
     level = "wrong_level"
     set_log_level(get_log_level(level), app)
+    assert isinstance(app.logger, logging.Logger)
     assert app.logger.level is logging.INFO
 
 

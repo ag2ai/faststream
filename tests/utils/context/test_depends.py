@@ -22,7 +22,7 @@ async def test_sync_depends() -> None:
     def func(k: Any = Depends(sync_dep)) -> Any:
         return k is key
 
-    assert func(key=key)
+    assert func(key=key)  # type: ignore[call-arg]
 
 
 @pytest.mark.asyncio()
@@ -42,7 +42,7 @@ async def test_async_depends() -> None:
     async def func(k: Any = Depends(async_dep)) -> Any:
         return k is key
 
-    assert await func(key=key)
+    assert await func(key=key)  # type: ignore[call-arg]
 
 
 @pytest.mark.asyncio()
@@ -53,7 +53,7 @@ async def test_async_with_sync_depends() -> None:
     async def func(k: Any = Depends(sync_dep)) -> Any:
         return k is key
 
-    assert await func(key=key)
+    assert await func(key=key)  # type: ignore[call-arg]
 
 
 @pytest.mark.asyncio()
@@ -66,4 +66,4 @@ async def test_annotated_depends() -> None:
     async def func(k: D) -> Any:
         return k == key
 
-    assert await func(key=key)
+    assert await func(key=key)  # type: ignore[call-arg]
