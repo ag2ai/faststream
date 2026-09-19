@@ -99,8 +99,8 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True] = ...,
-    ) -> asyncio.Future[Message | None]: ...
+        no_confirm: Literal[False] = False,
+    ) -> Message | None: ...
 
     @overload
     async def publish(
@@ -114,8 +114,8 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[False] = False,
-    ) -> Message | None: ...
+        no_confirm: Literal[True] = ...,
+    ) -> asyncio.Future[Message | None]: ...
 
     @overload
     async def publish(
