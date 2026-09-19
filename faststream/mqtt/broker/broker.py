@@ -188,7 +188,7 @@ class MQTTBroker(
                     provider=provider or dependency_provider,
                     context=context or ContextRepo(),
                 ),
-                broker_dependencies=tuple(dependencies),
+                broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
                 id_generator=id_generator,

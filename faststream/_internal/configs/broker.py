@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
@@ -36,10 +36,14 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
-    broker_dependencies: Sequence["Dependant"] = ()
+    broker_dependencies: Iterable["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # a generator is spent by the first subscriber and is truthy even when empty
+        self.broker_dependencies = tuple(self.broker_dependencies)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
@@ -48,7 +52,7 @@ class BrokerConfig:
         return bool(
             self.include_in_schema is not None
             or self.broker_middlewares
-            or self.broker_dependencies
+            or bool(tuple(self.broker_dependencies))
             or self.prefix,
         )
 

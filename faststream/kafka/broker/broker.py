@@ -470,7 +470,7 @@ class KafkaBroker(
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
                 id_generator=id_generator,
-                broker_dependencies=tuple(dependencies),
+                broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,
                 },

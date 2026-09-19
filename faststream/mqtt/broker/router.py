@@ -122,7 +122,7 @@ class MQTTRouter(
             config=MQTTBrokerConfig(
                 prefix=prefix,
                 ack_policy=ack_policy,
-                broker_dependencies=tuple(dependencies),
+                broker_dependencies=dependencies,
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
