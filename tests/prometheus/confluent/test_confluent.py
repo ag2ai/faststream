@@ -17,7 +17,7 @@ from .basic import BatchConfluentPrometheusSettings, ConfluentPrometheusSettings
 @pytest.mark.connected()
 @pytest.mark.confluent()
 class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(self, queue: str, event: asyncio.Event) -> None:
+    async def test_metrics(self, queue: str, event: asyncio.Event) -> None:  # type: ignore[override]
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 
@@ -26,7 +26,7 @@ class TestBatchPrometheus(BatchConfluentPrometheusSettings, LocalPrometheusTestc
         args, kwargs = self.get_subscriber_params(queue, batch=True)
         message = None
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any = Context("message")) -> None:
             event.set()
 

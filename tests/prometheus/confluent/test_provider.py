@@ -40,7 +40,7 @@ class TestKafkaMetricsSettingsProvider(
             "messages_count": 1,
         }
 
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=SimpleNamespace(topic=lambda: queue),
         )
@@ -58,7 +58,7 @@ class TestBatchConfluentMetricsSettingsProvider(
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = [b"Hi ", b"again, ", b"FastStream!"]
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=[
                 SimpleNamespace(topic=lambda: queue)

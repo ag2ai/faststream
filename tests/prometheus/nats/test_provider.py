@@ -40,7 +40,9 @@ class TestNatsMetricsSettingsProvider(
             "message_size": len(body),
             "messages_count": 1,
         }
-        message = SimpleNamespace(body=body, raw_message=SimpleNamespace(subject=queue))
+        message: Any = SimpleNamespace(
+            body=body, raw_message=SimpleNamespace(subject=queue)
+        )
 
         provider = self.get_settings_provider()
         attrs = provider.get_consume_attrs_from_message(message)
@@ -64,7 +66,7 @@ class TestBatchNatsMetricsSettingsProvider(
             "message_size": len(body),
             "messages_count": len(raw_messages),
         }
-        message = SimpleNamespace(body=body, raw_message=raw_messages)
+        message: Any = SimpleNamespace(body=body, raw_message=raw_messages)
 
         provider = self.get_settings_provider()
         attrs = provider.get_consume_attrs_from_message(message)
@@ -72,19 +74,21 @@ class TestBatchNatsMetricsSettingsProvider(
         assert attrs == expected_attrs
 
 
+# `Msg` only stores its client, so a stand-in is enough
+client: Any = SimpleNamespace()
+
+
 @pytest.mark.nats()
 @pytest.mark.parametrize(
     ("msg", "expected_provider"),
     (
         pytest.param(
-            (Msg(SimpleNamespace()), Msg(SimpleNamespace())),
+            (Msg(client), Msg(client)),
             BatchNatsMetricsSettingsProvider(),
             id="message is sequence",
         ),
         pytest.param(
-            Msg(
-                SimpleNamespace(),
-            ),
+            Msg(client),
             NatsMetricsSettingsProvider(),
             id="single message",
         ),

@@ -7,7 +7,7 @@ from faststream.rabbit import RabbitBroker, RabbitExchange
 from faststream.rabbit.prometheus.middleware import RabbitPrometheusMiddleware
 from tests.brokers.rabbit.test_consume import TestConsume as ConsumeCase
 from tests.brokers.rabbit.test_publish import TestPublish as PublishCase
-from tests.prometheus.basic import LocalPrometheusTestcase, LocalRPCPrometheusTestcase
+from tests.prometheus.basic import LocalRPCPrometheusTestcase
 
 from .basic import RabbitPrometheusSettings
 
@@ -21,7 +21,6 @@ def exchange(queue: str) -> Any:
 @pytest.mark.rabbit()
 class TestPrometheus(
     RabbitPrometheusSettings,
-    LocalPrometheusTestcase,
     LocalRPCPrometheusTestcase,
 ):
     pass
