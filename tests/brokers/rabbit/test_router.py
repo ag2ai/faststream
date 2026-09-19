@@ -51,13 +51,14 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         pub_broker = self.get_broker(apply_types=True)
         pub_broker.include_router(router)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request(
-            "",
-            "in.john.2",
-            queue + "1",
-        )
+            await br.request(
+                "",
+                "in.john.2",
+                queue + "1",
+            )
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
@@ -94,13 +95,14 @@ class TestRouter(RabbitTestcaseConfig, RouterTestcase):
         pub_broker = self.get_broker(apply_types=True)
         pub_broker.include_router(router)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request(
-            "",
-            "in.john.2",
-            queue + "1",
-        )
+            await br.request(
+                "",
+                "in.john.2",
+                queue + "1",
+            )
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
