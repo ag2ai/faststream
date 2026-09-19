@@ -1,8 +1,8 @@
 from collections.abc import Callable, Iterable, Sequence
 from contextlib import suppress
-from functools import lru_cache
 from typing import TYPE_CHECKING, Any, TypedDict, Union, cast
 
+from faststream._internal.testing.broker import find_test_broker
 from faststream.asgi.annotations import Request
 from faststream.asgi.handlers import PostHandler, post
 from faststream.asgi.response import AsgiResponse, JSONResponse
@@ -47,18 +47,15 @@ class TryItOutProcessor:
     """Dispatch try-it-out requests by the exact AsyncAPI channel when possible."""
 
     def __init__(self, *brokers: "BrokerUsecase[Any, Any, Any]") -> None:
-        registry = _get_broker_registry()
         self._entries: list[
             tuple[BrokerUsecase[Any, Any, Any], type[TestBroker[Any, Any]]]
         ] = []
         for broker in brokers:
-            for br_cls, test_broker_cls in registry.items():
-                if isinstance(broker, br_cls):
-                    self._entries.append((broker, test_broker_cls))
-                    break
-            else:
+            test_broker_cls = find_test_broker(broker)
+            if test_broker_cls is None:
                 msg = f"TestBroker not available for {broker}. Please, inspect your dependencies."
                 raise ValueError(msg)
+            self._entries.append((broker, test_broker_cls))
 
         if not self._entries:
             msg = "TryItOutProcessor requires at least one broker."
@@ -191,49 +188,3 @@ def _iter_broker_channels(broker: "BrokerUsecase[Any, Any, Any]") -> set[str]:
             channels.update(pub.schema())
 
     return channels
-
-
-@lru_cache(maxsize=1)
-def _get_broker_registry() -> dict[
-    type["BrokerUsecase[Any, Any, Any]"],
-    type["TestBroker[Any, Any]"],
-]:
-    registry: dict[type[BrokerUsecase[Any, Any, Any]], type[TestBroker[Any, Any]]] = {}
-
-    with suppress(ImportError):
-        from faststream.confluent import (
-            KafkaBroker as ConfluentKafkaBroker,
-            TestKafkaBroker as TestConfluentKafkaBroker,
-        )
-
-        registry[ConfluentKafkaBroker] = TestConfluentKafkaBroker
-
-    with suppress(ImportError):
-        from faststream.kafka import (
-            KafkaBroker as AioKafkaBroker,
-            TestKafkaBroker as TestAioKafkaBroker,
-        )
-
-        registry[AioKafkaBroker] = TestAioKafkaBroker
-
-    with suppress(ImportError):
-        from faststream.nats import NatsBroker, TestNatsBroker
-
-        registry[NatsBroker] = TestNatsBroker
-
-    with suppress(ImportError):
-        from faststream.rabbit import RabbitBroker, TestRabbitBroker
-
-        registry[RabbitBroker] = TestRabbitBroker
-
-    with suppress(ImportError):
-        from faststream.redis import RedisBroker, TestRedisBroker
-
-        registry[RedisBroker] = TestRedisBroker
-
-    with suppress(ImportError):
-        from faststream.mqtt import MQTTBroker, TestMQTTBroker
-
-        registry[MQTTBroker] = TestMQTTBroker
-
-    return registry

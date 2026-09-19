@@ -91,7 +91,10 @@ class PEL:
         return self.entries.get(correlation_id)
 
 
-class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
+class TestRedisBroker(
+    TestBroker[RedisBroker, EnterType],
+    broker=RedisBroker,
+):
     """A class to test Redis brokers."""
 
     @overload
