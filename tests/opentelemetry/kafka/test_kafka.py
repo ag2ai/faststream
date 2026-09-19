@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 from dirty_equals import IsStr, IsUUID
@@ -86,9 +86,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         @broker.subscriber(*args, **kwargs)
         async def handler(m: Any, baggage: CurrentBaggage) -> None:
-            assert baggage.get_all() == expected_baggage
-            assert baggage.get_all_batch() == expected_baggage_batch
-            mock(m)
+            mock(m, baggage=baggage.get_all(), batch=baggage.get_all_batch())
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -124,11 +122,16 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         self.assert_metrics(metrics, count=expected_msg_count)
 
         assert event.is_set()
-        mock.assert_called_once_with([1, "hi", 3])
+        mock.assert_called_once_with(
+            [1, "hi", 3],
+            baggage=expected_baggage,
+            batch=expected_baggage_batch,
+        )
 
     async def test_batch_publish_with_single_consume(
         self,
         queue: str,
+        mock: MagicMock,
         meter_provider: MeterProvider,
         metric_reader: InMemoryMetricReader,
         tracer_provider: TracerProvider,
@@ -150,8 +153,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         @broker.subscriber(*args, **kwargs)
         async def handler(msg: Any, baggage: CurrentBaggage) -> None:
-            assert baggage.get_all() == expected_baggage
-            assert baggage.get_all_batch() == []
+            mock(baggage=baggage.get_all(), batch=baggage.get_all_batch())
             await msgs_queue.put(msg)
 
         async with self.patch_broker(broker) as br:
@@ -192,6 +194,8 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         assert pub_dur.data.data_points[0].count == expected_pub_batch_count
 
         assert {1, "hi", 3} == {r.result() for r in result}
+        expected_call = call(baggage=expected_baggage, batch=[])
+        assert mock.call_args_list == [expected_call] * expected_msg_count
 
     async def test_single_publish_with_batch_consume(
         self,
@@ -218,10 +222,8 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
 
         @broker.subscriber(*args, **kwargs)
         async def handler(m: Any, baggage: CurrentBaggage) -> None:
-            assert baggage.get_all() == expected_baggage
-            assert len(baggage.get_all_batch()) == expected_msg_count
             m.sort()
-            mock(m)
+            mock(m, baggage=baggage.get_all(), batch_size=len(baggage.get_all_batch()))
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -258,4 +260,8 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):  # type: ignor
         assert pub_dur.data.data_points[0].count == expected_msg_count
 
         assert event.is_set()
-        mock.assert_called_once_with(["buy", "hi"])
+        mock.assert_called_once_with(
+            ["buy", "hi"],
+            baggage=expected_baggage,
+            batch_size=expected_msg_count,
+        )

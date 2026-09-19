@@ -860,6 +860,7 @@ class TestConsumeStream(RedisTestcaseConfig):
     async def test_consume_and_delete_nacked(
         self,
         queue: str,
+        mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
@@ -869,7 +870,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: RedisStreamMessage) -> None:
-            assert not msg.committed
+            mock(committed=msg.committed)
             await msg.delete(consume_broker._connection)
             event.set()
 
@@ -887,6 +888,7 @@ class TestConsumeStream(RedisTestcaseConfig):
 
                 m.mock.assert_called_once()
 
+            mock.assert_called_once_with(committed=None)
             queue_len = await br._connection.xlen(queue)
             assert queue_len == 0, (
                 f"Redis stream must be empty here, found {queue_len} messages"

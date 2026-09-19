@@ -1,7 +1,7 @@
 import asyncio
 from types import TracebackType
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 from dirty_equals import IsFloat, IsUUID
@@ -391,8 +391,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         async def handler(m: Any, span: CurrentSpan) -> None:
-            assert span is get_current_span()
-            mock(m)
+            mock(m, span_is_current=span is get_current_span())
             event.set()
 
         broker = self.patch_broker(broker)
@@ -406,7 +405,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        mock.assert_called_once_with(msg)
+        mock.assert_called_once_with(msg, span_is_current=True)
 
     async def test_get_baggage(
         self,
@@ -422,11 +421,13 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         async def handler1(m: Any, baggage: CurrentBaggage) -> None:
-            assert baggage.get("foo") == "bar"
-            assert baggage.get_all() == expected_baggage
-            assert baggage.get_all_batch() == []
-            assert baggage.__repr__() == expected_baggage.__repr__()
-            mock(m)
+            mock(
+                m,
+                foo=baggage.get("foo"),
+                baggage=baggage.get_all(),
+                batch=baggage.get_all_batch(),
+                repr=repr(baggage),
+            )
             event.set()
 
         broker = self.patch_broker(broker)
@@ -446,7 +447,13 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        mock.assert_called_once_with(msg)
+        mock.assert_called_once_with(
+            msg,
+            foo="bar",
+            baggage=expected_baggage,
+            batch=[],
+            repr=repr(expected_baggage),
+        )
 
     async def test_clear_baggage(
         self,
@@ -466,15 +473,14 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         @broker.publisher(second_queue)
         async def handler1(m: Any, baggage: CurrentBaggage) -> Any:
             baggage.clear()
-            assert baggage.get_all() == {}
+            mock.cleared(baggage.get_all())
             return m
 
         args2, kwargs2 = self.get_subscriber_params(second_queue)
 
         @broker.subscriber(*args2, **kwargs2)
         async def handler2(m: Any, baggage: CurrentBaggage) -> None:
-            assert baggage.get_all() == {}
-            mock(m)
+            mock(m, baggage=baggage.get_all())
             event.set()
 
         broker = self.patch_broker(broker)
@@ -494,7 +500,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        mock.assert_called_once_with(msg)
+        assert mock.mock_calls == [call.cleared({}), call(msg, baggage={})]
 
     async def test_modify_baggage(
         self,
@@ -523,8 +529,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args2, **kwargs2)
         async def handler2(m: Any, baggage: CurrentBaggage) -> None:
-            assert baggage.get_all() == expected_baggage
-            mock(m)
+            mock(m, baggage=baggage.get_all())
             event.set()
 
         broker = self.patch_broker(broker)
@@ -544,11 +549,12 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        mock.assert_called_once_with(msg)
+        mock.assert_called_once_with(msg, baggage=expected_baggage)
 
     async def test_get_baggage_from_headers(
         self,
         queue: str,
+        mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
         mid = self.telemetry_middleware_class()
@@ -568,9 +574,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
         @broker.subscriber(*args, **kwargs)
         async def handler() -> None:
-            baggage_instance = Baggage.from_headers(headers)
-            extracted_baggage = baggage_instance.get_all()
-            assert extracted_baggage == expected_baggage
+            mock(Baggage.from_headers(headers).get_all())
             event.set()
 
         broker = self.patch_broker(broker)
@@ -584,7 +588,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             )
             await asyncio.wait(tasks, timeout=self.timeout)
 
-        assert event.is_set()
+        mock.assert_called_once_with(expected_baggage)
 
     async def test_correct_finalize_tokens(
         self,
