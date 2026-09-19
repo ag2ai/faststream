@@ -1,10 +1,12 @@
+from typing import Any
+
 from faststream import Context, ContextRepo, FastStream
 from faststream.rabbit import RabbitBroker
 
 broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
 app = FastStream(broker)
 
-ml_models = {}  # fake ML model
+ml_models: dict[str, Any] = {}  # fake ML model
 
 
 def fake_answer_to_everything_ml_model(x: float) -> float:

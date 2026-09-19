@@ -15,32 +15,32 @@ In most cases you are testing your [subscriber](../subscription/test.md){.intern
 For this reason, **FastStream** has a special **TestApp** patcher working as a regular async context manager.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="3 18"
+    ```python linenums="1" hl_lines="3 19"
     {!> docs_src/getting_started/lifespan/kafka/testing.py !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="3 18"
+    ```python linenums="1" hl_lines="3 19"
     {!> docs_src/getting_started/lifespan/confluent/testing.py !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="3 18"
+    ```python linenums="1" hl_lines="3 19"
     {!> docs_src/getting_started/lifespan/rabbit/testing.py !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="3 18"
+    ```python linenums="1" hl_lines="3 19"
     {!> docs_src/getting_started/lifespan/nats/testing.py !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="3 18"
+    ```python linenums="1" hl_lines="3 19"
     {!> docs_src/getting_started/lifespan/redis/testing.py !}
     ```
 
 === "MQTT"
-    ```python linenums="1" hl_lines="3 18"
+    ```python linenums="1" hl_lines="3 19"
     {!> docs_src/getting_started/lifespan/mqtt/testing.py !}
     ```
 

@@ -25,7 +25,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
@@ -52,7 +52,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
@@ -81,14 +81,14 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
         @pub_broker.publisher(queue, batch=True)
-        @pub_broker.subscriber(*args2, **kwargs2)
+        @pub_broker.subscriber(*args2, **kwargs2)  # type: ignore[untyped-decorator]
         async def pub(m: Any) -> Any:
             return 1, "hi"
 
@@ -116,14 +116,14 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         @pub_broker.publisher(queue + "1")
         async def handle() -> Any:
             return KafkaResponse(1, key=b"1")
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
-        @pub_broker.subscriber(*args2, **kwargs2)
+        @pub_broker.subscriber(*args2, **kwargs2)  # type: ignore[untyped-decorator]
         async def handle_next(msg: Any = Context("message")) -> None:
             mock(
                 body=msg.body,
@@ -157,7 +157,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any) -> None:
             pass
 
@@ -183,7 +183,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any) -> None:
             pass
 
@@ -222,7 +222,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -256,7 +256,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -293,7 +293,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -338,7 +338,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -380,7 +380,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any = Context("message")) -> None:
             await values.put(msg.raw_message.value)
 
@@ -402,7 +402,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @pub_broker.subscriber(*args, **kwargs)
+        @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 

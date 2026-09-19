@@ -28,7 +28,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             pattern=f"{queue[:-1]}*",
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def pattern_handler(msg: Any) -> None:
             event.set()
 
@@ -55,7 +55,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
@@ -79,7 +79,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         def subscriber(msg: KafkaMessage) -> None:
             check = all(
                 (
@@ -117,7 +117,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -153,7 +153,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(partitions=[tp1])
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler_tp1(msg: Any) -> None:
             event.set()
 
@@ -182,7 +182,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             await msg.ack()
             event.set()
@@ -222,7 +222,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
             raise AckMessage
@@ -262,7 +262,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             await msg.nack()
             event.set()
@@ -302,7 +302,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.MANUAL,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -341,7 +341,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: bytes) -> None:
             event.set()
             mock(msg)
@@ -373,7 +373,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: list[bytes]) -> None:
             event.set()
             mock(msg)
@@ -454,7 +454,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             group_id="service_1",
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(message: KafkaMessage) -> None:
             nonlocal consumers
             consumers.add(getattr(message.raw_message, "consumer", None))
@@ -508,7 +508,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             group_id="service_1",
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             await asyncio.sleep(0.7)
             if with_explicit_commit:
