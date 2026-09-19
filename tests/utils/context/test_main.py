@@ -208,9 +208,7 @@ def test_initial(context: ContextRepo) -> None:
 async def test_context_with_custom_object_implementing_comparison(
     context: ContextRepo,
 ) -> None:
-    class User:
-        __hash__ = None
-
+    class User:  # noqa: PLW1641 - a user object that defines only `__eq__`
         def __init__(self, user_id: int) -> None:
             self.user_id = user_id
 
