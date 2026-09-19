@@ -4,6 +4,7 @@ from confluent_kafka import Message
 from typing_extensions import assert_type
 
 from faststream.confluent import (
+    ConfluentConfig,
     KafkaBroker,
     KafkaMessage,
     KafkaPublishMessage,
@@ -150,6 +151,9 @@ def check_subscriber_instance_type(
     assert_type(sub3, ConcurrentDefaultSubscriber)
 
 
+config: ConfluentConfig = {"topic.metadata.refresh.fast.interval.ms": 300}
+KafkaBroker(config=config)
+
 KafkaBroker(routers=[KafkaRouter()])
 KafkaBroker().include_router(KafkaRouter())
 KafkaBroker().include_routers(KafkaRouter())
@@ -157,6 +161,8 @@ KafkaBroker().include_routers(KafkaRouter())
 KafkaRouter(routers=[KafkaRouter()])
 KafkaRouter().include_router(KafkaRouter())
 KafkaRouter().include_routers(KafkaRouter())
+
+FastAPIRouter().include_router(KafkaRouter())
 
 
 @KafkaBroker().subscriber("mykey", group_id="my_group", batch=True)

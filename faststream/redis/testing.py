@@ -105,6 +105,7 @@ class TestRedisBroker(
         *,
         with_real: bool = False,
         connect_only: bool | None = None,
+        pel: PEL | None = None,
     ) -> None: ...
 
     @overload
@@ -113,6 +114,7 @@ class TestRedisBroker(
         *brokers: RedisBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        pel: PEL | None = None,
     ) -> None: ...
 
     def __init__(
