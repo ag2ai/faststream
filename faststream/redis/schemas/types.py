@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
 from ssl import VerifyMode
+from typing import Any
 
 from fast_depends import Provider
 from fast_depends.dependencies import Dependant
@@ -161,6 +161,28 @@ class RedisClusterParams(RedisBrokerParams, total=False):
 
     Defaults to ``None``.
     """
+
+    # RedisCluster takes no `ssl_context`: TLS is tuned through these options instead.
+    ssl: bool
+    """Connect over TLS. Defaults to ``False``."""
+
+    ssl_ca_certs: str | None
+    """Path to the CA certificates file. Defaults to ``None``."""
+
+    ssl_ca_data: str | None
+    """CA certificates as a PEM string. Defaults to ``None``."""
+
+    ssl_cert_reqs: str | VerifyMode
+    """Whether the server certificate is required. Defaults to ``"required"``."""
+
+    ssl_certfile: str | None
+    """Path to the client certificate. Defaults to ``None``."""
+
+    ssl_keyfile: str | None
+    """Path to the client private key. Defaults to ``None``."""
+
+    ssl_check_hostname: bool
+    """Verify the server hostname. Default follows redis-py."""
 
 
 class RedisSentinelParams(RedisBrokerParams, total=False):
