@@ -53,7 +53,7 @@ class AioKafkaParser:
             consumer=getattr(message, "consumer", self._consumer),
         )
 
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: "StreamMessage[ConsumerRecord]",
     ) -> "DecodedMessage":

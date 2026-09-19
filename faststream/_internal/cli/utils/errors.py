@@ -1,24 +1,29 @@
+from typing import TYPE_CHECKING
+
+from typer.core import TyperOption
+
 from faststream.exceptions import StartupValidationError
 
-
-def draw_startup_errors(startup_exc: StartupValidationError) -> None:
-    from typer.core import TyperOption
-
+# type checkers see one click, or `TyperOption` stops matching the union of both
+if TYPE_CHECKING:
+    from typer._click import exceptions as click_exceptions
+else:
     try:
         from typer._click import exceptions as click_exceptions
     except ImportError:  # pragma: no cover - Typer < 0.26
-        from click import exceptions as click_exceptions  # type: ignore[no-redef]
+        from click import exceptions as click_exceptions
 
-    def draw_error(click_exc: click_exceptions.ClickException) -> None:
-        try:
-            from typer import rich_utils
+try:
+    from typer.rich_utils import rich_format_error
+except ImportError:  # typer-slim ships without rich
 
-            rich_utils.rich_format_error(click_exc)
-        except ImportError:
-            click_exc.show()
+    def rich_format_error(self: click_exceptions.ClickException) -> None:
+        self.show()
 
+
+def draw_startup_errors(startup_exc: StartupValidationError) -> None:
     for field in startup_exc.invalid_fields:
-        draw_error(
+        rich_format_error(
             click_exceptions.BadParameter(
                 message=(
                     "extra option in your application "
@@ -29,7 +34,7 @@ def draw_startup_errors(startup_exc: StartupValidationError) -> None:
         )
 
     if startup_exc.missed_fields:
-        draw_error(
+        rich_format_error(
             click_exceptions.MissingParameter(
                 message=(
                     "You registered extra options in your application "

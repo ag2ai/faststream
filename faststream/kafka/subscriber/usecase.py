@@ -304,6 +304,7 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
 
+    @override
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
         assert consumer, "You should setup subscriber at first."
         return await consumer.getone()
@@ -463,6 +464,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
 
         await super().stop()
 
+    @override
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "KafkaRawMessage":
         assert consumer, "You should setup subscriber at first."
         message = await consumer.getone()

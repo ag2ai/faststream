@@ -264,7 +264,6 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
     @pytest.mark.asyncio()
     async def test_publisher_response_with_model(self, queue: str) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2578."""
-        from pydantic import BaseModel
 
         class ModelA(BaseModel):
             param1: int

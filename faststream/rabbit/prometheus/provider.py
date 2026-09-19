@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from typing_extensions import override
+
 from faststream.prometheus import (
     ConsumeAttrs,
     MetricsSettingsProvider,
@@ -20,6 +22,7 @@ class RabbitMetricsSettingsProvider(
     def __init__(self) -> None:
         self.messaging_system = "rabbitmq"
 
+    @override
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[IncomingMessage]",
@@ -33,6 +36,7 @@ class RabbitMetricsSettingsProvider(
             "messages_count": 1,
         }
 
+    @override
     def get_publish_destination_name_from_cmd(
         self,
         cmd: RabbitPublishCommand,

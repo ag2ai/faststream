@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream.message.utils import encode_message
 from tests.brokers.base.basic import BaseTestcaseConfig
 
@@ -244,8 +244,6 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 pass
 
     async def test_batch_codec_isinstance_dispatch(self) -> None:
-        from faststream._internal.parser import BatchCodecProto
-
         class WithBatch(DefaultCodec):
             async def encode_batch(
                 self,

@@ -161,23 +161,6 @@ class TestBroker(Generic[Broker, EnterType]):
         raise NotImplementedError
 
     @contextmanager
-    def _patch_logger(self, broker: Broker) -> Generator[None, None, None]:
-        broker._setup_logger()
-
-        logger_state = broker.config.logger
-
-        old_log_object, logger_state.logger = (
-            logger_state.logger,
-            RealLoggerObject(MagicMock()),
-        )
-
-        try:
-            yield
-
-        finally:
-            logger_state.logger = old_log_object
-
-    @contextmanager
     def _patch_broker(self, broker: Broker) -> Generator[None, None, None]:
         with (
             mock.patch.object(
@@ -200,7 +183,7 @@ class TestBroker(Generic[Broker, EnterType]):
                 new=None,
             ),
             self._patch_producer(broker),
-            self._patch_logger(broker),
+            _patch_logger(broker),
             mock.patch.object(
                 broker,
                 "ping",
@@ -294,6 +277,26 @@ def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
 
         for h in sub.calls:
             h.handler.set_test()
+
+
+@contextmanager
+def _patch_logger(
+    broker: "BrokerUsecase[Any, Any, Any]",
+) -> Generator[None, None, None]:
+    broker._setup_logger()
+
+    logger_state = broker.config.logger
+
+    old_log_object, logger_state.logger = (
+        logger_state.logger,
+        RealLoggerObject(MagicMock()),
+    )
+
+    try:
+        yield
+
+    finally:
+        logger_state.logger = old_log_object
 
 
 _TEST_BROKERS: dict[type[BrokerUsecase[Any, Any, Any]], type[TestBroker[Any, Any]]] = {}

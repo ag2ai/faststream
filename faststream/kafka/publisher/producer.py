@@ -42,7 +42,7 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
     def closed(self) -> bool:
         return True
 
-    async def flush(self) -> None:
+    async def flush(self) -> None:  # noqa: PLR6301
         return None
 
     @abstractmethod
@@ -57,6 +57,7 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
+    @override
     async def request(self, cmd: "KafkaPublishCommand") -> Any:
         msg = "Kafka doesn't support `request` method without test client."
         raise FeatureNotSupportedException(msg)

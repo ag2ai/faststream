@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 from dirty_equals import IsPartialDict
+from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
@@ -270,8 +271,6 @@ class TestConsumeList(RedisTestcaseConfig):
         queue: str,
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
-
-        from pydantic import BaseModel
 
         class Data(BaseModel):
             m: str
@@ -643,8 +642,6 @@ class TestConsumeStream(RedisTestcaseConfig):
         queue: str,
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
-
-        from pydantic import BaseModel
 
         class Data(BaseModel):
             m: str

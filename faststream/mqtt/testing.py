@@ -152,6 +152,7 @@ class TestMQTTBroker(
         with change_producer(broker.config.broker_config, fake_producer):
             yield
 
+    @override
     async def _fake_connect(  # type: ignore[override]
         self,
         broker: MQTTBroker,

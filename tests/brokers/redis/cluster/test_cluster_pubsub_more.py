@@ -4,6 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from faststream import Context
+from faststream.exceptions import StopConsume
 from tests.brokers.redis.basic import RedisClusterTestcaseConfig
 
 from .settings import SettingsCluster
@@ -145,8 +147,6 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        from faststream import Context
-
         broker = self.get_broker(
             apply_types=True,
             startup_nodes=settings_cluster.startup_nodes,
@@ -190,8 +190,6 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        from faststream.exceptions import StopConsume
-
         broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
         @broker.subscriber(channel=f"stop-channel-{queue}")
