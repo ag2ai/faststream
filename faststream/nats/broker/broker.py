@@ -2,11 +2,13 @@ import logging
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     Optional,
     Union,
     cast,
 )
+from urllib.parse import urlparse
 
 import anyio
 import nats
@@ -27,7 +29,7 @@ from nats.aio.client import (
 from nats.aio.msg import Msg
 from nats.errors import Error
 from nats.js.errors import BadRequestError
-from typing_extensions import overload, override
+from typing_extensions import deprecated, overload, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -35,6 +37,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.types import IdGenerator
+from faststream.exceptions import SetupError
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
@@ -43,9 +46,18 @@ from faststream.nats.publisher.producer import (
     NatsJSFastProducer,
 )
 from faststream.nats.response import NatsPublishCommand
-from faststream.nats.security import parse_security
+from faststream.nats.security import (
+    NatsCredentials,
+    NatsJWT,
+    NatsNKey,
+    NatsSecurity,
+    NatsToken,
+    parse_security,
+    warn_deprecated_security_args,
+)
 from faststream.nats.subscriber.usecases.basic import LogicSubscriber
 from faststream.response.publish_type import PublishType
+from faststream.security import BaseSecurity
 from faststream.specification.schema import BrokerSpec
 
 from .logging import make_nats_logger_state
@@ -75,7 +87,6 @@ if TYPE_CHECKING:
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
     from faststream.nats.schemas import PubAck, Schedule
-    from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
     class NatsInitKwargs(TypedDict, total=False):
@@ -164,6 +175,7 @@ if TYPE_CHECKING:
         flusher_queue_size: int
         no_echo: bool
         tls_hostname: str | None
+        tls_handshake_first: bool
         token: str | None
         drain_timeout: int
         signature_cb: "SignatureCallback | None"
@@ -192,6 +204,119 @@ UNRECOVERABLE_CONNECT_ERRORS = (
     "parser error",
     "secure connection - tls required",
 )
+
+
+def _adapt_deprecated_security(
+    security: BaseSecurity | None,
+    *,
+    tls_hostname: str | None,
+    token: str | None,
+    signature_cb: Optional["SignatureCallback"],
+    user_jwt_cb: Optional["JWTCallback"],
+    user_credentials: Optional["Credentials"],
+    nkeys_seed: str | None,
+    nkeys_seed_str: str | None,
+) -> BaseSecurity | None:
+    deprecated_arguments: list[str] = []
+    authentication_mechanisms: list[str] = []
+
+    if tls_hostname is not EMPTY and tls_hostname is not None:
+        deprecated_arguments.append("tls_hostname")
+    if token is not EMPTY and token is not None:
+        deprecated_arguments.append("token")
+        authentication_mechanisms.append("token")
+    if user_credentials is not EMPTY and user_credentials is not None:
+        deprecated_arguments.append("user_credentials")
+        authentication_mechanisms.append("user_credentials")
+    if nkeys_seed is not EMPTY and nkeys_seed is not None:
+        deprecated_arguments.append("nkeys_seed")
+        authentication_mechanisms.append("nkeys_seed")
+    if nkeys_seed_str is not EMPTY and nkeys_seed_str is not None:
+        deprecated_arguments.append("nkeys_seed_str")
+        authentication_mechanisms.append("nkeys_seed_str")
+
+    signature_callback_supplied = signature_cb is not EMPTY and signature_cb is not None
+    jwt_callback_supplied = user_jwt_cb is not EMPTY and user_jwt_cb is not None
+    if signature_callback_supplied:
+        deprecated_arguments.append("signature_cb")
+    if jwt_callback_supplied:
+        deprecated_arguments.append("user_jwt_cb")
+
+    if deprecated_arguments:
+        warn_deprecated_security_args(*deprecated_arguments)
+
+    if signature_callback_supplied != jwt_callback_supplied:
+        msg = "`user_jwt_cb` and `signature_cb` must be provided together."
+        raise SetupError(msg)
+    if signature_callback_supplied:
+        authentication_mechanisms.append("JWT callbacks")
+
+    if len(authentication_mechanisms) > 1:
+        mechanisms = ", ".join(authentication_mechanisms)
+        msg = (
+            "Only one deprecated NATS authentication mechanism can be "
+            f"used at a time, but got: {mechanisms}."
+        )
+        raise SetupError(msg)
+
+    ssl_context = security.ssl_context if security is not None else None
+    use_ssl = security.use_ssl if security is not None else None
+    if isinstance(security, NatsSecurity):
+        resolved_tls_hostname = security.tls_hostname
+        tls_handshake_first = security.tls_handshake_first
+    else:
+        resolved_tls_hostname = None
+        tls_handshake_first = False
+    if tls_hostname is not EMPTY and tls_hostname is not None:
+        resolved_tls_hostname = tls_hostname
+
+    if token is not EMPTY and token is not None:
+        return NatsToken(
+            token,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if user_credentials is not EMPTY and user_credentials is not None:
+        return NatsCredentials(
+            user_credentials,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if nkeys_seed is not EMPTY and nkeys_seed is not None:
+        return NatsNKey.from_file(
+            nkeys_seed,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if nkeys_seed_str is not EMPTY and nkeys_seed_str is not None:
+        return NatsNKey.from_seed(
+            nkeys_seed_str,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if (
+        user_jwt_cb is not EMPTY
+        and user_jwt_cb is not None
+        and signature_cb is not EMPTY
+        and signature_cb is not None
+    ):
+        return NatsJWT(
+            user_jwt_cb,
+            signature_cb,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    return security
 
 
 class NatsBroker(
@@ -223,14 +348,35 @@ class NatsBroker(
         dont_randomize: bool = False,
         flusher_queue_size: int = DEFAULT_MAX_FLUSHER_QUEUE_SIZE,
         no_echo: bool = False,
-        tls_hostname: str | None = None,
-        token: str | None = None,
+        tls_hostname: Annotated[
+            str | None,
+            deprecated("Use `security=NatsSecurity(...)` instead."),
+        ] = EMPTY,
+        token: Annotated[
+            str | None,
+            deprecated("Use `security=NatsToken(...)` instead."),
+        ] = EMPTY,
         drain_timeout: int = DEFAULT_DRAIN_TIMEOUT,
-        signature_cb: Optional["SignatureCallback"] = None,
-        user_jwt_cb: Optional["JWTCallback"] = None,
-        user_credentials: Optional["Credentials"] = None,
-        nkeys_seed: str | None = None,
-        nkeys_seed_str: str | None = None,
+        signature_cb: Annotated[
+            Optional["SignatureCallback"],
+            deprecated("Use `security=NatsJWT(...)` instead."),
+        ] = EMPTY,
+        user_jwt_cb: Annotated[
+            Optional["JWTCallback"],
+            deprecated("Use `security=NatsJWT(...)` instead."),
+        ] = EMPTY,
+        user_credentials: Annotated[
+            Optional["Credentials"],
+            deprecated("Use `security=NatsCredentials(...)` instead."),
+        ] = EMPTY,
+        nkeys_seed: Annotated[
+            str | None,
+            deprecated("Use `security=NatsNKey.from_file(...)` instead."),
+        ] = EMPTY,
+        nkeys_seed_str: Annotated[
+            str | None,
+            deprecated("Use `security=NatsNKey.from_seed(...)` instead."),
+        ] = EMPTY,
         inbox_prefix: str | bytes = DEFAULT_INBOX_PREFIX,
         pending_size: int = DEFAULT_PENDING_SIZE,
         flush_timeout: float | None = None,
@@ -372,9 +518,37 @@ class NatsBroker(
             context:
                 Context for FastDepends.
         """
-        secure_kwargs = parse_security(security)
-
         servers = [servers] if isinstance(servers, str) else list(servers)
+
+        security = _adapt_deprecated_security(
+            security,
+            tls_hostname=tls_hostname,
+            token=token,
+            signature_cb=signature_cb,
+            user_jwt_cb=user_jwt_cb,
+            user_credentials=user_credentials,
+            nkeys_seed=nkeys_seed,
+            nkeys_seed_str=nkeys_seed_str,
+        )
+
+        if (
+            security is not None
+            and type(security)
+            not in {
+                BaseSecurity,
+                NatsSecurity,
+            }
+            and any(
+                urlparse(url if "://" in url else f"//{url}").username is not None
+                for url in servers
+            )
+        ):
+            msg = "URL credentials conflict with `security`."
+            raise SetupError(msg)
+
+        secure_kwargs = parse_security(security)
+        if tls_hostname is not EMPTY and tls_hostname is not None:
+            secure_kwargs["tls_hostname"] = tls_hostname
 
         if specification_url is not None:
             if isinstance(specification_url, str):
@@ -415,11 +589,6 @@ class NatsBroker(
             flusher_queue_size=flusher_queue_size,
             ws_connection_headers=ws_connection_headers,
             # security
-            tls_hostname=tls_hostname,
-            token=token,
-            user_credentials=user_credentials,
-            nkeys_seed=nkeys_seed,
-            nkeys_seed_str=nkeys_seed_str,
             **secure_kwargs,
             # callbacks
             error_cb=self._log_connection_broken(error_cb),
@@ -427,8 +596,6 @@ class NatsBroker(
             disconnected_cb=disconnected_cb,
             closed_cb=closed_cb,
             discovered_server_cb=discovered_server_cb,
-            signature_cb=signature_cb,
-            user_jwt_cb=user_jwt_cb,
             reconnect_to_server_handler=reconnect_to_server_handler,
             # Basic args
             routers=routers,
