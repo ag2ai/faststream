@@ -45,7 +45,7 @@ All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start(
 
 ## Typing
 
-- mypy runs with `strict = true` (see `[tool.mypy]` in `pyproject.toml`): every function fully annotated, no implicit `Optional`, decorators typed. Checked paths: `faststream/` and all of `tests/`.
+- mypy runs with `strict = true` (see `[tool.mypy]` in `pyproject.toml`): every function fully annotated, no implicit `Optional`, decorators typed. Checked paths: `faststream/`, all of `tests/` and `docs/docs_src/`.
 - Generics are used for broker abstractions: `BrokerUsecase[MsgType, ConnectionType, BrokerConfigType]` (see `faststream/_internal/broker/broker.py`), `BaseMiddleware[PublishCommandType, AnyMsg]`.
 - Import `Callable`, `Awaitable`, `Sequence`, `Mapping` from `collections.abc`; newer typing features (`Self`, `ParamSpec`, `TypedDict`, ...) from `typing_extensions`.
 - Connection kwargs use `TypedDict` (e.g. `KafkaInitKwargs` in `faststream/kafka/broker/broker.py`).

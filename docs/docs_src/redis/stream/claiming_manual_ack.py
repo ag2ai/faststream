@@ -17,7 +17,7 @@ app = FastStream(broker)
 async def handle(msg: RedisStreamMessage, logger: Logger, redis: Redis):
     try:
         # Process the claimed message
-        logger.info(f"Processing: {msg.body}")
+        logger.info(f"Processing: {msg.body!r}")
         # Explicitly acknowledge after successful processing
         await msg.ack(redis=redis, group="critical-tasks")
     except Exception as e:

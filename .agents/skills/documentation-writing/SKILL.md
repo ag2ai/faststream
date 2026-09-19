@@ -40,6 +40,8 @@ async def test_basic() -> None:
         handle.mock.assert_called_once_with("Hi!")
 ```
 
+`just mypy` checks `docs/docs_src/` too. The annotation checks are off there (a handler may omit `-> None`, a bare `dict` is fine), every other check is on: a snippet that calls the public API wrongly fails CI. A snippet that is right while mypy disagrees points at an annotation in `faststream/` — fix it there, in its own PR with a case in `tests/mypy/`. A snippet that is wrong on purpose gets a commented per-module `[[tool.mypy.overrides]]` in `pyproject.toml`, not a `# type: ignore` the reader would see.
+
 The test imports via the `docs.docs_src.…` package path, while the markdown embeds it via the `docs_src/…` path (mdx_include `base_path` is `docs/`). Either way the snippet MUST live under `docs/docs_src/`, not repo-root `docs_src/` — otherwise the embed silently resolves to nothing and the import fails.
 
 ## Markdown conventions
