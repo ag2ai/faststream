@@ -140,8 +140,7 @@ markdown_extensions:
   - admonition                   # !!! note blocks support
   - pymdownx.details             # admonition collapsible
   - pymdownx.superfences         # highlight code syntax
-  - pymdownx.highlight:
-      anchor_linenums: true      # allows link to codeline
+  - pymdownx.highlight
   - pymdownx.inlinehilite        # inline code highlighting `#!python <code>`
   - pymdownx.tabbed:
       alternate_style: true      # create tabs group
