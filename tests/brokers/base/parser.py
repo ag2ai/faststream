@@ -217,6 +217,7 @@ class LocalCustomParserTestcase(BaseTestcaseConfig[Any]):
             await sub.start()
             start_event.set()
 
+            msg: Any = None
             async for m in sub:
                 assert not mock.called
                 msg = await m.decode()

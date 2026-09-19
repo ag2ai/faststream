@@ -28,5 +28,6 @@ class TestConnection(BrokerConnectionTestcase):
                 password=settings.password,
             ),
         )
-        assert await broker.connect()
+        connection = await broker.connect()
+        assert not connection.is_closed
         await broker.stop()

@@ -190,7 +190,9 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
         async with self.patch_broker(pub_broker) as br:
             await br.start()
             with pytest.raises(BatchBufferOverflowException) as e:
-                await br.publish_batch(1, "Hello, world!", topic=queue, no_confirm=True)
+                _ = await br.publish_batch(
+                    1, "Hello, world!", topic=queue, no_confirm=True
+                )
             assert e.value.message_position == 1
 
     @pytest.mark.asyncio()
@@ -207,7 +209,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
             async with self.patch_broker(pub_broker) as br:
                 publisher = br.publisher(queue)
                 await br.start()
-                await publisher.publish("Hello, world!", partition=0, no_confirm=True)
+                _ = await publisher.publish("Hello, world!", partition=0, no_confirm=True)
 
         producer_send_mock.assert_called_once()
         assert producer_send_mock.mock_calls[0].kwargs["partition"] == 0
