@@ -1,10 +1,12 @@
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.data import filter_by_dict
+from faststream.rabbit.call_wrapper import RabbitCallAssertions, RabbitHandlerCallWrapper
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 from faststream.response.publish_type import PublishType
@@ -24,10 +26,12 @@ if TYPE_CHECKING:
     from .config import RabbitPublisherConfig
 
 
-class RabbitPublisher(PublisherUsecase):
+class RabbitPublisher(RabbitCallAssertions, PublisherUsecase):
     """A class to represent a RabbitMQ publisher."""
 
     _outer_config: "RabbitBrokerConfig"
+    _call_wrapper_class = RabbitHandlerCallWrapper
+    _read_field = RabbitHandlerCallWrapper._read_field
 
     def __init__(
         self,
@@ -53,6 +57,17 @@ class RabbitPublisher(PublisherUsecase):
 
         publish_options, _ = filter_by_dict(PublishOptions, dict(config.message_kwargs))
         self.publish_options = publish_options
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "RabbitHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+            super().__call__(func),
+        )
 
     @property
     def message_options(self) -> "BasicMessageOptions":

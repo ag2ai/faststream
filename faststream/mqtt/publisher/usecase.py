@@ -1,10 +1,12 @@
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Union
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from typing_extensions import override
 from zmqtt import QoS
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
+from faststream.mqtt.call_wrapper import MqttCallAssertions, MqttHandlerCallWrapper
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -18,10 +20,12 @@ if TYPE_CHECKING:
     from .config import MQTTPublisherConfig
 
 
-class MQTTPublisher(PublisherUsecase):
+class MQTTPublisher(MqttCallAssertions, PublisherUsecase):
     """Publisher for MQTT topics."""
 
     _outer_config: "MQTTBrokerConfig"
+    _call_wrapper_class = MqttHandlerCallWrapper
+    _read_field = MqttHandlerCallWrapper._read_field
 
     def __init__(
         self,
@@ -34,6 +38,17 @@ class MQTTPublisher(PublisherUsecase):
         self.qos = config.qos
         self.retain = config.retain
         self.headers = config.headers or {}
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> "MqttHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "MqttHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+            super().__call__(func),
+        )
 
     @property
     def topic(self) -> str:

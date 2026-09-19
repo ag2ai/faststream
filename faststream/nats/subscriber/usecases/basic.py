@@ -1,14 +1,20 @@
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    Union,
+    cast,
 )
 
+from typing_extensions import overload, override
+
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
-from faststream._internal.types import MsgType
+from faststream._internal.endpoint.subscriber.utils import default_filter
+from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address
+from faststream.nats.call_wrapper import NatsHandlerCallWrapper
 from faststream.nats.publisher.fake import NatsFakePublisher
 from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.nats.subscriber.adapters import (
@@ -16,12 +22,14 @@ from faststream.nats.subscriber.adapters import (
 )
 
 if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
     from nats.aio.client import Client
     from nats.js import JetStreamContext
 
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.types import CustomCallable, Filter
     from faststream.message import StreamMessage
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.subscriber.config import NatsSubscriberConfig
@@ -33,6 +41,7 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
     subscription: Unsubscriptable | None
     _fetch_sub: Unsubscriptable | None
     _outer_config: "NatsBrokerConfig"
+    _call_wrapper_class = NatsHandlerCallWrapper
 
     def __init__(
         self,
@@ -49,6 +58,61 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         self._fetch_sub = None
         self.subscription = None
+
+    @overload
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
+
+    @overload
+    def __call__(
+        self,
+        func: None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Callable[
+        [Callable[P_HandlerParams, T_HandlerReturn]],
+        "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+    ]: ...
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn] | None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Union[
+        "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        Callable[
+            [Callable[P_HandlerParams, T_HandlerReturn]],
+            "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        ],
+    ]:
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn] | Callable["
+            "[Callable[P_HandlerParams, T_HandlerReturn]], "
+            "NatsHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]]",
+            super().__call__(
+                func,
+                filter=filter,
+                parser=parser,
+                decoder=decoder,
+                dependencies=dependencies,
+            ),
+        )
 
     @property
     def subject(self) -> "Address":

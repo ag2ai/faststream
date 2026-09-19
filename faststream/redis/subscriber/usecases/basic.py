@@ -1,29 +1,34 @@
 import logging
 from abc import abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias, Union, cast
 
 import anyio
-from typing_extensions import override
+from typing_extensions import overload, override
 
 from faststream._internal.endpoint.subscriber import (
     SubscriberSpecification,
     SubscriberUsecase,
 )
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
+from faststream._internal.endpoint.subscriber.utils import default_filter
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
+from faststream.redis.call_wrapper import RedisHandlerCallWrapper
 from faststream.redis.message import (
     UnifyRedisDict,
 )
 from faststream.redis.publisher.fake import RedisFakePublisher
 
 if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
     from redis.asyncio.client import Redis
 
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber.call_item import (
         CallsCollection,
     )
+    from faststream._internal.types import CustomCallable, Filter
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.subscriber.config import RedisSubscriberConfig
@@ -42,6 +47,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
 
     _outer_config: "RedisBrokerConfig"
+    _call_wrapper_class = RedisHandlerCallWrapper
 
     def __init__(
         self,
@@ -51,6 +57,61 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     ) -> None:
         super().__init__(config, specification, calls)
         self.config = config
+
+    @overload
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
+
+    @overload
+    def __call__(
+        self,
+        func: None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Callable[
+        [Callable[P_HandlerParams, T_HandlerReturn]],
+        "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+    ]: ...
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn] | None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Union[
+        "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        Callable[
+            [Callable[P_HandlerParams, T_HandlerReturn]],
+            "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        ],
+    ]:
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn] | Callable["
+            "[Callable[P_HandlerParams, T_HandlerReturn]], "
+            "RedisHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]]",
+            super().__call__(
+                func,
+                filter=filter,
+                parser=parser,
+                decoder=decoder,
+                dependencies=dependencies,
+            ),
+        )
 
     @property
     def _client(self) -> "Redis[bytes]":
