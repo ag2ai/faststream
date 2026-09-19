@@ -75,6 +75,11 @@ plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   # - meta                         # (insiders) use .meta.yml files
+  - privacy:                     # self-host Google Fonts: no render-blocking third-party CSS
+      assets_include:
+        - fonts.googleapis.com/*
+        - fonts.gstatic.com/*
+      links: false
   - glightbox:                   # image zoom
       manual: true
   - macros:                      # Jinja templates
@@ -140,8 +145,7 @@ markdown_extensions:
   - admonition                   # !!! note blocks support
   - pymdownx.details             # admonition collapsible
   - pymdownx.superfences         # highlight code syntax
-  - pymdownx.highlight:
-      anchor_linenums: true      # allows link to codeline
+  - pymdownx.highlight
   - pymdownx.inlinehilite        # inline code highlighting `#!python <code>`
   - pymdownx.tabbed:
       alternate_style: true      # create tabs group
