@@ -202,6 +202,15 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
 
+[[tool.mypy.overrides]]
+# Cross-broker testcases hold the broker as `Any`: each broker spells
+# `subscriber()` differently, so its decorator cannot be typed there.
+module = [
+    "tests.asgi.testcase",
+    "tests.integrations.msgspec.test_serialization",
+]
+disallow_untyped_decorators = false
+
 [tool.pyright]
 # Public API surface only: `tests/mypy` exercises the documented API the way a
 # user does. Pyright still follows imports into `faststream/`, so breakage in

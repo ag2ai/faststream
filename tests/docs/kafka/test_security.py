@@ -7,9 +7,7 @@ import pytest
 
 
 @contextmanager
-def patch_aio_consumer_and_producer() -> Generator[
-    tuple[MagicMock, MagicMock], None, None
-]:
+def patch_aio_consumer_and_producer() -> Generator[MagicMock, None, None]:
     try:
         producer = MagicMock(return_value=AsyncMock())
         admin_client = MagicMock(return_value=AsyncMock())
