@@ -3,9 +3,6 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from faststream.specification.base import Specification, SpecificationFactory
 
-from .v2_6_0 import get_app_schema as schema_2_6
-from .v3_0_0 import get_app_schema as schema_3_0
-
 if TYPE_CHECKING:
     from faststream._internal.basic_types import AnyHttpUrl
     from faststream._internal.broker import BrokerUsecase
@@ -65,6 +62,8 @@ class AsyncAPI(SpecificationFactory):
 
     def to_specification(self) -> Specification:
         if self.schema_version.startswith("3."):
+            from .v3_0_0 import get_app_schema as schema_3_0
+
             return schema_3_0(
                 *self.brokers,
                 title=self.title,
@@ -81,6 +80,8 @@ class AsyncAPI(SpecificationFactory):
             )
 
         if self.schema_version.startswith("2.6."):
+            from .v2_6_0 import get_app_schema as schema_2_6
+
             return schema_2_6(
                 *self.brokers,
                 title=self.title,

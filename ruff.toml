@@ -96,6 +96,11 @@ ignore = [
     "N815",     # Variable `*` in class scope should not be mixedCase
 ]
 
+# the schema packages import their own modules
+"faststream/specification/asyncapi/{v2_6_0,v3_0_0}/**/*.py" = [
+    "TID253",
+]
+
 "benchmarks/**/*.py" = [
     "T201",
     "PLR6301",
@@ -162,6 +167,9 @@ banned-module-level-imports = [
     "tomllib",
     "faststream._internal.cli.supervisors.watchfiles",
     "faststream._internal.cli.utils.errors",
+    # build many pydantic models on import; loaded only when a schema is generated
+    "faststream.specification.asyncapi.v2_6_0",
+    "faststream.specification.asyncapi.v3_0_0",
 ]
 
 [lint.flake8-tidy-imports.banned-api]
