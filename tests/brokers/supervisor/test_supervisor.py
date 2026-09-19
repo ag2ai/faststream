@@ -35,14 +35,14 @@ async def test_task_failed_after_stop_is_not_restarted(
     subscriber_with_task_mixin: Any,
 ) -> None:
     async def failing_task() -> Any:
+        # `stop()` forgets the tasks while this one is on its way down
+        subscriber_with_task_mixin.tasks.clear()
         raise ValueError
 
-    task = asyncio.create_task(failing_task())
+    subscriber_with_task_mixin.add_task(failing_task)
+    task = subscriber_with_task_mixin.tasks[-1]
     with suppress(ValueError):
         await task
-
-    # `stop()` clears the tasks before a late done callback runs
-    TaskCallbackSupervisor(failing_task, None, None, subscriber_with_task_mixin)(task)
 
     assert subscriber_with_task_mixin.tasks == []
 
