@@ -192,33 +192,37 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         self, fake_producer_cls: Any
     ) -> None:
         test_broker = self.get_broker()
-        await test_broker.start()
 
-        old_producer = test_broker._producer
+        async with test_broker:
+            await test_broker.start()
 
-        async with self.patch_broker(test_broker) as br:
-            assert isinstance(br.start, Mock)
-            assert isinstance(br._connect, Mock)
-            assert isinstance(br.stop, Mock)
-            assert isinstance(br._producer, fake_producer_cls)
+            old_producer = test_broker._producer
 
-        assert not isinstance(br.start, Mock)
-        assert not isinstance(br._connect, Mock)
-        assert not isinstance(br.stop, Mock)
-        assert br._connection is not None
-        assert br._producer == old_producer
+            async with self.patch_broker(test_broker) as br:
+                assert isinstance(br.start, Mock)
+                assert isinstance(br._connect, Mock)
+                assert isinstance(br.stop, Mock)
+                assert isinstance(br._producer, fake_producer_cls)
 
-    @pytest.mark.asyncio()
-    async def test_broker_with_real_doesnt_get_patched(self) -> None:
-        test_broker = self.get_broker()
-        await test_broker.start()
-
-        async with self.patch_broker(test_broker, with_real=True) as br:
             assert not isinstance(br.start, Mock)
             assert not isinstance(br._connect, Mock)
             assert not isinstance(br.stop, Mock)
             assert br._connection is not None
-            assert br._producer is not None
+            assert br._producer == old_producer
+
+    @pytest.mark.asyncio()
+    async def test_broker_with_real_doesnt_get_patched(self) -> None:
+        test_broker = self.get_broker()
+
+        async with test_broker:
+            await test_broker.start()
+
+            async with self.patch_broker(test_broker, with_real=True) as br:
+                assert not isinstance(br.start, Mock)
+                assert not isinstance(br._connect, Mock)
+                assert not isinstance(br.stop, Mock)
+                assert br._connection is not None
+                assert br._producer is not None
 
     @pytest.mark.asyncio()
     async def test_broker_with_real_patches_publishers_and_subscribers(

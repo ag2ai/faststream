@@ -227,23 +227,31 @@ class _RPCCallback:
         self.queue = callback_queue
 
     async def __aenter__(self) -> "MemoryObjectReceiveStream[IncomingMessage]":
-        send_response_stream: MemoryObjectSendStream[AbstractIncomingMessage]
-        receive_response_stream: MemoryObjectReceiveStream[AbstractIncomingMessage]
+        self.send_response_stream: MemoryObjectSendStream[AbstractIncomingMessage]
+        self.receive_response_stream: MemoryObjectReceiveStream[AbstractIncomingMessage]
 
-        (
-            send_response_stream,
-            receive_response_stream,
-        ) = anyio.create_memory_object_stream(max_buffer_size=1)
         await self.lock.acquire()
 
-        self.consumer_tag = await self.queue.consume(
-            callback=send_response_stream.send,
-            no_ack=True,
-        )
+        (
+            self.send_response_stream,
+            self.receive_response_stream,
+        ) = anyio.create_memory_object_stream(max_buffer_size=1)
+
+        try:
+            self.consumer_tag = await self.queue.consume(
+                callback=self.send_response_stream.send,
+                no_ack=True,
+            )
+
+        except BaseException:
+            # `__aexit__` does not run when entering fails
+            self._close_streams()
+            self.lock.release()
+            raise
 
         return cast(
             "MemoryObjectReceiveStream[IncomingMessage]",
-            receive_response_stream,
+            self.receive_response_stream,
         )
 
     async def __aexit__(
@@ -253,4 +261,12 @@ class _RPCCallback:
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         self.lock.release()
-        await self.queue.cancel(self.consumer_tag)
+
+        try:
+            await self.queue.cancel(self.consumer_tag)
+        finally:
+            self._close_streams()
+
+    def _close_streams(self) -> None:
+        self.send_response_stream.close()
+        self.receive_response_stream.close()
