@@ -195,6 +195,11 @@ To use NATS with FastStream, please install dependencies:\n
 pip install "faststream[nats]"
 """
 
+INSTALL_NATS_NKEYS = """
+To use NKey or credentials authentication with NATS, please install dependencies:\n
+pip install "nats-py[nkeys]"
+"""
+
 INSTALL_FASTSTREAM_MQTT = """
 To use MQTT with FastStream, please install dependencies:\n
 pip install "faststream[mqtt]"

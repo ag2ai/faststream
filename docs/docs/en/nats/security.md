@@ -79,6 +79,11 @@ requires asynchronous or slow I/O, refresh the token separately and have the cal
 NKey authentication uses an Ed25519 challenge-response exchange. The server stores the user's **public** NKey. The client keeps the corresponding private
 seed and signs a fresh nonce from the server; the seed itself is not transmitted.
 
+!!! note "Optional dependency"
+    `NatsNKey` and `NatsCredentials` require the optional NKey support from
+    `nats-py`. Install it with `pip install "nats-py[nkeys]"` before creating
+    either security object.
+
 Use an explicit factory so a file path is never confused with raw seed content:
 
 ```python linenums="1" hl_lines="4"

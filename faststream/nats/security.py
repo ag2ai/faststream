@@ -6,10 +6,16 @@ from typing import TYPE_CHECKING, Any, Final
 from nats.aio.client import Credentials, RawCredentials
 from typing_extensions import Self, override
 
+from faststream.exceptions import INSTALL_NATS_NKEYS
 from faststream.security import BaseSecurity, SASLPlaintext
 
 if TYPE_CHECKING:
     from ssl import SSLContext
+
+try:
+    import nkeys as _nkeys
+except ImportError:
+    _nkeys = None
 
 
 def warn_deprecated_security_args(*arguments: str) -> None:
@@ -137,6 +143,9 @@ class NatsCredentials(NatsSecurity):
         tls_hostname: str | None = None,
         tls_handshake_first: bool = False,
     ) -> None:
+        if _nkeys is None:
+            raise ImportError(INSTALL_NATS_NKEYS)
+
         super().__init__(
             ssl_context=ssl_context,
             use_ssl=use_ssl,
@@ -246,6 +255,9 @@ class NatsNKey(NatsSecurity):
         tls_hostname: str | None = None,
         tls_handshake_first: bool = False,
     ) -> None:
+        if _nkeys is None:
+            raise ImportError(INSTALL_NATS_NKEYS)
+
         if not str(seed_file):
             msg = "NATS NKey seed file cannot be empty."
             raise ValueError(msg)
