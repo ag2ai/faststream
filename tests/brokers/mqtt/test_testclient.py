@@ -93,6 +93,7 @@ class TestTestclient(MQTTMemoryTestcaseConfig, BrokerTestclientTestcase):
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
 
+@pytest.mark.mqtt()
 class TestTopicMatching:
     """Unit tests for the MQTT wildcard matching helper."""
 

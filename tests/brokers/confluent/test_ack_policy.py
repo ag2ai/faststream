@@ -13,6 +13,7 @@ from tests.tools import spy_decorator
 from .basic import ConfluentTestcaseConfig
 
 
+@pytest.mark.confluent()
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):

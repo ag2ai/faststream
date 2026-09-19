@@ -677,6 +677,8 @@ jobs:
       # collection covers connected tests too, so no broker is needed
       - name: Fail on fixtures no test requests
         run: python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
+      - name: Fail on marks that drop a test from the job meant to run it
+        run: python -m pytest --collect-only -q -m "" -p tests.misplaced_marks
 
   # https://github.com/marketplace/actions/alls-green#why
   docs:

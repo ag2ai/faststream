@@ -215,6 +215,7 @@ class TestTestclient(
             assert msg.raw_message.expiration == expected
 
 
+@pytest.mark.rabbit()
 @pytest.mark.parametrize(
     ("pattern", "current", "result"),
     (

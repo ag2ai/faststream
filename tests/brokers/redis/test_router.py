@@ -23,7 +23,6 @@ class TestRouter(RedisTestcaseConfig, RouterTestcase):
 
 
 @pytest.mark.redis()
-@pytest.mark.connected()
 class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = RedisRoute
     publisher_class = RedisPublisher

@@ -54,6 +54,7 @@ def test_router_ack_policy() -> None:
     assert sub.ack_policy is AckPolicy.REJECT_ON_ERROR
 
 
+@pytest.mark.confluent()
 @pytest.mark.rabbit()
 def test_broker_ack_policy_without_router() -> None:
     broker = KafkaBroker(ack_policy=AckPolicy.REJECT_ON_ERROR)

@@ -18,6 +18,7 @@ from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
 
 
+@pytest.mark.redis_cluster()
 class TestRedisClusterConnectionStateUnit:
     """Unit tests for RedisClusterConnectionState (no cluster needed)."""
 
@@ -43,6 +44,7 @@ class TestRedisClusterConnectionStateUnit:
         assert state._thread_pool is None
 
 
+@pytest.mark.redis_cluster()
 class TestClusterBrokerWarnings:
     """Tests for RuntimeWarning on pipeline usage."""
 
@@ -61,6 +63,7 @@ class TestClusterBrokerWarnings:
                 await br.publish_batch("x", list="l", pipeline=None)
 
 
+@pytest.mark.redis_cluster()
 class TestClusterBrokerInheritanceExtra:
     """Additional inheritance/API compatibility tests."""
 
@@ -136,6 +139,7 @@ class TestClusterBrokerInheritanceExtra:
         assert len(broker.subscribers) == 1
 
 
+@pytest.mark.redis_cluster()
 class TestSyncPubSubProxyUnit:
     """Unit tests for _SyncPubSubProxy."""
 
@@ -150,6 +154,7 @@ class TestSyncPubSubProxyUnit:
             pool.shutdown(wait=False)
 
 
+@pytest.mark.redis_cluster()
 class TestRedisClusterConnectionStateDisconnect:
     """Tests for disconnect lifecycle."""
 
@@ -175,6 +180,7 @@ class TestRedisClusterConnectionStateDisconnect:
         assert state
 
 
+@pytest.mark.redis_cluster()
 class TestClusterFastProducerUnit:
     """Direct unit tests for RedisClusterFastProducer routing logic."""
 
@@ -401,6 +407,7 @@ class TestClusterFastProducerUnit:
             await producer.request(cmd)
 
 
+@pytest.mark.redis_cluster()
 class TestClusterBrokerPing:
     """Tests for RedisClusterBroker.ping()."""
 
@@ -418,6 +425,7 @@ class TestClusterBrokerPing:
         assert result is False
 
 
+@pytest.mark.redis_cluster()
 class TestRedisBrokerInit:
     """Covers branch paths in __init__."""
 

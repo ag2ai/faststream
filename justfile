@@ -50,6 +50,11 @@ test-all +param="tests/":
 unused-fixtures:
   uv run --frozen python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
 
+[doc("Fail on marks that drop a test from the CI job meant to run it")]
+[group("tests")]
+misplaced-marks:
+  uv run --frozen python -m pytest --collect-only -q -m "" -p tests.misplaced_marks
+
 [doc("Run fast tests with coverage")]
 [group("tests")]
 test-coverage +param="tests/":
