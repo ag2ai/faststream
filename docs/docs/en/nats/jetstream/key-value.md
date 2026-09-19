@@ -24,7 +24,7 @@ This interface provides you with rich abilities to use it like a regular *KV* st
 
 ## FastStream Details
 
-**FastStream** has some useful methods to help you with **Key-Value NATS** feature interacting.
+**FastStream** has some useful methods to help you interact with the **Key-Value NATS** feature.
 
 First of all, you need to create a *Key-Value* storage object and put some value to it:
 
@@ -33,17 +33,17 @@ First of all, you need to create a *Key-Value* storage object and put some value
 ```
 
 !!! tip
-    `#!python broker.key_value(bucket="bucket")` is an idempotent method. It means that it stores all already created storages in memory and do not make new request to **NATS** if your are trying to call it for the same bucket.
+    `#!python broker.key_value(bucket="bucket")` is an idempotent method. It means that it stores all already created storages in memory and does not make a new request to **NATS** if you are trying to call it for the same bucket.
 
 ---
 
-Then we are able to use returned `key_value` object as a regular NATS one. But, if you want to watch by any changes by some key in the bucket, **FastStream** allows you to make it via regular `#!python @broker.subscriber` interface:
+Then we are able to use the returned `key_value` object as a regular NATS one. But, if you want to watch for any changes of some key in the bucket, **FastStream** allows you to make it via regular `#!python @broker.subscriber` interface:
 
 ```python linenums="1" hl_lines="1"
 {! docs_src/nats/js/key_value.py [ln:8-10] !}
 ```
 
-Also, if you want more detail settings for you **Key Value Storage**, we have `KvWatch` object for it:
+Also, if you want more detailed settings for your **Key Value Storage**, we have `KvWatch` object for it:
 
 ```python linenums="1" hl_lines="5"
 from faststream.nats import NatsBroker, KvWatch

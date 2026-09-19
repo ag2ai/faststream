@@ -111,7 +111,7 @@ Install using `pip`:
 ## Basic Usage
 
 !!! note
-    Before continuing with the next steps, make sure you install *Fastream* CLI.
+    Before continuing with the next steps, make sure you install *FastStream* CLI.
     ```shell
     pip install "faststream[cli]"
     ```
