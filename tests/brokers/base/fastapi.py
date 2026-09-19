@@ -576,8 +576,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
 
         @router.subscriber(*args, **kwargs)
         async def hello(a: Any, w: Any = Depends(dep)) -> Any:
-            mock.start.assert_called_once()
-            assert not mock.close.call_count
+            mock.inside(started=mock.start.call_count, closed=mock.close.call_count)
             return w
 
         async with self.patch_broker(router.broker) as br:
@@ -588,6 +587,8 @@ class FastAPILocalTestcase(BaseTestcaseConfig):
             )
             assert await r.decode() == "hi", r
 
+        # the dependency is open while the handler runs and closed after it
+        mock.inside.assert_called_once_with(started=1, closed=0)
         mock.start.assert_called_once()
         mock.close.assert_called_once()
 

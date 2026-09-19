@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
+from ssl import VerifyMode
 
 from fast_depends import Provider
 from fast_depends.dependencies import Dependant

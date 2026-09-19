@@ -37,7 +37,10 @@ if TYPE_CHECKING:
 __all__ = ("TestKafkaBroker",)
 
 
-class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
+class TestKafkaBroker(
+    TestBroker[KafkaBroker, EnterType],
+    broker=KafkaBroker,
+):
     """A class to test Kafka brokers."""
 
     @overload

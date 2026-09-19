@@ -44,7 +44,10 @@ if TYPE_CHECKING:
 __all__ = ("TestRabbitBroker",)
 
 
-class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
+class TestRabbitBroker(
+    TestBroker[RabbitBroker, EnterType],
+    broker=RabbitBroker,
+):
     """A class to test RabbitMQ brokers."""
 
     @overload
