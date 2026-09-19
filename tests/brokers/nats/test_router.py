@@ -40,9 +40,10 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
         pub_broker.include_router(router)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request("", "in.john.2")
+            await br.request("", "in.john.2")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
@@ -63,9 +64,10 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
         pub_broker.include_router(router)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request("", "root.john.nested")
+            await br.request("", "root.john.nested")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john")
@@ -89,9 +91,10 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
         pub_broker.include_router(router)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request("", "test.in.john.2")
+            await br.request("", "test.in.john.2")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
@@ -115,9 +118,10 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
         pub_broker.include_router(r)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await pub_broker.request("", "in.john.2")
+            await br.request("", "in.john.2")
 
         assert event.is_set()
         mock.assert_called_once_with(name="john", id=2)
@@ -137,15 +141,16 @@ class TestRouter(NatsTestcaseConfig, RouterTestcase):
 
         pub_broker.include_router(r)
 
-        await pub_broker.start()
+        async with self.patch_broker(pub_broker) as br:
+            await br.start()
 
-        await asyncio.wait(
-            (
-                asyncio.create_task(pub_broker.publish("hello", f"test.{queue}")),
-                asyncio.create_task(event.wait()),
-            ),
-            timeout=3,
-        )
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish("hello", f"test.{queue}")),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
 
         assert event.is_set()
 
