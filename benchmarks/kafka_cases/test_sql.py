@@ -1,0 +1,241 @@
+import asyncio
+import json
+import time
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager, suppress
+
+import asyncpg
+import pytest
+from aiokafka import AIOKafkaConsumer
+from metrics import registry, tracer_provider
+from opentelemetry import metrics, trace
+from opentelemetry.semconv._incubating.attributes import messaging_attributes
+from schemas.pydantic import Schema
+from sql import DSN, find_user_by_name
+
+from faststream.kafka import KafkaBroker, KafkaMessage
+from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
+from faststream.kafka.prometheus import KafkaPrometheusMiddleware
+from faststream.opentelemetry.consts import (
+    ERROR_TYPE,
+    INSTRUMENTING_LIBRARY_VERSION,
+    INSTRUMENTING_MODULE_NAME,
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    OTEL_SCHEMA,
+    MessageAction,
+)
+from faststream.prometheus.container import MetricsContainer
+from faststream.prometheus.manager import MetricsManager
+from faststream.prometheus.types import ProcessingStatus
+
+from .test_basic import SequenceTrackingMixin, prefill_topic
+
+MESSAGING_SYSTEM = "kafka"
+
+
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=150,
+    max_time=300,
+)
+class TestFaststreamKafkaSQLCase(SequenceTrackingMixin):
+    comment = "Consume Messages with SQL"
+    broker_type = "Kafka"
+    prefetch = None  
+    batch = False
+    ack_mode = "ack_first"  
+
+    async def setup_method(self, prefill_messages: int) -> None:
+        self.EVENTS_PROCESSED: int = 0
+        self._init_sequence_tracking(prefill_messages)
+        self.sql_pool = await asyncpg.create_pool(dsn=DSN)
+
+        broker = self.broker = KafkaBroker(
+            logger=None,
+            graceful_timeout=10,
+            middlewares=[
+                KafkaPrometheusMiddleware(registry=registry),
+                KafkaTelemetryMiddleware(tracer_provider=tracer_provider),
+            ],
+        )
+
+        @broker.subscriber("in", auto_offset_reset="earliest")
+        async def handle(message: Schema, raw: KafkaMessage) -> Schema:
+            self.EVENTS_PROCESSED += 1
+            self._track_message(json.loads(raw.body.decode()))
+            await find_user_by_name(message.name, self.sql_pool)
+            return message
+
+        self.handler = handle
+
+        await prefill_topic("localhost:9092", prefill_messages)
+
+    @asynccontextmanager
+    async def start(self) -> AsyncGenerator[float, None]:
+        async with self.broker:
+            await self.broker.start()
+            start_time = time.time()
+
+            yield start_time
+
+    async def test_consume_message(self) -> None:
+        async with self.start():
+            await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED > 0
+
+
+@pytest.mark.asyncio()
+@pytest.mark.benchmark(
+    min_time=150,
+    max_time=300,
+)
+class TestPureKafkaSQLCase(SequenceTrackingMixin):
+    comment = "Pure aio-kafka client with SQL"
+    broker_type = "Kafka"
+    prefetch = None 
+    batch = False
+    ack_mode = "auto_commit"  
+
+    async def setup_method(self, prefill_messages: int) -> None:
+        self.EVENTS_PROCESSED = 0
+        self._init_sequence_tracking(prefill_messages)
+        self.sql_pool = await asyncpg.create_pool(dsn=DSN)
+
+        container = MetricsContainer(registry, custom_label_names=())
+        self.metrics = MetricsManager(container, app_name="faststream")
+
+        self.tracer = trace.get_tracer(
+            INSTRUMENTING_MODULE_NAME,
+            INSTRUMENTING_LIBRARY_VERSION,
+            tracer_provider=tracer_provider,
+            schema_url=OTEL_SCHEMA,
+        )
+        meter = metrics.get_meter(__name__, schema_url=OTEL_SCHEMA)
+        self.process_duration = meter.create_histogram(
+            name="messaging.process.duration",
+            unit="s",
+            description="Measures the duration of process operation.",
+        )
+        self.process_counter = meter.create_counter(
+            name="messaging.process.messages",
+            unit="message",
+            description="Measures the number of processed messages.",
+        )
+
+        await prefill_topic("localhost:9092", prefill_messages)
+
+    @asynccontextmanager
+    async def start(self) -> AsyncGenerator[float, None]:
+        consumer = AIOKafkaConsumer(
+            "in",
+            bootstrap_servers="localhost:9092",
+            auto_offset_reset="earliest",
+            enable_auto_commit=True,
+        )
+        await consumer.start()
+
+        metrics_manager = self.metrics
+        tracer = self.tracer
+
+        start_time = time.time()
+        stop_event = asyncio.Event()
+
+        async def message_loop() -> None:
+            try:
+                async for msg in consumer:
+                    if stop_event.is_set():
+                        break
+                    self.EVENTS_PROCESSED += 1
+
+                    body = msg.value
+                    metrics_manager.add_received_message(
+                        broker=MESSAGING_SYSTEM, handler="in"
+                    )
+                    metrics_manager.observe_received_messages_size(
+                        broker=MESSAGING_SYSTEM, handler="in", size=len(body)
+                    )
+                    metrics_manager.add_received_message_in_process(
+                        broker=MESSAGING_SYSTEM, handler="in"
+                    )
+
+                    trace_attributes = {
+                        messaging_attributes.MESSAGING_SYSTEM: MESSAGING_SYSTEM,
+                        messaging_attributes.MESSAGING_MESSAGE_BODY_SIZE: len(body),
+                        MESSAGING_DESTINATION_PUBLISH_NAME: "in",
+                    }
+                    metrics_attributes = {
+                        messaging_attributes.MESSAGING_SYSTEM: MESSAGING_SYSTEM,
+                        MESSAGING_DESTINATION_PUBLISH_NAME: "in",
+                    }
+
+                    err: Exception | None = None
+                    started_at = time.perf_counter()
+                    try:
+                        with tracer.start_as_current_span(
+                            name=f"in {MessageAction.PROCESS}",
+                            kind=trace.SpanKind.CONSUMER,
+                            attributes=trace_attributes,
+                        ) as span:
+                            span.set_attribute(
+                                messaging_attributes.MESSAGING_OPERATION_TYPE,
+                                MessageAction.PROCESS,
+                            )
+                            self._track_message(data := json.loads(body.decode()))
+                            parsed = Schema(**data)
+                            await find_user_by_name(parsed.name, self.sql_pool)
+                    except Exception as e:
+                        err = e
+                        metrics_attributes[ERROR_TYPE] = type(e).__name__
+                        metrics_manager.add_received_processed_message_exception(
+                            broker=MESSAGING_SYSTEM,
+                            handler="in",
+                            exception_type=type(e).__name__,
+                        )
+                        raise
+                    finally:
+                        duration = time.perf_counter() - started_at
+
+                        self.process_duration.record(
+                            duration, attributes=metrics_attributes
+                        )
+                        self.process_counter.add(
+                            1,
+                            attributes={
+                                k: v
+                                for k, v in metrics_attributes.items()
+                                if k != ERROR_TYPE
+                            },
+                        )
+
+                        metrics_manager.observe_received_processed_message_duration(
+                            duration=duration,
+                            broker=MESSAGING_SYSTEM,
+                            handler="in",
+                        )
+                        metrics_manager.remove_received_message_in_process(
+                            broker=MESSAGING_SYSTEM, handler="in"
+                        )
+                        metrics_manager.add_received_processed_message(
+                            broker=MESSAGING_SYSTEM,
+                            handler="in",
+                            status=ProcessingStatus.error
+                            if err
+                            else ProcessingStatus.acked,
+                        )
+            except asyncio.CancelledError:
+                pass
+
+        task = asyncio.create_task(message_loop())
+        try:
+            yield start_time
+        finally:
+            stop_event.set()
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+            await consumer.stop()
+
+    async def test_consume_message(self) -> None:
+        async with self.start():
+            await asyncio.sleep(1)
+        assert self.EVENTS_PROCESSED > 0
