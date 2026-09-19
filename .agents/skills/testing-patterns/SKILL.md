@@ -149,6 +149,18 @@ takes a dict literal, so dotted keys and enum values read the same as the config
 mirror. An equality that already fails on a missing delivery stands alone; the
 `assert event.is_set()` in front of it says nothing more.
 
+## Tests are type checked
+
+`just mypy` runs the same strict config over all of `tests/`, so a test is annotated like library code: every function, fixture and handler has its parameters and return typed.
+
+- **Cross-broker testcases hold the broker as `Any`.** A base class in `tests/brokers/base/`, `tests/asyncapi/base/` and the like subclasses `BaseTestcaseConfig[Any]` and types `broker_class`, `router_class` and friends as `Any` — each broker spells `subscriber()` differently. Such a module also joins the `disallow_untyped_decorators = false` override in `pyproject.toml`; broker-specific tests keep the check.
+- **A value that is wrong on purpose goes through `Any`**, not an ignore: `router: Any = NatsRouter()` before handing it to a Kafka broker, `channel_manager: Any = FakeChannelManager(mock)` for a stand-in. The same goes for private internals (`producer: Any = broker._producer`).
+- **The raw client comes from the public API**: `client = await br.connect()`, never `br._connection`, which is `None`-able.
+- **Narrow with an assertion the test already implies** — `assert message`, `assert isinstance(point, HistogramDataPoint)` — and put a repeated one in a small module-level helper.
+- **`# type: ignore[code]` is for what nothing else expresses**, always with its code and before any `# noqa`: `subscriber(*args, **kwargs)` from `get_subscriber_params()` resolves to `Any` (`untyped-decorator`), a test overriding a base test with other fixtures (`override`), a name redefined on purpose (`no-redef`), a call missing a required argument to prove it raises (`call-arg`).
+
+A typing problem that turns out to live in `faststream/` is fixed there, in its own PR with a case in `tests/mypy/`, not papered over in the test.
+
 ## Regression tests
 
 A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
