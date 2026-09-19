@@ -5,6 +5,7 @@ from typing import (
     Any,
     Generic,
     Optional,
+    cast,
 )
 
 import anyio
@@ -28,11 +29,16 @@ if TYPE_CHECKING:
 def ensure_call_wrapper(
     call: Callable[P_HandlerParams, T_HandlerReturn],
     outer_config: BrokerConfig,
+    wrapper_class: "type[HandlerCallWrapper[..., Any]]",
 ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+    # An already wrapped handler keeps its class: the first decorator decides it
     if isinstance(call, HandlerCallWrapper):
         return call
 
-    return HandlerCallWrapper(call, outer_config)
+    return cast(
+        "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        wrapper_class(call, outer_config),
+    )
 
 
 class HandlerCallWrapper(CallAssertions, Generic[P_HandlerParams, T_HandlerReturn]):

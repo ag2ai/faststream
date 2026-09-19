@@ -10,6 +10,7 @@ from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
 from faststream.exceptions import SetupError
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiopika
 from tests.tools import spy_decorator
 
 from .basic import ConfluentMemoryTestcaseConfig
@@ -157,6 +158,61 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             # A batch has one header set per message, so there is no single answer
             with pytest.raises(SetupError, match="received a batch"):
                 await m.assert_called_once_with(headers={"key": "value"})
+
+            with pytest.raises(SetupError, match=r"received a batch.*key, partition"):
+                await m.assert_called_once_with(key=b"k", partition=0)
+
+    async def test_assertions_take_the_kafka_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue, key=b"k", partition=1)
+
+            await handle.assert_called_once_with("hello", key=b"k", partition=1)
+            await handle.assert_called_with(key=b"k")
+            await handle.assert_any_call(partition=1)
+
+            with pytest.raises(AssertionError, match="key: expected b'other', got b'k'"):
+                await handle.assert_called_once_with("hello", key=b"other")
+
+    async def test_publisher_assertions_take_the_kafka_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue + "2")
+
+        @broker.subscriber(queue)
+        async def handle(msg) -> None:
+            await publisher.publish("response", key=b"k", partition=1)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+
+            await publisher.assert_called_once_with("response", key=b"k", partition=1)
+            await publisher.assert_called_with(key=b"k")
+            await publisher.assert_any_call(partition=1)
+
+    @require_aiopika
+    async def test_kafka_fields_refuse_another_brokers_message(self, queue: str) -> None:
+        from faststream.rabbit import RabbitBroker, TestRabbitBroker
+
+        broker = self.get_broker()
+        rabbit = RabbitBroker()
+
+        # The first decorator decides the wrapper class: Kafka's here
+        @rabbit.subscriber(queue)
+        @broker.subscriber(queue)
+        async def handle(msg) -> None: ...
+
+        async with self.patch_broker(broker), TestRabbitBroker(rabbit):
+            await rabbit.publish("hello", queue)
+
+            await handle.assert_called_once_with("hello")
+
+            with pytest.raises(SetupError, match="`key` is a Kafka field"):
+                await handle.assert_called_once_with("hello", key=b"k")
 
     async def test_batch_publisher_mock(self, queue: str) -> None:
         broker = self.get_broker()

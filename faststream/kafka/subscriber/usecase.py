@@ -1,8 +1,8 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import anyio
 from aiokafka import (
@@ -10,13 +10,15 @@ from aiokafka import (
     TopicPartition as AIOKafkaTopicPartition,
 )
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
-from typing_extensions import override
+from typing_extensions import overload, override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
+from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import MsgType
+from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address, AddressSyntax
+from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -24,10 +26,12 @@ from faststream.kafka.publisher.fake import KafkaFakePublisher
 
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
+    from fast_depends.dependencies import Dependant
 
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.types import CustomCallable, Filter
     from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.message import StreamMessage
 
@@ -49,6 +53,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     parser: AioKafkaParser
 
     _outer_config: "KafkaBrokerConfig"
+    _call_wrapper_class = KafkaHandlerCallWrapper
 
     def __init__(
         self,
@@ -67,6 +72,61 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._connection_args = config.connection_args
 
         self.consumer = None
+
+    @overload
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
+
+    @overload
+    def __call__(
+        self,
+        func: None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Callable[
+        [Callable[P_HandlerParams, T_HandlerReturn]],
+        "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+    ]: ...
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn] | None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Iterable["Dependant"] = (),
+    ) -> Union[
+        "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        Callable[
+            [Callable[P_HandlerParams, T_HandlerReturn]],
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        ],
+    ]:
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn] | Callable["
+            "[Callable[P_HandlerParams, T_HandlerReturn]], "
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]]",
+            super().__call__(
+                func,
+                filter=filter,
+                parser=parser,
+                decoder=decoder,
+                dependencies=dependencies,
+            ),
+        )
 
     @property
     def pattern(self) -> Address | None:

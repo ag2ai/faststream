@@ -1,7 +1,7 @@
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from copy import copy
 from dataclasses import dataclass, field, fields
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 from unittest.mock import MagicMock
 
 from faststream._internal.constants import EMPTY
@@ -12,6 +12,9 @@ from faststream.exceptions import ContextError, SetupError
 if TYPE_CHECKING:
     from faststream._internal.configs import BrokerConfig
     from faststream.message import StreamMessage
+
+# Takes a Broker field off the raw message, under the name the broker's `publish()` uses
+FieldReader: TypeAlias = Callable[[str, "StreamMessage[Any]"], Any]
 
 
 class CallAssertions:
@@ -50,9 +53,7 @@ class CallAssertions:
             path: The exact path parameters the subject template matched.
             context: Context paths, as given to `Context()`, mapped to their values.
         """
-        recorder = self._recorder_with_calls()
-        recorder.mock.assert_called_once()
-        await recorder.assert_last_call(
+        await self._assert_called_once_with(
             ExpectedCall(
                 body=body,
                 headers=headers,
@@ -87,8 +88,7 @@ class CallAssertions:
             path: The exact path parameters the subject template matched.
             context: Context paths, as given to `Context()`, mapped to their values.
         """
-        recorder = self._recorder_with_calls()
-        await recorder.assert_last_call(
+        await self._assert_called_with(
             ExpectedCall(
                 body=body,
                 headers=headers,
@@ -123,8 +123,7 @@ class CallAssertions:
             path: The exact path parameters the subject template matched.
             context: Context paths, as given to `Context()`, mapped to their values.
         """
-        recorder = self._recorder_with_calls()
-        await recorder.assert_any_call(
+        await self._assert_any_call(
             ExpectedCall(
                 body=body,
                 headers=headers,
@@ -135,6 +134,18 @@ class CallAssertions:
                 context=context,
             )
         )
+
+    async def _assert_called_once_with(self, expected: "ExpectedCall") -> None:
+        """The check behind `assert_called_once_with`; a broker's mixin enters here."""
+        recorder = self._recorder_with_calls()
+        recorder.mock.assert_called_once()
+        await recorder.assert_last_call(expected)
+
+    async def _assert_called_with(self, expected: "ExpectedCall") -> None:
+        await self._recorder_with_calls().assert_last_call(expected)
+
+    async def _assert_any_call(self, expected: "ExpectedCall") -> None:
+        await self._recorder_with_calls().assert_any_call(expected)
 
     def _recorder_with_calls(self) -> "CallRecorder":
         recorder = self._recorder_under_test()
@@ -250,6 +261,10 @@ class CallRecorder:
                     actual = EMPTY
                 checks.compare(f"context[{key!r}]", value, actual)
 
+        if (fields := expected.broker_fields) is not None:
+            for name, value in fields.values.items():
+                checks.compare(name, value, fields.read(name, call.message))
+
         return checks.lines
 
     async def _expected_body(self, body: Any, message: "StreamMessage[Any]") -> Any:
@@ -290,14 +305,24 @@ class ExpectedCall:
     content_type: Any
     path: Any
     context: Mapping[str, Any]
+    broker_fields: "BrokerFields | None" = None
 
     def message_fields(self) -> list[str]:
         """The names asked of the message beside its body."""
+        named = (f.name for f in fields(self) if f.name not in {"body", "broker_fields"})
         return [
-            f.name
-            for f in fields(self)
-            if f.name != "body" and getattr(self, f.name) is not EMPTY
+            *(name for name in named if getattr(self, name) is not EMPTY),
+            *(self.broker_fields.values if self.broker_fields else ()),
         ]
+
+
+@dataclass(slots=True)
+class BrokerFields:
+    """A broker's own fields a Call assertion asks for, and the reader that answers them."""
+
+    # Under the names the broker's `publish()` takes; a field not asked for is absent
+    values: Mapping[str, Any]
+    read: FieldReader
 
 
 @dataclass(slots=True)
