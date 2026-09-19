@@ -31,10 +31,7 @@ class KafkaTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
         return args, {"auto_offset_reset": "earliest", **kwargs}
 
     def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
-        return {
-            "group_id": f"{queue}-cancel-ack",
-            "auto_offset_reset": "earliest",
-        }
+        return {"group_id": f"{queue}-cancel-ack"}
 
 
 class KafkaMemoryTestcaseConfig(KafkaTestcaseConfig):

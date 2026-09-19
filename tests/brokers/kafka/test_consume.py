@@ -24,10 +24,11 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_by_pattern(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker()
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             pattern=f"{queue[:-1]}*",
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def pattern_handler(msg: Any) -> None:
             event.set()
 
@@ -52,7 +53,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
-        @consume_broker.subscriber(queue, batch=True, auto_offset_reset="earliest")
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
@@ -74,7 +77,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(queue, batch=True, auto_offset_reset="earliest")
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @consume_broker.subscriber(*args, **kwargs)
         def subscriber(msg: KafkaMessage) -> None:
             check = all(
                 (
@@ -106,12 +111,13 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_auto_ack(self, event: asyncio.Event, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -145,7 +151,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         tp1 = TopicPartition(queue, partition=0)
 
-        @consume_broker.subscriber(partitions=[tp1], auto_offset_reset="earliest")
+        args, kwargs = self.get_subscriber_params(partitions=[tp1])
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler_tp1(msg: Any) -> None:
             event.set()
 
@@ -168,12 +176,13 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_ack_manual(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             await msg.ack()
             event.set()
@@ -207,12 +216,13 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_ack_by_raise(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             event.set()
             raise AckMessage
@@ -246,12 +256,13 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_manual_nack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             await msg.nack()
             event.set()
@@ -285,12 +296,13 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_no_ack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             group_id="test",
             ack_policy=AckPolicy.MANUAL,
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -327,7 +339,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker()
 
-        @consume_broker.subscriber(queue, auto_offset_reset="earliest")
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: bytes) -> None:
             event.set()
             mock(msg)
@@ -356,7 +370,9 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker()
 
-        @consume_broker.subscriber(queue, batch=True, auto_offset_reset="earliest")
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: list[bytes]) -> None:
             event.set()
             mock(msg)
@@ -429,13 +445,14 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         consumers = set()
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             max_workers=3,
             ack_policy=AckPolicy.ACK,
             group_id="service_1",
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(message: KafkaMessage) -> None:
             nonlocal consumers
             consumers.add(getattr(message.raw_message, "consumer", None))
@@ -482,13 +499,14 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(
+        args, kwargs = self.get_subscriber_params(
             queue,
             max_workers=3,
             ack_policy=AckPolicy.ACK,
             group_id="service_1",
-            auto_offset_reset="earliest",
         )
+
+        @consume_broker.subscriber(*args, **kwargs)
         async def handler(msg: KafkaMessage) -> None:
             await asyncio.sleep(0.7)
             if with_explicit_commit:
