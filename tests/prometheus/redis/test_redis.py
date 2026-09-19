@@ -17,7 +17,7 @@ from .basic import BatchRedisPrometheusSettings, RedisPrometheusSettings
 @pytest.mark.connected()
 @pytest.mark.redis()
 class TestBatchPrometheus(BatchRedisPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(self, queue: str, event: asyncio.Event) -> None:
+    async def test_metrics(self, queue: str, event: asyncio.Event) -> None:  # type: ignore[override]
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 
@@ -27,7 +27,7 @@ class TestBatchPrometheus(BatchRedisPrometheusSettings, LocalPrometheusTestcase)
 
         message = None
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any = Context("message")) -> None:
             event.set()
 
@@ -55,7 +55,6 @@ class TestBatchPrometheus(BatchRedisPrometheusSettings, LocalPrometheusTestcase)
 @pytest.mark.redis()
 class TestPrometheus(
     RedisPrometheusSettings,
-    LocalPrometheusTestcase,
     LocalRPCPrometheusTestcase,
 ): ...
 

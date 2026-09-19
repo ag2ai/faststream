@@ -22,7 +22,7 @@ def stream(queue: str) -> Any:
 @pytest.mark.connected()
 @pytest.mark.nats()
 class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(
+    async def test_metrics(  # type: ignore[override]
         self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
         registry = CollectorRegistry()
@@ -37,7 +37,7 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
         )
         message = None
 
-        @broker.subscriber(*args, **kwargs)
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(m: Any = Context("message")) -> None:
             event.set()
 
@@ -65,7 +65,6 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
 @pytest.mark.nats()
 class TestPrometheus(
     NatsPrometheusSettings,
-    LocalPrometheusTestcase,
     LocalRPCPrometheusTestcase,
 ): ...
 

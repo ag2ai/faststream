@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable
 from types import TracebackType
 from typing import Any, cast
 from unittest.mock import MagicMock, call
@@ -8,8 +9,12 @@ from dirty_equals import IsFloat, IsUUID
 from opentelemetry import baggage, context
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics._internal.point import Metric
-from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+from opentelemetry.sdk.metrics.export import (
+    HistogramDataPoint,
+    InMemoryMetricReader,
+    Metric,
+    NumberDataPoint,
+)
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import Span, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -18,39 +23,27 @@ from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 from opentelemetry.trace import SpanKind, get_current_span
 
 from faststream import BaseMiddleware
-from faststream._internal.broker import BrokerUsecase
 from faststream.opentelemetry import Baggage, CurrentBaggage, CurrentSpan
 from faststream.opentelemetry.consts import (
     ERROR_TYPE,
     MESSAGING_DESTINATION_PUBLISH_NAME,
-)
-from faststream.opentelemetry.middleware import (
     MessageAction as Action,
-    TelemetryMiddleware,
 )
+from faststream.opentelemetry.middleware import TelemetryMiddleware
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
 @pytest.mark.asyncio()
-class LocalTelemetryTestcase(BaseTestcaseConfig):
+class LocalTelemetryTestcase(BaseTestcaseConfig[Any]):
     messaging_system: str
     include_messages_counters: bool
     resource: Resource = Resource.create(attributes={"service.name": "faststream.test"})
-    telemetry_middleware_class: TelemetryMiddleware
+    telemetry_middleware_class: Callable[..., TelemetryMiddleware[Any]]
 
-    def get_broker(
-        self,
-        apply_types: bool = False,
-        **kwargs: Any,
-    ) -> BrokerUsecase[Any, Any]:
-        raise NotImplementedError
-
-    def patch_broker(
-        self,
-        broker: BrokerUsecase[Any, Any],
-        **kwargs: Any,
-    ) -> BrokerUsecase[Any, Any]:
-        return broker
+    # These tests use the patched broker as the broker itself; the base signature
+    # types it as a context manager around one.
+    def patch_broker(self, *brokers: Any, **kwargs: Any) -> Any:
+        return super().patch_broker(*brokers, **kwargs)
 
     def destination_name(self, queue: str) -> str:
         return queue
@@ -72,10 +65,10 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             - messaging.publish.duration
             - messaging.publish.messages
         """
-        metrics = reader.get_metrics_data()
-        metrics = metrics.resource_metrics[0].scope_metrics[0].metrics
-        metrics = sorted(metrics, key=lambda m: m.name)
-        return cast("list[Metric]", metrics)
+        data = reader.get_metrics_data()
+        assert data
+        metrics = data.resource_metrics[0].scope_metrics[0].metrics
+        return sorted(metrics, key=lambda m: m.name)
 
     @pytest.fixture()
     def tracer_provider(self) -> TracerProvider:
@@ -101,7 +94,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         action: str,
         queue: str,
         msg: str,
-        parent_span_id: str | None = None,
+        parent_span_id: int | None = None,
     ) -> None:
         attrs = span.attributes or {}
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system, attrs[
@@ -153,21 +146,21 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             assert len(metrics) == 4
             proc_dur, proc_msg, pub_dur, pub_msg = metrics
 
-            assert proc_msg.data.data_points[0].value == count
-            assert pub_msg.data.data_points[0].value == count
+            assert counter_point(proc_msg).value == count
+            assert counter_point(pub_msg).value == count
 
         else:
             assert len(metrics) == 2
             proc_dur, pub_dur = metrics
 
         if error_type:
-            assert proc_dur.data.data_points[0].attributes[ERROR_TYPE] == error_type
+            assert (histogram_point(proc_dur).attributes or {})[ERROR_TYPE] == error_type
 
-        assert proc_dur.data.data_points[0].count == 1
-        assert proc_dur.data.data_points[0].sum == IsFloat
+        assert histogram_point(proc_dur).count == 1
+        assert histogram_point(proc_dur).sum == IsFloat
 
-        assert pub_dur.data.data_points[0].count == 1
-        assert pub_dur.data.data_points[0].sum == IsFloat
+        assert histogram_point(pub_dur).count == 1
+        assert histogram_point(pub_dur).sum == IsFloat
 
     async def test_subscriber_create_publish_process_span(
         self,
@@ -256,13 +249,9 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
         self.assert_span(pub2, Action.PUBLISH, second_queue, msg, proc1.context.span_id)
         self.assert_span(proc2, Action.PROCESS, second_queue, msg, parent_span_id)
 
-        assert (
-            create.start_time
-            < pub1.start_time
-            < proc1.start_time
-            < pub2.start_time
-            < proc2.start_time
-        )
+        starts = [span.start_time for span in (create, pub1, proc1, pub2, proc2)]
+        # strictly increasing, and every span has started
+        assert starts == sorted(set(filter(None, starts)))
 
         mock.assert_called_once_with(msg)
 
@@ -607,9 +596,9 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
 
             async def after_processed(
                 self,
-                exc_type: type[BaseException] | None,
-                exc_val: BaseException | None,
-                exc_tb: TracebackType | None,
+                exc_type: type[BaseException] | None = None,
+                exc_val: BaseException | None = None,
+                exc_tb: TracebackType | None = None,
             ) -> Any:
                 if self.is_target:
                     mock(exc_val)
@@ -637,3 +626,15 @@ class LocalTelemetryTestcase(BaseTestcaseConfig):
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         mock.assert_called_once_with(None)
+
+
+def counter_point(metric: Metric) -> NumberDataPoint:
+    point = metric.data.data_points[0]
+    assert isinstance(point, NumberDataPoint)
+    return point
+
+
+def histogram_point(metric: Metric) -> HistogramDataPoint:
+    point = metric.data.data_points[0]
+    assert isinstance(point, HistogramDataPoint)
+    return point
