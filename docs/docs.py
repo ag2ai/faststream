@@ -7,6 +7,7 @@ from pathlib import Path
 
 import mkdocs.commands.serve
 import typer
+from check_site import check_site
 from create_api_docs import create_api_docs, remove_api_dir, render_navigation
 from mkdocs.config import load_config
 from typing_extensions import Annotated
@@ -81,6 +82,20 @@ def build_fast() -> None:
 
 
 @app.command()
+def check() -> None:
+    """Build the guides with --strict and check the built site, as CI does on PRs."""
+    # generating the reference sources imports every public module, which is where
+    # the reference breaks; rendering its thousand pages would take minutes
+    typer.echo("Generating API reference sources")
+    create_api_docs()
+
+    _build_fast(strict=True)
+
+    typer.echo("Checking the built site")
+    check_site(BUILD_DIR)
+
+
+@app.command()
 def build_api_docs() -> None:
     """Build api docs for faststream."""
     typer.echo("Updating API docs")
@@ -100,14 +115,17 @@ def build_navigation() -> None:
     render_navigation("", "")
 
 
-def _build_fast() -> None:
+def _build_fast(*, strict: bool = False) -> None:
     typer.echo("Removing API directory")
     remove_api_dir()
 
     typer.echo("Building navigation")
     render_navigation("", "")
 
-    subprocess.run(["mkdocs", "build", "--site-dir", BUILD_DIR], check=True)
+    command = ["mkdocs", "build", "--site-dir", BUILD_DIR]
+    if strict:
+        command.append("--strict")
+    subprocess.run(command, check=True)
 
 
 def _build() -> None:

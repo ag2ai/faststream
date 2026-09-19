@@ -39,7 +39,7 @@ Extra pytest args pass through: `just test tests/brokers/kafka -vv`. Run pytest 
 
 ## Docs recipes
 
-- `just docs-serve` — live server; `just docs-build` — static build (details in the **documentation-writing** skill).
+- `just docs-serve` — live server; `just docs-build` — static build; `just docs-check` — the docs PR gate (details in the **documentation-writing** skill).
 
 ## CI expectations
 
