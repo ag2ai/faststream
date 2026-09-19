@@ -786,7 +786,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
 
         mock.assert_called_once()
 
-    def test_nested_stream_router_raises(self) -> None:
+    async def test_nested_stream_router_raises(self) -> None:
         """Including a StreamRouter into another StreamRouter must raise TypeError.
 
         This pattern is unsupported (issue #2657).  Users should include a regular
