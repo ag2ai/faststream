@@ -19,7 +19,7 @@ def warn_deprecated_security_args(*arguments: str) -> None:
     )
     warnings.warn(
         f"The NATS security arguments {names} are deprecated and will be removed "
-        "in FastStream. Use `security=` with "
+        "in 1.0.0. Use `security=` with "
         f"{replacements} instead.",
         DeprecationWarning,
         stacklevel=3,

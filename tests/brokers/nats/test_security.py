@@ -123,7 +123,10 @@ def test_tls_options_are_forwarded_with_authentication() -> None:
 
 @pytest.mark.nats()
 def test_legacy_token_warns_once_and_keeps_value() -> None:
-    with pytest.warns(DeprecationWarning, match=r"`token`.*NatsToken") as warnings:
+    with pytest.warns(
+        DeprecationWarning,
+        match=r"`token`.*will be removed in 1\.0\.0.*NatsToken",
+    ) as warnings:
         broker = NatsBroker(token="legacy-secret")
 
     assert (len(warnings), broker._connection_kwargs["token"]) == (

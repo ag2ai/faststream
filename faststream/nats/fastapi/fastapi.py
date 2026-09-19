@@ -120,32 +120,53 @@ class NatsRouter(StreamRouter["Msg"]):
         no_echo: bool = False,
         tls_hostname: Annotated[
             str | None,
-            deprecated("Use `security=NatsSecurity(...)` instead."),
+            deprecated(
+                "Use `security=NatsSecurity(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
         ] = EMPTY,
         token: Annotated[
             str | None,
-            deprecated("Use `security=NatsToken(...)` instead."),
+            deprecated(
+                "Use `security=NatsToken(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
         ] = EMPTY,
         drain_timeout: int = DEFAULT_DRAIN_TIMEOUT,
         signature_cb: Annotated[
             Optional["SignatureCallback"],
-            deprecated("Use `security=NatsJWT(...)` instead."),
+            deprecated(
+                "Use `security=NatsJWT(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
         ] = EMPTY,
         user_jwt_cb: Annotated[
             Optional["JWTCallback"],
-            deprecated("Use `security=NatsJWT(...)` instead."),
+            deprecated(
+                "Use `security=NatsJWT(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
         ] = EMPTY,
         user_credentials: Annotated[
             Optional["Credentials"],
-            deprecated("Use `security=NatsCredentials(...)` instead."),
+            deprecated(
+                "Use `security=NatsCredentials(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
         ] = EMPTY,
         nkeys_seed: Annotated[
             str | None,
-            deprecated("Use `security=NatsNKey.from_file(...)` instead."),
+            deprecated(
+                "Use `security=NatsNKey.from_file(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
         ] = EMPTY,
         nkeys_seed_str: Annotated[
             str | None,
-            deprecated("Use `security=NatsNKey.from_seed(...)` instead."),
+            deprecated(
+                "Use `security=NatsNKey.from_seed(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
         ] = EMPTY,
         inbox_prefix: str | bytes = DEFAULT_INBOX_PREFIX,
         pending_size: int = DEFAULT_PENDING_SIZE,
