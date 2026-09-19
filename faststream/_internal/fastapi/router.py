@@ -1,4 +1,3 @@
-import json
 import warnings
 from abc import abstractmethod
 from collections.abc import (
@@ -30,6 +29,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, _DefaultLifespan  # noqa: PLC2701
 from typing_extensions import override
 
+from faststream._internal._compat import json_dumps
 from faststream._internal.application import StartAbleApplication
 from faststream._internal.broker import BrokerRouter
 from faststream._internal.context import ContextRepo
@@ -394,10 +394,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
         def download_app_json_schema() -> Response:
             return Response(
-                content=json.dumps(  # noqa: TID251
-                    self.schema.to_specification().to_jsonable(),
-                    indent=2,
-                ),
+                content=json_dumps(self.schema.to_specification().to_jsonable()),
                 headers={"Content-Type": "application/json"},
             )
 
