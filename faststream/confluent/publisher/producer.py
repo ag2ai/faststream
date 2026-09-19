@@ -196,4 +196,5 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
             cmd.destination,
             partition=cmd.partition,
             no_confirm=cmd.no_confirm,
+            retry_on_buffer_error=cmd.retry_on_buffer_error,
         )
