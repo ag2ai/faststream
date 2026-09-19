@@ -264,8 +264,9 @@ def find_test_broker(
     broker: BrokerUsecase[Any, Any, Any],
 ) -> type[TestBroker[Any, Any]] | None:
     """Return the TestBroker registered for the broker's class, if any."""
-    for broker_cls, test_broker_cls in _TEST_BROKERS.items():
-        if isinstance(broker, broker_cls):
+    # the closest class wins: a broker subclass may register a TestBroker of its own
+    for broker_cls in type(broker).__mro__:
+        if test_broker_cls := _TEST_BROKERS.get(broker_cls):
             return test_broker_cls
     return None
 
