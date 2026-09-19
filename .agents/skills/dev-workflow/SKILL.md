@@ -46,6 +46,7 @@ Extra pytest args pass through: `just test tests/brokers/kafka -vv`. Run pytest 
 - CI (`.github/workflows/pr_tests.yaml`): core jobs run everything except `connected` (`-m "(slow and not connected) or not connected"`); per-broker jobs run `<broker> and not connected`, plus dedicated jobs with real broker services for `connected` tests.
 - 30s per-test timeout; xdist parallelism — tests must be order-independent.
 - Coverage sources include `faststream/`, `tests/`, `docs/docs_src/`, and `examples/`.
+- `coverage-combine` runs `diff-cover` on PRs: 90% of the lines a PR changes under `faststream/` must be executed by some job of the matrix. The report lands in the job summary.
 
 ## Related skills
 

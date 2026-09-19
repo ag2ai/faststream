@@ -628,6 +628,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # diff-cover compares against the base branch
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "latest"
@@ -643,12 +645,30 @@ jobs:
           merge-multiple: true
 
       - run: |
-          uv pip install --system coverage[toml] covdefaults
+          uv pip install --system coverage[toml] covdefaults diff-cover==10.5.1
 
       - run: ls -la coverage
       - run: coverage combine coverage
       - run: coverage report
       - run: coverage html --show-contexts --title "FastStream coverage for ${{ github.sha }}"
+      - run: coverage xml
+
+      # The total hides a PR that ships untested: 90% of the lines it changes
+      # in faststream/ have to run under some job of the matrix.
+      - name: Require the changed lines of faststream/ to be covered
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: >
+          diff-cover coverage.xml
+          --compare-branch "origin/$BASE_REF"
+          --include 'faststream/**'
+          --fail-under 90
+          --markdown-report diff-cover.md
+      - name: Show the diff coverage in the job summary
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          if [ -f diff-cover.md ]; then cat diff-cover.md >> "$GITHUB_STEP_SUMMARY"; fi
 
       - name: Store coverage html
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
