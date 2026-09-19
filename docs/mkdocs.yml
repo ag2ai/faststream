@@ -20,6 +20,11 @@ edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs/en
 exclude_docs: |
   SUMMARY.md
 
+# `just docs-check` builds with --strict, so a broken link or anchor fails the PR
+validation:
+  anchors: warn
+  unrecognized_links: warn
+
 theme:
   name: material
   custom_dir: overrides
