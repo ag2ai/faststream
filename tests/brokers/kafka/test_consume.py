@@ -52,7 +52,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
-        @consume_broker.subscriber(queue, batch=True)
+        @consume_broker.subscriber(queue, batch=True, auto_offset_reset="earliest")
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
@@ -74,7 +74,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        @consume_broker.subscriber(queue, batch=True)
+        @consume_broker.subscriber(queue, batch=True, auto_offset_reset="earliest")
         def subscriber(msg: KafkaMessage) -> None:
             check = all(
                 (
@@ -110,6 +110,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -144,7 +145,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         tp1 = TopicPartition(queue, partition=0)
 
-        @consume_broker.subscriber(partitions=[tp1])
+        @consume_broker.subscriber(partitions=[tp1], auto_offset_reset="earliest")
         async def handler_tp1(msg: Any) -> None:
             event.set()
 
@@ -171,6 +172,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             await msg.ack()
@@ -209,6 +211,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -247,6 +250,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             queue,
             group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             await msg.nack()
@@ -285,6 +289,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             queue,
             group_id="test",
             ack_policy=AckPolicy.MANUAL,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -322,7 +327,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker()
 
-        @consume_broker.subscriber(queue)
+        @consume_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: bytes) -> None:
             event.set()
             mock(msg)
@@ -351,7 +356,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker()
 
-        @consume_broker.subscriber(queue, batch=True)
+        @consume_broker.subscriber(queue, batch=True, auto_offset_reset="earliest")
         async def handler(msg: list[bytes]) -> None:
             event.set()
             mock(msg)
@@ -397,13 +402,13 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             for i in range(5):
                 await br.publish(i, queue)
 
-        await asyncio.wait(
-            (
-                asyncio.create_task(event.wait()),
-                asyncio.create_task(event2.wait()),
-            ),
-            timeout=3,
-        )
+            await asyncio.wait(
+                (
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
+                ),
+                timeout=3,
+            )
 
         assert event.is_set()
         assert event2.is_set()
@@ -429,6 +434,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             max_workers=3,
             ack_policy=AckPolicy.ACK,
             group_id="service_1",
+            auto_offset_reset="earliest",
         )
         async def handler(message: KafkaMessage) -> None:
             nonlocal consumers
@@ -481,6 +487,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             max_workers=3,
             ack_policy=AckPolicy.ACK,
             group_id="service_1",
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             await asyncio.sleep(0.7)

@@ -152,7 +152,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
-        @broker.subscriber(queue)
+        @broker.subscriber(queue, auto_offset_reset="earliest")
         def subscriber(m: Any) -> None:
             event.set()
 
@@ -297,10 +297,10 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         broker = self.get_broker(middlewares=(Middleware,))
 
-        @broker.subscriber(queue)
+        @broker.subscriber(queue, auto_offset_reset="earliest")
         async def h1(msg: Any) -> None: ...
 
-        @broker.subscriber(queue + "1")
+        @broker.subscriber(queue + "1", auto_offset_reset="earliest")
         async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:

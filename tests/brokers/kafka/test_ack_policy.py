@@ -70,6 +70,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(
             queue,
             ack_policy=AckPolicy.ACK_FIRST,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -126,6 +127,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(
             queue,
             ack_policy=ack_policy,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -181,6 +183,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(
             queue,
             ack_policy=ack_policy,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()
@@ -221,6 +224,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(
             queue,
             ack_policy=AckPolicy.NACK_ON_ERROR,
+            auto_offset_reset="earliest",
         )
         async def handler(msg: KafkaMessage) -> None:
             event.set()

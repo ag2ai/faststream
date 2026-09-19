@@ -23,7 +23,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
@@ -48,7 +48,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
@@ -75,12 +75,12 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         @pub_broker.publisher(queue, batch=True)
-        @pub_broker.subscriber(queue + "1")
+        @pub_broker.subscriber(queue + "1", auto_offset_reset="earliest")
         async def pub(m: Any) -> Any:
             return 1, "hi"
 
@@ -106,12 +106,12 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         @pub_broker.publisher(queue + "1")
         async def handle() -> Any:
             return KafkaResponse(1, key=b"1")
 
-        @pub_broker.subscriber(queue + "1")
+        @pub_broker.subscriber(queue + "1", auto_offset_reset="earliest")
         async def handle_next(msg: Any = Context("message")) -> None:
             mock(
                 body=msg.body,
@@ -143,7 +143,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     ) -> None:
         pub_broker = self.get_broker()
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(m: Any) -> None:
             pass
 
@@ -167,7 +167,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     ) -> None:
         pub_broker = self.get_broker(max_batch_size=16)
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(m: Any) -> None:
             pass
 
@@ -202,7 +202,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         messages_queue: asyncio.Queue[tuple[Any, bytes | None]] = asyncio.Queue()
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -234,7 +234,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         messages_queue: asyncio.Queue[tuple[Any, bytes | None]] = asyncio.Queue()
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -269,7 +269,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         messages_queue: asyncio.Queue[tuple[Any, bytes | None]] = asyncio.Queue()
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -312,7 +312,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         messages_queue: asyncio.Queue[tuple[Any, bytes | None]] = asyncio.Queue()
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 
@@ -352,7 +352,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         values: asyncio.Queue[bytes | None] = asyncio.Queue()
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any = Context("message")) -> None:
             await values.put(msg.raw_message.value)
 
@@ -372,7 +372,7 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         messages_queue: asyncio.Queue[tuple[Any, bytes | None]] = asyncio.Queue()
 
-        @pub_broker.subscriber(queue)
+        @pub_broker.subscriber(queue, auto_offset_reset="earliest")
         async def handler(msg: Any, raw_msg: Any = Context("message")) -> None:
             await messages_queue.put((msg, raw_msg.raw_message.key))
 

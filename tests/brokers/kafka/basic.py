@@ -18,6 +18,18 @@ class KafkaTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
     def get_router(self, **kwargs: Any) -> KafkaRouter:
         return KafkaRouter(**kwargs)
 
+    def get_subscriber_params(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[
+        tuple[Any, ...],
+        dict[str, Any],
+    ]:
+        # A test publishes right after start, often before the consumer has resolved
+        # its "latest" offset; each test's topic is fresh, so "earliest" is safe.
+        return args, {"auto_offset_reset": "earliest", **kwargs}
+
     def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
         return {
             "group_id": f"{queue}-cancel-ack",
