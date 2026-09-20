@@ -69,6 +69,7 @@ please move your row up from the table below, or add a new one.
 | Organization | Brokers | Use case | Environment | Scale | Contact |
 | --- | --- | --- | --- | --- | --- |
 | [AG2](https://github.com/ag2ai) | NATS, Kafka | Event transport for agent workloads; FastStream is maintained here | — | — | [@Lancetnik](https://github.com/Lancetnik) |
+| [Puzzle Pools](https://puzzle-pools.com/) | — | Automation and monitoring of swimming pool equipment | — | — | — |
 | [Raiffeisenbank](https://habr.com/ru/companies/raiffeisenbank/articles/885792/) | Kafka, RabbitMQ | Event-driven backend services; the team contributed the Prometheus middleware upstream | — | — | — |
 | [Tochka Bank](https://github.com/tochka-public) | RabbitMQ | Event transport between services | — | — | — |
 | [IdaProject](https://github.com/idaproject) | RabbitMQ, Kafka | Transport between microservices (EDA) | — | — | — |
