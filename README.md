@@ -42,7 +42,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/) consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/) exchanges and DLQ, [**NATS**](https://nats.io/) JetStream and KeyValue, [**Redis**](https://redis.io/) Streams, [**MQTT**](https://mqtt.org/) QoS. Five first-class clients that happen to share their ergonomics.
 
-- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/) or [**Msgspec**](https://jcristharif.com/msgspec/) validation capabilities to serialize and validate incoming messages
+- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/) or [**Msgspec**](https://msgspec.dev/) validation capabilities to serialize and validate incoming messages
 
 - [**Powerful Dependency Injection System**](#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system
 
@@ -197,7 +197,7 @@ pip install pydantic==1.X.Y
 
 ### Msgspec serialization
 
-Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/).
+Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://msgspec.dev/).
 
 ```python
 from fast_depends.msgspec import MsgSpecSerializer

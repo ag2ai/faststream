@@ -37,10 +37,10 @@ jobs:
       - name: Build API Reference
         run: just docs-build-api
 
-      - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV
-      - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> $GITHUB_ENV
-      - run: echo $VERSION
-      - run: echo $IS_RC
+      - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> "$GITHUB_ENV"
+      - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> "$GITHUB_ENV"
+      - run: echo "$VERSION"
+      - run: echo "$IS_RC"
 
       - name: Configure Git user
         run: |
@@ -56,10 +56,10 @@ jobs:
         run: |
           cd docs
           if [ "$IS_RC" == "False" ]; then
-            mike deploy -F mkdocs.yml --update-aliases $VERSION latest
+            mike deploy -F mkdocs.yml --update-aliases "$VERSION" latest
             mike set-default --allow-empty -F mkdocs.yml latest
           else
-            mike deploy -F mkdocs.yml --update-aliases $VERSION
+            mike deploy -F mkdocs.yml --update-aliases "$VERSION"
           fi
 
           # Doc commits are large, keep only the last one. Reset to the root

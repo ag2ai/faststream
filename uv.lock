@@ -10,6 +10,12 @@ resolution-markers = [
 overrides = [{ name = "rich", specifier = ">=13.8.1" }]
 
 [[package]]
+name = "actionlint-py"
+version = "1.7.12.24"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/0b/3f29683dfbe94208fb5c3806806a6ef419972892e25c3c4f95198f68c978/actionlint_py-1.7.12.24.tar.gz", hash = "sha256:7571b0724fde79b2572b98b2b53792c470249d4db29951b57fc49b9cd3eaf11e", size = 12071, upload-time = "2026-03-31T06:21:35.015Z" }
+
+[[package]]
 name = "aio-pika"
 version = "9.6.2"
 source = { registry = "https://pypi.org/simple" }
@@ -888,6 +894,7 @@ redis = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "actionlint-py" },
     { name = "bandit" },
     { name = "cairosvg" },
     { name = "codespell" },
@@ -930,6 +937,7 @@ dev = [
     { name = "ruff" },
     { name = "semgrep" },
     { name = "setuptools" },
+    { name = "shellcheck-py" },
     { name = "syrupy" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
@@ -958,6 +966,7 @@ docs = [
     { name = "pillow" },
 ]
 lint = [
+    { name = "actionlint-py" },
     { name = "bandit" },
     { name = "codespell" },
     { name = "import-linter" },
@@ -965,6 +974,7 @@ lint = [
     { name = "pyright" },
     { name = "ruff" },
     { name = "semgrep" },
+    { name = "shellcheck-py" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
     { name = "types-docutils" },
@@ -1035,6 +1045,7 @@ provides-extras = ["rabbit", "kafka", "confluent", "nats", "redis", "mqtt", "cli
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "actionlint-py", specifier = "==1.7.12.24" },
     { name = "bandit", specifier = "==1.9.3" },
     { name = "cairosvg" },
     { name = "codespell", specifier = "==2.4.1" },
@@ -1077,6 +1088,7 @@ dev = [
     { name = "ruff", specifier = "==0.14.14" },
     { name = "semgrep", specifier = "==1.150.0" },
     { name = "setuptools", specifier = ">=80.9.0" },
+    { name = "shellcheck-py", specifier = "==0.11.0.1" },
     { name = "syrupy", specifier = "==6.0.0" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
@@ -1105,6 +1117,7 @@ docs = [
     { name = "pillow" },
 ]
 lint = [
+    { name = "actionlint-py", specifier = "==1.7.12.24" },
     { name = "bandit", specifier = "==1.9.3" },
     { name = "codespell", specifier = "==2.4.1" },
     { name = "import-linter", specifier = "==2.15" },
@@ -1112,6 +1125,7 @@ lint = [
     { name = "pyright", specifier = "==1.1.407" },
     { name = "ruff", specifier = "==0.14.14" },
     { name = "semgrep", specifier = "==1.150.0" },
+    { name = "shellcheck-py", specifier = "==0.11.0.1" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
     { name = "types-docutils" },
@@ -3619,6 +3633,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/34/26/f5d29e25ffdb535afef2d35cdb55b325298f96debd670da4c325e08d70f4/setuptools-83.0.0.tar.gz", hash = "sha256:025bccbbf0fa05b6192bc64ae1e7b16e001fd6d6d4d5de03c97b1c1ade523bef", size = 1154254, upload-time = "2026-07-04T15:31:22.699Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/40/e1e72872c6354b306daef1703549e8e83b4d43cfea356311bf722a043752/setuptools-83.0.0-py3-none-any.whl", hash = "sha256:29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3", size = 1008090, upload-time = "2026-07-04T15:31:20.885Z" },
+]
+
+[[package]]
+name = "shellcheck-py"
+version = "0.11.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/55/455b097417b3df3d330eff029c72c32f08b25739e3010acb30ad06d268ef/shellcheck_py-0.11.0.1.tar.gz", hash = "sha256:5c620c88901e8f1d3be5934b31ea99e3310065e1245253741eafd0a275c8c9cc", size = 3139, upload-time = "2025-08-09T17:53:42.492Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/27/d75b03e5458cefdb6d3b674566cd20476c3e4d3fe6cc9d68b7e3b854b296/shellcheck_py-0.11.0.1-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:b6a3fee28efda2e16e38d6e6d59faf7224300256456639727370d404730849e8", size = 6774472, upload-time = "2025-08-09T17:53:34.573Z" },
+    { url = "https://files.pythonhosted.org/packages/61/ac/2a84c37171c0cf5a10ea4b0a27d43eb0a1d29bd98b49c2c5ffe17ad24bbe/shellcheck_py-0.11.0.1-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:6b88d0a244c82ed07e06a53e444da841f69330ca59ae15d4a66c391655dae7a0", size = 11381835, upload-time = "2025-08-09T17:53:36.852Z" },
+    { url = "https://files.pythonhosted.org/packages/96/55/250e0e3367613a5c22bd82e33b16b889287d81ab0f7dda67e6514a4cccf4/shellcheck_py-0.11.0.1-py2.py3-none-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:1b274df81de5b000ff78db433e7328b87e52e3c38481c60f8e488c3095beef05", size = 3800600, upload-time = "2025-08-09T17:53:38.643Z" },
+    { url = "https://files.pythonhosted.org/packages/15/5b/bb14c0a7474463b1aa3c09e866cb172dffc66ed2993b7ea8f1db581e86ee/shellcheck_py-0.11.0.1-py2.py3-none-win_amd64.whl", hash = "sha256:784156289ecb17e91c692cd783ab5152333309588cabb10032a047331c63e759", size = 8027541, upload-time = "2025-08-09T17:53:40.889Z" },
 ]
 
 [[package]]
