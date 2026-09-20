@@ -144,6 +144,11 @@ mypy *params:
 pyright *params:
   just _static pyright {{params}}
 
+[doc("Pyrefly check")]
+[group("static analysis")]
+pyrefly *params:
+  just _static pyrefly check {{params}}
+
 [doc("Bandit check")]
 [group("static analysis")]
 bandit:
@@ -171,7 +176,7 @@ actionlint:
 
 [doc("Static analysis check")]
 [group("static analysis")]
-static-analysis: mypy pyright bandit semgrep import-linter
+static-analysis: mypy pyright pyrefly bandit semgrep import-linter
 
 
 # Pre-commit

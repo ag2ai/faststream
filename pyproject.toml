@@ -118,6 +118,7 @@ lint = [
     "shellcheck-py==0.11.0.1",                          # actionlint runs it over `run:` scripts
     "mypy==1.19.1",
     "pyright==1.1.407",
+    "pyrefly==1.3.1",
     # type checkers extensions
     "types-Deprecated",
     "types-PyYAML",
@@ -270,6 +271,14 @@ disallow_subclassing_any = false
 include = ["tests/mypy"]
 pythonVersion = "3.10"
 typeCheckingMode = "strict"
+
+[tool.pyrefly]
+# Same scope as pyright, for the same reason: the documented API has to type
+# check for a user of any checker, internal annotations are mypy's job.
+project-includes = ["tests/mypy"]
+python-version = "3.10"
+# the include is explicit; a checkout under an ignored path (a worktree) matches nothing otherwise
+use-ignore-files = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"
