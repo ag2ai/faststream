@@ -118,10 +118,14 @@ override this; say which existing check covers the rest instead of writing one t
 restates it. Never pin language or stdlib behaviour FastStream doesn't own (a `NamedTuple`
 unpacks, `==` on tuples).
 
-Test functions and classes carry no docstring — the name is the behaviour. The one
-exception is the regression pattern below, whose docstring is the issue URL and nothing
-else. When an assertion needs explaining, a single `#` comment sits directly over it, not
-prose in a docstring.
+The name is the behaviour, so a test carries no docstring by default, and an assertion
+that needs explaining gets a single `#` comment directly over it. Two cases earn one:
+
+- the regression pattern below — the docstring is the issue URL and nothing else;
+- the rare test that is unreadable without it, because what it guards is invisible from
+  the body. `tests/utils/test_lazy_imports.py` runs an import in a subprocess: only the
+  docstring can say what that protects, how it broke before, and why nothing else goes
+  red. If a better name or one comment would do, the test is not this case.
 
 ## One equality per behaviour
 

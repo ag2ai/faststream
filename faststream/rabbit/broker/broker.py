@@ -98,7 +98,7 @@ class RabbitBroker(
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RabbitRegistrator] = (),
         # AsyncAPI args
@@ -219,7 +219,7 @@ class RabbitBroker(
                     context=context or ContextRepo(),
                 ),
                 # subscriber args
-                broker_dependencies=tuple(dependencies),
+                broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
                 id_generator=id_generator,

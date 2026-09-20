@@ -61,7 +61,7 @@ if TYPE_CHECKING:
         CustomCallable,
     )
     from faststream.kafka.message import KafkaMessage
-    from faststream.kafka.response import KafkaPublishMessage
+    from faststream.kafka.types import KafkaSendableMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -234,7 +234,7 @@ class KafkaBroker(
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
         # AsyncAPI args
@@ -348,7 +348,7 @@ class KafkaBroker(
                 Custom codec object.
             parser (Optional[CustomCallable]):
                 Custom parser object.
-            dependencies (Iterable[Dependant]):
+            dependencies (Sequence[Dependant]):
                 Dependencies to apply to all broker subscribers.
             middlewares (Sequence[BrokerMiddlewarep[Any, Any]]):
                 Middlewares to apply to all broker publishers/subscribers.
@@ -470,7 +470,7 @@ class KafkaBroker(
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
                 id_generator=id_generator,
-                broker_dependencies=tuple(dependencies),
+                broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,
                 },
@@ -676,7 +676,7 @@ class KafkaBroker(
     @overload  # type: ignore[override]
     async def publish_batch(
         self,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -689,7 +689,7 @@ class KafkaBroker(
     @overload
     async def publish_batch(
         self,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -702,7 +702,7 @@ class KafkaBroker(
     @overload
     async def publish_batch(
         self,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -714,7 +714,7 @@ class KafkaBroker(
 
     async def publish_batch(
         self,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,

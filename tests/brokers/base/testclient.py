@@ -10,6 +10,7 @@ import pytest
 from dirty_equals import IsPartialDict
 from pydantic import BaseModel
 
+from faststream import Depends
 from faststream.exceptions import SetupError
 from tests.tools import spy_decorator
 
@@ -74,6 +75,32 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             assert len(second_client._fake_subscribers) == 1
             gc.collect()
             assert len(br.subscribers) == 2, len(br.subscribers)
+
+    @pytest.mark.asyncio()
+    async def test_broker_dependencies_from_a_generator_reach_every_subscriber(
+        self, queue: str, mock: Mock
+    ) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            dependencies=(Depends(dep) for dep in (mock,)),
+        )
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def first(msg: Any) -> None: ...
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "2")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def second(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
+            await br.publish("hello", queue + "2")
+
+        assert mock.call_count == 2
 
     @pytest.mark.asyncio()
     async def test_subscriber_mock(self, queue: str) -> None:
