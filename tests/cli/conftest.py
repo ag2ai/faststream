@@ -151,6 +151,10 @@ class CLIThread:
 
         except subprocess.TimeoutExpired:
             self.process.kill()
+            self.process.wait()
+
+        assert self.process.stderr
+        self.process.stderr.close()
 
 
 @pytest.fixture()

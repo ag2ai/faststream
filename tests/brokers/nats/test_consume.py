@@ -1,13 +1,16 @@
 import asyncio
+import gc
+import warnings
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import anyio
 import pytest
 from nats.aio.msg import Msg
 
 from faststream import AckPolicy
 from faststream.exceptions import AckMessage
-from faststream.nats import ConsumerConfig, JStream, PubAck, PullSub
+from faststream.nats import ConsumerConfig, JStream, NatsBroker, PubAck, PullSub
 from faststream.nats.annotations import NatsMessage
 from faststream.nats.message import NatsMessage as StreamMessage
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
@@ -16,9 +19,37 @@ from tests.tools import spy_decorator
 from .basic import NatsTestcaseConfig
 
 
+@pytest.mark.nats()
+def test_concurrent_subscriber_opens_no_stream_before_start(queue: str) -> None:
+    # Earlier tests on this worker may leave their own garbage to collect
+    gc.collect()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", ResourceWarning)
+        NatsBroker().subscriber(queue, max_workers=2)
+        gc.collect()
+
+    assert [str(w.message) for w in caught if "MemoryObject" in str(w.message)] == []
+
+
 @pytest.mark.connected()
 @pytest.mark.nats()
 class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
+    async def test_concurrent_subscriber_closes_its_queue_on_stop(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue, max_workers=2)
+        subscriber = broker.subscriber(*args, **kwargs)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+        with pytest.raises(anyio.ClosedResourceError):
+            subscriber.receive_stream.receive_nowait()
+
     async def test_concurrent_subscriber(
         self,
         queue: str,

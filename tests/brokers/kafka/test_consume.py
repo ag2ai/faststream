@@ -117,9 +117,11 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        async def handler(msg: KafkaMessage) -> None:
-            event.set()
+        with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+
+            @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+            async def handler(msg: KafkaMessage) -> None:
+                event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -182,10 +184,12 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        async def handler(msg: KafkaMessage) -> None:
-            await msg.ack()
-            event.set()
+        with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+
+            @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+            async def handler(msg: KafkaMessage) -> None:
+                await msg.ack()
+                event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -222,10 +226,12 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        async def handler(msg: KafkaMessage) -> None:
-            event.set()
-            raise AckMessage
+        with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+
+            @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+            async def handler(msg: KafkaMessage) -> None:
+                event.set()
+                raise AckMessage
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -262,10 +268,12 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        async def handler(msg: KafkaMessage) -> None:
-            await msg.nack()
-            event.set()
+        with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+
+            @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+            async def handler(msg: KafkaMessage) -> None:
+                await msg.nack()
+                event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
