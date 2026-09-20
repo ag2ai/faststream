@@ -688,7 +688,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Files maintained by the release process
+      - name: Release notes are maintained by the release process
         if: >
           github.event.pull_request.author_association != 'OWNER' &&
           github.event.pull_request.author_association != 'MEMBER' &&
@@ -698,9 +698,9 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 origin "$BASE_REF"
           bad=$(git diff --name-only "origin/$BASE_REF...HEAD" \
-                | grep -E '^(uv\.lock|docs/docs/en/release\.md)$' || true)
+                | grep -E '^docs/docs/en/release\.md$' || true)
           if [ -n "$bad" ]; then
-            echo "::error::These files are maintained by the release process. Please drop them from the PR: $bad"
+            echo "::error::$bad is maintained by the release process. Please drop it from the PR."
             exit 1
           fi
 

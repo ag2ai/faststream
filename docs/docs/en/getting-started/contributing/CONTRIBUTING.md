@@ -206,8 +206,11 @@ For detailed instructions on building and serving the documentation, please refe
 * **One pull request, one change.** Unrelated fixes — a typo you spotted, a lint failure in another module,
   a dependency bump — belong in their own pull request. They are welcome; they just do not travel with a
   feature. An unrelated change makes the diff harder to review and ties a trivial fix to a long discussion.
-* Files maintained by the release process (`docs/docs/en/release.md`, `uv.lock`) are not part of a
-  contribution and are rejected by CI.
+* `docs/docs/en/release.md` is maintained by the release process: it is not part of a contribution and is
+  rejected by CI.
+* **`uv.lock` follows `pyproject.toml`.** A pull request that changes dependencies runs `uv lock` and commits
+  the result; CI fails on a lock that is out of sync. A pull request that does not touch dependencies
+  leaves `uv.lock` alone.
 * **The CLA is signed before review starts.** We do not spend a review round on a contribution we cannot merge.
 * **Discussion happens in the pull request, not in a private message.** A decision made in a chat is invisible
   to the next contributor who hits the same question — and to us, six months later.
