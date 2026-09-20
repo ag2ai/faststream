@@ -1,4 +1,5 @@
 import random
+import time
 
 import httpx
 import psutil
@@ -132,7 +133,15 @@ def test_many_workers(
         ) as cli_thread,
     ):
         process = psutil.Process(pid=cli_thread.process.pid)
-        assert len(process.children()) == workers + 1  # 1 for the main process
+        expected = workers + 1  # 1 for the main process
+
+        # uvicorn logs its first line before it spawns the workers,
+        # so the CLI counts as started while they are still coming up
+        deadline = time.monotonic() + 10.0
+        while len(process.children()) < expected and time.monotonic() < deadline:
+            time.sleep(0.1)
+
+        assert len(process.children()) == expected
 
 
 @pytest.mark.slow()

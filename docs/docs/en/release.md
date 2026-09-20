@@ -12,6 +12,143 @@ hide:
 ---
 
 # Release Notes
+## 0.7.6
+
+### What's Changed
+
+#### 🚀 Features
+
+* feat(confluent): add Topic schema to configure topic creation by [@vyhuholl](https://github.com/vyhuholl){.external-link target="_blank"} in [#3026](https://github.com/ag2ai/faststream/pull/3026){.external-link target="_blank"}
+* feat: add pyright over the public API surface and fix what it found by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3029](https://github.com/ag2ai/faststream/pull/3029){.external-link target="_blank"}
+* feat: the 3.0 `address` field carries the address (#2357) by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3038](https://github.com/ag2ai/faststream/pull/3038){.external-link target="_blank"}
+* Render filter_subjects in the NATS AsyncAPI channel by [@00yhj22-debug](https://github.com/00yhj22-debug){.external-link target="_blank"} in [#3041](https://github.com/ag2ai/faststream/pull/3041){.external-link target="_blank"}
+* feat: support literal braces in addresses across all brokers by [@SammySN-car](https://github.com/SammySN-car){.external-link target="_blank"} in [#3042](https://github.com/ag2ai/faststream/pull/3042){.external-link target="_blank"}
+* feat(redis): add StreamSub claim_min_idle_time (XREADGROUP CLAIM) by [@kon28289](https://github.com/kon28289){.external-link target="_blank"} in [#3049](https://github.com/ag2ai/faststream/pull/3049){.external-link target="_blank"}
+* feat: annotations for the native Confluent consumer and MQTT client by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3054](https://github.com/ag2ai/faststream/pull/3054){.external-link target="_blank"}
+* feat(redis): expose stream delivery count by [@lxingy3](https://github.com/lxingy3){.external-link target="_blank"} in [#3066](https://github.com/ag2ai/faststream/pull/3066){.external-link target="_blank"}
+* feat(testing): `assert_called_once_with` for subscribers and publishers by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3110](https://github.com/ag2ai/faststream/pull/3110){.external-link target="_blank"}
+* feat(testing): `assert_called_with` and `assert_any_call` beside `assert_called_once_with` by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3111](https://github.com/ag2ai/faststream/pull/3111){.external-link target="_blank"}
+
+#### 🐛 Bug Fixes
+
+* fix(cli): surface YAML and AsyncAPI errors from `docs serve` by [@SarthakB11](https://github.com/SarthakB11){.external-link target="_blank"} in [#2874](https://github.com/ag2ai/faststream/pull/2874){.external-link target="_blank"}
+* fix: #2625 Fix TelemetryMiddleware by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#3016](https://github.com/ag2ai/faststream/pull/3016){.external-link target="_blank"}
+* Deregister fake subscribers when the TestBroker closes by [@00yhj22-debug](https://github.com/00yhj22-debug){.external-link target="_blank"} in [#3046](https://github.com/ag2ai/faststream/pull/3046){.external-link target="_blank"}
+* fix(docs): repair the release-notes generator and the duplicated 0.7.* notes by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3055](https://github.com/ag2ai/faststream/pull/3055){.external-link target="_blank"}
+* fix(docs): repair the 404 link to the documentation contribution guide by [@vyhuholl](https://github.com/vyhuholl){.external-link target="_blank"} in [#3059](https://github.com/ag2ai/faststream/pull/3059){.external-link target="_blank"}
+* fix (#3056): publish an empty message when a batch publisher has nothing to send by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3060](https://github.com/ag2ai/faststream/pull/3060){.external-link target="_blank"}
+* fix(redis): allow MANUAL ack_policy with max_workers for stream subscribers by [@kon28289](https://github.com/kon28289){.external-link target="_blank"} in [#3069](https://github.com/ag2ai/faststream/pull/3069){.external-link target="_blank"}
+* fix: a subscriber over several addresses is several channels (#2357) by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3070](https://github.com/ag2ai/faststream/pull/3070){.external-link target="_blank"}
+* fix: a declaration's brace escaping never reaches anything that reads it by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3072](https://github.com/ag2ai/faststream/pull/3072){.external-link target="_blank"}
+* fix: a router prefix is part of the address it decorates (#2357) by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3074](https://github.com/ag2ai/faststream/pull/3074){.external-link target="_blank"}
+* fix(redis): keep group read cursor in get_one and iterator by [@Pizzagami](https://github.com/Pizzagami){.external-link target="_blank"} in [#3080](https://github.com/ag2ai/faststream/pull/3080){.external-link target="_blank"}
+* fix: a handler keeps its declared call apart from its composed one by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3103](https://github.com/ag2ai/faststream/pull/3103){.external-link target="_blank"}
+* fix(testing): stop fake subscribers before hiding them from the real broker by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3108](https://github.com/ag2ai/faststream/pull/3108){.external-link target="_blank"}
+* fix(redis): stop the subscriber on terminal stream errors instead of restarting by [@kon28289](https://github.com/kon28289){.external-link target="_blank"} in [#3115](https://github.com/ag2ai/faststream/pull/3115){.external-link target="_blank"}
+* fix(cli): stop the supervisor deadlocking on shutdown by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3118](https://github.com/ag2ai/faststream/pull/3118){.external-link target="_blank"}
+* fix(mqtt): `subscriber()` is typed by `max_workers`, so a decorated handler stays typed by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3123](https://github.com/ag2ai/faststream/pull/3123){.external-link target="_blank"}
+* fix(redis): stop warning that `no_ack` has no effect with a consumer group by [@Griger10](https://github.com/Griger10){.external-link target="_blank"} in [#3129](https://github.com/ag2ai/faststream/pull/3129){.external-link target="_blank"}
+* fix(nats): type the pull consumer callback as a coroutine function by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3152](https://github.com/ag2ai/faststream/pull/3152){.external-link target="_blank"}
+* fix: warn when a batch subscriber drops max_workers by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3164](https://github.com/ag2ai/faststream/pull/3164){.external-link target="_blank"}
+* fix: accept a plain str as the License and Contact url by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3166](https://github.com/ag2ai/faststream/pull/3166){.external-link target="_blank"}
+* fix(kafka): accept KafkaPublishMessage in batch publish signatures by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3173](https://github.com/ag2ai/faststream/pull/3173){.external-link target="_blank"}
+* fix(redis): type the ssl_* options of RedisClusterBroker by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3174](https://github.com/ag2ai/faststream/pull/3174){.external-link target="_blank"}
+* fix: resolve batch subscribers and publishers to one type, not a Union by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3175](https://github.com/ag2ai/faststream/pull/3175){.external-link target="_blank"}
+* fix(mqtt): tell the user to install the extra when zmqtt is missing by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3179](https://github.com/ag2ai/faststream/pull/3179){.external-link target="_blank"}
+* fix(confluent): type a plain publish() as the message, not a Future by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3182](https://github.com/ag2ai/faststream/pull/3182){.external-link target="_blank"}
+* fix: close four typing gaps found by running mypy over docs_src by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3188](https://github.com/ag2ai/faststream/pull/3188){.external-link target="_blank"}
+* fix: open a concurrent subscriber's queue on start and close it on stop by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3190](https://github.com/ag2ai/faststream/pull/3190){.external-link target="_blank"}
+
+#### ⚡ Performance
+
+* perf: one context scope object per consumed message by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3130](https://github.com/ag2ai/faststream/pull/3130){.external-link target="_blank"}
+
+#### ♻️ Refactoring
+
+* refactor: give the two Kafka packages a shared home in _internal/kafka by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3063](https://github.com/ag2ai/faststream/pull/3063){.external-link target="_blank"}
+* refactor: Kafka `TopicPartition` is FastStream's own type by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3087](https://github.com/ag2ai/faststream/pull/3087){.external-link target="_blank"}
+* refactor: one base for the Subscriber and Publisher Specifications by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3102](https://github.com/ag2ai/faststream/pull/3102){.external-link target="_blank"}
+* refactor: `Address.literal` and `Address.describe` by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3104](https://github.com/ag2ai/faststream/pull/3104){.external-link target="_blank"}
+* refactor(asgi): let each TestBroker register itself for try-it-out by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3163](https://github.com/ag2ai/faststream/pull/3163){.external-link target="_blank"}
+
+#### 🧪 Tests
+
+* test(redis): sound cluster pub/sub tests — arrival order and channel isolation by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3078](https://github.com/ag2ai/faststream/pull/3078){.external-link target="_blank"}
+* test: add syrupy JSON snapshots for Rabbit AsyncAPI arguments by [@StepanKatin](https://github.com/StepanKatin){.external-link target="_blank"} in [#3099](https://github.com/ag2ai/faststream/pull/3099){.external-link target="_blank"}
+* test: expand syrupy JSON snapshots in Rabbit AsyncAPI tests (v2_6_0, v3_0_0) by [@StepanKatin](https://github.com/StepanKatin){.external-link target="_blank"} in [#3132](https://github.com/ag2ai/faststream/pull/3132){.external-link target="_blank"}
+* test: make tests/utils and tests/cli pass strict mypy by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3159](https://github.com/ag2ai/faststream/pull/3159){.external-link target="_blank"}
+* test: add the type annotations mypy reports as missing in tests/ by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3160](https://github.com/ag2ai/faststream/pull/3160){.external-link target="_blank"}
+* test: make the small test directories pass strict mypy by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3161](https://github.com/ag2ai/faststream/pull/3161){.external-link target="_blank"}
+* test: put tests/asyncapi under strict mypy by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3165](https://github.com/ag2ai/faststream/pull/3165){.external-link target="_blank"}
+* test: check handler observations from outside the handler by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3168](https://github.com/ag2ai/faststream/pull/3168){.external-link target="_blank"}
+* test: put tests/prometheus and tests/opentelemetry under strict mypy by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3170](https://github.com/ag2ai/faststream/pull/3170){.external-link target="_blank"}
+* test: put tests/brokers under strict mypy by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3176](https://github.com/ag2ai/faststream/pull/3176){.external-link target="_blank"}
+* test(cli): drain stderr before a finished CLI process is inspected by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3185](https://github.com/ag2ai/faststream/pull/3185){.external-link target="_blank"}
+* test: make xfail strict and close what a warnings-as-errors run found open by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3186](https://github.com/ag2ai/faststream/pull/3186){.external-link target="_blank"}
+* test: read Kafka test topics from the earliest offset by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3187](https://github.com/ag2ai/faststream/pull/3187){.external-link target="_blank"}
+
+#### 📝 Documentation
+
+* Document the concurrency model for subscribers by [@00yhj22-debug](https://github.com/00yhj22-debug){.external-link target="_blank"} in [#2885](https://github.com/ag2ai/faststream/pull/2885){.external-link target="_blank"}
+* docs: add RabbitMQ batch subscriber How-To by [@StepanKatin](https://github.com/StepanKatin){.external-link target="_blank"} in [#3011](https://github.com/ag2ai/faststream/pull/3011){.external-link target="_blank"}
+* docs: lead with native broker features instead of a unified API by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3053](https://github.com/ag2ai/faststream/pull/3053){.external-link target="_blank"}
+* docs: correct logging config CLI flag from --log-file to --log-config by [@awsomesud347](https://github.com/awsomesud347){.external-link target="_blank"} in [#3061](https://github.com/ag2ai/faststream/pull/3061){.external-link target="_blank"}
+* docs: list HBB (AI·SW Maestro 17th) on the users page by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3077](https://github.com/ag2ai/faststream/pull/3077){.external-link target="_blank"}
+* Update Telegram badge in README by [@chirizxc](https://github.com/chirizxc){.external-link target="_blank"} in [#3092](https://github.com/ag2ai/faststream/pull/3092){.external-link target="_blank"}
+* docs(skills): minimal test coverage rule in testing-patterns by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3094](https://github.com/ag2ai/faststream/pull/3094){.external-link target="_blank"}
+* docs(skills): one dirty-equals equality per behaviour in testing-patterns by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3101](https://github.com/ag2ai/faststream/pull/3101){.external-link target="_blank"}
+* Update who-uses.md by [@C3EQUALZz](https://github.com/C3EQUALZz){.external-link target="_blank"} in [#3116](https://github.com/ag2ai/faststream/pull/3116){.external-link target="_blank"}
+* docs: the Context7 widget replaces the Gurubase one by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3119](https://github.com/ag2ai/faststream/pull/3119){.external-link target="_blank"}
+* docs: keep Context7 chat keystrokes away from Material's shortcuts by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3121](https://github.com/ag2ai/faststream/pull/3121){.external-link target="_blank"}
+* Document graceful shutdown and default graceful_timeout to 15s everywhere by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3122](https://github.com/ag2ai/faststream/pull/3122){.external-link target="_blank"}
+* docs: SEO basics — robots.txt, root sitemap, real titles by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3133](https://github.com/ag2ai/faststream/pull/3133){.external-link target="_blank"}
+* docs: keep the Search Console token in the repository by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3134](https://github.com/ag2ai/faststream/pull/3134){.external-link target="_blank"}
+* docs: give the site root a canonical link and a real title by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3136](https://github.com/ag2ai/faststream/pull/3136){.external-link target="_blank"}
+* docs: per-page meta descriptions and structured data by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3137](https://github.com/ag2ai/faststream/pull/3137){.external-link target="_blank"}
+* docs: add ADOPTERS.md, a directory maintained by adopters themselves by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3142](https://github.com/ag2ai/faststream/pull/3142){.external-link target="_blank"}
+* docs: point adopters without a pull request to the pinned issue by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3144](https://github.com/ag2ai/faststream/pull/3144){.external-link target="_blank"}
+* docs: shield the literal-braces sections from the macros plugin by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3145](https://github.com/ag2ai/faststream/pull/3145){.external-link target="_blank"}
+* docs: ADOPTERS.md — organizations named in their own job postings by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3146](https://github.com/ag2ai/faststream/pull/3146){.external-link target="_blank"}
+* feat: issue-3143 add tochka to adopters by [@ApostolFet](https://github.com/ApostolFet){.external-link target="_blank"} in [#3147](https://github.com/ag2ai/faststream/pull/3147){.external-link target="_blank"}
+* docs: drop i18n, API reference out of the sitemap, broker-qualified titles by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3150](https://github.com/ag2ai/faststream/pull/3150){.external-link target="_blank"}
+* docs: restore the release notes #3042 reverted by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3151](https://github.com/ag2ai/faststream/pull/3151){.external-link target="_blank"}
+* docs: fix the PageSpeed findings on the landing page by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3156](https://github.com/ag2ai/faststream/pull/3156){.external-link target="_blank"}
+* Update ADOPTERS.md by [@Peopl3s](https://github.com/Peopl3s){.external-link target="_blank"} in [#3157](https://github.com/ag2ai/faststream/pull/3157){.external-link target="_blank"}
+* docs(redis): replace Annotated descriptions with field docstrings by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3183](https://github.com/ag2ai/faststream/pull/3183){.external-link target="_blank"}
+
+#### ⚙️ CI & Build
+
+* ci: stop publishing the source tree to the docs site by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3135](https://github.com/ag2ai/faststream/pull/3135){.external-link target="_blank"}
+* ci: skip relator notifications for Lancetnik's PRs by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3153](https://github.com/ag2ai/faststream/pull/3153){.external-link target="_blank"}
+* ci: build the guides strictly and check the built site on every PR by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3154](https://github.com/ag2ai/faststream/pull/3154){.external-link target="_blank"}
+* ci: keep a single deploy commit on gh-pages by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3155](https://github.com/ag2ai/faststream/pull/3155){.external-link target="_blank"}
+* ci: fail on unused fixtures by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3167](https://github.com/ag2ai/faststream/pull/3167){.external-link target="_blank"}
+* ci: type check all of tests/ with mypy by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3177](https://github.com/ag2ai/faststream/pull/3177){.external-link target="_blank"}
+* ci: type check docs/docs_src with mypy by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3189](https://github.com/ag2ai/faststream/pull/3189){.external-link target="_blank"}
+* ci: run the linters workflow in the merge queue; bump to 0.7.6 by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3192](https://github.com/ag2ai/faststream/pull/3192){.external-link target="_blank"}
+
+#### 🧹 Chores
+
+* chore: own Redis, label AsyncAPI, drop a stale README aside by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3081](https://github.com/ag2ai/faststream/pull/3081){.external-link target="_blank"}
+* chore: three small clean-ups in one PR by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3100](https://github.com/ag2ai/faststream/pull/3100){.external-link target="_blank"}
+* chore: Context7 replaces Gurubase by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3117](https://github.com/ag2ai/faststream/pull/3117){.external-link target="_blank"}
+* chore(lint): enable import placement, no-self-use, private-import, json and bug-catching ruff rules by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3158](https://github.com/ag2ai/faststream/pull/3158){.external-link target="_blank"}
+* chore(mypy): enable five more error codes and fix their findings by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3184](https://github.com/ag2ai/faststream/pull/3184){.external-link target="_blank"}
+
+### New Contributors
+* [@vyhuholl](https://github.com/vyhuholl){.external-link target="_blank"} made their first contribution in [#3059](https://github.com/ag2ai/faststream/pull/3059){.external-link target="_blank"}
+* [@awsomesud347](https://github.com/awsomesud347){.external-link target="_blank"} made their first contribution in [#3061](https://github.com/ag2ai/faststream/pull/3061){.external-link target="_blank"}
+* [@StepanKatin](https://github.com/StepanKatin){.external-link target="_blank"} made their first contribution in [#3011](https://github.com/ag2ai/faststream/pull/3011){.external-link target="_blank"}
+* [@kon28289](https://github.com/kon28289){.external-link target="_blank"} made their first contribution in [#3069](https://github.com/ag2ai/faststream/pull/3069){.external-link target="_blank"}
+* [@SammySN-car](https://github.com/SammySN-car){.external-link target="_blank"} made their first contribution in [#3042](https://github.com/ag2ai/faststream/pull/3042){.external-link target="_blank"}
+* [@Pizzagami](https://github.com/Pizzagami){.external-link target="_blank"} made their first contribution in [#3080](https://github.com/ag2ai/faststream/pull/3080){.external-link target="_blank"}
+* [@lxingy3](https://github.com/lxingy3){.external-link target="_blank"} made their first contribution in [#3066](https://github.com/ag2ai/faststream/pull/3066){.external-link target="_blank"}
+* [@Griger10](https://github.com/Griger10){.external-link target="_blank"} made their first contribution in [#3129](https://github.com/ag2ai/faststream/pull/3129){.external-link target="_blank"}
+* [@SarthakB11](https://github.com/SarthakB11){.external-link target="_blank"} made their first contribution in [#2874](https://github.com/ag2ai/faststream/pull/2874){.external-link target="_blank"}
+* [@Peopl3s](https://github.com/Peopl3s){.external-link target="_blank"} made their first contribution in [#3157](https://github.com/ag2ai/faststream/pull/3157){.external-link target="_blank"}
+
+**Full Changelog**: [#0.7.5...0.7.6](https://github.com/ag2ai/faststream/compare/0.7.5...0.7.6){.external-link target="_blank"}
+
 ## 0.7.5
 
 ### What's Changed
