@@ -37,7 +37,10 @@ if TYPE_CHECKING:
 __all__ = ("TestKafkaBroker",)
 
 
-class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
+class TestKafkaBroker(
+    TestBroker[KafkaBroker, EnterType],
+    broker=KafkaBroker,
+):
     """A class to test Kafka brokers."""
 
     @overload
@@ -162,6 +165,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     def __bool__(self) -> bool:
         return True
 
+    @override
     async def ping(self, timeout: float) -> bool:
         return True
 

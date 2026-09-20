@@ -132,7 +132,7 @@ class RedisBroker(
                     provider=kwargs.get("provider") or dependency_provider,
                     context=kwargs.get("context") or ContextRepo(),
                 ),
-                broker_dependencies=kwargs.get("dependencies", ()),
+                broker_dependencies=tuple(kwargs.get("dependencies", ())),
                 graceful_timeout=kwargs.get("graceful_timeout", 15.0),
                 ack_policy=kwargs.get("ack_policy", EMPTY),
                 id_generator=kwargs.get("id_generator", gen_cor_id),
@@ -153,7 +153,7 @@ class RedisBroker(
     def _validate_init_params(self, kwargs: dict[str, Any]) -> None:
         """Validate constructor params. Hook for subclasses; no-op by default."""
 
-    def _make_connection_state(
+    def _make_connection_state(  # noqa: PLR6301
         self,
         connection_options: dict[str, Any],
         kwargs: dict[str, Any],
@@ -191,7 +191,7 @@ class RedisBroker(
         self._connection = None
 
     async def start(self) -> None:
-        await self.connect()
+        _ = await self.connect()
         await super().start()
 
     @overload

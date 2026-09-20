@@ -8,6 +8,7 @@ behaviour (message delivery, healthchecks, try-it-out dispatch) lives in
 """
 
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 from fast_depends import Depends
@@ -157,7 +158,7 @@ def test_fast_depends_injected(
         return "test"
 
     @decorator
-    async def some_handler(string=Depends(get_string)) -> AsgiResponse:  # noqa: B008
+    async def some_handler(string: str = Depends(get_string)) -> AsgiResponse:
         return AsgiResponse(body=string.encode(), status_code=200)
 
     app = AsgiFastStream(asgi_routes=[("/test", some_handler)])
@@ -177,7 +178,7 @@ def test_fast_depends_injected(
 )
 def test_validation_error_handled(dependency: Context) -> None:
     @get
-    async def some_handler(dep=dependency) -> AsgiResponse:
+    async def some_handler(dep: Any = dependency) -> AsgiResponse:
         return AsgiResponse(status_code=200)
 
     app = AsgiFastStream(asgi_routes=[("/test", some_handler)])

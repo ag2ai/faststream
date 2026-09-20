@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.redis import RedisBroker
@@ -79,10 +81,10 @@ class TestNaming(NamingTestCase):
             pytest.param({"stream": "test"}, id="stream"),
         ),
     )
-    def test_subscribers_variations(self, args: dict[str, str]) -> None:
+    def test_subscribers_variations(self, args: dict[str, Any]) -> None:
         broker = self.broker_class()
 
-        @broker.subscriber(**args)
+        @broker.subscriber(**args)  # type: ignore[untyped-decorator]
         async def handle() -> None: ...
 
         schema = self.get_spec(broker)
@@ -96,10 +98,10 @@ class TestNaming(NamingTestCase):
             pytest.param({"stream": "test"}, id="stream"),
         ),
     )
-    def test_publisher_variations(self, args: dict[str, str]) -> None:
+    def test_publisher_variations(self, args: dict[str, Any]) -> None:
         broker = self.broker_class()
 
-        @broker.publisher(**args)
+        @broker.publisher(**args)  # type: ignore[untyped-decorator]
         async def handle() -> None: ...
 
         schema = self.get_spec(broker)

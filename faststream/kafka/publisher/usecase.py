@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherSpecification
     from faststream._internal.types import PublisherMiddleware
     from faststream.kafka.message import KafkaMessage
+    from faststream.kafka.response import KafkaPublishMessage
     from faststream.response.response import PublishCommand
 
     from .config import KafkaPublisherConfig
@@ -307,7 +308,7 @@ class BatchPublisher(LogicPublisher):
     @overload
     async def publish(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -321,7 +322,7 @@ class BatchPublisher(LogicPublisher):
     @overload
     async def publish(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -335,7 +336,7 @@ class BatchPublisher(LogicPublisher):
     @overload
     async def publish(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -349,7 +350,7 @@ class BatchPublisher(LogicPublisher):
     @override
     async def publish(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         key: bytes | Any | None = None,
         partition: int | None = None,

@@ -45,6 +45,11 @@ test +param="tests/":
 test-all +param="tests/":
   docker compose exec faststream uv run pytest {{param}} -m "all" -n auto
 
+[doc("Fail on fixtures no test requests")]
+[group("tests")]
+unused-fixtures:
+  uv run --frozen python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
+
 [doc("Run fast tests with coverage")]
 [group("tests")]
 test-coverage +param="tests/":
@@ -64,6 +69,11 @@ _docs *params:
 [group("docs")]
 docs-build:
   just _docs build
+
+[doc("Build the guides strictly and check the built site, as CI does")]
+[group("docs")]
+docs-check:
+  just _docs check
 
 [doc("Build API Reference")]
 [group("docs")]

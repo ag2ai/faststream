@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from fast_depends import ValidationError
 
@@ -19,7 +21,7 @@ async def test_context_apply(context: ContextRepo) -> None:
     context.set_global("key", a)
 
     @apply_types(context__=context)
-    async def use(key=Context()):
+    async def use(key: Any = Context()) -> Any:
         return key is a
 
     assert await use()
@@ -46,19 +48,19 @@ async def test_context_apply_multi(context: ContextRepo) -> None:
     context.set_global("key_b", b)
 
     @apply_types(context__=context)
-    async def use1(key_a=Context()):
+    async def use1(key_a: Any = Context()) -> Any:
         return key_a is a
 
     assert await use1()
 
     @apply_types(context__=context)
-    async def use2(key_b=Context()):
+    async def use2(key_b: Any = Context()) -> Any:
         return key_b is b
 
     assert await use2()
 
     @apply_types(context__=context)
-    async def use3(key_a=Context(), key_b=Context()):
+    async def use3(key_a: Any = Context(), key_b: Any = Context()) -> Any:
         return key_a is a and key_b is b
 
     assert await use3()
@@ -73,7 +75,7 @@ async def test_context_overrides(context: ContextRepo) -> None:
     context.set_global("test", b)
 
     @apply_types(context__=context)
-    async def use(test=Context()):
+    async def use(test: Any = Context()) -> Any:
         return test is b
 
     assert await use()
@@ -85,11 +87,11 @@ async def test_context_nested_apply(context: ContextRepo) -> None:
     context.set_global("key", a)
 
     @apply_types(context__=context)
-    def use_nested(key=Context()):
+    def use_nested(key: Any = Context()) -> Any:
         return key
 
     @apply_types(context__=context)
-    async def use(key=Context()):
+    async def use(key: Any = Context()) -> Any:
         return key is use_nested() is a
 
     assert await use()
@@ -102,7 +104,7 @@ async def test_reset_global(context: ContextRepo) -> None:
     context.reset_global("key")
 
     @apply_types(context__=context)
-    async def use(key=Context()) -> None: ...
+    async def use(key: Any = Context()) -> None: ...
 
     with pytest.raises(ValidationError):
         await use()
@@ -115,7 +117,7 @@ async def test_clear_context(context: ContextRepo) -> None:
     context.clear()
 
     @apply_types(context__=context)
-    async def use(key=Context(default=None)):
+    async def use(key: Any = Context(default=None)) -> Any:
         return key is None
 
     assert await use()
@@ -123,7 +125,7 @@ async def test_clear_context(context: ContextRepo) -> None:
 
 def test_scope(context: ContextRepo) -> None:
     @apply_types(context__=context)
-    def use(key=Context(), key2=Context()) -> None:
+    def use(key: Any = Context(), key2: Any = Context()) -> None:
         assert key == 1
         assert key2 == 1
 
@@ -136,7 +138,7 @@ def test_scope(context: ContextRepo) -> None:
 
 def test_scopes(context: ContextRepo) -> None:
     @apply_types(context__=context)
-    def use(key=Context(), key2=Context()) -> None:
+    def use(key: Any = Context(), key2: Any = Context()) -> None:
         assert key == 1
         assert key2 == 2
 
@@ -157,11 +159,11 @@ def test_scopes_restores_a_repeated_key(context: ContextRepo) -> None:
 def test_default(context: ContextRepo) -> None:
     @apply_types(context__=context)
     def use(
-        key=Context(),
-        key2=Context(),
-        key3=Context(default=1),
-        key4=Context("key.key4", default=1),
-        key5=Context("key5.key6"),
+        key: Any = Context(),
+        key2: Any = Context(),
+        key3: Any = Context(default=1),
+        key4: Any = Context("key.key4", default=1),
+        key5: Any = Context("key5.key6"),
     ) -> None:
         assert key == 0
         assert key2 is True
@@ -192,9 +194,9 @@ def test_local_default(context: ContextRepo) -> None:
 def test_initial(context: ContextRepo) -> None:
     @apply_types(context__=context)
     def use(
-        a,
-        key=Context(initial=list),
-    ):
+        a: Any,
+        key: Any = Context(initial=list),
+    ) -> Any:
         key.append(a)
         return key
 
@@ -206,16 +208,16 @@ def test_initial(context: ContextRepo) -> None:
 async def test_context_with_custom_object_implementing_comparison(
     context: ContextRepo,
 ) -> None:
-    class User:
+    class User:  # noqa: PLW1641 - a user object that defines only `__eq__`
         def __init__(self, user_id: int) -> None:
             self.user_id = user_id
 
-        def __eq__(self, other):
+        def __eq__(self, other: object) -> Any:
             if not isinstance(other, User):
                 return NotImplemented
             return self.user_id == other.user_id
 
-        def __ne__(self, other):
+        def __ne__(self, other: object) -> Any:
             return not self.__eq__(other)
 
     user2 = User(user_id=2)
@@ -223,10 +225,10 @@ async def test_context_with_custom_object_implementing_comparison(
 
     @apply_types(context__=context)
     async def use(
-        key1=Context("user1"),
-        key2=Context("user2", default=user2),
-        key3=Context("user3", default=user3),
-    ):
+        key1: Any = Context("user1"),
+        key2: Any = Context("user2", default=user2),
+        key3: Any = Context("user3", default=user3),
+    ) -> Any:
         return (
             key1 == User(user_id=1)
             and key2 == User(user_id=2)

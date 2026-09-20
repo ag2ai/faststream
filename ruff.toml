@@ -37,7 +37,10 @@ ignore = [
     "TD",
     "FIX",
     "SLOT",
-    "ARG",
+    "ARG002",
+    "ARG003",
+    "ARG004",
+    "ARG005",
     "EXE",
 
     "ASYNC109",
@@ -60,11 +63,7 @@ ignore = [
 
     # preview
     "CPY",
-    "PLC0415",
-    "PLC2701",  # FIXME
     "PLC2801",
-    "PLR6301",
-    "PLW1641",
     "RUF029",
     "RUF067",
 
@@ -87,9 +86,7 @@ ignore = [
     "DOC502",
 
     "FBT", # FIXME
-    "PLW2901", # FIXME
     "BLE001", # FIXME
-    "S110", # FIXME
     "PLR0917"  # FIXME
 ]
 
@@ -99,8 +96,16 @@ ignore = [
     "N815",     # Variable `*` in class scope should not be mixedCase
 ]
 
+# the schema packages import their own modules
+"faststream/specification/asyncapi/{v2_6_0,v3_0_0}/**/*.py" = [
+    "TID253",
+]
+
 "benchmarks/**/*.py" = [
-    "T201"
+    "T201",
+    "PLR6301",
+    "PLC2701",
+    "TID251",
 ]
 
 # FIXME
@@ -116,11 +121,19 @@ ignore = [
 "**/_compat.py" = [
     "PYI063",
     "PLW3201",
+    "ARG001",   # shims mirror a third-party signature
+    "PLC2701",
+    "TID251",
 ]
 
 "tests/**/*.py" = [
     "ANN",  # FIXME
     "S",
+    "ARG001",  # a handler takes the message whether it reads it or not
+    "PLR6301",
+    "PLC2701",  # tests reach into faststream._internal by design
+    "TID251",
+    "TID253",
     "PLR0904",
     "PT030",  # FIXME
     "PLR0914",
@@ -128,9 +141,50 @@ ignore = [
     "RUF045",
 ]
 
+# these files mix brokers under require_* marks, and docs_src modules build a broker on import
+"tests/{docs,examples}/**/*.py" = [
+    "PLC0415",
+]
+
+"tests/{cli/test_publish,cli/conftest,utils/context/test_path,utils/context/test_headers}.py" = [
+    "PLC0415",
+]
+
+# the driver annotation rows name the broker's own runtime objects, which are
+# only importable once the package is built, so the table is filled on call
+"faststream/{confluent,kafka,nats,rabbit,redis}/configs/broker.py" = [
+    "PLC0415",
+]
+
+"faststream/mqtt/broker/config.py" = [
+    "PLC0415",
+]
+
 "docs/*.py" = [
     "ALL",      # FIXME
 ]
+
+[lint.flake8-unused-arguments]
+# fakes and pass-through wrappers accept anything; a named parameter must be used
+ignore-variadic-names = true
+
+[lint.flake8-tidy-imports]
+# optional dependencies, imported only where they are needed
+banned-module-level-imports = [
+    "yaml",
+    "uvloop",
+    "tomli",
+    "tomllib",
+    "faststream._internal.cli.supervisors.watchfiles",
+    "faststream._internal.cli.utils.errors",
+    # build many pydantic models on import; loaded only when a schema is generated
+    "faststream.specification.asyncapi.v2_6_0",
+    "faststream.specification.asyncapi.v3_0_0",
+]
+
+[lint.flake8-tidy-imports.banned-api]
+"json.loads".msg = "use `faststream._internal._compat.json_loads`"
+"json.dumps".msg = "use `faststream._internal._compat.json_dumps`"
 
 [lint.isort]
 case-sensitive = true

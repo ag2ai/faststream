@@ -103,7 +103,7 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
             prefix=prefix,
             include_in_schema=include_in_schema,
             broker_middlewares=middlewares,
-            broker_dependencies=dependencies,
+            broker_dependencies=tuple(dependencies),
         ):
             router.config.add_config(options_config)
 

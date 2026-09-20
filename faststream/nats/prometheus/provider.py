@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Union
 
 from nats.aio.msg import Msg
+from typing_extensions import override
 
 from faststream.message.message import MsgType, StreamMessage
 from faststream.prometheus import (
@@ -19,6 +20,7 @@ class BaseNatsMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
     def __init__(self) -> None:
         self.messaging_system = "nats"
 
+    @override
     def get_publish_destination_name_from_cmd(
         self,
         cmd: "PublishCommand",
@@ -27,6 +29,7 @@ class BaseNatsMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
 
 
 class NatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider["Msg"]):
+    @override
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[Msg]",
@@ -39,6 +42,7 @@ class NatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider["Msg"]):
 
 
 class BatchNatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider[list["Msg"]]):
+    @override
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[list[Msg]]",

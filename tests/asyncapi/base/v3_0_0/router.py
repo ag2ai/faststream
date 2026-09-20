@@ -1,25 +1,20 @@
-from dirty_equals import IsStr
+from typing import Any
 
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.broker.router import (
-    ArgsContainer,
-    BrokerRouter,
-    SubscriberRoute,
-)
+from dirty_equals import IsStr
 
 from .basic import AsyncAPI300Factory
 
 
 class RouterTestcase(AsyncAPI300Factory):
-    broker_class: type[BrokerUsecase]
-    router_class: type[BrokerRouter]
-    publisher_class: type[ArgsContainer]
-    route_class: type[SubscriberRoute]
+    broker_class: Any
+    router_class: Any
+    publisher_class: Any
+    route_class: Any
 
     def test_delay_subscriber(self) -> None:
         broker = self.broker_class()
 
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         router = self.router_class(
             handlers=(self.route_class(handle, "test"),),
@@ -36,7 +31,7 @@ class RouterTestcase(AsyncAPI300Factory):
     def test_delay_publisher(self) -> None:
         broker = self.broker_class()
 
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         router = self.router_class(
             handlers=(
@@ -66,7 +61,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         @router.subscriber("test")
         @router.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         broker.include_router(router)
 
@@ -79,7 +74,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         @router.subscriber("test")
         @router.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         broker.include_router(router, include_in_schema=False)
 
@@ -93,7 +88,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         @router2.subscriber("test")
         @router2.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         router.include_router(router2)
         broker.include_router(router)
@@ -109,7 +104,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         @router2.subscriber("test")
         @router2.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         router.include_router(router2)
         broker.include_router(router)
@@ -125,7 +120,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         @router2.subscriber("test")
         @router2.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         router.include_router(router2, include_in_schema=False)
         broker.include_router(router)
@@ -141,7 +136,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         @router2.subscriber("test")
         @router2.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         router.include_router(router2)
         broker.include_router(router, include_in_schema=False)
@@ -157,7 +152,7 @@ class RouterTestcase(AsyncAPI300Factory):
 
         @router2.subscriber("test")
         @router2.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         router.include_router(router2)
         broker.include_router(router)

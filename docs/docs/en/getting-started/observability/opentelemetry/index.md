@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Instrument FastStream with OpenTelemetry: distributed traces and metrics that follow a
+  message from publisher to subscriber across services.
 search:
   boost: 10
 ---

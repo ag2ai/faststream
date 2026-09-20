@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from dirty_equals import HasLen, IsInt, IsPartialDict
-from redis.asyncio import Redis, RedisCluster
+from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
 from faststream.redis import RedisBroker, StreamSub
@@ -16,7 +16,8 @@ from tests.marks import require_redis_v710
 
 async def skip_without_claim_support(broker: RedisBroker) -> None:
     """XREADGROUP CLAIM needs Redis server 8.4+; there is no client-side gate for it."""
-    info = await broker._connection.info("server")
+    client = await broker.connect()
+    info = await client.info("server")
     major, minor, *_ = info["redis_version"].split(".")
     if (int(major), int(minor)) < (8, 4):
         pytest.skip("XREADGROUP CLAIM requires Redis server 8.4+")
@@ -32,10 +33,11 @@ async def make_pending(
     for payload in payloads:
         await br.publish(payload, stream=queue)
 
+    client = await br.connect()
     with suppress(Exception):
-        await br._connection.xgroup_create(queue, group, id="0", mkstream=True)
+        await client.xgroup_create(queue, group, id="0", mkstream=True)
 
-    await br._connection.xreadgroup(
+    await client.xreadgroup(
         groupname=group,
         consumername="temp",
         streams={queue: ">"},
@@ -43,8 +45,8 @@ async def make_pending(
     )
 
 
-class StreamClaimTestcase(BaseTestcaseConfig):
-    client_cls: type[Redis | RedisCluster] = Redis
+class StreamClaimTestcase(BaseTestcaseConfig[Any]):
+    client_cls: Any = Redis
     """The client class whose `xreadgroup` the unsupported-server test patches; the cluster overrides it."""
 
     @pytest.mark.slow()
@@ -117,7 +119,7 @@ class StreamClaimTestcase(BaseTestcaseConfig):
                 claim_min_idle_time=300,
             ),
         )
-        async def handler(msg: list, message: RedisBatchStreamMessage) -> None:
+        async def handler(msg: list[Any], message: RedisBatchStreamMessage) -> None:
             snapshots.append(dict(message.raw_message))
             if sum(len(s["message_ids"]) for s in snapshots) >= 2:
                 event.set()

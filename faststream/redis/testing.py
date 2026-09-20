@@ -91,7 +91,10 @@ class PEL:
         return self.entries.get(correlation_id)
 
 
-class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
+class TestRedisBroker(
+    TestBroker[RedisBroker, EnterType],
+    broker=RedisBroker,
+):
     """A class to test Redis brokers."""
 
     @overload
@@ -102,6 +105,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         *,
         with_real: bool = False,
         connect_only: bool | None = None,
+        pel: PEL | None = None,
     ) -> None: ...
 
     @overload
@@ -110,6 +114,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
         *brokers: RedisBroker,
         with_real: bool = False,
         connect_only: bool | None = None,
+        pel: PEL | None = None,
     ) -> None: ...
 
     def __init__(
@@ -142,7 +147,7 @@ class TestRedisBroker(TestBroker[RedisBroker, EnterType]):
                         "_connect",
                         wraps=partial(self._fake_connect, broker),
                     ):
-                        await broker.connect()
+                        _ = await broker.connect()
                     cluster_stack.enter_context(self._patch_producer(broker))
             async with super()._create_ctx() as brokers:
                 yield brokers
@@ -415,7 +420,7 @@ class FakeProducer(RedisFastProducer):
         if isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.group:
             group_key = (visited_ch, handler.stream_sub.group)
 
-            if self._handler_min_idle_time(handler) and self._check_pel(
+            if _handler_min_idle_time(handler) and self._check_pel(
                 handler=handler,
                 cmd=cmd,
                 session_id=session_id,
@@ -427,19 +432,6 @@ class FakeProducer(RedisFastProducer):
             return True
         return True
 
-    def _handler_group(self, handler: "LogicSubscriber") -> str | None:
-        if isinstance(handler, _StreamHandlerMixin):
-            return handler.stream_sub.group
-        return None
-
-    def _handler_no_ack(self, handler: "LogicSubscriber") -> bool:
-        return isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.no_ack
-
-    def _handler_min_idle_time(self, handler: "LogicSubscriber") -> int | None:
-        if isinstance(handler, _StreamHandlerMixin):
-            return handler.stream_sub.min_idle_time
-        return None
-
     def _check_pel(
         self,
         handler: "LogicSubscriber",
@@ -450,7 +442,7 @@ class FakeProducer(RedisFastProducer):
             correlation_id=(
                 cmd.correlation_id,
                 session_id,
-                self._handler_group(handler),
+                _handler_group(handler),
             )
         )
 
@@ -461,14 +453,14 @@ class FakeProducer(RedisFastProducer):
         cmd: "RedisPublishCommand",
         session_id: uuid.UUID,
     ) -> None:
-        if not self._handler_no_ack(handler):
+        if not _handler_no_ack(handler):
             self.pel.put(
                 msg=msg,
                 handler=handler,
                 correlation_id=(
                     cmd.correlation_id,
                     session_id,
-                    self._handler_group(handler),
+                    _handler_group(handler),
                 ),
             )
 
@@ -478,12 +470,12 @@ class FakeProducer(RedisFastProducer):
         handler: "LogicSubscriber",
         session_id: uuid.UUID,
     ) -> None:
-        if result.correlation_id and not self._handler_no_ack(handler):
+        if result.correlation_id and not _handler_no_ack(handler):
             self.pel.remove(
                 correlation_id=(
                     result.correlation_id,
                     session_id,
-                    self._handler_group(handler),
+                    _handler_group(handler),
                 )
             )
 
@@ -522,6 +514,7 @@ class Visitor(Protocol):
 
 
 class ChannelVisitor(Visitor):
+    @override
     def visit(
         self,
         *,
@@ -551,6 +544,7 @@ class ChannelVisitor(Visitor):
 
         return None
 
+    @override
     def get_message(  # type: ignore[override]
         self,
         channel: str,
@@ -571,6 +565,7 @@ class ChannelVisitor(Visitor):
 
 
 class ListVisitor(Visitor):
+    @override
     def visit(
         self,
         *,
@@ -587,6 +582,7 @@ class ListVisitor(Visitor):
 
         return None
 
+    @override
     def get_message(  # type: ignore[override]
         self,
         channel: str,
@@ -608,6 +604,7 @@ class ListVisitor(Visitor):
 
 
 class StreamVisitor(Visitor):
+    @override
     def visit(
         self,
         *,
@@ -624,6 +621,7 @@ class StreamVisitor(Visitor):
 
         return None
 
+    @override
     def get_message(  # type: ignore[override]
         self,
         channel: str,
@@ -674,3 +672,19 @@ def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
         raise SetupError(INCORRECT_SETUP_MSG)
 
     return destination
+
+
+def _handler_group(handler: "LogicSubscriber") -> str | None:
+    if isinstance(handler, _StreamHandlerMixin):
+        return handler.stream_sub.group
+    return None
+
+
+def _handler_no_ack(handler: "LogicSubscriber") -> bool:
+    return isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.no_ack
+
+
+def _handler_min_idle_time(handler: "LogicSubscriber") -> int | None:
+    if isinstance(handler, _StreamHandlerMixin):
+        return handler.stream_sub.min_idle_time
+    return None

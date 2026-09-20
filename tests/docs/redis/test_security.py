@@ -70,7 +70,7 @@ async def test_plaintext_security() -> None:
 
         with pytest.raises(AuthenticationError):
             async with broker:
-                await broker._connection.ping()
+                await broker._connection.ping()  # type: ignore[union-attr]
 
         assert connection.call_args.kwargs["ssl"]
 

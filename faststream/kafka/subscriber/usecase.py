@@ -304,6 +304,7 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
 
+    @override
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
         assert consumer, "You should setup subscriber at first."
         return await consumer.getone()
@@ -445,7 +446,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
                     ),
                 )
 
-                tg.start_soon(c.start)
+                _ = tg.start_soon(c.start)
 
         self._post_start()
 
@@ -457,12 +458,13 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
         if self.consumer_subgroup:
             async with anyio.create_task_group() as tg:
                 for consumer in self.consumer_subgroup:
-                    tg.start_soon(consumer.stop)
+                    _ = tg.start_soon(consumer.stop)
 
             self.consumer_subgroup = []
 
         await super().stop()
 
+    @override
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "KafkaRawMessage":
         assert consumer, "You should setup subscriber at first."
         message = await consumer.getone()

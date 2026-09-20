@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from aio_pika import RobustConnection
 
@@ -10,15 +12,15 @@ from faststream.rabbit import RabbitBroker, RabbitRouter
 @pytest.mark.rabbit()
 def test_use_only_rabbit_router() -> None:
     broker = RabbitBroker()
-    router = NatsRouter()
+    router: Any = NatsRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [RabbitRouter(), NatsRouter()]
+    routers: list[Any] = [RabbitRouter(), NatsRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)
 
 
 @pytest.mark.rabbit()

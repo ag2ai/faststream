@@ -77,9 +77,9 @@ async def handle(msg):
 When the client sends a request like this:
 
 ```python  linenums="1" hl_lines="3"
-from faststream.redis import RedisMessage
+from faststream.redis import RedisChannelMessage
 
-msg: RedisMessage = await broker.request(
+msg: RedisChannelMessage = await broker.request(
     "Hello, Redis!",
     channel="test-channel",
 )
@@ -117,9 +117,9 @@ async def handle(msg):
 When the client sends a request:
 
 ```python linenums="1" hl_lines="7-9"
-from faststream.redis import RedisMessage
+from faststream.redis import RedisChannelMessage
 
-msg: RedisMessage = await broker.request(
+msg: RedisChannelMessage = await broker.request(
     "Hello, Redis!",
     channel="test-channel",
 )

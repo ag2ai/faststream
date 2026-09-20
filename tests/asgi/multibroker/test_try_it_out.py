@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -11,6 +13,14 @@ from faststream.asgi.factories.asyncapi.try_it_out import (
     _iter_broker_destinations,
 )
 from faststream.kafka import KafkaBroker, TestKafkaBroker
+from tests.marks import (
+    require_aiokafka,
+    require_aiopika,
+    require_confluent,
+    require_mqtt,
+    require_nats,
+    require_redis,
+)
 
 
 def _payload(channel: str, body: Any) -> dict[str, Any]:
@@ -183,3 +193,56 @@ class TestProcessorUnit:
     def test_empty_brokers_rejected(self) -> None:
         with pytest.raises(ValueError, match="at least one broker"):
             TryItOutProcessor()
+
+
+@pytest.mark.parametrize(
+    ("package", "broker"),
+    (
+        pytest.param(
+            "faststream.kafka",
+            "KafkaBroker",
+            marks=(pytest.mark.kafka(), require_aiokafka),
+        ),
+        pytest.param(
+            "faststream.confluent",
+            "KafkaBroker",
+            marks=(pytest.mark.confluent(), require_confluent),
+        ),
+        pytest.param(
+            "faststream.nats",
+            "NatsBroker",
+            marks=(pytest.mark.nats(), require_nats),
+        ),
+        pytest.param(
+            "faststream.rabbit",
+            "RabbitBroker",
+            marks=(pytest.mark.rabbit(), require_aiopika),
+        ),
+        pytest.param(
+            "faststream.redis",
+            "RedisBroker",
+            marks=(pytest.mark.redis(), require_redis),
+        ),
+        pytest.param(
+            "faststream.mqtt",
+            "MQTTBroker",
+            marks=(pytest.mark.mqtt(), require_mqtt),
+        ),
+    ),
+)
+def test_test_broker_found_without_importing_it(package: str, broker: str) -> None:
+    # a fresh interpreter: this session has imported every TestBroker already
+    code = (
+        f"from {package} import {broker}\n"
+        "from faststream._internal.testing.broker import find_test_broker\n"
+        f"print(find_test_broker({broker}()).__module__)"
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout.strip() == f"{package}.testing"

@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
@@ -53,7 +53,7 @@ class BrokerConfig:
     # subscriber options
     underlying_driver_annotations: Mapping[Any, Any] = field(default_factory=dict)
     default_driver_annotations: Mapping[Any, Any] = field(default_factory=dict)
-    broker_dependencies: Iterable["Dependant"] = ()
+    broker_dependencies: Sequence["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
@@ -204,5 +204,5 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
         return [m for c in self.configs for m in c.broker_middlewares]
 
     @property
-    def broker_dependencies(self) -> Iterable["Dependant"]:
-        return (b for c in self.configs for b in c.broker_dependencies)
+    def broker_dependencies(self) -> Sequence["Dependant"]:
+        return [b for c in self.configs for b in c.broker_dependencies]

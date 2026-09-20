@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     )
     from faststream.confluent.helpers.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
+    from faststream.confluent.response import KafkaPublishMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -302,7 +303,7 @@ class KafkaBroker(
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
                 id_generator=id_generator,
-                broker_dependencies=dependencies,
+                broker_dependencies=tuple(dependencies),
                 extra_context={
                     "broker": self,
                 },
@@ -349,8 +350,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True] = ...,
-    ) -> asyncio.Future[Message | None]: ...
+        no_confirm: Literal[False] = False,
+    ) -> Message | None: ...
 
     @overload
     async def publish(
@@ -364,8 +365,8 @@ class KafkaBroker(
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[False] = False,
-    ) -> Message | None: ...
+        no_confirm: Literal[True] = ...,
+    ) -> asyncio.Future[Message | None]: ...
 
     @overload
     async def publish(
@@ -468,7 +469,7 @@ class KafkaBroker(
     @override
     async def publish_batch(  # type: ignore[override]
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str,
         partition: int | None = None,
         timestamp_ms: int | None = None,

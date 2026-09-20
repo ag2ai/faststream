@@ -69,9 +69,9 @@ class KafkaResponse(Response):
 class KafkaPublishCommand(BatchPublishCommand):
     def __init__(
         self,
-        message: "SendableMessage",
+        message: "SendableMessage | KafkaPublishMessage",
         /,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str,
         _publish_type: PublishType,
         key: bytes | Any | None = None,

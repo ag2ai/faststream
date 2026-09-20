@@ -15,7 +15,7 @@ from typing import (
 import aiokafka
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
-from aiokafka.producer.producer import _missing
+from aiokafka.producer.producer import _missing  # noqa: PLC2701
 from aiokafka.structs import RecordMetadata
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
@@ -61,6 +61,7 @@ if TYPE_CHECKING:
         CustomCallable,
     )
     from faststream.kafka.message import KafkaMessage
+    from faststream.kafka.response import KafkaPublishMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -474,7 +475,7 @@ class KafkaBroker(
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
                 id_generator=id_generator,
-                broker_dependencies=dependencies,
+                broker_dependencies=tuple(dependencies),
                 extra_context={
                     "broker": self,
                 },
@@ -681,7 +682,7 @@ class KafkaBroker(
     @overload  # type: ignore[override]
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -694,7 +695,7 @@ class KafkaBroker(
     @overload
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -707,7 +708,7 @@ class KafkaBroker(
     @overload
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
@@ -719,7 +720,7 @@ class KafkaBroker(
 
     async def publish_batch(
         self,
-        *messages: "SendableMessage",
+        *messages: "SendableMessage | KafkaPublishMessage",
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,

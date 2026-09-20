@@ -1,3 +1,6 @@
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 import pytest
 
 from faststream import BaseMiddleware
@@ -8,16 +11,19 @@ from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
 
 class Mid(BaseMiddleware):
     async def on_receive(self) -> None:
+        assert self.msg
         self.msg.data *= 2
 
-    async def consume_scope(self, call_next, msg):
+    async def consume_scope(
+        self, call_next: Callable[[Any], Awaitable[Any]], msg: Any
+    ) -> Any:
         msg.body *= 2
         return await call_next(msg)
 
 
 @pytest.mark.asyncio()
 class NatsRequestsTestcase(RequestsTestcase):
-    def get_middleware(self, **kwargs):
+    def get_middleware(self, **kwargs: Any) -> Any:
         return Mid
 
     async def test_broker_stream_request(self, queue: str) -> None:
@@ -27,8 +33,8 @@ class NatsRequestsTestcase(RequestsTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, stream=stream_name)
 
-        @broker.subscriber(*args, **kwargs)
-        async def handler(msg) -> str:
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(msg: Any) -> str:
             return "Response"
 
         async with self.patch_broker(broker):
@@ -53,8 +59,8 @@ class NatsRequestsTestcase(RequestsTestcase):
 
         args, kwargs = self.get_subscriber_params(queue, stream=stream_name)
 
-        @broker.subscriber(*args, **kwargs)
-        async def handler(msg) -> str:
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(msg: Any) -> str:
             return "Response"
 
         async with self.patch_broker(broker):

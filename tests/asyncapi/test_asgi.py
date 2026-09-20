@@ -1,4 +1,4 @@
-from faststream.asgi import AsgiFastStream, get, make_ping_asgi
+from faststream.asgi import AsgiFastStream, AsgiResponse, get, make_ping_asgi
 from faststream.kafka import KafkaBroker
 from faststream.specification import AsyncAPI
 
@@ -7,10 +7,12 @@ def test_asgi_v2_6_0() -> None:
     broker = KafkaBroker()
 
     @get
-    async def handler() -> None: ...
+    async def handler() -> AsgiResponse:
+        return AsgiResponse()
 
     @get(include_in_schema=False)
-    async def handler2() -> None: ...
+    async def handler2() -> AsgiResponse:
+        return AsgiResponse()
 
     app = AsgiFastStream(
         broker,
@@ -55,10 +57,12 @@ def test_asgi_v3_0_0() -> None:
     broker = KafkaBroker()
 
     @get
-    async def handler() -> None: ...
+    async def handler() -> AsgiResponse:
+        return AsgiResponse()
 
     @get(include_in_schema=False)
-    async def handler2() -> None: ...
+    async def handler2() -> AsgiResponse:
+        return AsgiResponse()
 
     app = AsgiFastStream(
         broker,

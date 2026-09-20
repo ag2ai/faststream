@@ -347,7 +347,7 @@ class KafkaRouter(
             config=KafkaBrokerConfig(
                 broker_middlewares=middlewares,
                 ack_policy=ack_policy,
-                broker_dependencies=dependencies,
+                broker_dependencies=tuple(dependencies),
                 broker_parser=parser,
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from pydantic import BaseModel
 
@@ -13,15 +15,20 @@ def cast_model(t: Base) -> tuple[bool, Base]:
     return isinstance(t, Base), t
 
 
-def test_model() -> None:
-    is_casted, m = cast_model({"field": 1})
-    assert is_casted, m.field == (True, 1)
+@pytest.mark.parametrize(
+    "value",
+    (
+        pytest.param({"field": 1}, id="dict"),
+        pytest.param(Base(field=1), id="model"),
+        pytest.param({"field": "1"}, id="dict with str"),
+    ),
+)
+def test_model(value: Any) -> None:
+    assert cast_model(value) == (True, Base(field=1))
 
-    is_casted, m = cast_model(Base(field=1))
-    assert is_casted, m.field == (True, 1)
 
-    is_casted, m = cast_model({"field": "1"})
-    assert is_casted, m.field == (True, 1)
+def test_model_wrong_value() -> None:
+    value: Any = ("field", 1)
 
     with pytest.raises(ValueError):  # noqa: PT011
-        cast_model(("field", 1))
+        cast_model(value)

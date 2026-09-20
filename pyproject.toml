@@ -58,9 +58,9 @@ classifiers = [
 ]
 
 dependencies = [
-    "fast-depends[pydantic]>=3.0.0",
+    "fast-depends[pydantic]>=3.0.9",
     "typing-extensions>=4.12.0",
-    "anyio>=4.0,<5",
+    "anyio>=4.14.2,<5",
 ]
 
 [project.optional-dependencies]
@@ -93,7 +93,6 @@ optionals = ["faststream[rabbit,kafka,confluent,nats,redis,mqtt,otel,cli,prometh
 
 docs = [
     "mkdocs-material==9.7.7",
-    "mkdocs-static-i18n==1.3.0",
     "mdx-include==1.4.2",
     "mkdocstrings[python]==1.0.2",
     "griffe==1.15.0",
@@ -183,7 +182,7 @@ module-root = "."
 module-name = "faststream"
 
 [tool.mypy]
-files = ["faststream", "tests/mypy"]
+files = ["faststream", "tests", "docs/docs_src"]
 strict = true
 python_version = "3.10"
 strict_bytes = true
@@ -203,6 +202,64 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
 
+enable_error_code = [
+    "exhaustive-match",
+    "ignore-without-code",
+    "possibly-undefined",
+    "redundant-expr",
+    "truthy-bool",
+    "truthy-iterable",
+    "unused-awaitable",
+]
+
+[[tool.mypy.overrides]]
+# Cross-broker testcases hold the broker as `Any`: each broker spells
+# `subscriber()` differently, so its decorator cannot be typed there.
+module = [
+    "tests.asgi.testcase",
+    "tests.asyncapi.base.*",
+    "tests.integrations.msgspec.test_serialization",
+    "tests.opentelemetry.basic",
+    "tests.prometheus.basic",
+    "tests.brokers.base.*",
+    "tests.brokers.redis.stream_claim",
+]
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+# AsyncAPI tests declare handlers only for their signature: the body never runs.
+module = ["tests.asyncapi.*"]
+disable_error_code = ["empty-body"]
+
+[[tool.mypy.overrides]]
+# Snippets are embedded in the docs: handlers stay as short as a reader writes them.
+module = ["docs.docs_src.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+disallow_untyped_calls = false
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
+# `secret == "1"` under an `int` annotation is the point: without `cast` nothing converts.
+module = ["docs.docs_src.getting_started.context.*.cast"]
+disable_error_code = ["comparison-overlap"]
+
+[[tool.mypy.overrides]]
+# Page fragments: `tracer_provider` is built by the code block shown above them.
+module = ["docs.docs_src.getting_started.opentelemetry.*"]
+disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+# The pydantic v1 spelling, shown beside the v2 one.
+module = ["docs.docs_src.getting_started.config.settings_base_1"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# tornado is not installed, so its `RequestHandler` is `Any`.
+module = ["docs.docs_src.integrations.http_frameworks_integrations.tornado"]
+disallow_subclassing_any = false
+
 [tool.pyright]
 # Public API surface only: `tests/mypy` exercises the documented API the way a
 # user does. Pyright still follows imports into `faststream/`, so breakage in
@@ -218,6 +275,7 @@ timeout = 30
 # whole-item one on the first failure, and rerunfailures retries inside it.
 timeout_func_only = true
 addopts = "--strict-markers --strict-config -q -m 'not slow'"
+xfail_strict = true
 testpaths = ["tests"]
 markers = [
     "rabbit",

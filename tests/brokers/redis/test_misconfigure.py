@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 import pytest
 from redis.asyncio.client import Pipeline, Redis
@@ -7,7 +7,7 @@ from faststream import AckPolicy, Context, UnderlyingDriverAnnotation
 from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
-from faststream.redis import RedisBroker, RedisRouter, StreamSub, annotations
+from faststream.redis import ListSub, RedisBroker, RedisRouter, StreamSub, annotations
 from faststream.redis.subscriber.usecases import StreamConcurrentSubscriber
 
 
@@ -55,15 +55,33 @@ def test_manual_ack_with_max_workers_via_router_default() -> None:
 @pytest.mark.redis()
 def test_use_only_redis_router() -> None:
     broker = RedisBroker()
-    router = NatsRouter()
+    router: Any = NatsRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [RedisRouter(), NatsRouter()]
+    routers: list[Any] = [RedisRouter(), NatsRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)
+
+
+@pytest.mark.redis()
+@pytest.mark.parametrize(
+    "destination",
+    (
+        pytest.param({"list": ListSub("list", batch=True)}, id="list"),
+        pytest.param({"stream": StreamSub("stream", batch=True)}, id="stream"),
+    ),
+)
+def test_max_workers_ignored_by_batch(destination: dict[str, Any]) -> None:
+    broker = RedisBroker()
+
+    with pytest.warns(RuntimeWarning, match="`max_workers` option is ignored") as record:
+        broker.subscriber(**destination, max_workers=2)
+
+    # the warning points at the line that registered the subscriber
+    assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
 
 
 @pytest.mark.redis()
@@ -81,7 +99,7 @@ def test_driver_class_annotation_names_the_import_to_use() -> None:
     with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
-        async def handler(redis: Redis) -> None: ...
+        async def handler(redis: Redis) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
 
     assert [str(e) for e in excinfo.value.exceptions] == [expected]
 
@@ -114,7 +132,7 @@ def test_annotation_behind_depends_names_its_import() -> None:
     with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
-        async def handler(pipe: Pipeline) -> None: ...
+        async def handler(pipe: Pipeline) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
 
     assert [str(e) for e in excinfo.value.exceptions] == [expected]
 
@@ -180,7 +198,7 @@ def test_custom_rows_do_not_replace_the_broker_defaults() -> None:
     with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
-        async def handler(redis: Redis) -> None: ...
+        async def handler(redis: Redis) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
 
     assert "from faststream.redis.annotations import Redis" in str(
         excinfo.value.exceptions[0]
@@ -218,7 +236,7 @@ def test_a_row_can_be_a_union_hint() -> None:
     with pytest.raises(ExceptionGroup) as excinfo:
 
         @broker.subscriber("test")
-        async def handler(redis: Redis | None = None) -> None: ...
+        async def handler(redis: Redis | None = None) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
 
     assert "from faststream.redis.annotations import Redis" in str(
         excinfo.value.exceptions[0]

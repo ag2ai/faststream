@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import anyio
@@ -16,7 +17,7 @@ class TestCustomParser(NatsTestcaseConfig, CustomParserTestcase):
         queue: str,
         mock: MagicMock,
     ) -> None:
-        async def custom_decoder(msg, original):
+        async def custom_decoder(msg: Any, original: Any) -> Any:
             mock()
             return await original(msg)
 
@@ -24,8 +25,8 @@ class TestCustomParser(NatsTestcaseConfig, CustomParserTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:

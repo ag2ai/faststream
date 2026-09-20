@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Generate AsyncAPI documentation for a FastStream application and export the schema to JSON
+  or YAML from the command line.
 search:
   boost: 10
 ---
