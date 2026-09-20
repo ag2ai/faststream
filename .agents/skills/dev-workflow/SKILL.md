@@ -10,6 +10,7 @@ description: Use when setting up the FastStream dev environment, running tests/l
 `uv` for Python deps + `just` as the task runner + docker compose for brokers. Never use bare `pip`. Run `just` with no args to list all recipes.
 
 - `just init [python-version]` — build the dev environment (default Python 3.10).
+- `uv.lock` travels with `pyproject.toml`: a PR that changes dependencies or the version runs `uv lock` and commits the result. `just lock-check` (a pre-commit hook, so CI too) fails otherwise — CI installs without the lock, so nothing else would notice.
 
 ## Docker brokers
 

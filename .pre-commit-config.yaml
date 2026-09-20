@@ -56,6 +56,15 @@ repos:
 
 -   repo: local
     hooks:
+    -   id: uv-lock
+        name: uv.lock is in sync
+        entry: just lock-check
+        language: python
+        files: ^(pyproject\.toml|uv\.lock)$
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
     -   id: lint
         name: Linter
         entry: just lint
