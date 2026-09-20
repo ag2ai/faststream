@@ -706,6 +706,28 @@ jobs:
         working-directory: docs
         run: python docs.py check
 
+      # `docs` is a part of the `check` gate, and a third-party site going down
+      # is no reason to hold a merge: only a PR that edits the pages pays for
+      # their links. The nightly run checks them all the same.
+      - name: See whether the PR touches the pages
+        id: pages
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git diff --quiet "origin/$BASE_REF...HEAD" -- docs/docs/en README.md lychee.toml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check the external links of the guides and the README
+        if: github.event_name == 'schedule' || steps.pages.outputs.changed == 'true'
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --config lychee.toml 'docs/docs/en/**/*.md' README.md
+          fail: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   check: # This job does nothing and is only used for the branch protection
     # from: https://github.com/re-actors/alls-green
     # Important: For this to work properly, it is a must to have the job always
