@@ -355,6 +355,7 @@ skips = ["B101"]
 # Contributor handles in the generated release notes. Names, not misspellings.
 WellFREEzZ = "WellFREEzZ"
 RinZ27 = "RinZ27"
+Peopl3s = "Peopl3s"
 
 [tool.typos.default.extend-words]
 # ruff's flake8-copyright rule prefix, not a shortening of "copy".
