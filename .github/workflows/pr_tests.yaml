@@ -678,6 +678,7 @@ jobs:
       - name: Fail on fixtures no test requests
         run: python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
 
+  # https://github.com/marketplace/actions/alls-green#why
   docs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -702,7 +703,6 @@ jobs:
         working-directory: docs
         run: python docs.py check
 
-  # https://github.com/marketplace/actions/alls-green#why
   check: # This job does nothing and is only used for the branch protection
     # from: https://github.com/re-actors/alls-green
     # Important: For this to work properly, it is a must to have the job always
