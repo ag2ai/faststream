@@ -113,6 +113,7 @@ lint = [
     "semgrep==1.150.0",
     "codespell==2.4.1",
     "zizmor==1.22.0",
+    "import-linter==2.15",
     "mypy==1.19.1",
     "pyright==1.1.407",
     # type checkers extensions
@@ -347,6 +348,144 @@ omit = [
     'examples/serialization/protobuf/protobuf.py',
 ]
 fail_under = 20
+
+[tool.importlinter]
+root_package = "faststream"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+id = "brokers-independent"
+name = "Broker packages do not import each other"
+type = "independence"
+modules = [
+    "faststream.kafka",
+    "faststream.confluent",
+    "faststream.rabbit",
+    "faststream.nats",
+    "faststream.redis",
+    "faststream.mqtt",
+]
+# The AMQP bindings read RabbitQueue / RabbitExchange for annotations only,
+# under TYPE_CHECKING; nothing of RabbitMQ is imported at runtime.
+ignore_imports = [
+    "faststream.specification.schema.bindings.amqp -> faststream.rabbit.schemas",
+]
+
+[[tool.importlinter.contracts]]
+id = "core-broker-agnostic"
+name = "The core does not import a broker package"
+type = "forbidden"
+source_modules = [
+    "faststream._internal",
+    "faststream.asgi",
+    "faststream.message",
+    "faststream.middlewares",
+    "faststream.opentelemetry",
+    "faststream.params",
+    "faststream.prometheus",
+    "faststream.response",
+    "faststream.specification",
+    "faststream.annotations",
+    "faststream.app",
+    "faststream.cli",
+    "faststream.context",
+    "faststream.exceptions",
+    "faststream.security",
+    "faststream.types",
+]
+forbidden_modules = [
+    "faststream.kafka",
+    "faststream.confluent",
+    "faststream.rabbit",
+    "faststream.nats",
+    "faststream.redis",
+    "faststream.mqtt",
+]
+ignore_imports = [
+    "faststream.specification.schema.bindings.amqp -> faststream.rabbit.schemas",
+]
+
+[[tool.importlinter.contracts]]
+id = "kafka-driver"
+name = "Only faststream.kafka imports aiokafka"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["aiokafka"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.kafka -> aiokafka",
+    "faststream.kafka.** -> aiokafka",
+]
+
+[[tool.importlinter.contracts]]
+id = "confluent-driver"
+name = "Only faststream.confluent imports confluent_kafka"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["confluent_kafka"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.confluent -> confluent_kafka",
+    "faststream.confluent.** -> confluent_kafka",
+]
+
+[[tool.importlinter.contracts]]
+id = "rabbit-driver"
+name = "Only faststream.rabbit imports aio_pika, aiormq, pamqp"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["aio_pika", "aiormq", "pamqp"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.rabbit -> aio_pika",
+    "faststream.rabbit.** -> aio_pika",
+    "faststream.rabbit -> aiormq",
+    "faststream.rabbit.** -> aiormq",
+    "faststream.rabbit -> pamqp",
+    "faststream.rabbit.** -> pamqp",
+]
+
+[[tool.importlinter.contracts]]
+id = "nats-driver"
+name = "Only faststream.nats imports nats"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["nats"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.nats -> nats",
+    "faststream.nats.** -> nats",
+]
+
+[[tool.importlinter.contracts]]
+id = "redis-driver"
+name = "Only faststream.redis imports redis"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["redis"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.redis -> redis",
+    "faststream.redis.** -> redis",
+]
+
+[[tool.importlinter.contracts]]
+id = "mqtt-driver"
+name = "Only faststream.mqtt imports zmqtt"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["zmqtt"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.mqtt -> zmqtt",
+    "faststream.mqtt.** -> zmqtt",
+]
 
 [tool.bandit]
 skips = ["B101"]
