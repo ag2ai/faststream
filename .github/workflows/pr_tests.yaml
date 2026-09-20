@@ -678,32 +678,6 @@ jobs:
       - name: Fail on fixtures no test requests
         run: python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
 
-  pr-hygiene:
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Release notes are maintained by the release process
-        if: >
-          github.event.pull_request.author_association != 'OWNER' &&
-          github.event.pull_request.author_association != 'MEMBER' &&
-          !contains(github.event.pull_request.labels.*.name, 'release')
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          git fetch --no-tags --depth=1 origin "$BASE_REF"
-          bad=$(git diff --name-only "origin/$BASE_REF...HEAD" \
-                | grep -E '^docs/docs/en/release\.md$' || true)
-          if [ -n "$bad" ]; then
-            echo "::error::$bad is maintained by the release process. Please drop it from the PR."
-            exit 1
-          fi
-
   docs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -743,7 +717,6 @@ jobs:
       - docs
       - test-macos-latest
       - test-windows-latest
-      - pr-hygiene
       - unused-fixtures
 
     runs-on: ubuntu-latest

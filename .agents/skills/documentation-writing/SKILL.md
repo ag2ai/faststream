@@ -93,7 +93,7 @@ about behaviour rather than wording.
 - `just docs-build-api` — regenerate the API reference.
 - `just docs-check` — the PR gate: strict build of the guides (broken links and anchors fail) plus `docs/check_site.py` (unique titles, canonicals, sitemap, JSON-LD, image `alt`), about 10 s. Run it before pushing a docs change.
 
-`docs/docs/en/release.md` is generated from GitHub releases and never edited by hand. `docs.py build` runs `update_releases` first and appends any missing release, so run `git checkout -- docs/docs/en/release.md` after a local build; a feature PR that touches the file is reverting it (#3042 → #3151).
+`docs/docs/en/release.md` is generated from GitHub releases by CI; a hand edit is a repair of what the generator got wrong, nothing else. `docs.py build` runs `update_releases` first and appends any missing release, so run `git checkout -- docs/docs/en/release.md` after a local build; a feature PR that touches the file is reverting it (#3042 → #3151).
 
 The deploy runs on `release: published` or a manual dispatch. A dispatch from `main` publishes unreleased docs into `/latest/`: compare the `pyproject.toml` version with the last release first.
 
