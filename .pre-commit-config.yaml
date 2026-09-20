@@ -83,6 +83,15 @@ repos:
         verbose: true
         pass_filenames: false
 
+    -   id: pyrefly
+        name: Pyrefly
+        entry: just pyrefly
+        language: python
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
     -   id: bandit
         name: bandit
         entry: just bandit
