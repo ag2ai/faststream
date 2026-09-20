@@ -97,6 +97,9 @@ class CLIThread:
             return
 
         while self.running:
+            # sampled before select: an exit seen only after its timeout would end the
+            # loop while readline still buffers lines that select cannot see
+            exited = self.process.poll() is not None
             rlist, _, _ = select.select([self.process.stderr], [], [], 0.1)
             if rlist:
                 self.started = True
@@ -107,7 +110,7 @@ class CLIThread:
                 else:
                     break
 
-            elif self.process.poll() is not None:
+            elif exited:
                 break
 
     def wait_for_stderr(self, message: str, timeout: float = 2.0) -> bool:
