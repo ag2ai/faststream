@@ -359,3 +359,5 @@ RinZ27 = "RinZ27"
 [tool.typos.default.extend-words]
 # ruff's flake8-copyright rule prefix, not a shortening of "copy".
 CPY = "CPY"
+# Eclipse Mosquitto, the MQTT broker, not the insect.
+Mosquitto = "Mosquitto"
