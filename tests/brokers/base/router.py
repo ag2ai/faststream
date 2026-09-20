@@ -190,6 +190,7 @@ class RouterTestcase(
 
             assert event.is_set()
 
+    @pytest.mark.connected()
     async def test_include_publisher_with_prefix(
         self, queue: str, event: asyncio.Event
     ) -> None:

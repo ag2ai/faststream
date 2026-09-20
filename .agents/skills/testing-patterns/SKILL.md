@@ -63,6 +63,11 @@ Global pytest timeout is 30s per test; the suite runs parallel — keep tests in
 - Slow test → `@pytest.mark.slow()` (also excluded by default).
 - Async test → `@pytest.mark.asyncio()`.
 
+Marks pick the CI job, so a wrong one drops a test silently. `just misplaced-marks` (a CI step too) fails on the two shapes that did it before:
+
+- a test under a `<broker>/` directory anywhere in `tests/` without the `<broker>` mark (`redis_cluster` under `redis/cluster/`). A test imported from `docs_src` or `examples` is marked through `pytestmark` in the importing module.
+- `connected` on a whole `*MemoryTestcaseConfig` class (or its module). When an in-memory class inherits a test that does open a connection, mark that test — in the base testcase if it is inherited.
+
 ## Shared base testcases
 
 Cross-broker behavior is specified ONCE in `tests/brokers/base/` (`basic.py`, `consume.py`, `publish.py`, `router.py`, `codec.py`, `middlewares.py`, `parser.py`, `requests.py`, `connection.py`, `fastapi.py`, `testclient.py`, ...) and inherited by every broker.
