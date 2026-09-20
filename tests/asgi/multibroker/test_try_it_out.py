@@ -246,3 +246,26 @@ def test_test_broker_found_without_importing_it(package: str, broker: str) -> No
     )
 
     assert result.stdout.strip() == f"{package}.testing"
+
+
+@pytest.mark.kafka()
+@require_aiokafka
+def test_broker_subclass_finds_its_own_test_broker() -> None:
+    # a fresh interpreter: the registry is global and outlives the test
+    code = (
+        "from faststream.kafka import KafkaBroker, TestKafkaBroker\n"
+        "from faststream._internal.testing.broker import find_test_broker\n"
+        "class MyBroker(KafkaBroker): ...\n"
+        "class TestMyBroker(TestKafkaBroker, broker=MyBroker): ...\n"
+        "print(find_test_broker(MyBroker()).__name__)\n"
+        "print(find_test_broker(KafkaBroker()).__name__)"
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout.split() == ["TestMyBroker", "TestKafkaBroker"]

@@ -68,8 +68,7 @@ def create_publisher(
 
         return ChannelPublisher(publisher_config, specification, channel=channel_sub)
 
-    # `validate()` would bind the schema to its non-batch parametrization
-    if stream_sub := StreamSub(stream) if isinstance(stream, str) else stream:
+    if stream_sub := StreamSub.validate(stream):
         specification = StreamPublisherSpecification(
             config,
             specification_config,
@@ -78,7 +77,7 @@ def create_publisher(
 
         return StreamPublisher(publisher_config, specification, stream=stream_sub)
 
-    if list_sub := ListSub(list) if isinstance(list, str) else list:
+    if list_sub := ListSub.validate(list):
         specification = ListPublisherSpecification(config, specification_config, list_sub)
 
         if list_sub.batch:
