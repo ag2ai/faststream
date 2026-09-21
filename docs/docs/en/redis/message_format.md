@@ -1,4 +1,4 @@
-# Dealing with message encoded by FastStream
+# Dealing with messages encoded by FastStream
 
 To provide great features like observability and more, **FastStream** needs to include extra data in your message. **Redis**, in turn, provides the ability to send any type of data within a message. Therefore, **FastStream** uses its own binary format for messages, which supports any type of data you want to use and can include any additional information.
 

@@ -32,7 +32,7 @@ async def echo_handler(msg: Any) -> Any:
     return msg
 ```
 
-It does nothing but publishes responses to all messages with the `reply_to` header.
+It does nothing but publish responses to all messages with the `reply_to` header.
 
 Now, we want to send a message and consume the echo callback. For this reason, we need to create a *reply consumer* in our producer service. It can look like the following:
 

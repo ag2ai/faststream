@@ -14,7 +14,7 @@ In this guide, we will explore how to customize **AsyncAPI** documentation for y
 
 ## Prerequisites
 
-Before we dive into customization, ensure you have a instance **AsyncAPI** specification. If you haven't done that yet, let's create a simple instance right now.
+Before we dive into customization, ensure you have an instance of the **AsyncAPI** specification. If you haven't done that yet, let's create a simple instance right now.
 
 Copy the following code in your basic.py file:
 
@@ -89,10 +89,10 @@ Your **AsyncAPI** documentation now provides clear insights into the messaging i
 Customizing handler information helps users comprehend the purpose and behavior of each message handler. Here's how to do it:
 
 1. Navigate to your handler definitions in your **FastStream** application.
-1. Add descriptions to each handler using `description` field.
-1. For subscriber, consumer function's docstring can be used as `description`.
-1. Add titles to each handler using `title` field adhering to [URI format](https://datatracker.ietf.org/doc/html/rfc3986).
-1. Add publishing schema to publisher handler using `schema` field.
+1. Add descriptions to each handler using the `description` field.
+1. For a subscriber, the consumer function's docstring can be used as the `description`.
+1. Add titles to each handler using the `title` field adhering to [URI format](https://datatracker.ietf.org/doc/html/rfc3986).
+1. Add a publishing schema to the publisher handler using the `schema` field.
 1. Save the changes.
 1. Serve your **FastStream** app.
 
