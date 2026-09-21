@@ -258,8 +258,13 @@ def _adapt_deprecated_security(
         )
         raise SetupError(msg)
 
-    ssl_context = security.ssl_context if security is not None else None
-    use_ssl = security.use_ssl if security is not None else None
+    if security is not None:
+        use_ssl = security.use_ssl
+        ssl_context = security.ssl_context
+    else:
+        use_ssl = False
+        ssl_context = None
+
     if isinstance(security, NatsSecurity):
         resolved_tls_hostname = security.tls_hostname
         tls_handshake_first = security.tls_handshake_first
