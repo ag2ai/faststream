@@ -116,6 +116,7 @@ lint = [
     "import-linter==2.15",
     "actionlint-py==1.7.12.24",
     "shellcheck-py==0.11.0.1",                          # actionlint runs it over `run:` scripts
+    "slotscheck==0.21.0",
     "mypy==1.19.1",
     "pyright==1.1.407",
     "pyrefly==1.3.1",
@@ -500,6 +501,11 @@ ignore_imports = [
 
 [tool.bandit]
 skips = ["B101"]
+
+[tool.slotscheck]
+# A module that fails to import is an error, not a silently skipped one.
+strict-imports = true
+require-superclass = true
 
 [tool.typos.default.extend-identifiers]
 # Contributor handles in the generated release notes. Names, not misspellings.

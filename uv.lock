@@ -939,6 +939,7 @@ dev = [
     { name = "semgrep" },
     { name = "setuptools" },
     { name = "shellcheck-py" },
+    { name = "slotscheck" },
     { name = "syrupy" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
@@ -977,6 +978,7 @@ lint = [
     { name = "ruff" },
     { name = "semgrep" },
     { name = "shellcheck-py" },
+    { name = "slotscheck" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
     { name = "types-docutils" },
@@ -1092,6 +1094,7 @@ dev = [
     { name = "semgrep", specifier = "==1.150.0" },
     { name = "setuptools", specifier = ">=80.9.0" },
     { name = "shellcheck-py", specifier = "==0.11.0.1" },
+    { name = "slotscheck", specifier = "==0.21.0" },
     { name = "syrupy", specifier = "==6.0.0" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
@@ -1130,6 +1133,7 @@ lint = [
     { name = "ruff", specifier = "==0.14.14" },
     { name = "semgrep", specifier = "==1.150.0" },
     { name = "shellcheck-py", specifier = "==0.11.0.1" },
+    { name = "slotscheck", specifier = "==0.21.0" },
     { name = "types-aiofiles" },
     { name = "types-deprecated" },
     { name = "types-docutils" },
@@ -3686,6 +3690,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
+name = "slotscheck"
+version = "0.21.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/33/34/811f9588dbd55e3adee986e53cd1bcdfabc6c5b6919b9cf1ff208f2878cd/slotscheck-0.21.0.tar.gz", hash = "sha256:0a5296300c5d5d9663e597861d7b3ef16abc74c851498a648116d868960c12c2", size = 15354, upload-time = "2026-09-06T19:08:07.131Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/51/778abe936884e73944d43267bed0eae1da0658b11c7d6eb7e10ce83a646b/slotscheck-0.21.0-py3-none-any.whl", hash = "sha256:c109206db56ee48b3862feccd8c44ca480bb4d102ec39f6cc0f8a9695ef17eb0", size = 18076, upload-time = "2026-09-06T19:08:05.937Z" },
 ]
 
 [[package]]
