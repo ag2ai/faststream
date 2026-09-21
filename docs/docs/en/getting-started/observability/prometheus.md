@@ -21,7 +21,7 @@ and performance of systems and applications.
 
 ### FastStream Metrics
 
-To add a metrics to your broker, you need to:
+To add metrics to your broker, you need to:
 
 1. Install `FastStream` with `prometheus-client`
 

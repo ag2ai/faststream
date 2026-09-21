@@ -32,7 +32,7 @@ headers = Baggage({"hello": "world"}).to_headers()
 await broker.publish("hello", "first", headers=headers)
 ```
 
-All interactions with baggage at the **consumption level** occurs through the **CurrentBaggage** object, which is automatically injected from the context:
+All interactions with baggage at the **consumption level** occur through the **CurrentBaggage** object, which is automatically injected from the context:
 
 ```python linenums="1" hl_lines="6-10 17-18 24"
 from faststream.opentelemetry import CurrentBaggage

@@ -22,7 +22,7 @@ The full app code looks like this:
 
 ## Import FastStream and KafkaBroker
 
-To use the `#!python @broker.subscriber(...)` decorator, first, we need to import the base FastStream app KafkaBroker to create our broker.
+To use the `#!python @broker.subscriber(...)` decorator, first, we need to import the base FastStream app and KafkaBroker to create our broker.
 
 ```python linenums="1"
 {! docs_src/confluent/consumes_basics/app.py [ln:3-4] !}

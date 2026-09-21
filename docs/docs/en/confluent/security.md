@@ -73,7 +73,7 @@ This chapter discusses the security options available in **FastStream** and how 
 {!> docs_src/confluent/security/sasl_gssapi.py !}
 ```
 
-### 6. Other security related usecases
+### 6. Other security-related use cases
 
 **Purpose**: If you want to pass additional values to `confluent-kafka-python`, you can pass a dictionary called `config` to `KafkaBroker`. For example, to pass your own certificate file:
 
