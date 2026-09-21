@@ -91,6 +91,7 @@ search:
     - [Acknowledgement](rabbit/ack.md)
     - [Concurrency and Prefetch](rabbit/prefetch.md)
     - [Declare Queue/Exchange](rabbit/declare.md)
+    - [Queue Arguments](rabbit/queue_arguments.md)
     - [Message Information](rabbit/message.md)
     - [Security Configuration](rabbit/security.md)
     - [How-To](howto/rabbit/index.md)
