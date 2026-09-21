@@ -3,7 +3,7 @@ from typing import Any, overload
 from typing_extensions import Self
 
 
-class NameRequired:
+class NameRequired:  # noqa: PLW1641 - each subclass decides whether it is hashable
     """Required name option object."""
 
     def __eq__(self, value: object, /) -> bool:

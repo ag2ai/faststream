@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import RabbitBroker
 from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
@@ -8,7 +9,7 @@ from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
 class TestNaming(NamingTestCase):
     broker_class: type[RabbitBroker] = RabbitBroker
 
-    def test_subscriber_with_exchange(self) -> None:
+    def test_subscriber_with_exchange(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test", "exchange")
@@ -16,13 +17,9 @@ class TestNaming(NamingTestCase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert list(schema["channels"].keys()) == ["test:exchange:Handle"]
+        assert schema == snapshot_json
 
-        assert list(schema["components"]["messages"].keys()) == [
-            "test:exchange:Handle:Message",
-        ]
-
-    def test_publisher_with_exchange(self) -> None:
+    def test_publisher_with_exchange(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.publisher("test", "exchange")
@@ -30,13 +27,9 @@ class TestNaming(NamingTestCase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert list(schema["channels"].keys()) == ["test:exchange:Publisher"]
+        assert schema == snapshot_json
 
-        assert list(schema["components"]["messages"].keys()) == [
-            "test:exchange:Publisher:Message",
-        ]
-
-    def test_base(self) -> None:
+    def test_base(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test")
@@ -44,60 +37,4 @@ class TestNaming(NamingTestCase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "asyncapi": "2.6.0",
-            "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "servers": {
-                "development": {
-                    "url": "amqp://guest:guest@localhost:5672/",
-                    "protocol": "amqp",
-                    "protocolVersion": "0.9.1",
-                },
-            },
-            "channels": {
-                "test:_:Handle": {
-                    "servers": ["development"],
-                    "bindings": {
-                        "amqp": {
-                            "is": "routingKey",
-                            "bindingVersion": "0.2.0",
-                            "queue": {
-                                "name": "test",
-                                "durable": True,
-                                "exclusive": False,
-                                "autoDelete": False,
-                                "vhost": "/",
-                            },
-                            "exchange": {"type": "default", "vhost": "/"},
-                        },
-                    },
-                    "publish": {
-                        "bindings": {
-                            "amqp": {
-                                "cc": "test",
-                                "ack": True,
-                                "bindingVersion": "0.2.0",
-                            },
-                        },
-                        "message": {
-                            "$ref": "#/components/messages/test:_:Handle:Message",
-                        },
-                    },
-                },
-            },
-            "components": {
-                "messages": {
-                    "test:_:Handle:Message": {
-                        "title": "test:_:Handle:Message",
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {"$ref": "#/components/schemas/EmptyPayload"},
-                    },
-                },
-                "schemas": {
-                    "EmptyPayload": {"title": "EmptyPayload", "type": "null"},
-                },
-            },
-        }
+        assert schema == snapshot_json

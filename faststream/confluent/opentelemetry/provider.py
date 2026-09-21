@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union, cast
 
 from opentelemetry.semconv.trace import SpanAttributes
+from typing_extensions import override
 
 from faststream._internal.types import MsgType
 from faststream.confluent.response import KafkaPublishCommand
@@ -38,6 +39,7 @@ class BaseConfluentTelemetrySettingsProvider(
 
         return attrs
 
+    @override
     def get_publish_destination_name(self, cmd: "PublishCommand") -> str:
         return cmd.destination
 
@@ -64,6 +66,7 @@ class ConfluentTelemetrySettingsProvider(
 
         return attrs
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[Message]",
@@ -91,6 +94,7 @@ class BatchConfluentTelemetrySettingsProvider(
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic(),
         }
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[tuple[Message, ...]]",

@@ -82,8 +82,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         if (
-            self.exchange is not None
-            and queue_to_bind.declare  # queue just getted from RMQ
+            queue_to_bind.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
             exchange = await declarer.declare_exchange(

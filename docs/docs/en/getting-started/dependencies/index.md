@@ -1,4 +1,7 @@
 ---
+description: >-
+  FastAPI-style dependency injection for FastStream handlers, powered by FastDepends: type
+  casting, nested dependencies and per-subscriber overrides.
 search:
   boost: 10
 ---

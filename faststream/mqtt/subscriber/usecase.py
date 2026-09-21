@@ -149,7 +149,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMessage[zmqtt.Message] | None":
+    ) -> "MQTTMessage | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -170,15 +170,16 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
             raw_msg = await self._subscription.get_message()
 
         context = self._outer_config.context
-        return await process_msg(
+        msg: MQTTMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_msg,
             middlewares=(m(raw_msg, context=context) for m in self._broker_middlewares),
             parser=async_parser,
             decoder=async_decoder,
         )
+        return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[zmqtt.Message]"]:
+    async def __aiter__(self) -> AsyncIterator["MQTTMessage"]:
         if self._subscription is None:
             await self._create_subscription()
 

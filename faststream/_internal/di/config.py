@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from fast_depends import Provider, dependency_provider
 from fast_depends.core import CallModel, build_call_model
+from fast_depends.pydantic import PydanticSerializer
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
@@ -43,8 +44,6 @@ class FastDependsConfig:
     @property
     def _serializer(self) -> Optional["SerializerProto"]:
         if self.serializer is EMPTY:
-            from fast_depends.pydantic import PydanticSerializer
-
             return PydanticSerializer(use_fastdepends_errors=False)
 
         return self.serializer

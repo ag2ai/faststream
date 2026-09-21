@@ -3,6 +3,8 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 from weakref import WeakSet
 
+from typing_extensions import override
+
 from faststream._internal.constants import EMPTY
 
 if TYPE_CHECKING:
@@ -32,6 +34,7 @@ class EmptyLoggerStorage(LoggerParamsStorage):
     def register_subscriber(self, params: dict[str, Any]) -> None:
         pass
 
+    @override
     def get_logger(self, *, context: "ContextRepo") -> None:
         return None
 

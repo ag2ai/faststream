@@ -82,8 +82,8 @@ class OperationBinding(BaseModel):
         ):
             return cls(redis=redis)
 
-        if binding.sqs and (sqs := sqs_bindings.OperationBinding.from_sub(binding.sqs)):
-            return cls(sqs=sqs)
+        if binding.sqs:
+            return cls(sqs=sqs_bindings.OperationBinding.from_sub(binding.sqs))
 
         return None
 
@@ -125,7 +125,7 @@ class OperationBinding(BaseModel):
         ):
             return cls(redis=redis)
 
-        if binding.sqs and (sqs := sqs_bindings.OperationBinding.from_pub(binding.sqs)):
-            return cls(sqs=sqs)
+        if binding.sqs:
+            return cls(sqs=sqs_bindings.OperationBinding.from_pub(binding.sqs))
 
         return None

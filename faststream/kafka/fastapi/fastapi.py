@@ -14,7 +14,7 @@ from typing import (
 from aiokafka import ConsumerRecord
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 from aiokafka.partitioner import DefaultPartitioner
-from aiokafka.producer.producer import _missing
+from aiokafka.producer.producer import _missing  # noqa: PLC2701
 from fastapi.datastructures import Default
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id

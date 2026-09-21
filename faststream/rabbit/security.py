@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
+from typing_extensions import override
+
 from faststream.security import BaseSecurity, SASLPlaintext
 
 if TYPE_CHECKING:
@@ -21,10 +23,12 @@ class RabbitExternalAuth(BaseSecurity):
             use_ssl=use_ssl,
         )
 
+    @override
     def get_requirement(self) -> list[dict[str, Any]]:
         """Get the security requirements for X.509 authentication."""
         return [{"rabbitmq-external": []}]
 
+    @override
     def get_schema(self) -> dict[str, dict[str, str]]:
         """Get the security schema for X.509 authentication."""
         return {"rabbitmq-external": {"type": "X509"}}

@@ -3,7 +3,7 @@ from re import Pattern
 from typing import TYPE_CHECKING, Any, Literal
 
 import zmqtt
-from typing_extensions import assert_never
+from typing_extensions import assert_never, override
 
 from faststream._internal._compat import json_loads
 from faststream.message import StreamMessage, decode_message
@@ -38,7 +38,7 @@ class MQTTBaseParser:
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         raise NotImplementedError
 
-    async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
+    async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # noqa: PLR6301
         return decode_message(msg)
 
 
@@ -56,6 +56,7 @@ class MQTTParserV311(MQTTBaseParser):
             correlation_id=None,
         )
 
+    @override
     async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
         body: bytes = msg.body
         with suppress(Exception):

@@ -628,6 +628,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # diff-cover compares against the base branch
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "latest"
@@ -643,12 +645,30 @@ jobs:
           merge-multiple: true
 
       - run: |
-          uv pip install --system coverage[toml] covdefaults
+          uv pip install --system coverage[toml] covdefaults diff-cover==10.5.1
 
       - run: ls -la coverage
       - run: coverage combine coverage
       - run: coverage report
       - run: coverage html --show-contexts --title "FastStream coverage for ${{ github.sha }}"
+      - run: coverage xml
+
+      # The total hides a PR that ships untested: 90% of the lines it changes
+      # in faststream/ have to run under some job of the matrix.
+      - name: Require the changed lines of faststream/ to be covered
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: >
+          diff-cover coverage.xml
+          --compare-branch "origin/$BASE_REF"
+          --include 'faststream/**'
+          --fail-under 90
+          --markdown-report diff-cover.md
+      - name: Show the diff coverage in the job summary
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          if [ -f diff-cover.md ]; then cat diff-cover.md >> "$GITHUB_STEP_SUMMARY"; fi
 
       - name: Store coverage html
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -656,7 +676,77 @@ jobs:
           name: coverage-html
           path: htmlcov
 
+  unused-fixtures:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      # collection covers connected tests too, so no broker is needed
+      - name: Fail on fixtures no test requests
+        run: python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
+      - name: Fail on marks that drop a test from the job meant to run it
+        run: python -m pytest --collect-only -q -m "" -p tests.misplaced_marks
+
   # https://github.com/marketplace/actions/alls-green#why
+  docs:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # git-revision-date-localized reads every page's history under CI
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install Dependencies
+        run: uv pip install --system --group optionals --group docs .
+      - name: Build the guides strictly and check the built site
+        working-directory: docs
+        run: python docs.py check
+
+      # `docs` is a part of the `check` gate, and a third-party site going down
+      # is no reason to hold a merge: only a PR that edits the pages pays for
+      # their links. The nightly run checks them all the same.
+      - name: See whether the PR touches the pages
+        id: pages
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git diff --quiet "origin/$BASE_REF...HEAD" -- docs/docs/en README.md lychee.toml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check the external links of the guides and the README
+        if: github.event_name == 'schedule' || steps.pages.outputs.changed == 'true'
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --config lychee.toml 'docs/docs/en/**/*.md' README.md
+          fail: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   check: # This job does nothing and is only used for the branch protection
     # from: https://github.com/re-actors/alls-green
     # Important: For this to work properly, it is a must to have the job always
@@ -668,8 +758,10 @@ jobs:
 
     needs:
       - coverage-combine
+      - docs
       - test-macos-latest
       - test-windows-latest
+      - unused-fixtures
 
     runs-on: ubuntu-latest
 

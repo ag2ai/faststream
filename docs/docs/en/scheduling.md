@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Add periodic and cron tasks to a FastStream service with taskiq-faststream or rocketry
+  instead of running a separate scheduler alongside it.
 search:
   boost: 10
 ---

@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union, cast
 
 from opentelemetry.semconv.trace import SpanAttributes
+from typing_extensions import override
 
 from faststream._internal.types import MsgType
 from faststream.kafka.response import KafkaPublishCommand
@@ -41,6 +42,7 @@ class BaseKafkaTelemetrySettingsProvider(
 
         return attrs
 
+    @override
     def get_publish_destination_name(
         self,
         cmd: "PublishCommand",
@@ -70,6 +72,7 @@ class KafkaTelemetrySettingsProvider(
 
         return attrs
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[ConsumerRecord]",
@@ -98,6 +101,7 @@ class BatchKafkaTelemetrySettingsProvider(
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic,
         }
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[tuple[ConsumerRecord, ...]]",

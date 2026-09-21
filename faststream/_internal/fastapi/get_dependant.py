@@ -12,11 +12,14 @@ from fastapi.dependencies.utils import (
     get_parameterless_sub_dependant,
     get_typed_signature,
 )
+from pydantic import Field, create_model
+from pydantic.fields import FieldInfo
 
-from faststream._internal._compat import PYDANTIC_V2
+from faststream._internal._compat import PYDANTIC_V2, PydanticUndefined
 
 if TYPE_CHECKING:
     from fastapi.dependencies import models
+    from pydantic.fields import ModelField  # type: ignore[attr-defined]
 
 
 class _FastStreamDependant(Dependant):
@@ -70,10 +73,6 @@ def get_fastapi_native_dependant(
 
 def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant":
     """Patch FastAPI by adding fields for AsyncAPI schema generation."""
-    from pydantic import Field, create_model  # FastAPI always has pydantic
-
-    from faststream._internal._compat import PydanticUndefined
-
     dependant = _extend_fastapi_dependant(dependant)
     params = dependant.query_params + dependant.body_params
 
@@ -98,8 +97,6 @@ def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant
             }
 
             if PYDANTIC_V2:
-                from pydantic.fields import FieldInfo
-
                 info = cast("FieldInfo", info)
 
                 field_data.update(
@@ -125,8 +122,6 @@ def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant
                 )
 
             else:
-                from pydantic.fields import ModelField  # type: ignore[attr-defined]
-
                 info = cast("ModelField", info)
 
                 field_data.update(

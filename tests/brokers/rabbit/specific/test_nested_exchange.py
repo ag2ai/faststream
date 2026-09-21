@@ -1,4 +1,5 @@
 from asyncio import Event, wait_for
+from typing import Any
 
 import pytest
 
@@ -25,7 +26,7 @@ async def test_bind_to(queue: str) -> None:
             queue,
             exchange=RabbitExchange("nested", bind_to=parent_exch),
         )
-        async def handler(m) -> None:
+        async def handler(m: Any) -> None:
             consume.set()
 
         await broker.start()

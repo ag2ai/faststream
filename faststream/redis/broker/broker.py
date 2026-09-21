@@ -151,7 +151,7 @@ class RedisBroker(
     def _validate_init_params(self, kwargs: dict[str, Any]) -> None:
         """Validate constructor params. Hook for subclasses; no-op by default."""
 
-    def _make_connection_state(
+    def _make_connection_state(  # noqa: PLR6301
         self,
         connection_options: dict[str, Any],
         kwargs: dict[str, Any],
@@ -189,7 +189,7 @@ class RedisBroker(
         self._connection = None
 
     async def start(self) -> None:
-        await self.connect()
+        _ = await self.connect()
         await super().start()
 
     @overload

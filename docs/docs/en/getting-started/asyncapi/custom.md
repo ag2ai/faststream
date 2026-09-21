@@ -28,7 +28,7 @@ Now, when you run
 ```
 you should see the following documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
 
 ## Setup Custom FastStream App Info
 
@@ -51,7 +51,7 @@ Now, when you run
 ```
 you should see the following in your general app documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-custom-info.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-custom-info.png){ .on-glb loading=lazy }
 
 Now, your documentation reflects your application's identity and purpose.
 
@@ -80,7 +80,7 @@ Now, when you run
 ```
 you should see the description in your broker documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-custom-broker.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-custom-broker.png){ .on-glb loading=lazy }
 
 Your **AsyncAPI** documentation now provides clear insights into the messaging infrastructure you're using.
 
@@ -108,7 +108,7 @@ Now, when you run
 ```
 you should see the descriptions in your handlers:
 
-![HTML-page](../../../assets/img/AsyncAPI-custom-handler.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-custom-handler.png){ .on-glb loading=lazy }
 
 Now, your documentation is enriched with meaningful details about each message handler.
 
@@ -134,7 +134,7 @@ Now, when you run
 ```
 you should see the payload schema described in your documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-payload-info.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-payload-info.png){ .on-glb loading=lazy }
 
 Your **AsyncAPI** documentation now showcases well-structured payload information.
 

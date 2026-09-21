@@ -20,7 +20,7 @@ class EmptyConnectionState(ConnectionState[ClientT]):
         raise IncorrectState
 
     @connection.setter
-    def connection(self, v: ClientT) -> None:
+    def connection(self, v: ClientT) -> None:  # noqa: PLR6301
         raise IncorrectState
 
 

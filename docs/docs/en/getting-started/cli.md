@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Run FastStream applications from the command line: hot reload while you develop, multiple
+  worker processes in production and environment options.
 search:
   boost: 10
 ---
@@ -14,7 +17,7 @@ search:
 The **FastStream CLI** is a built-in tool designed to streamline your development workflow.
 
 !!! quote ""
-    Thanks to [*typer*](https://typer.tiangolo.com/){.external-link target="_blank"}, [*watchfiles*](https://watchfiles.helpmanual.io/){.external-link target="_blank"} and [*uvicorn*](https://www.uvicorn.org/){.external-link target="_blank"}. Their work is the basis of this tool.
+    Thanks to [*typer*](https://typer.tiangolo.com/){.external-link target="_blank"}, [*watchfiles*](https://watchfiles.helpmanual.io/){.external-link target="_blank"} and [*uvicorn*](https://uvicorn.dev/){.external-link target="_blank"}. Their work is the basis of this tool.
 
 ## Installation
 

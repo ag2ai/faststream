@@ -1,8 +1,8 @@
-import json
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import parse_qs
 
+from faststream._internal._compat import json_loads
 from faststream._internal.constants import EMPTY
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ class AsgiRequest:
     async def json(self) -> Any:
         if self._json is EMPTY:
             body = await self.body()
-            self._json = json.loads(body)
+            self._json = json_loads(body)
         return self._json
 
     @property
