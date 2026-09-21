@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 from typing import TYPE_CHECKING, TypeAlias
 
 from faststream._internal.parser import ParserProto
@@ -31,7 +32,8 @@ try:
     from .testing import TestNatsBroker
 
 except ImportError as e:
-    if "'nats'" not in e.msg:
+    # the package is installed: the failure is its own, not a missing extra
+    if find_spec("nats") is not None:
         raise
 
     from faststream.exceptions import INSTALL_FASTSTREAM_NATS

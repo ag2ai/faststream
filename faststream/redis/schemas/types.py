@@ -106,7 +106,7 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     parser: CustomCallable | None
     """Custom message parser. Defaults to ``None``."""
 
-    dependencies: Iterable[Dependant]
+    dependencies: Sequence[Dependant]
     """Subscriber dependencies. Defaults to ``()``."""
 
     middlewares: Sequence[BrokerMiddleware[Any, Any]]

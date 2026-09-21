@@ -171,12 +171,9 @@ def gen(
 def _yaml_quoting_hint(
     validation_errors: "list[tuple[str, ValidationError]]",
 ) -> "str | None":
-    """Build a single quoting hint for a bare YAML scalar typed as a number.
-
-    PyYAML parses unquoted values like `protocolVersion: 3.2` as int/float, which
-    the string schema fields reject. Return the hint for the first such field
-    across all versions, or ``None`` when no numeric-where-string error is present.
-    """
+    """Build the quoting hint for the first bare YAML scalar read as a number."""
+    # PyYAML reads an unquoted `protocolVersion: 3.2` as a float,
+    # which the string fields of the schema reject
     for _version_label, error in validation_errors:
         for sub_error in error.errors():
             if sub_error.get("type") == "string_type" and isinstance(
@@ -251,9 +248,8 @@ def _parse_and_serve(args: RunArgs) -> None:
                     f"\nAsyncAPI v{version_label} validation errors:\n{error}",
                     err=True,
                 )
-            # The quoting hint is YAML-specific: JSON keeps numbers and strings
-            # distinct, so a numeric value there is a genuine schema error, not a
-            # PyYAML coercion. Emit the hint at most once for YAML inputs.
+            # JSON keeps numbers and strings apart: a number there is a real
+            # schema error, not a PyYAML coercion
             if is_yaml:
                 hint = _yaml_quoting_hint(validation_errors)
                 if hint is not None:

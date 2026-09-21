@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 
 from typing_extensions import overload, override
@@ -53,7 +53,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: None = None,
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -76,7 +76,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: None = None,
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -99,7 +99,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: Union[str, "ListSub[Literal[False]]"] = ...,
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -122,7 +122,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: "ListSub[Literal[True]]" = ...,
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -145,7 +145,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: Union["ListSub", str] = ...,
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -168,7 +168,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: Union["ListSub", str] = ...,
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -191,7 +191,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: None = None,
         stream: Union[str, "StreamSub[Literal[False]]"] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -214,7 +214,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: None = None,
         stream: "StreamSub[Literal[True]]" = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -237,7 +237,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: None = None,
         stream: Union["StreamSub", str] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -260,7 +260,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: None = None,
         stream: Union["StreamSub", str] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -283,7 +283,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: Union["ListSub", str, None] = None,
         stream: Union["StreamSub", str, None] = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -306,7 +306,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         list: Union["ListSub", str, None] = None,
         stream: Union["StreamSub", str, None] = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -538,7 +538,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         router: "RedisRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:

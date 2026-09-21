@@ -60,6 +60,8 @@ class MQTTBrokerConfig(BrokerConfig):
     )
 
     def __post_init__(self) -> None:
+        super().__post_init__()
+
         for m in self.broker_middlewares:
             self._validate_middleware(m)
 

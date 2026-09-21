@@ -1,3 +1,5 @@
+from importlib.util import find_spec
+
 try:
     from zmqtt import QoS, ReconnectConfig, Will, WillProperties
 
@@ -7,7 +9,8 @@ try:
     from faststream.mqtt.testing import TestMQTTBroker
 
 except ImportError as e:
-    if "'zmqtt'" not in e.msg:
+    # the package is installed: the failure is its own, not a missing extra
+    if find_spec("zmqtt") is not None:
         raise
 
     from faststream.exceptions import INSTALL_FASTSTREAM_MQTT
