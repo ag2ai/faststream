@@ -53,7 +53,7 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
     <img src="https://img.shields.io/github/license/ag2ai/faststream.svg" alt="License" width="120" height="20"/>
   </a>
 
-  <a href="https://github.com/ag2ai/faststream/blob/main/CODE_OF_CONDUCT.md" target="_blank">
+  <a href="https://github.com/ag2ai/faststream/blob/main/.github/CODE_OF_CONDUCT.md" target="_blank">
     <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct" width="156" height="20"/>
   </a>
 
@@ -93,7 +93,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/){.external-link target="_blank"} consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/){.external-link target="_blank"} exchanges and DLQ, [**NATS**](https://nats.io/){.external-link target="_blank"} JetStream and KeyValue, [**Redis**](https://redis.io/){.external-link target="_blank"} Streams, [**MQTT**](https://mqtt.org/){.external-link target="_blank"} QoS. Five first-class clients that happen to share their ergonomics.
 
-- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
+- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://msgspec.dev/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
 
 - [**Powerful Dependency Injection System**](#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system
 
@@ -251,7 +251,7 @@ to define messages using a declarative syntax, making it easy to specify the fie
 
 ### Msgspec serialization
 
-Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"}.
+Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://msgspec.dev/){.external-link target="_blank"}.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="1 4"
@@ -416,7 +416,7 @@ What the five clients share is a deliberately small surface:
 Beyond this scope you can use any broker-native features you need:
 
 * **Kafka** - specific partition reads, partitioner control, consumer groups, batch processing, etc.
-* **RabbitMQ** - all exchange types, Redis Streams, RPC, manual channel configuration, DLQ, etc.
+* **RabbitMQ** - all exchange types, RabbitMQ Streams, RPC, manual channel configuration, DLQ, etc.
 * **NATS** - core and Push/Pull JetStream subscribers, KeyValue, ObjectStorage, RPC, etc.
 * **Redis** - Pub/Sub, List, Stream subscribers, consumer groups, acknowledgements, etc.
 * **MQTT** - topic subscriptions (including wildcards), QoS and retain, MQTT 3.1.1 and 5.0, request/reply (RPC), TLS, etc.
@@ -428,7 +428,7 @@ If a particular feature is missing or not yet supported, you can always fall bac
 ---
 ## Testing the service
 
-The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
+The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, put the Broker into "testing mode".
 
 The Tester will redirect your `subscriber` and `publisher` decorated functions to the InMemory brokers, allowing you to quickly test your app without the need for a running broker and all its dependencies.
 

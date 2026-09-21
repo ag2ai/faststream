@@ -1,6 +1,5 @@
 from copy import deepcopy
-from functools import cached_property
-from typing import Generic, Literal, overload
+from typing import Any, Generic, Literal, overload
 
 from typing_extensions import Self, TypeVar
 
@@ -9,6 +8,7 @@ from faststream._internal.proto import NameRequired
 # Carries `batch` in the type, so `subscriber(list=ListSub(..., batch=True))`
 # resolves to the batch subscriber instead of a Union of both.
 BatchT_co = TypeVar("BatchT_co", bound=bool, default=bool, covariant=True)
+BatchT = TypeVar("BatchT", bound=bool, default=bool)
 
 
 class ListSub(NameRequired, Generic[BatchT_co]):
@@ -17,7 +17,6 @@ class ListSub(NameRequired, Generic[BatchT_co]):
     __slots__ = (
         "batch",
         "max_records",
-        "name",
         "polling_interval",
     )
 
@@ -61,9 +60,28 @@ class ListSub(NameRequired, Generic[BatchT_co]):
         self.max_records = max_records
         self.polling_interval = polling_interval
 
-    @cached_property
+    @property
     def records(self) -> int | None:
         return self.max_records if self.batch else None
+
+    @overload
+    @classmethod
+    def validate(
+        cls, value: "str | ListSub[BatchT]", **kwargs: Any
+    ) -> "ListSub[BatchT]": ...
+
+    @overload
+    @classmethod
+    def validate(cls, value: None, **kwargs: Any) -> None: ...
+
+    @classmethod
+    def validate(
+        cls, value: "str | ListSub[Any] | None", **kwargs: Any
+    ) -> "ListSub[Any] | None":
+        # `Self` would resolve to the non-batch parametrization of the first `__init__`
+        if isinstance(value, str):
+            return cls(value, **kwargs)
+        return value
 
     def add_prefix(self, prefix: str) -> Self:
         new_list = deepcopy(self)

@@ -55,7 +55,7 @@ if TYPE_CHECKING:
     )
     from faststream.confluent.helpers.config import ConfluentConfig
     from faststream.confluent.message import KafkaMessage
-    from faststream.confluent.response import KafkaPublishMessage
+    from faststream.confluent.types import KafkaSendableMessage
     from faststream.security import BaseSecurity
     from faststream.specification.schema.extra import Tag, TagDict
 
@@ -104,7 +104,7 @@ class KafkaBroker(
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
         # AsyncAPI args
@@ -298,7 +298,7 @@ class KafkaBroker(
                 graceful_timeout=graceful_timeout,
                 ack_policy=ack_policy,
                 id_generator=id_generator,
-                broker_dependencies=tuple(dependencies),
+                broker_dependencies=dependencies,
                 extra_context={
                     "broker": self,
                 },
@@ -463,7 +463,7 @@ class KafkaBroker(
     @override
     async def publish_batch(  # type: ignore[override]
         self,
-        *messages: "SendableMessage | KafkaPublishMessage",
+        *messages: "KafkaSendableMessage",
         topic: str,
         partition: int | None = None,
         timestamp_ms: int | None = None,

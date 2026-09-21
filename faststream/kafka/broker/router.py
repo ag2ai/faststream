@@ -138,7 +138,7 @@ class KafkaRoute(SubscriberRoute):
         pattern: str | None = None,
         partitions: Iterable["TopicPartition"] | None = (),
         # broker args
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         ack_policy: AckPolicy = EMPTY,
@@ -403,7 +403,7 @@ class KafkaRouter(
         prefix: str = "",
         handlers: Iterable[KafkaRoute] = (),
         *,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
         parser: Optional["CustomCallable"] = None,
@@ -431,7 +431,7 @@ class KafkaRouter(
             config=KafkaBrokerConfig(
                 broker_middlewares=middlewares,
                 ack_policy=ack_policy,
-                broker_dependencies=tuple(dependencies),
+                broker_dependencies=dependencies,
                 broker_parser=parser,
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,

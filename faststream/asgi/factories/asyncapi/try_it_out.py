@@ -2,7 +2,6 @@ from collections.abc import Callable, Iterable, Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, TypedDict, Union, cast
 
-from faststream._internal.testing.broker import find_test_broker
 from faststream.asgi.annotations import Request
 from faststream.asgi.handlers import PostHandler, post
 from faststream.asgi.response import AsgiResponse, JSONResponse
@@ -50,6 +49,9 @@ class TryItOutProcessor:
         self._entries: list[
             tuple[BrokerUsecase[Any, Any, Any], type[TestBroker[Any, Any]]]
         ] = []
+        # `unittest.mock` comes with the test brokers: keep it out of `import faststream`
+        from faststream._internal.testing.broker import find_test_broker  # noqa: PLC0415
+
         for broker in brokers:
             test_broker_cls = find_test_broker(broker)
             if test_broker_cls is None:

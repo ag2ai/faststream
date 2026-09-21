@@ -61,7 +61,7 @@ if TYPE_CHECKING:
 class _CallOptions(NamedTuple):
     parser: Optional["CustomCallable"]
     decoder: Optional["CustomCallable"]
-    dependencies: Iterable["Dependant"]
+    dependencies: Sequence["Dependant"]
     codec: Optional["CodecProto"] = None
 
 
@@ -232,7 +232,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         *,
         parser_: Optional["CustomCallable"],
         decoder_: Optional["CustomCallable"],
-        dependencies_: Iterable["Dependant"],
+        dependencies_: Sequence["Dependant"],
         codec_: Optional["CodecProto"] = None,
     ) -> Self:
         self._call_options = _CallOptions(
@@ -251,7 +251,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
 
     @overload
@@ -262,7 +262,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> Callable[
         [Callable[P_HandlerParams, T_HandlerReturn]],
         "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
@@ -276,7 +276,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> Union[
         "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         Callable[

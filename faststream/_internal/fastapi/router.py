@@ -394,6 +394,8 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
         def download_app_json_schema() -> Response:
             return Response(
+                # `json_dumps` may be orjson, which takes no `indent`:
+                # the downloaded schema stays readable
                 content=json.dumps(  # noqa: TID251
                     self.schema.to_specification().to_jsonable(),
                     indent=2,

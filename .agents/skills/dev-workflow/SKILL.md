@@ -10,6 +10,7 @@ description: Use when setting up the FastStream dev environment, running tests/l
 `uv` for Python deps + `just` as the task runner + docker compose for brokers. Never use bare `pip`. Run `just` with no args to list all recipes.
 
 - `just init [python-version]` — build the dev environment (default Python 3.10).
+- `uv.lock` travels with `pyproject.toml`: a PR that changes dependencies or the version runs `uv lock` and commits the result. `just lock-check` (a pre-commit hook, so CI too) fails otherwise — CI installs without the lock, so nothing else would notice.
 
 ## Docker brokers
 
@@ -34,7 +35,7 @@ Extra pytest args pass through: `just test tests/brokers/kafka -vv`. Run pytest 
 
 1. `just linter` — runs `ruff format` (rewrites files in place), then `ruff check --exit-non-zero-on-fix` (reports fixable issues without applying them), then codespell (alias: `just lint`). Expect formatting changes in your working tree after running it.
 2. `just mypy` — strict mode over `faststream/` and all of `tests/`; `docs/docs_src/` with the annotation checks relaxed.
-3. `just static-analysis` — mypy + bandit + semgrep; `just zizmor` separately for GitHub Actions workflows.
+3. `just static-analysis` — mypy + pyright + pyrefly + bandit + semgrep + import-linter + slotscheck (pyright and pyrefly read `tests/mypy` only: the public API has to type check under every checker a user may run; `just import-linter` alone for the import contracts; slotscheck checks that declared `__slots__` take effect); `just zizmor` (security) and `just actionlint` (syntax, expressions, shellcheck over `run:` scripts) separately for GitHub Actions workflows.
 4. `just pre-commit` — pre-commit hooks on modified files (`just pre-commit-all` for the whole tree).
 
 ## Docs recipes
@@ -46,6 +47,7 @@ Extra pytest args pass through: `just test tests/brokers/kafka -vv`. Run pytest 
 - CI (`.github/workflows/pr_tests.yaml`): core jobs run everything except `connected` (`-m "(slow and not connected) or not connected"`); per-broker jobs run `<broker> and not connected`, plus dedicated jobs with real broker services for `connected` tests.
 - 30s per-test timeout; xdist parallelism — tests must be order-independent.
 - Coverage sources include `faststream/`, `tests/`, `docs/docs_src/`, and `examples/`.
+- `coverage-combine` runs `diff-cover` on PRs: 90% of the lines a PR changes under `faststream/` must be executed by some job of the matrix. The report lands in the job summary.
 
 ## Branches and PRs
 

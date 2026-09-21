@@ -45,7 +45,7 @@ search:
     - [ASGI](getting-started/asgi.md)
     - [Multiple Brokers](getting-started/multiple_brokers.md)
     - Observability
-        - [Healthcheks](getting-started/observability/healthcheks.md)
+        - [Healthchecks](getting-started/observability/healthchecks.md)
         - [Prometheus](getting-started/observability/prometheus.md)
         - [OpenTelemetry](getting-started/observability/opentelemetry/index.md)
             - [Tracing](getting-started/observability/opentelemetry/tracing.md)
@@ -115,6 +115,7 @@ search:
     - [Publishing](nats/publishing/index.md)
     - [RPC](nats/rpc.md)
     - [Message Information](nats/message.md)
+    - [Security Configuration](nats/security.md)
     - [How-To](howto/nats/index.md)
         - [DynaConf](howto/nats/dynaconf.md)
         - [In-Progress](howto/nats/in-progress.md)

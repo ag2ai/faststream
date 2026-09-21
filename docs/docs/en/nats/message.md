@@ -20,7 +20,7 @@ It contains the required information such as:
 
 {! includes/message/attrs.md !}
 
-It is a **FastStream** wrapper around a native broker library message (`nats.aio.msg.Msg` in the *NATS*' case) that you can access with `raw_message`.
+It is a **FastStream** wrapper around a native broker library message (`nats.aio.msg.Msg` in the *NATS* case) that you can access with `raw_message`.
 
 ```python hl_lines="1 6"
 from faststream.nats import NatsMessage
@@ -83,7 +83,7 @@ But this code is too long to reuse everywhere. In this case, you can use a Pytho
 
 ## Subject Pattern Access
 
-As you know, **NATS** allows you to use a pattern like this `#!python "logs.*"` to subscriber to subjects. Getting access to the real `*` value is an often-used scenario, and **FastStream** provide it to you with the `Path` object (which is a shortcut to `#!python Context("message.path.*")`).
+As you know, **NATS** allows you to use a pattern like this `#!python "logs.*"` to subscribe to subjects. Getting access to the real `*` value is an often-used scenario, and **FastStream** provides it to you with the `Path` object (which is a shortcut to `#!python Context("message.path.*")`).
 
 To use it, you just need to replace your `*` with `{variable-name}` and use `Path` as a regular `Context` object:
 

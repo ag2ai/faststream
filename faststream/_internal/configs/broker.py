@@ -41,6 +41,10 @@ class BrokerConfig:
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        # untyped callers still pass a generator: the first subscriber would spend it
+        self.broker_dependencies = tuple(self.broker_dependencies)
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
 
