@@ -13,11 +13,11 @@ search:
 The default *NATS* usage is suitable for scenarios where:
 
 * The `publisher` and `consumer` are always online.
-* The system can tolerate messages loss.
+* The system can tolerate message loss.
 
 If you need stricter restrictions, like:
 
-* An availability of a message processing confirmation mechanism (`ack`/`nack`).
+* The availability of a message processing confirmation mechanism (`ack`/`nack`).
 * Message persistence (messages will accumulate in the queue when the `consumer` is offline).
 
 You should use the **NATS JetStream** extension.
@@ -40,4 +40,4 @@ Also, **NATS JetStream** has built-in `key-value` (similar to **Redis**) and `ob
 ```
 
 !!! tip
-    Using `JStream` object **FastStream** is trying to create/update stream with the object settings. To prevent this behavior and *just get already created stream*, please use `#!python JStream(..., declare=False)` option.
+    Using a `JStream` object, **FastStream** tries to create/update the stream with the object settings. To prevent this behavior and *just get already created stream*, please use `#!python JStream(..., declare=False)` option.

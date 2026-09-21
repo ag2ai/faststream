@@ -14,7 +14,7 @@ In **FastStream**, messages passed through a **Redis** broker are serialized and
 
 ## Redis Message Access
 
-When dealing with **Redis** broker in **FastStream**, you can easily access message details by using the `RedisMessage` object which wraps the underlying message with additional context information. This object is specifically tailored for **Redis** and contains relevant message attributes:
+When dealing with the **Redis** broker in **FastStream**, you can easily access message details by using the `RedisMessage` object which wraps the underlying message with additional context information. This object is specifically tailored for **Redis** and contains relevant message attributes:
 
 * `#!python body: Union[bytes, Any]`
 * `#!python raw_message: Any`

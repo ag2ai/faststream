@@ -17,7 +17,7 @@ Testability is a crucial part of any application, and **FastStream** provides yo
 
 ## Original Application
 
-Let's take a look at the original application to test
+Let's take a look at the original application to test:
 
 === "AIOKafka"
     ```python linenums="1" title="annotation_kafka.py"
@@ -201,7 +201,7 @@ Also, all handlers in test mode have an extra [`MagicMock`](https://docs.python.
     ```
 
 !!! note
-    The *handle* mock has a raw **JSON** message body. This way you can validate the incoming message itself and not a parsed python arguments.
+    The *handle* mock has a raw **JSON** message body. This way you can validate the incoming message itself and not the parsed Python arguments.
 
     Thus our example checks not `#!python mock.assert_called_with(name="John", user_id=1)`, but `#!python mock.assert_called_with({ "name": "John", "user_id": 1 })`.
 
@@ -413,7 +413,7 @@ If you want to test your application in a real environment, you shouldn't have t
     ```
 
 !!! tip
-    When you're using a patched broker to test your consumers, the publish method is called synchronously with a consumer one, so you need not wait until your message is consumed. But in the real broker's case, it doesn't.
+    When you're using a patched broker to test your consumers, the publish method is called synchronously with a consumer one, so you need not wait until your message is consumed. But in the real broker's case, it isn't.
 
     For this reason, you have to wait for message consumption manually with the special `#!python handler.wait_call(timeout)` method.
     Also, inner handler exceptions will be raised in this function, not `#!python broker.publish(...)`.
@@ -426,7 +426,7 @@ It can be very useful to set the `with_real` flag using an environment variable.
 WITH_REAL=True/False pytest ...
 ```
 
-To learn more about managing your application configuration visit [this page](../config/index.md){.internal-link}.
+To learn more about managing your application configuration, visit [this page](../config/index.md){.internal-link}.
 
 ## What's Next
 

@@ -83,7 +83,7 @@ But this code is too long to be reused everywhere. In this case, you can use a P
 
 ## Topic Pattern Access
 
-As you know, **Rabbit** allows you to use a pattern like this `#!python "logs.*"` with a [Topic](./examples/topic.md){.internal-link} exchange. Getting access to the real `*` value is an often-used scenario and **FastStream** provide it to you with the `Path` object (which is a shortcut to `#!python Context("message.path.*")`).
+As you know, **Rabbit** allows you to use a pattern like this `#!python "logs.*"` with a [Topic](./examples/topic.md){.internal-link} exchange. Getting access to the real `*` value is an often-used scenario and **FastStream** provides it to you with the `Path` object (which is a shortcut to `#!python Context("message.path.*")`).
 
 To use it, you just need to replace your `*` with `{variable-name}` and use `Path` as a regular `Context` object:
 

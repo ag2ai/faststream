@@ -10,10 +10,10 @@ search:
 
 # Application-level Filtering
 
-**FastStream** also allows you to specify the message processing way using message headers, body type or something else. The `filter` feature enables you to consume various messages with different schemas within a single event stream.
+**FastStream** also allows you to specify the way a message is processed using message headers, body type or something else. The `filter` feature enables you to consume various messages with different schemas within a single event stream.
 
 !!! tip
-    Message must be consumed at ONCE (crossing filters are not allowed)
+    A message must be consumed only ONCE (overlapping filters are not allowed)
 
 As an example, let's create a subscriber for both `JSON` and non-`JSON` messages:
 
@@ -50,7 +50,7 @@ As an example, let's create a subscriber for both `JSON` and non-`JSON` messages
 !!! note
     A subscriber without a filter is a default subscriber. It consumes messages that have not been consumed yet.
 
-For now, the following message will be delivered to the `handle` function
+Now, the following message will be delivered to the `handle` function:
 
 === "AIOKafka"
     ```python hl_lines="2"
@@ -82,7 +82,7 @@ For now, the following message will be delivered to the `handle` function
     {!> docs_src/getting_started/subscription/mqtt/filter.py [ln:24.5,25.5,26.5,27.5] !}
     ```
 
-And this one will be delivered to the `default_handler`
+And this one will be delivered to the `default_handler`:
 
 === "AIOKafka"
     ```python hl_lines="2"
