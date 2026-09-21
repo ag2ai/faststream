@@ -42,13 +42,13 @@ You can already serve it using any **ASGI** server
 For example, using [**uvicorn**](https://uvicorn.dev/deployment/){.external-link target="_blank"}:
 
 ```bash
-uvicorn asgi:app --workers 4
+uvicorn asgi:application --workers 4
 ```
 
 Or you can use [**Gunicorn**](https://gunicorn.org/run/){.external-link target="_blank"} with uvicorn workers
 
 ```bash
-gunicorn asgi:app --workers 4 --worker-class uvicorn.workers.UvicornWorker
+gunicorn asgi:application --workers 4 --worker-class uvicorn.workers.UvicornWorker
 ```
 
 Your **Django** views, models and other stuff don't change if you serve them through **ASGI**, so you don't need to worry about it.
@@ -75,7 +75,7 @@ from starlette.routing import Mount
 
 application = Starlette(
     routes=(
-        Mount("/", django_asgi()),  # redirect all requests to Django
+        Mount("/", django_asgi),  # redirect all requests to Django
     ),
 )
 ```

@@ -57,7 +57,7 @@ async def base_handler(body: str, msg: KafkaMessage):
 ```
 
 !!! tip
-    You can use the `nack` method to prevent offset commit and the message can be consumed by another consumer within the same group.
+    `nack` leaves the offset uncommitted and seeks this consumer back to the message, so the same consumer reads it again.
 
 **FastStream** will see that the message was already acknowledged and will do nothing at the end of the process.
 

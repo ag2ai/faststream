@@ -12,7 +12,7 @@ search:
 
 If you are working with a Publisher object (either as a decorator or directly), you have several testing features available:
 
-* In-memory TestClient
+* In-memory *TestBroker*
 * Publishing locally with error propagation
 * Checking the incoming message body
 

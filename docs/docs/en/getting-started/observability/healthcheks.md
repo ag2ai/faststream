@@ -67,7 +67,7 @@ def readiness(
     async def func(scope: Scope) -> AsgiResponse:
         try:
             await redis_connection.ping()
-        except (redis.ConnectionError, Exception):
+        except Exception:
             logging.exception("Redis not ready")
             return unhealthy_response
 
@@ -79,7 +79,7 @@ def readiness(
 
         try:
             await postgres_connection.fetchval("SELECT 1")
-        except (asyncpg.exceptions.PostgresConnectionError, Exception):
+        except Exception:
             logging.exception("Postgres not ready")
             return unhealthy_response
 

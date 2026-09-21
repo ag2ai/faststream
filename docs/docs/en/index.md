@@ -416,7 +416,7 @@ What the five clients share is a deliberately small surface:
 Beyond this scope you can use any broker-native features you need:
 
 * **Kafka** - specific partition reads, partitioner control, consumer groups, batch processing, etc.
-* **RabbitMQ** - all exchange types, Redis Streams, RPC, manual channel configuration, DLQ, etc.
+* **RabbitMQ** - all exchange types, RabbitMQ Streams, RPC, manual channel configuration, DLQ, etc.
 * **NATS** - core and Push/Pull JetStream subscribers, KeyValue, ObjectStorage, RPC, etc.
 * **Redis** - Pub/Sub, List, Stream subscribers, consumer groups, acknowledgements, etc.
 * **MQTT** - topic subscriptions (including wildcards), QoS and retain, MQTT 3.1.1 and 5.0, request/reply (RPC), TLS, etc.

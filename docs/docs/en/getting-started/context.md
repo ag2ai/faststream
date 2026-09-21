@@ -158,7 +158,7 @@ To set a local context (available only within the message processing scope), use
 * **logger** - the logger used for your broker (tags messages with *message_id*)
 * **message** - the raw message (if you need access to it)
 
-At the same time, thanks to `contextlib.ContextVar`, **message** is local for you current consumer scope.
+At the same time, thanks to `contextvars.ContextVar`, **message** is local to your current consumer scope.
 
 ### Access to Context Fields
 
@@ -271,8 +271,8 @@ from faststream import Logger, ContextRepo
     ```python
     from faststream.nats.annotations import (
         Logger, ContextRepo, NatsMessage,
-        NatsBroker, NatsProducer, NatsJsProducer,
-        Client, JsClient, NoCast,
+        NatsBroker, Client, JsClient,
+        ObjectStorage, NoCast,
     )
     ```
 
