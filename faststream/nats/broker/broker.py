@@ -239,6 +239,7 @@ def _adapt_deprecated_security(
     jwt_callback_supplied = user_jwt_cb is not EMPTY and user_jwt_cb is not None
     if signature_callback_supplied:
         deprecated_arguments.append("signature_cb")
+        authentication_mechanisms.append("JWT callbacks")
     if jwt_callback_supplied:
         deprecated_arguments.append("user_jwt_cb")
 
@@ -248,8 +249,6 @@ def _adapt_deprecated_security(
     if signature_callback_supplied != jwt_callback_supplied:
         msg = "`user_jwt_cb` and `signature_cb` must be provided together."
         raise SetupError(msg)
-    if signature_callback_supplied:
-        authentication_mechanisms.append("JWT callbacks")
 
     if len(authentication_mechanisms) > 1:
         mechanisms = ", ".join(authentication_mechanisms)
