@@ -204,15 +204,13 @@ class NatsCredentials(NatsSecurity):
         tls_handshake_first: bool = False,
     ) -> Self:
         """Load separate NATS user JWT and seed files."""
-        security = cls(
-            jwt,
+        return cls(
+            (str(jwt), str(seed)),
             ssl_context=ssl_context,
             use_ssl=use_ssl,
             tls_hostname=tls_hostname,
             tls_handshake_first=tls_handshake_first,
         )
-        security.credentials = (str(jwt), str(seed))
-        return security
 
     @classmethod
     def from_raw(
