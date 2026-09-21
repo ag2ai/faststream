@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Configure FastStream application and access logging: the broker access_logger, custom
+  formatters and structured logs carrying message context.
 search:
   boost: 10
 ---

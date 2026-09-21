@@ -1,6 +1,6 @@
-from collections.abc import Generator, Mapping
-from contextlib import contextmanager
+from collections.abc import Iterable, Mapping
 from contextvars import ContextVar, Token
+from types import TracebackType
 from typing import Any, TypeVar
 
 from faststream._internal.constants import EMPTY
@@ -98,25 +98,22 @@ class ContextRepo:
 
         return context_value
 
-    @contextmanager
-    def scope(self, key: str, value: Any) -> Generator[None, None, None]:
-        """Sets a local variable and yields control to the caller. After the caller is done, the local variable is reset.
+    def scope(self, key: str, value: Any) -> "ContextScope":
+        """Set one local value for the duration of a `with` block.
 
         Args:
             key: The key of the local variable
             value: The value to set the local variable to
-
-        Yields:
-            None
-
-        Returns:
-            An iterator that yields None
         """
-        token = self.set_local(key, value)
-        try:
-            yield
-        finally:
-            self.reset_local(key, token)
+        return ContextScope(self, ((key, value),))
+
+    def scopes(self, items: Iterable[tuple[str, Any]]) -> "ContextScope":
+        """Set several local values for the duration of a single `with` block.
+
+        Args:
+            items: The `(key, value)` pairs to set together
+        """
+        return ContextScope(self, tuple(items))
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get the value associated with a key.
@@ -168,3 +165,41 @@ class ContextRepo:
     def clear(self) -> None:
         self._global_context = {"context": self}
         self._scope_context.clear()
+
+
+class ContextScope:
+    """Local context values held for the duration of a `with` block.
+
+    A plain context manager rather than a `@contextmanager` generator: one of these
+    is built for every consumed message, where the generator machinery was costing
+    more than the work it wrapped.
+    """
+
+    __slots__ = ("_items", "_repo", "_tokens")
+
+    def __init__(
+        self,
+        repo: ContextRepo,
+        items: tuple[tuple[str, Any], ...],
+        /,
+    ) -> None:
+        self._repo = repo
+        self._items = items
+        self._tokens: tuple[tuple[str, Token[Any]], ...] = ()
+
+    def __enter__(self) -> None:
+        repo = self._repo
+        self._tokens = tuple(
+            (key, repo.set_local(key, value)) for key, value in self._items
+        )
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: TracebackType | None = None,
+    ) -> None:
+        repo = self._repo
+        # Reset in reverse, so that repeating a key restores the value it shadowed.
+        for key, token in reversed(self._tokens):
+            repo.reset_local(key, token)

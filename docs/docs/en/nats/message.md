@@ -47,7 +47,7 @@ async def base_handler(body: str, msg: NatsMessage):
 
 ## Message Fields Access
 
-But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context.md#existing_fields){.internal-link} feature for this reason.
+But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context.md#existing-fields){.internal-link} feature for this reason.
 
 For example, you can access the `correlation_id` like this:
 
@@ -99,6 +99,7 @@ async def base_handler(
 ```
 
 ### Literal braces
+{% raw %}
 
 If your subject name legitimately contains `{` or `}` characters, escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
 
@@ -107,5 +108,6 @@ If your subject name legitimately contains `{` or `}` characters, escape them by
 async def handler(body: str, level: str = Path()):
     ...
 ```
+{% endraw %}
 
 This subscribes to the subject `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.

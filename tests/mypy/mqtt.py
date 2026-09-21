@@ -9,6 +9,7 @@ from faststream.mqtt import (
     Will,
     WillProperties,
 )
+from faststream.mqtt.message import MQTTMessage
 from faststream.mqtt.subscriber.usecase import (
     MQTTConcurrentSubscriber,
     MQTTDefaultSubscriber,
@@ -47,6 +48,16 @@ async def check_multiple_test_brokers() -> None:
     ) as (br1, br2):
         await br1.publish(None, "test")
         await br2.publish(None, "test")
+
+
+async def check_subscriber_message_type(broker: MQTTBroker | MQTTRouter) -> None:
+    subscriber = broker.subscriber("test")
+
+    message = await subscriber.get_one()
+    assert_type(message, MQTTMessage | None)
+
+    async for msg in subscriber:
+        assert_type(msg, MQTTMessage)
 
 
 def check_subscriber_instance_type(broker: MQTTBroker | MQTTRouter) -> None:

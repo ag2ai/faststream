@@ -1,12 +1,20 @@
 import warnings
 from copy import deepcopy
+from typing import Any, Generic, Literal, overload
+
+from typing_extensions import Self, TypeVar
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
 from faststream.redis._compat import REDIS_V710, _REDIS_VERSION
 
+# Carries `batch` in the type, so `subscriber(stream=StreamSub(..., batch=True))`
+# resolves to the batch subscriber instead of a Union of both.
+BatchT_co = TypeVar("BatchT_co", bound=bool, default=bool, covariant=True)
+BatchT = TypeVar("BatchT", bound=bool, default=bool)
 
-class StreamSub(NameRequired):
+
+class StreamSub(NameRequired, Generic[BatchT_co]):
     """A class to represent a Redis Stream subscriber.
 
     Args:
@@ -65,10 +73,60 @@ class StreamSub(NameRequired):
         "max_records",
         "maxlen",
         "min_idle_time",
-        "name",
         "no_ack",
         "polling_interval",
     )
+
+    @overload
+    def __init__(
+        self: "StreamSub[Literal[False]]",
+        stream: str,
+        polling_interval: int | None = None,
+        group: str | None = None,
+        consumer: str | None = None,
+        batch: Literal[False] = False,
+        no_ack: bool = False,
+        last_id: str | None = None,
+        maxlen: int | None = None,
+        max_records: int | None = None,
+        min_idle_time: int | None = None,
+        declare: bool = True,
+        claim_min_idle_time: int | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "StreamSub[Literal[True]]",
+        stream: str,
+        polling_interval: int | None = None,
+        group: str | None = None,
+        consumer: str | None = None,
+        batch: Literal[True] = ...,
+        no_ack: bool = False,
+        last_id: str | None = None,
+        maxlen: int | None = None,
+        max_records: int | None = None,
+        min_idle_time: int | None = None,
+        declare: bool = True,
+        claim_min_idle_time: int | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "StreamSub[bool]",
+        stream: str,
+        polling_interval: int | None = None,
+        group: str | None = None,
+        consumer: str | None = None,
+        batch: bool = ...,
+        no_ack: bool = False,
+        last_id: str | None = None,
+        maxlen: int | None = None,
+        max_records: int | None = None,
+        min_idle_time: int | None = None,
+        declare: bool = True,
+        claim_min_idle_time: int | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
@@ -99,25 +157,17 @@ class StreamSub(NameRequired):
         if last_id is None:
             last_id = ">" if group and consumer else "$"
 
-        if group and consumer:
-            if last_id != ">":
-                if polling_interval:
-                    warnings.warn(
-                        message="`polling_interval` is not supported by consumer group with last_id other than `>`",
-                        category=RuntimeWarning,
-                        stacklevel=1,
-                    )
-
-                if no_ack:
-                    warnings.warn(
-                        message="`no_ack` is not supported by consumer group with last_id other than `>`",
-                        category=RuntimeWarning,
-                        stacklevel=1,
-                    )
-
-            elif no_ack:
+        if group and consumer and last_id != ">":
+            if polling_interval:
                 warnings.warn(
-                    message="`no_ack` has no effect with consumer group",
+                    message="`polling_interval` is not supported by consumer group with last_id other than `>`",
+                    category=RuntimeWarning,
+                    stacklevel=1,
+                )
+
+            if no_ack:
+                warnings.warn(
+                    message="`no_ack` is not supported by consumer group with last_id other than `>`",
                     category=RuntimeWarning,
                     stacklevel=1,
                 )
@@ -170,7 +220,26 @@ class StreamSub(NameRequired):
         self.min_idle_time = min_idle_time
         self.claim_min_idle_time = claim_min_idle_time
 
-    def add_prefix(self, prefix: str) -> "StreamSub":
+    @overload
+    @classmethod
+    def validate(
+        cls, value: "str | StreamSub[BatchT]", **kwargs: Any
+    ) -> "StreamSub[BatchT]": ...
+
+    @overload
+    @classmethod
+    def validate(cls, value: None, **kwargs: Any) -> None: ...
+
+    @classmethod
+    def validate(
+        cls, value: "str | StreamSub[Any] | None", **kwargs: Any
+    ) -> "StreamSub[Any] | None":
+        # `Self` would resolve to the non-batch parametrization of the first `__init__`
+        if isinstance(value, str):
+            return cls(value, **kwargs)
+        return value
+
+    def add_prefix(self, prefix: str) -> Self:
         new_stream = deepcopy(self)
         new_stream.name = f"{prefix}{new_stream.name}"
         return new_stream

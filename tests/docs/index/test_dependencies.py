@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from tests.marks import require_aiokafka
@@ -9,7 +11,7 @@ async def test_index_dep() -> None:
     from docs.docs_src.index.dependencies import base_handler, broker
     from faststream.kafka import TestKafkaBroker
 
-    data = {
+    data: dict[str, Any] = {
         "user": "John",
         "user_id": 1,
     }

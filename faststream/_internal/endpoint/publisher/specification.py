@@ -2,7 +2,7 @@ from inspect import Parameter, unwrap
 from typing import TYPE_CHECKING, Any
 
 from fast_depends.core import build_call_model
-from fast_depends.pydantic._compat import create_model, get_config_base
+from fast_depends.pydantic._compat import create_model, get_config_base  # noqa: PLC2701
 from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.configs import BrokerConfig, PublisherSpecificationConfig

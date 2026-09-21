@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  FastStream RabbitMQ support built on aio-pika: exchanges, queues, routing keys and RPC
+  through an asynchronous Python decorator API.
 search:
   boost: 10
 ---

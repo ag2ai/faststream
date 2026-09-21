@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 import pydantic
 import pytest
@@ -10,20 +10,19 @@ from fast_depends import Depends
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.broker import BrokerUsecase
 from tests.marks import pydantic_v2
 
 from .basic import AsyncAPI300Factory
 
 
 class ArgumentsTestcase(AsyncAPI300Factory):
-    broker_class: type[BrokerUsecase]
+    broker_class: Any
 
     def test_default_naming(self) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -37,7 +36,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test", title="custom_name", description="test description")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -53,7 +52,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test", title="/")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -82,7 +81,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test", title="custom_name")
-        async def handle(msg) -> None:
+        async def handle(msg: Any) -> None:
             """Test description."""
 
         schema = self.get_spec(broker).to_jsonable()
@@ -114,7 +113,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -185,7 +184,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg, another) -> None: ...
+        async def handle(msg: Any, another: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -461,10 +460,10 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         publisher = broker.publisher("test")
 
         @publisher
-        def handle0(msg) -> User: ...
+        def handle0(msg: Any) -> User: ...
 
         @publisher
-        def handle1(msg) -> Other: ...
+        def handle1(msg: Any) -> Other: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -531,7 +530,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         async def handle(id: int) -> None: ...
 
         @sub
-        async def handle_default(msg) -> None: ...
+        async def handle_default(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -550,17 +549,17 @@ class ArgumentsTestcase(AsyncAPI300Factory):
     def test_ignores_depends(self) -> None:
         broker = self.broker_class()
 
-        def dep(name: str = ""):
+        def dep(name: str = "") -> Any:
             return name
 
-        def dep2(name2: str):
+        def dep2(name2: str) -> Any:
             return name2
 
         dependencies = (Depends(dep2),)
         message = Depends(dep)
 
         @broker.subscriber("test", dependencies=dependencies)
-        async def handle(id: int, message=message) -> None: ...
+        async def handle(id: int, message: Any = message) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -592,7 +591,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         @broker.subscriber("test")
         async def handle(
             user: Annotated[Sub2 | Sub, pydantic.Field(discriminator="type")],
-        ): ...
+        ) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -736,7 +735,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         async def handle(
             id: int,
             user: str | None = None,
-            message=Context(),
+            message: Any = Context(),
         ) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
@@ -786,7 +785,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
         async def handle(user: User) -> None: ...
 
         @dataclass
-        class User:
+        class User:  # type: ignore[no-redef]
             id: int
             email: str = ""
 

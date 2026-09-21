@@ -18,6 +18,19 @@ https://github.com/squidfunk/mkdocs-material/blob/master/src/assets/stylesheets/
     --md-default-bg-color: hsla(var(--md-hue), 7%, 18%, 1);
     --md-footer-bg-color--dark: hsla(var(--md-hue), 24%, 26%, 1);
     --md-typeset-a-color: #48A8D8;
+
+    /* Material's defaults fall just under 4.5:1 on code and highlighted lines,
+       and the copyright under it on the footer background above */
+    --md-code-hl-keyword-color: #769ce3;
+    --md-code-hl-function-color: #cd7ddc;
+    --md-code-hl-constant-color: #a091e5;
+    --md-footer-fg-color--lighter: hsla(0, 0%, 100%, 0.56);
+}
+
+/* a link inside running text needs more than colour to stand out (WCAG 1.4.1) */
+.md-typeset :is(p, li, td) a:not(.md-button, :has(img)) {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
 }
 
 a.external-link {

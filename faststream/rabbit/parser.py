@@ -50,7 +50,7 @@ class AioPikaParser:
             raw_message=message,
         )
 
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: StreamMessage["IncomingMessage"],
     ) -> "DecodedMessage":

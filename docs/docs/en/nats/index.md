@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  FastStream NATS support built on nats-py: core subjects, JetStream persistence, key-value
+  and object stores from asynchronous Python.
 search:
   boost: 10
 ---

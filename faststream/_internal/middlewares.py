@@ -29,7 +29,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
     async def on_receive(self) -> None:
         """Hook to call on message receive."""
 
-    async def after_processed(
+    async def after_processed(  # noqa: PLR6301
         self,
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
@@ -51,7 +51,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         """Exit the asynchronous context manager."""
         return await self.after_processed(exc_type, exc_val, exc_tb)
 
-    async def consume_scope(
+    async def consume_scope(  # noqa: PLR6301
         self,
         call_next: "AsyncFuncAny",
         msg: "StreamMessage[AnyMsg]",
@@ -59,7 +59,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         """Asynchronously consumes a message and returns an asynchronous iterator of decoded messages."""
         return await call_next(msg)
 
-    async def publish_scope(
+    async def publish_scope(  # noqa: PLR6301
         self,
         call_next: Callable[[PublishCommandType], Awaitable[Any]],
         cmd: PublishCommandType,

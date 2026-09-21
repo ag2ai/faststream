@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  FastStream Kafka support built on aiokafka: subscriber and publisher decorators, batching,
+  consumer groups and in-memory testing.
 search:
   boost: 10
 ---

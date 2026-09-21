@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
 from nats.aio.msg import Msg
 from opentelemetry.semconv.trace import SpanAttributes
+from typing_extensions import override
 
 from faststream._internal.types import MsgType
 from faststream.opentelemetry import TelemetrySettingsProvider
@@ -29,6 +30,7 @@ class BaseNatsTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
+    @override
     def get_publish_destination_name(
         self,
         cmd: "PublishCommand",
@@ -49,6 +51,7 @@ class NatsTelemetrySettingsProvider(BaseNatsTelemetrySettingsProvider["Msg"]):
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.subject,
         }
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[Msg]",
@@ -72,6 +75,7 @@ class NatsBatchTelemetrySettingsProvider(
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message[0].subject,
         }
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[list[Msg]]",

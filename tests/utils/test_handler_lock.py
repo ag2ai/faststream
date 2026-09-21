@@ -46,7 +46,7 @@ async def test_wait_correct() -> None:
         assert lock.qsize == 0
 
     async with anyio.create_task_group() as tg:
-        tg.start_soon(func)
+        _ = tg.start_soon(func)
         await tg.start(check)
 
 
@@ -70,5 +70,5 @@ async def test_nowait_correct() -> None:
         assert lock.qsize == 1
 
     async with anyio.create_task_group() as tg:
-        tg.start_soon(func)
+        _ = tg.start_soon(func)
         await tg.start(check)

@@ -1,5 +1,6 @@
 import random
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -39,7 +40,9 @@ class TestKafkaMetricsSettingsProvider(
             "messages_count": 1,
         }
 
-        message = SimpleNamespace(body=body, raw_message=SimpleNamespace(topic=queue))
+        message: Any = SimpleNamespace(
+            body=body, raw_message=SimpleNamespace(topic=queue)
+        )
 
         provider = self.get_settings_provider()
         attrs = provider.get_consume_attrs_from_message(message)
@@ -54,7 +57,7 @@ class TestBatchKafkaMetricsSettingsProvider(
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = [b"Hi ", b"again, ", b"FastStream!"]
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=[
                 SimpleNamespace(topic=queue) for _ in range(random.randint(a=2, b=10))
@@ -93,7 +96,7 @@ class TestBatchKafkaMetricsSettingsProvider(
         ),
     ),
 )
-def test_settings_provider_factory(msg, expected_provider) -> None:
+def test_settings_provider_factory(msg: Any, expected_provider: Any) -> None:
     provider = settings_provider_factory(msg)
 
     assert isinstance(provider, type(expected_provider))

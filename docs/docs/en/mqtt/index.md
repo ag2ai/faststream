@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  FastStream MQTT support built on zmqtt: MQTT 3.1.1 and 5.0 topics, QoS levels and retained
+  messages for asynchronous Python services.
 search:
   boost: 10
 ---

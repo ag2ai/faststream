@@ -1,0 +1,80 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "test:test-ex:Handle": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "is": "queue",
+          "queue": {
+            "autoDelete": true,
+            "durable": true,
+            "exclusive": false,
+            "name": "test",
+            "vhost": "/"
+          }
+        }
+      },
+      "messages": {
+        "SubscribeMessage": {
+          "$ref": "#/components/messages/test:test-ex:Handle:SubscribeMessage"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "test:test-ex:Handle:SubscribeMessage": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/Handle:Message:Payload"
+        },
+        "title": "test:test-ex:Handle:SubscribeMessage"
+      }
+    },
+    "schemas": {
+      "Handle:Message:Payload": {
+        "title": "Handle:Message:Payload"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "test:test-ex:HandleSubscribe": {
+      "action": "receive",
+      "bindings": {
+        "amqp": {
+          "ack": true,
+          "bindingVersion": "0.3.0"
+        }
+      },
+      "channel": {
+        "$ref": "#/channels/test:test-ex:Handle"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/test:test-ex:Handle/messages/SubscribeMessage"
+        }
+      ]
+    }
+  },
+  "servers": {
+    "development": {
+      "host": "guest:guest@localhost:5672",
+      "pathname": "/",
+      "protocol": "amqp",
+      "protocolVersion": "0.9.1"
+    }
+  }
+}

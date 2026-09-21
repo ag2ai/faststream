@@ -77,7 +77,7 @@ class MQTTBroker(
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         ack_policy: AckPolicy = EMPTY,

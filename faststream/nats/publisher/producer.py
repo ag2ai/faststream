@@ -50,6 +50,7 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
     @abstractmethod
     async def request(self, cmd: "NatsPublishCommand") -> "Msg": ...
 
+    @override
     async def publish_batch(self, cmd: "NatsPublishCommand") -> None:
         msg = "NATS doesn't support publishing in batches."
         raise FeatureNotSupportedException(msg)

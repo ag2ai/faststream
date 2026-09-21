@@ -89,6 +89,7 @@ async def base_handler(
 ```
 
 ### Literal braces
+{% raw %}
 
 If your topic name legitimately contains `{` or `}` characters (e.g. `cache{shard}`), escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
 
@@ -97,6 +98,7 @@ If your topic name legitimately contains `{` or `}` characters (e.g. `cache{shar
 async def handler(body: str, level: str = Path()):
     ...
 ```
+{% endraw %}
 
 This subscribes to the topic `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.
 

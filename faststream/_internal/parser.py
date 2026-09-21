@@ -86,10 +86,10 @@ class BatchCodecProto(Protocol):
 
 
 class DefaultCodec:
-    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
+    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # noqa: PLR6301
         return decode_message(msg)
 
-    async def encode(
+    async def encode(  # noqa: PLR6301
         self,
         msg: "SendableMessage",
         serializer: "SerializerProto | None" = None,

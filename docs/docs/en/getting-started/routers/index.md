@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Split a FastStream application into modules with Broker Routers and apply a shared prefix,
+  middlewares, decoders and dependencies to a group of subscribers.
 search:
   boost: 10
 ---

@@ -2,7 +2,7 @@ import asyncio
 import datetime as dt
 import logging
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -32,12 +32,12 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
         reply_queue = queue + "reply"
 
         @pub_broker.subscriber(reply_queue)
-        async def reply_handler(m) -> None:
+        async def reply_handler(m: Any) -> None:
             event.set()
             mock(m)
 
         @pub_broker.subscriber(queue)
-        async def handler(m):
+        async def handler(m: Any) -> Any:
             return RabbitResponse(m, persist=True)
 
         async with self.patch_broker(pub_broker) as br:
@@ -73,11 +73,11 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(queue)
         @pub_broker.publisher(queue + "1")
-        async def handle():
+        async def handle() -> Any:
             return RabbitResponse(1, persist=True)
 
         @pub_broker.subscriber(queue + "1")
-        async def handle_next(msg=Context("message")) -> None:
+        async def handle_next(msg: Any = Context("message")) -> None:
             mock(body=msg.body)
             event.set()
 
@@ -112,7 +112,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
-        async def handle():
+        async def handle() -> Any:
             return RabbitResponse("Hi!", correlation_id="1")
 
         async with self.patch_broker(pub_broker) as br:
@@ -135,7 +135,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(queue)
-        async def handle(msg=Context("message")):
+        async def handle(msg: Any = Context("message")) -> None:
             mock(body=msg.body, timestamp=msg.raw_message.timestamp)
             event.set()
 
@@ -167,11 +167,11 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(queue)
-        async def handler(m):
+        async def handler(m: Any) -> Any:
             return m
 
         @pub_broker.subscriber(queue=queue + "reply", exchange="reply_exchange")
-        async def reply_handler(m):
+        async def reply_handler(m: Any) -> None:
             event.set()
             mock(m)
 
