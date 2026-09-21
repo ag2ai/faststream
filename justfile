@@ -159,6 +159,11 @@ bandit:
 semgrep:
   just _static semgrep scan --config auto --error --skip-unknown-extensions faststream
 
+[doc("Slotscheck check")]
+[group("static analysis")]
+slotscheck:
+  just _static slotscheck -m faststream
+
 [doc("Zizmor check")]
 [group("static analysis")]
 zizmor:
@@ -176,7 +181,7 @@ actionlint:
 
 [doc("Static analysis check")]
 [group("static analysis")]
-static-analysis: mypy pyright pyrefly bandit semgrep import-linter
+static-analysis: mypy pyright pyrefly bandit semgrep import-linter slotscheck
 
 
 # Pre-commit

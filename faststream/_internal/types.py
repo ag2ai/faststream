@@ -73,6 +73,8 @@ WrappedHandlerCall: TypeAlias = (
 class BrokerMiddleware(Protocol[AnyMsg_contra, PublishCommandType]):
     """Middleware builder interface."""
 
+    __slots__ = ()
+
     def __call__(
         self,
         msg: AnyMsg_contra | None,

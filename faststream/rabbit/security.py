@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class RabbitExternalAuth(BaseSecurity):
     """RabbitMQ SASL EXTERNAL authentication using a client TLS certificate."""
 
-    __slots__ = ("ssl_context", "use_ssl")
+    __slots__ = ()
 
     def __init__(
         self,

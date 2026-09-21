@@ -9,6 +9,8 @@ ClientT = TypeVar("ClientT", Client, JetStreamContext)
 
 
 class ConnectionState(Protocol[ClientT]):
+    __slots__ = ()
+
     connection: ClientT
 
 

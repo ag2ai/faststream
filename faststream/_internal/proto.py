@@ -6,6 +6,8 @@ from typing_extensions import Self
 class NameRequired:  # noqa: PLW1641 - each subclass decides whether it is hashable
     """Required name option object."""
 
+    __slots__ = ("name",)
+
     def __eq__(self, value: object, /) -> bool:
         """Compares the current object with another object for equality."""
         if value is None:
