@@ -73,7 +73,6 @@ class StreamSub(NameRequired, Generic[BatchT_co]):
         "max_records",
         "maxlen",
         "min_idle_time",
-        "name",
         "no_ack",
         "polling_interval",
     )
