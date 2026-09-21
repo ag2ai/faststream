@@ -321,15 +321,14 @@ class NatsNKey(NatsSecurity):
             msg = "NATS NKey seed cannot be empty."
             raise ValueError(msg)
 
-        security = cls(
+        return cls(
             seed,
             ssl_context=ssl_context,
             use_ssl=use_ssl,
             tls_hostname=tls_hostname,
             tls_handshake_first=tls_handshake_first,
+            seed_is_file=False,
         )
-        security.seed_is_file = False
-        return security
 
 
 class NatsJWT(NatsSecurity):
