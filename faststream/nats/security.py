@@ -35,7 +35,7 @@ def warn_deprecated_security_args(*arguments: str) -> None:
 class NatsSecurity(BaseSecurity):
     """Base class for NATS security configurations."""
 
-    __slots__ = ("ssl_context", "tls_handshake_first", "tls_hostname", "use_ssl")
+    __slots__ = ("tls_handshake_first", "tls_hostname")
 
     def __init__(
         self,
