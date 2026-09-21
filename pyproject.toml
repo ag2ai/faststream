@@ -110,7 +110,6 @@ docs = [
 lint = [
     "ruff==0.14.14",
     "bandit==1.9.3",
-    "semgrep==1.150.0",
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "import-linter==2.15",
@@ -178,9 +177,6 @@ Discussions = "https://github.com/ag2ai/faststream/discussions"
 
 [project.scripts]
 faststream = "faststream.__main__:cli"
-
-[tool.uv]
-override-dependencies = ["rich>=13.8.1"]
 
 [tool.uv.build-backend]
 module-root = "."
