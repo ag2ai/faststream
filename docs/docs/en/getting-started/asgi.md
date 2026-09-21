@@ -188,8 +188,8 @@ app = FastStream(broker, specification=AsyncAPI()).as_asgi(
     ```shell
     faststream run main:app --host 0.0.0.0 --port 8000 --workers 4
     ```
-    This possibility built on gunicorn + uvicorn, you need install them to run FastStream ASGI app via CLI.
-    We send all args directly to gunicorn, you can learn more about it [here](https://github.com/benoitc/gunicorn/blob/master/examples/example_config.py).
+    This possibility is built on **uvicorn**'s multiprocess supervisor, so you need to install `uvicorn` to run a FastStream ASGI app via the CLI.
+    We send all matching args directly to `uvicorn.Config`, you can learn more about them [here](https://uvicorn.dev/settings/){.external-link target="_blank"}.
 
 ## Other ASGI Compatibility
 

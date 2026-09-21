@@ -19,7 +19,7 @@ search:
 
 In a traditional publish/subscribe setup, the publishing party sends messages without expecting any direct response from the subscribers. However, with RPC, the publisher sends a message and waits for a response from the subscriber, which can then be used for subsequent operations or processing.
 
-**FastStream** allows you to define RPC-style communication channels, lists, or streams by using the `RedisBroker`'s publishing function with the `rpc` flag set to `True`.
+**FastStream** allows you to perform RPC-style communication over channels, lists, or streams by using the `RedisBroker`'s `request()` method instead of `publish()`.
 
 ## Implementing Redis RPC in FastStream
 

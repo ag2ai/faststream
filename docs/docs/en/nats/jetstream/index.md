@@ -33,9 +33,9 @@ However, the **JetStream** layer has many possibilities for configuration, from 
 
 Also, **NATS JetStream** has built-in `key-value` (similar to **Redis**) and `object` (similar to **Minio**) storages, which, in addition to the interface for *put/get*, have the ability to subscribe to events, which can be extremely useful in various scenarios.
 
-**FastStream** does not provide access to this functionality directly, but it is covered by the [nats-py](https://github.com/nats-io/nats.py){.external-link target="_blank"} library used. You can access the **JS** object from the application context:
+**FastStream** provides access to them via `#!python broker.key_value()` and `#!python broker.object_storage()` — see the [Key-Value Storage](key-value.md){.internal-link} and [Object Storage](object.md){.internal-link} pages. To consume from a stream, pass a `JStream` object to the subscriber:
 
-```python linenums="1" hl_lines="2 7 11-12 21"
+```python linenums="1" hl_lines="2 8 12 22"
 {! docs_src/nats/js/main.py !}
 ```
 

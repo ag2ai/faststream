@@ -71,4 +71,4 @@ A single handler will receive messages from all listed topics, under one consume
 This differs from stacking multiple `#!python @broker.subscriber(...)` decorators, which creates separate independent handlers.
 
 !!! warning
-    `max_workers > 1` is only compatible with `AckPolicy.ACK_FIRST`. Using any other ack policy with `max_workers > 1` will raise a `SetupError` at startup, regardless of how many topics are subscribed to.
+    `max_workers > 1` is only compatible with `AckPolicy.ACK_FIRST`. Using any other ack policy with `max_workers > 1` raises a `SetupError` when the subscriber is declared, regardless of how many topics are subscribed to.

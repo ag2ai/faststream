@@ -75,7 +75,7 @@ In most cases, **FastStream** performs all the necessary actions by itself. Howe
 
 ## **FastStream** Specific
 
-**FastStream** omits the ability to create `bindings` directly, since in most cases, you do not need to subscribe one queue to several `exchanges` or subscribe `exchanges` to each other. On the contrary, this practice leads to over-complication of the message routing scheme, which makes it difficult to maintain and further develop the entire infrastructure of services.
+**FastStream** discourages creating `bindings` directly, since in most cases, you do not need to subscribe one queue to several `exchanges` or subscribe `exchanges` to each other. On the contrary, this practice leads to over-complication of the message routing scheme, which makes it difficult to maintain and further develop the entire infrastructure of services.
 
 **FastStream** suggests you adhere to the scheme `exchange:queue` as `1:N`, which will greatly simplify the scheme of interaction between your services. It is better to create an additional queue for a new `exchange` than to subscribe to an existing one.
 

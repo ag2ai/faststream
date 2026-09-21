@@ -32,7 +32,7 @@ The **Pull** consumer is just a regular *Stream* consumer, but with the `pull_su
 {! docs_src/nats/js/pull_sub.py !}
 ```
 
-The batch size doesn't mean that your `msg` argument is a list of messages, but it means that you consume up to `#!python 10` messages for one request to **NATS** and call your handler for each message in an `asyncio.gather` pool.
+The batch size doesn't mean that your `msg` argument is a list of messages, but it means that you consume up to `#!python 10` messages for one request to **NATS** and call your handler for each message concurrently in an `anyio` task group.
 
 !!! tip
     If you want to consume a list of messages, just set the `batch=True` in `PullSub` class.

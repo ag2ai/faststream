@@ -135,7 +135,7 @@ You can pass custom flags for logging configuration: `--log-level` or `--log-con
 
 ### Event Loop
 
-**FastStream** is built on [anyio](https://github.com/agronholm/anyio) and supports using any event loop implementation (for example, [asyncio](https://docs.python.org/3/library/asyncio-eventloop.html),  [uvloop](https://github.com/MagicStack/uvloop), [winloop](https://github.com/Vizonex/Winloop), and [rloop](https://github.com/gi0baro/rloop)). By default, **FastStream** uses behavior from anyio: use uvloop (on Unix) if it exists, with fallback to asyncio.
+**FastStream** is built on [anyio](https://github.com/agronholm/anyio) and supports using any event loop implementation (for example, [asyncio](https://docs.python.org/3/library/asyncio-eventloop.html),  [uvloop](https://github.com/MagicStack/uvloop), [winloop](https://github.com/Vizonex/Winloop), and [rloop](https://github.com/gi0baro/rloop)). By default, the **FastStream CLI** uses uvloop (on Unix) if it is installed, with a fallback to asyncio.
 
 You can set the event loop factory explicitly via the `--loop` option in the CLI:
 

@@ -64,7 +64,7 @@ The next step is to customize broker information. This helps users understand th
 
 1. Locate the broker configuration in your **FastStream** application.
 1. Update the `description` field.
-1. Update the `asyncapi_url` field with a non-sensitive URL if you want to conceal your broker's actual bootstrap server URL.
+1. Update the `specification_url` field with a non-sensitive URL if you want to conceal your broker's actual bootstrap server URL.
 1. Save the changes.
 1. Serve your **FastStream** app.
 
