@@ -228,15 +228,13 @@ class NatsCredentials(NatsSecurity):
             msg = "Raw NATS credentials do not contain the required markers."
             raise ValueError(msg)
 
-        security = cls(
-            "",
+        return cls(
+            RawCredentials(credentials),
             ssl_context=ssl_context,
             use_ssl=use_ssl,
             tls_hostname=tls_hostname,
             tls_handshake_first=tls_handshake_first,
         )
-        security.credentials = RawCredentials(credentials)
-        return security
 
 
 class NatsNKey(NatsSecurity):
