@@ -25,7 +25,7 @@ class JsInitOptions(TypedDict, total=False):
     publish_async_max_pending: int
 
 
-def _context_annotations() -> "Mapping[Any, Any]":
+def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from nats.aio.client import Client as ClientDriver
@@ -74,7 +74,7 @@ class NatsBrokerConfig(BrokerConfig):
     os_declarer: OSBucketDeclarer = field(default_factory=OSBucketDeclarer)
 
     default_driver_annotations: "Mapping[Any, Any]" = field(
-        default_factory=_context_annotations,
+        default_factory=_context_annotations_factory,
     )
 
     def connect(self, connection: "Client") -> None:

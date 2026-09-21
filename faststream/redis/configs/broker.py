@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from .state import ConnectionState
 
 
-def _context_annotations() -> "Mapping[Any, Any]":
+def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from redis.asyncio.client import (
@@ -85,7 +85,7 @@ class RedisBrokerConfig(BrokerConfig):
     message_format: type["MessageFormat"]
 
     default_driver_annotations: "Mapping[Any, Any]" = field(
-        default_factory=_context_annotations,
+        default_factory=_context_annotations_factory,
     )
 
     async def connect(self) -> None:
@@ -101,7 +101,7 @@ class RedisBrokerConfig(BrokerConfig):
 @dataclass(kw_only=True)
 class RedisRouterConfig(BrokerConfig):
     default_driver_annotations: "Mapping[Any, Any]" = field(
-        default_factory=_context_annotations,
+        default_factory=_context_annotations_factory,
     )
 
     @property
