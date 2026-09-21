@@ -60,7 +60,6 @@ class ListSub(NameRequired, Generic[BatchT_co]):
         self.max_records = max_records
         self.polling_interval = polling_interval
 
-    # Not `cached_property`: it stores its value in `__dict__`, which slots remove.
     @property
     def records(self) -> int | None:
         return self.max_records if self.batch else None

@@ -39,6 +39,8 @@ class RabbitDeclarer(Protocol):
 
 
 class FakeRabbitDeclarer(RabbitDeclarer):
+    __slots__ = ()
+
     def disconnect(self) -> None:
         raise NotImplementedError
 

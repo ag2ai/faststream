@@ -24,6 +24,8 @@ class ChannelManager(Protocol):
 
 
 class FakeChannelManager(ChannelManager):
+    __slots__ = ()
+
     def connect(self, connection: "aio_pika.RobustConnection") -> None:
         raise NotImplementedError
 
