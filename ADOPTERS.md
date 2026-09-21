@@ -73,6 +73,7 @@ please move your row up from the table below, or add a new one.
 | [Raiffeisenbank](https://habr.com/ru/companies/raiffeisenbank/articles/885792/) | Kafka, RabbitMQ | Event-driven backend services; the team contributed the Prometheus middleware upstream | — | — | — |
 | [Tochka Bank](https://github.com/tochka-public) | RabbitMQ | Event transport between services | — | — | — |
 | [IdaProject](https://github.com/idaproject) | RabbitMQ, Kafka | Transport between microservices (EDA) | — | — | — |
+| [DNS Technologies](https://example.com) | Kafka | Federal Financial Service, exchange of internal documents and banking transactions between systems | — | — | — | 
 
 ### Observed from public sources — please confirm
 
