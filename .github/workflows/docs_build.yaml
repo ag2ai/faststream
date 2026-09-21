@@ -65,8 +65,8 @@ jobs:
           git reset --soft "$(git rev-list --max-parents=0 HEAD)"
 
       # `git checkout gh-pages` leaves behind everything the build had ignored —
-      # `docs/site/`, the generated API markdown, `__pycache__`. On `gh-pages`
-      # there is no `.gitignore` to keep them out of the commit.
+      # `docs/site/`, `__pycache__`. On `gh-pages` there is no `.gitignore` to
+      # keep them out of the commit.
       - name: Drop the build artifacts left over from the source checkout
         run: git clean -fdx
 

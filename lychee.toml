@@ -6,9 +6,8 @@ timeout = 30
 accept = ["200..=299", "429"]
 
 exclude_path = [
-    # generated from GitHub releases and from the source tree
+    # generated from GitHub releases
     "docs/docs/en/release.md",
-    "docs/docs/en/api",
 ]
 
 exclude = [
