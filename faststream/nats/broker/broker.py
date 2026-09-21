@@ -206,6 +206,37 @@ UNRECOVERABLE_CONNECT_ERRORS = (
 )
 
 
+def _validate_deprecated_security(
+    deprecated_arguments: Sequence[str],
+) -> None:
+    signature_callback_supplied = "signature_cb" in deprecated_arguments
+    jwt_callback_supplied = "user_jwt_cb" in deprecated_arguments
+    if signature_callback_supplied != jwt_callback_supplied:
+        msg = "`user_jwt_cb` and `signature_cb` must be provided together."
+        raise SetupError(msg)
+
+    authentication_mechanisms = [
+        name
+        for name in (
+            "token",
+            "user_credentials",
+            "nkeys_seed",
+            "nkeys_seed_str",
+        )
+        if name in deprecated_arguments
+    ]
+    if signature_callback_supplied:
+        authentication_mechanisms.append("JWT callbacks")
+
+    if len(authentication_mechanisms) > 1:
+        mechanisms = ", ".join(authentication_mechanisms)
+        msg = (
+            "Only one deprecated NATS authentication mechanism can be "
+            f"used at a time, but got: {mechanisms}."
+        )
+        raise SetupError(msg)
+
+
 def _adapt_deprecated_security(
     security: BaseSecurity | None,
     *,
@@ -217,46 +248,24 @@ def _adapt_deprecated_security(
     nkeys_seed: str | None,
     nkeys_seed_str: str | None,
 ) -> BaseSecurity | None:
-    deprecated_arguments: list[str] = []
-    authentication_mechanisms: list[str] = []
-
-    if tls_hostname is not EMPTY and tls_hostname is not None:
-        deprecated_arguments.append("tls_hostname")
-    if token is not EMPTY and token is not None:
-        deprecated_arguments.append("token")
-        authentication_mechanisms.append("token")
-    if user_credentials is not EMPTY and user_credentials is not None:
-        deprecated_arguments.append("user_credentials")
-        authentication_mechanisms.append("user_credentials")
-    if nkeys_seed is not EMPTY and nkeys_seed is not None:
-        deprecated_arguments.append("nkeys_seed")
-        authentication_mechanisms.append("nkeys_seed")
-    if nkeys_seed_str is not EMPTY and nkeys_seed_str is not None:
-        deprecated_arguments.append("nkeys_seed_str")
-        authentication_mechanisms.append("nkeys_seed_str")
-
-    signature_callback_supplied = signature_cb is not EMPTY and signature_cb is not None
-    jwt_callback_supplied = user_jwt_cb is not EMPTY and user_jwt_cb is not None
-    if signature_callback_supplied:
-        deprecated_arguments.append("signature_cb")
-        authentication_mechanisms.append("JWT callbacks")
-    if jwt_callback_supplied:
-        deprecated_arguments.append("user_jwt_cb")
+    deprecated_arguments = tuple(
+        name
+        for name, value in (
+            ("tls_hostname", tls_hostname),
+            ("token", token),
+            ("user_credentials", user_credentials),
+            ("nkeys_seed", nkeys_seed),
+            ("nkeys_seed_str", nkeys_seed_str),
+            ("signature_cb", signature_cb),
+            ("user_jwt_cb", user_jwt_cb),
+        )
+        if value is not EMPTY and value is not None
+    )
 
     if deprecated_arguments:
         warn_deprecated_security_args(*deprecated_arguments)
 
-    if signature_callback_supplied != jwt_callback_supplied:
-        msg = "`user_jwt_cb` and `signature_cb` must be provided together."
-        raise SetupError(msg)
-
-    if len(authentication_mechanisms) > 1:
-        mechanisms = ", ".join(authentication_mechanisms)
-        msg = (
-            "Only one deprecated NATS authentication mechanism can be "
-            f"used at a time, but got: {mechanisms}."
-        )
-        raise SetupError(msg)
+    _validate_deprecated_security(deprecated_arguments)
 
     if security is not None:
         use_ssl = security.use_ssl
