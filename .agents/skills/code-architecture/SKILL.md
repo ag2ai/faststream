@@ -35,6 +35,8 @@ faststream/<broker>/
 
 Brokers also carry optional integration subpackages where supported — kafka has `fastapi/`, `helpers/`, `opentelemetry/`, `prometheus/`, and `schemas/` — follow kafka's structure when adding these to another broker.
 
+A broker package is closed over its driver: `faststream.<broker>` never imports another broker package, nothing outside it imports it, and its driver (`aiokafka`, `confluent_kafka`, `aio_pika`, `nats`, `redis`, `zmqtt`) is imported nowhere else. `just import-linter` checks all three; the contracts live in `[tool.importlinter]` in `pyproject.toml`.
+
 ## Feature mirroring
 
 All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start()`, `stop()`, routers, publishers, message/response types. When adding a feature:
@@ -65,6 +67,7 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 - ruff uses `select = ["ALL"]` with curated ignores in `ruff.toml` — don't assume a rule is disabled; run `just linter` to check.
 - Line length 90, double quotes, Google-style docstrings.
 - `just mypy` must pass before a PR.
+- A class that declares `__slots__` needs slotted bases all the way up (`__slots__ = ()` on a `Protocol` or mixin), otherwise instances keep a `__dict__` and the slots do nothing; `just slotscheck` checks it.
 
 ### Comments
 

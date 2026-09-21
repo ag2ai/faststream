@@ -2,6 +2,8 @@ from typing import Any, Generic, Protocol, TypeVar
 
 
 class Unsubscriptable(Protocol):
+    __slots__ = ()
+
     async def unsubscribe(self) -> None: ...
 
 
