@@ -21,8 +21,8 @@ async def test_bind(monkeypatch: pytest.MonkeyPatch, async_mock: AsyncMock) -> N
             assert len(broker.config.declarer._queues) == 2  # with `reply-to`
             assert len(broker.config.declarer._exchanges) == 1
 
-            assert some_queue in broker.config.declarer._queues
-            assert some_exchange in broker.config.declarer._exchanges
+            assert some_queue.name in broker.config.declarer._queues
+            assert some_exchange.name in broker.config.declarer._exchanges
 
             row_exchange = await broker.config.declarer.declare_exchange(some_exchange)
             async_mock.assert_awaited_once_with(
