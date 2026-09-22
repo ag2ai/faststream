@@ -67,21 +67,22 @@ class BrokerConfig:
         self.broker_middlewares = (middleware, *self.broker_middlewares)
 
 
-BrokerConfigType = TypeVar313(
-    "BrokerConfigType",
+BrokerConfigType_co = TypeVar313(
+    "BrokerConfigType_co",
     bound=BrokerConfig,
     default=BrokerConfig,
+    covariant=True,
 )
 
-ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType", BrokerConfig]
+ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType_co", BrokerConfig]
 
 
-class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
-    def __init__(self, config: BrokerConfigType) -> None:
+class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
+    def __init__(self, config: BrokerConfigType_co) -> None:
         self.configs: tuple[ConfigType, ...] = (config,)
 
     @property
-    def broker_config(self) -> "BrokerConfigType":
+    def broker_config(self) -> "BrokerConfigType_co":
         assert self.configs
         return self.configs[0]  # type: ignore[return-value]
 
