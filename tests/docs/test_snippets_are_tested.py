@@ -14,8 +14,6 @@ def test_every_snippet_is_imported_by_a_test() -> None:
     assert _untested_snippets() == NOT_TESTED_YET
 
 
-BROKERS = ("confluent", "kafka", "mqtt", "nats", "rabbit", "redis")
-
 NOT_TESTED_YET = {
     "confluent/security/custom_config.py",
     "getting_started/asyncapi/serve.py",
@@ -23,14 +21,11 @@ NOT_TESTED_YET = {
     "index/dependencies_annotated.py",
     "integrations/no_http_frameworks_integrations/aiogram.py",
     "kafka/security/sasl_oauthbearer.py",
-    *(
-        "getting_started/" + snippet.format(b=broker)
-        for broker in BROKERS
-        for snippet in (
-            "subscription/{b}/dynamic.py",
-            "subscription/{b}/dynamic_iter.py",
-        )
-    ),
+    # a group-less Confluent consumer joins one shared default group, behind the
+    # broker's rebalance delay: `dynamic.py` gives up before it lands, and any
+    # other test in that group can hold the partition `dynamic_iter.py` waits on
+    "getting_started/subscription/confluent/dynamic.py",
+    "getting_started/subscription/confluent/dynamic_iter.py",
 }
 
 
