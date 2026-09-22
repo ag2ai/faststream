@@ -13,9 +13,8 @@ description: Use when writing or modifying FastStream library source code under 
 
 **Rule:** implement shared behavior in `_internal/`, expose it through broker packages. User-facing code (docs, examples, error messages) must never import from `faststream._internal`.
 
-Three directions the boundary is crossed in review (#2038, #2644, #2290):
+Two directions `just import-linter` cannot see, both crossed in review (#2038, #2644, #2290):
 
-- **Core does not import a broker.** Shared code never reaches for a concrete broker package.
 - **Broker specifics do not leak into the shared config.** If only one broker needs the field, it belongs to that broker's config.
 - **A neighbour's private is not read.** `_foo` of another module is not part of its contract, even inside `_internal/`.
 
@@ -83,8 +82,7 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 
 ## Public API
 
-- Every `__init__.py` declares `__all__` explicitly.
-- **Every name in `__all__` must resolve at runtime.** A name imported only under `if TYPE_CHECKING:` passes mypy and fails in production: `docs/create_api_docs.py` walks `__all__` and calls `getattr(module, name)` (#2841 → #2898).
+- Every `__init__.py` declares `__all__` explicitly, and every name in it resolves at runtime — a name imported only under `if TYPE_CHECKING:` passes mypy and fails in production (#2841 → #2898). `tests/test_public_exports.py` imports each public module and reads every name it exports.
 - Optional dependencies are guarded with try/except raising an `ImportError` that tells the user which extra to install — see `faststream/kafka/__init__.py`.
 - Driver exceptions are **not** re-exported through FastStream. Driver types are used by importing the driver (#2911, #2819).
 - A distinct connection mode (Cluster, Sentinel) is its own broker class, not a flag on the existing one (#2895).
@@ -130,9 +128,7 @@ or a rewrite that landed on top of a merged contribution.
 ## Style
 
 - ruff uses `select = ["ALL"]` with curated ignores in `ruff.toml` — don't assume a rule is disabled; run `just linter` to check.
-- Line length 90, double quotes, Google-style docstrings.
-- `just mypy` must pass before a PR.
-- A class that declares `__slots__` needs slotted bases all the way up (`__slots__ = ()` on a `Protocol` or mixin), otherwise instances keep a `__dict__` and the slots do nothing; `just slotscheck` checks it.
+- `just linter` and `just mypy` must pass before a PR.
 
 ### Module layout
 
