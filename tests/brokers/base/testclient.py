@@ -2,8 +2,9 @@ import asyncio
 import gc
 import json
 from abc import abstractmethod
+from contextlib import AsyncExitStack
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import anyio
 import pytest
@@ -285,12 +286,17 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         publisher = test_broker.publisher(queue)  # noqa: F841
 
         test_client: Any = self.patch_broker(test_broker, with_real=True)
-        async with test_client:
-            (fake,) = test_client._fake_subscribers
-            fake.stop = spy_decorator(fake.stop)
+        stack = AsyncExitStack()
+        _ = await stack.enter_async_context(test_client)
+        (fake,) = test_client._fake_subscribers
+
+        # The subscriber is slotted, so the spy goes on its class, for the exit only
+        spy = spy_decorator(type(fake).stop)
+        with patch.object(type(fake), "stop", spy):
+            await stack.aclose()
 
         # A fake left running stays in its consumer group and blocks later members
-        fake.stop.mock.assert_awaited_once()
+        spy.mock.assert_awaited_once()
 
     @pytest.mark.asyncio()
     async def test_publisher_response_with_model(self, queue: str) -> None:
