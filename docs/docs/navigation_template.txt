@@ -65,6 +65,7 @@ search:
         - [Acknowledgement](kafka/ack.md)
         - [Message Information](kafka/message.md)
         - [Security Configuration](kafka/security.md)
+        - [Topic Configuration](kafka/topic-configuration.md)
     - [Confluent](confluent/index.md)
         - [Subscription](confluent/Subscriber/index.md)
             - [Batch Subscriber](confluent/Subscriber/batch_subscriber.md)
