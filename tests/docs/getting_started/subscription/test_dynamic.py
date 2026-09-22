@@ -17,8 +17,9 @@ from tests.marks import (
 )
 
 # TestBroker does not support dynamic subscribers, so these run against a real
-# broker; every test publishes the same payload because the snippets share
-# a hardcoded destination
+# broker. The snippets own their `dynamic-*` destinations, and the two of a
+# broker share one, so both tests publish the same payload and neither minds
+# reading what the other sent.
 PAYLOAD = "Hi!"
 
 
@@ -94,7 +95,7 @@ async def iterated_message(snippet: Any, broker_name: str, destination: str) -> 
 async def test_kafka_dynamic() -> None:
     from docs.docs_src.getting_started.subscription.kafka import dynamic
 
-    message = await consumed_message(dynamic, "KafkaBroker", "test-topic")
+    message = await consumed_message(dynamic, "KafkaBroker", "dynamic-topic")
 
     assert message is not None
     assert await message.decode() == PAYLOAD
@@ -107,7 +108,7 @@ async def test_kafka_dynamic() -> None:
 async def test_kafka_dynamic_iter() -> None:
     from docs.docs_src.getting_started.subscription.kafka import dynamic_iter
 
-    message = await iterated_message(dynamic_iter, "KafkaBroker", "test-topic")
+    message = await iterated_message(dynamic_iter, "KafkaBroker", "dynamic-topic")
 
     assert await message.decode() == PAYLOAD
 
@@ -119,7 +120,7 @@ async def test_kafka_dynamic_iter() -> None:
 async def test_rabbit_dynamic() -> None:
     from docs.docs_src.getting_started.subscription.rabbit import dynamic
 
-    message = await consumed_message(dynamic, "RabbitBroker", "test-queue")
+    message = await consumed_message(dynamic, "RabbitBroker", "dynamic-queue")
 
     assert message is not None
     assert await message.decode() == PAYLOAD
@@ -132,7 +133,7 @@ async def test_rabbit_dynamic() -> None:
 async def test_rabbit_dynamic_iter() -> None:
     from docs.docs_src.getting_started.subscription.rabbit import dynamic_iter
 
-    message = await iterated_message(dynamic_iter, "RabbitBroker", "test-queue")
+    message = await iterated_message(dynamic_iter, "RabbitBroker", "dynamic-queue")
 
     assert await message.decode() == PAYLOAD
 
@@ -144,7 +145,7 @@ async def test_rabbit_dynamic_iter() -> None:
 async def test_nats_dynamic() -> None:
     from docs.docs_src.getting_started.subscription.nats import dynamic
 
-    message = await consumed_message(dynamic, "NatsBroker", "test-subject")
+    message = await consumed_message(dynamic, "NatsBroker", "dynamic-subject")
 
     assert message is not None
     assert await message.decode() == PAYLOAD
@@ -157,7 +158,7 @@ async def test_nats_dynamic() -> None:
 async def test_nats_dynamic_iter() -> None:
     from docs.docs_src.getting_started.subscription.nats import dynamic_iter
 
-    message = await iterated_message(dynamic_iter, "NatsBroker", "test-subject")
+    message = await iterated_message(dynamic_iter, "NatsBroker", "dynamic-subject")
 
     assert await message.decode() == PAYLOAD
 
@@ -169,7 +170,7 @@ async def test_nats_dynamic_iter() -> None:
 async def test_redis_dynamic() -> None:
     from docs.docs_src.getting_started.subscription.redis import dynamic
 
-    message = await consumed_message(dynamic, "RedisBroker", "test-channel")
+    message = await consumed_message(dynamic, "RedisBroker", "dynamic-channel")
 
     assert message is not None
     assert await message.decode() == PAYLOAD
@@ -182,7 +183,7 @@ async def test_redis_dynamic() -> None:
 async def test_redis_dynamic_iter() -> None:
     from docs.docs_src.getting_started.subscription.redis import dynamic_iter
 
-    message = await iterated_message(dynamic_iter, "RedisBroker", "test-channel")
+    message = await iterated_message(dynamic_iter, "RedisBroker", "dynamic-channel")
 
     assert await message.decode() == PAYLOAD
 
@@ -194,7 +195,7 @@ async def test_redis_dynamic_iter() -> None:
 async def test_mqtt_dynamic() -> None:
     from docs.docs_src.getting_started.subscription.mqtt import dynamic
 
-    message = await consumed_message(dynamic, "MQTTBroker", "test-topic")
+    message = await consumed_message(dynamic, "MQTTBroker", "dynamic-topic")
 
     assert message is not None
     assert await message.decode() == PAYLOAD
@@ -207,6 +208,6 @@ async def test_mqtt_dynamic() -> None:
 async def test_mqtt_dynamic_iter() -> None:
     from docs.docs_src.getting_started.subscription.mqtt import dynamic_iter
 
-    message = await iterated_message(dynamic_iter, "MQTTBroker", "test-topic")
+    message = await iterated_message(dynamic_iter, "MQTTBroker", "dynamic-topic")
 
     assert await message.decode() == PAYLOAD
