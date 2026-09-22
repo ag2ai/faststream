@@ -93,6 +93,8 @@ SubscriberMiddleware: TypeAlias = Callable[
 class PublisherMiddleware(Protocol[PublishCommandType]):
     """Publisher middleware interface."""
 
+    __slots__ = ()
+
     def __call__(
         self,
         call_next: Callable[[PublishCommandType], Awaitable[Any]],

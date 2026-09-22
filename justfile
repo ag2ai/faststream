@@ -161,10 +161,13 @@ bandit:
 semgrep:
   uvx semgrep@1.150.0 scan --config auto --error --skip-unknown-extensions faststream
 
+# The second run holds the rule agreed in #3201: a middleware or settings provider is
+# built per consumed message, so it must be slotted too, not just its base.
 [doc("Slotscheck check")]
 [group("static analysis")]
 slotscheck:
   just _static slotscheck -m faststream
+  uv run --frozen slotscheck -m faststream --require-subclass --include-classes ':.*(Middleware|SettingsProvider)$'
 
 [doc("Zizmor check")]
 [group("static analysis")]

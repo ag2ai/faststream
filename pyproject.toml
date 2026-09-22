@@ -503,6 +503,8 @@ skips = ["B101"]
 # A module that fails to import is an error, not a silently skipped one.
 strict-imports = true
 require-superclass = true
+# `require-subclass` is not set here: it would report every class that merely could have
+# slots. `just slotscheck` runs it a second time, scoped to the set agreed in #3201.
 
 [tool.typos.default.extend-identifiers]
 # Contributor handles in the generated release notes. Names, not misspellings.
