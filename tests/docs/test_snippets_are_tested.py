@@ -15,12 +15,8 @@ def test_every_snippet_is_imported_by_a_test() -> None:
 
 
 NOT_TESTED_YET = {
-    "confluent/security/custom_config.py",
-    "getting_started/asyncapi/serve.py",
-    "getting_started/multiple_brokers/add_broker.py",
-    "index/dependencies_annotated.py",
+    # `Bot("")` needs a real Telegram token, and the module polls at import time
     "integrations/no_http_frameworks_integrations/aiogram.py",
-    "kafka/security/sasl_oauthbearer.py",
     # a group-less Confluent consumer joins one shared default group, behind the
     # broker's rebalance delay: `dynamic.py` gives up before it lands, and any
     # other test in that group can hold the partition `dynamic_iter.py` waits on
