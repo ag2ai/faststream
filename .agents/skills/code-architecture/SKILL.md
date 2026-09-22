@@ -15,8 +15,8 @@ description: Use when writing or modifying FastStream library source code under 
 
 Two directions `just import-linter` cannot see, both crossed in review (#2038, #2644, #2290):
 
-- **Broker specifics do not leak into the shared config.** If only one broker needs the field, it belongs to that broker's config.
-- **A neighbour's private is not read.** `_foo` of another module is not part of its contract, even inside `_internal/`.
+- **A field only one broker needs lives in that broker's config**, not in the shared one.
+- **A neighbour is read through its public surface.** `_foo` of another module is outside its contract, even inside `_internal/`.
 
 ## Broker package anatomy
 
@@ -47,8 +47,7 @@ A broker package is closed over its driver: `faststream.<broker>` never imports 
 - **An extensible object, not a magic dict.** A structure a user passes or receives is a class with named fields (`Response`, `PublishMessage`), not a free-form dict; a format is a class, not a boolean flag (#2586, #2287).
 - **`broker.subscriber()` is a facade with no logic.** Assembly belongs to the factory; the DTO validates itself and exposes derived values through `@property` (#2038).
 - **Handler metadata lives on a class, not as an attribute stapled to the function.** Constructor options are keyword-only (#2142).
-- **A method on a message does not re-read `raw_message`.** The parser lifts onto the message object everything the framework reads later; a method that reaches back into the driver's payload is re-parsing it (#3066). Reaching for `raw_message` is for handing it back to the driver (`ack`, `commit`), for the broker-specific attributes of telemetry, and for the user.
-- **The default of an outgoing message is applied in one place** — `producer._publish` — not re-derived by every caller (#2226).
+- **A message method reads the fields the parser lifted onto it.** Everything the framework needs later comes off the message object; a method that reaches into the driver's payload is re-parsing it (#3066). `raw_message` itself is for handing back to the driver (`ack`, `commit`), for the broker-specific attributes of telemetry, and for the user.
 
 ## Feature mirroring
 
@@ -59,11 +58,11 @@ All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start(
 3. Broker-specific features stay in the broker package — don't leak them into `_internal/`.
 4. **Kafka has two backends.** A fix in `faststream/kafka/` (aiokafka) is mirrored into `faststream/confluent/` in the same PR, and vice versa (#2932).
 5. Logic that does not depend on the broker lives in the shared class, and values shared by all brokers go through one common type (e.g. `Address`) rather than a per-broker string (#3072, #3042).
-6. An invariant is established once, at the entry point — not re-derived by every reader. Two names for one value is a bug, not a convenience (#3072).
+6. **An invariant is established once, at the entry point**, and every reader takes it from there: the default of an outgoing message is applied in `producer._publish` alone. Two names for one value is a bug, not a convenience (#2226, #3072).
 
 ## Option surface
 
-- **Ask whether a user could want it set differently for different parts of one application.** If yes, the option exists at **every** level: `broker` → `router` → `subscriber`/`publisher` → FastAPI router, the innermost wins, and each level gets its own test (#2871, #2827, #3026). If the setting describes the application as one object, it lives at the root and nowhere else (#2777).
+- **Scope decides the level.** A **scoped** option — one a user could want different for different parts of one application — exists at every level: `broker` → `router` → `subscriber`/`publisher` → FastAPI router, innermost wins, each level tested (#2871, #2827, #3026). A **global** setting, one that describes the application as a single object, lives at the root alone (#2777).
 - One knob, not two. Prefer a single parameter over a `bool` + `str` pair; `None` disables it (#2894).
 - A default that depends on a neighbouring parameter is derived through the `EMPTY` sentinel, not by guessing inside the body (#2894).
 - Behaviour that differs by **broker/server version** lives in the versioned implementation, not behind `if self._version` scattered through the broker (#2819). (Python and Pydantic differences go through `_compat` — see Typing.)
@@ -84,14 +83,14 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 
 - Every `__init__.py` declares `__all__` explicitly, and every name in it resolves at runtime — a name imported only under `if TYPE_CHECKING:` passes mypy and fails in production (#2841 → #2898). `tests/test_public_exports.py` imports each public module and reads every name it exports.
 - Optional dependencies are guarded with try/except raising an `ImportError` that tells the user which extra to install — see `faststream/kafka/__init__.py`.
-- Driver exceptions are **not** re-exported through FastStream. Driver types are used by importing the driver (#2911, #2819).
+- **A user imports the driver for its exception types.** FastStream re-exports none of them (#2911, #2819).
 - A distinct connection mode (Cluster, Sentinel) is its own broker class, not a flag on the existing one (#2895).
 - An endpoint returns the result itself. No envelope, no wrapper object around it (#2777).
 
 ## Invariants review checks by hand
 
-Nothing below is caught by ruff, mypy or the test suite. Every entry is backed by a bug that reached `main`
-or a rewrite that landed on top of a merged contribution.
+Every entry here needs a person, and is backed by a bug that reached `main` or a rewrite that landed on
+top of a merged contribution.
 
 **Compatibility**
 
@@ -111,10 +110,8 @@ or a rewrite that landed on top of a merged contribution.
 - A configuration conflict warns at **registration** time, with `stacklevel` pointing at the user's line, and only when the values actually differ (#3026, #2849).
 - A parameter filter never silently drops user intent. If an option cannot be honoured, say so — do not pass a subset on (#2935: TLS settings were dropped silently).
 - An unrecoverable error waits with a pause; it never spins in an idle loop (#2319).
-- `ping(timeout)` honours the timeout it was given (#2212).
 - **A class-level container with no eviction is a leak.** Anything keyed per instance and never cleaned belongs to the instance (#2661).
 - Static data is separated from dynamic once, at initialisation, not re-computed on the hot path (#2555).
-- The access-log cost (about 30 of 57 µs per message) is stdout I/O, not record building: `Logger.log` already short-circuits on level, so an `isEnabledFor` guard buys 0.02 µs. Dropping those records changes what `log_level` means — a public-API decision, not an optimisation (#3130).
 - `connect()` → `setup_logger()` ordering is a contract. Shutdown order is `running = False` → wait for in-flight → `super().stop()` under the lock, and an object is removed from its registry only after `stop()` completes (#2531, #2859, #3108).
 - A string built for a log line is not reused as an address, key or identifier. Display and identity are separate values (#3041 → #3070).
 
