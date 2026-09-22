@@ -14,47 +14,6 @@ from tests.marks import (
     require_redis,
 )
 
-# an option the broker offers is offered by every level that registers the same
-# endpoint (#2871); each name here is a level that lost one, and the list only shrinks
-LOST_OPTIONS = {
-    "kafka": {
-        "Router.subscriber": [],
-        "Router.publisher": [],
-        "Route": ["codec", "persistent"],
-        "Publisher": ["autoflush", "persistent"],
-    },
-    "confluent": {
-        "Router.subscriber": [],
-        "Router.publisher": [],
-        "Route": ["codec", "persistent"],
-        "Publisher": ["autoflush", "persistent"],
-    },
-    "nats": {
-        "Router.subscriber": [],
-        "Router.publisher": [],
-        "Route": ["codec", "persistent"],
-        "Publisher": ["persistent"],
-    },
-    "rabbit": {
-        "Router.subscriber": [],
-        "Router.publisher": [],
-        "Route": ["channel", "codec", "persistent"],
-        "Publisher": ["persistent"],
-    },
-    "redis": {
-        "Router.subscriber": [],
-        "Router.publisher": [],
-        "Route": ["codec", "message_format", "persistent"],
-        "Publisher": ["message_format", "persistent"],
-    },
-    "mqtt": {
-        "Router.subscriber": [],
-        "Router.publisher": [],
-        "Route": ["codec"],
-        "Publisher": [],
-    },
-}
-
 BROKERS = (
     pytest.param("kafka", "Kafka", marks=(pytest.mark.kafka(), require_aiokafka)),
     pytest.param(
@@ -69,6 +28,9 @@ BROKERS = (
 )
 
 
+# an option the broker offers is offered by every level that registers the same
+# endpoint (#2871); `Route` and the publisher object are hand-written copies of the
+# registrator arguments, so they are the ones that fall behind
 @pytest.mark.parametrize(("package", "prefix"), BROKERS)
 def test_every_level_takes_the_options_the_broker_takes(
     package: str,
@@ -78,14 +40,17 @@ def test_every_level_takes_the_options_the_broker_takes(
     broker = getattr(module, f"{prefix}Broker")
     router = getattr(module, f"{prefix}Router")
 
-    # a router registers through the broker's own registrator, so its two entries
-    # stay empty until someone gives the router a signature of its own
     assert {
         "Router.subscriber": _lost(broker.subscriber, router.subscriber),
         "Router.publisher": _lost(broker.publisher, router.publisher),
         "Route": _lost(broker.subscriber, getattr(module, f"{prefix}Route")),
         "Publisher": _lost(broker.publisher, getattr(module, f"{prefix}Publisher")),
-    } == LOST_OPTIONS[package]
+    } == {
+        "Router.subscriber": [],
+        "Router.publisher": [],
+        "Route": [],
+        "Publisher": [],
+    }
 
 
 def _lost(offered: Callable[..., Any], accepted: Callable[..., Any]) -> list[str]:
