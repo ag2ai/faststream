@@ -169,6 +169,7 @@ if TYPE_CHECKING:
         # consumer args
         client_rack: str | None
         consumer_only: bool
+        allow_auto_create_topics: bool
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object
         key_serializer: Callable[[Any], bytes] | None
@@ -213,6 +214,7 @@ class KafkaBroker(
         # consumer args
         client_rack: str | None = None,
         consumer_only: bool = False,
+        allow_auto_create_topics: bool = True,
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object = _missing,
         key_serializer: Callable[[Any], bytes] | None = None,
@@ -290,6 +292,9 @@ class KafkaBroker(
             consumer_only (bool):
                 When True the broker skips creating the producer and admin clients during ``start()``, letting deployments use
                 Kafka credentials scoped to read-only ACLs. Defaults to False.
+            allow_auto_create_topics (bool):
+                Allow FastStream to create topics through the admin client when a subscriber starts.
+                Defaults to True. Set to False when topics are provisioned elsewhere.
             acks (Union[Literal[0, 1, -1, "all"], object]):
                 One of ``0``, ``1``, ``all``. The number of acknowledgments the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are sent. The following settings are common:
@@ -450,6 +455,7 @@ class KafkaBroker(
                 client_id=client_id,
                 client_rack=client_rack,
                 consumer_only=consumer_only,
+                allow_auto_create_topics=allow_auto_create_topics,
                 builder=builder,
                 producer=AioKafkaFastProducerImpl(
                     parser=parser,
