@@ -31,8 +31,6 @@ NOT_TESTED_YET = {
             "cli/{b}/worker_id.py",
             "manual_run/{b}_base_run.py",
             "opentelemetry/{b}_telemetry.py",
-            "prometheus/{b}.py",
-            "prometheus/{b}_asgi.py",
             "subscription/{b}/dynamic.py",
             "subscription/{b}/dynamic_iter.py",
         )
