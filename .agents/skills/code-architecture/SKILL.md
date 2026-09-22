@@ -47,6 +47,7 @@ A broker package is closed over its driver: `faststream.<broker>` never imports 
 - **An extensible object, not a magic dict.** A structure a user passes or receives is a class with named fields (`Response`, `PublishMessage`), not a free-form dict; a format is a class, not a boolean flag (#2586, #2287).
 - **`broker.subscriber()` is a facade with no logic.** Assembly belongs to the factory; the DTO validates itself and exposes derived values through `@property` (#2038).
 - **Handler metadata lives on a class, not as an attribute stapled to the function.** Constructor options are keyword-only (#2142).
+- **A method on a message does not re-read `raw_message`.** The parser lifts onto the message object everything the framework reads later; a method that reaches back into the driver's payload is re-parsing it (#3066). Reaching for `raw_message` is for handing it back to the driver (`ack`, `commit`), for the broker-specific attributes of telemetry, and for the user.
 - **The default of an outgoing message is applied in one place** — `producer._publish` — not re-derived by every caller (#2226).
 
 ## Feature mirroring

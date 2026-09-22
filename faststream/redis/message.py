@@ -1,5 +1,6 @@
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Optional,
     TypeAlias,
@@ -114,6 +115,17 @@ _StreamMsgType = TypeVar("_StreamMsgType", bound=_StreamMessage)
 
 
 class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
+    def __init__(
+        self,
+        *args: Any,
+        stream: str,
+        message_ids: list[bytes],
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.stream = stream
+        self.message_ids = message_ids
+
     @override
     async def ack(
         self,
@@ -121,9 +133,7 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
         group: str | None = None,
     ) -> None:
         if not self.committed and group is not None and redis is not None:
-            ids = self.raw_message["message_ids"]
-            channel = self.raw_message["channel"]
-            await redis.xack(channel, group, *ids)  # type: ignore[no-untyped-call]
+            await redis.xack(self.stream, group, *self.message_ids)  # type: ignore[no-untyped-call]
         await super().ack()
 
     @override
@@ -144,9 +154,7 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
 
     async def delete(self, redis: Optional["Redis[bytes]"]) -> None:
         if redis is not None:
-            ids = self.raw_message["message_ids"]
-            channel = self.raw_message["channel"]
-            await redis.xdel(channel, *ids)
+            await redis.xdel(self.stream, *self.message_ids)
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
@@ -160,13 +168,12 @@ class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
         The count is queried on every call. Messages without an ID or a pending
         entry, including acknowledged messages, return ``1``.
         """
-        message_ids = self.raw_message["message_ids"]
-        if not message_ids:
+        if not self.message_ids:
             return 1
 
-        message_id = message_ids[0]
+        message_id = self.message_ids[0]
         entries = await redis.xpending_range(
-            name=self.raw_message["channel"],
+            name=self.stream,
             groupname=group,
             min=message_id,
             max=message_id,
