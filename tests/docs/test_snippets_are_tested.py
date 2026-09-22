@@ -35,8 +35,6 @@ NOT_TESTED_YET = {
             "prometheus/{b}_asgi.py",
             "subscription/{b}/dynamic.py",
             "subscription/{b}/dynamic_iter.py",
-            "subscription/{b}/msgspec_fields.py",
-            "subscription/{b}/msgspec_struct.py",
         )
     ),
 }
