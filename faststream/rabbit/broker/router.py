@@ -35,6 +35,8 @@ class RabbitPublisher(ArgsContainer):
     Just a copy of `RabbitRegistrator.publisher(...)` arguments.
     """
 
+    __slots__ = ()
+
     def __init__(
         self,
         queue: Union["RabbitQueue", str] = "",
@@ -137,6 +139,8 @@ class RabbitRoute(SubscriberRoute):
 
     Just a copy of `RabbitRegistrator.subscriber(...)` arguments.
     """
+
+    __slots__ = ()
 
     def __init__(
         self,

@@ -15,7 +15,7 @@ class RedisPublisherSpecificationConfig(PublisherSpecificationConfig):
     pass
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RedisPublisherConfig(PublisherUsecaseConfig):
     _outer_config: RedisBrokerConfig
 

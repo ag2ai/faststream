@@ -222,6 +222,14 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
 class _RPCCallback:
     """A class provides an RPC lock."""
 
+    __slots__ = (
+        "consumer_tag",
+        "lock",
+        "queue",
+        "receive_response_stream",
+        "send_response_stream",
+    )
+
     def __init__(self, lock: "anyio.Lock", callback_queue: "RobustQueue") -> None:
         self.lock = lock
         self.queue = callback_queue

@@ -157,6 +157,7 @@ class CallAssertions:
 
 class CallRecorder:
     """Records the messages an endpoint saw under a test broker and compares them."""
+
     __slots__ = (
         "_mirrors",
         "_outer_config",
@@ -164,7 +165,6 @@ class CallRecorder:
         "mock",
         "name",
     )
-
 
     def __init__(self, name: str, outer_config: "BrokerConfig") -> None:
         self.name = name

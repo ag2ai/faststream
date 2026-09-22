@@ -35,6 +35,11 @@ class SimpleParserConfig:
 
 
 class SimpleParser:
+    __slots__ = (
+        "config",
+        "pattern",
+    )
+
     msg_class: type["StreamMessage[Any]"]
 
     def __init__(
@@ -83,14 +88,20 @@ class SimpleParser:
 
 
 class RedisPubSubParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisChannelMessage
 
 
 class RedisListParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisListMessage
 
 
 class RedisBatchListParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisBatchListMessage
 
     def _parse_data(
@@ -118,6 +129,8 @@ class RedisBatchListParser(SimpleParser):
 
 
 class RedisStreamParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisStreamMessage
 
     def _parse_data(
@@ -132,6 +145,8 @@ class RedisStreamParser(SimpleParser):
 
 
 class RedisBatchStreamParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisBatchStreamMessage
 
     def _parse_data(

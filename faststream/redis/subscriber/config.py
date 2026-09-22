@@ -18,7 +18,7 @@ class RedisSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     pass
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RedisSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: RedisBrokerConfig
 

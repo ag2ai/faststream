@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .state import ConnectionState
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RedisBrokerConfig(BrokerConfig):
     producer: "RedisFastProducer | RedisClusterFastProducer"
     connection: "ConnectionState[Redis[bytes]] | ConnectionState[RedisCluster[bytes]]"
@@ -35,7 +35,7 @@ class RedisBrokerConfig(BrokerConfig):
         await self.connection.disconnect()
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RedisRouterConfig(BrokerConfig):
     @property
     def connection(self) -> ConnectionError:

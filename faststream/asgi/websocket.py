@@ -5,6 +5,11 @@ if TYPE_CHECKING:
 
 
 class WebSocketClose:
+    __slots__ = (
+        "code",
+        "reason",
+    )
+
     def __init__(
         self,
         code: int,

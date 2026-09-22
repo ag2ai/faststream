@@ -41,6 +41,8 @@ class _BlockingSubscription:
     happens through ``FakeProducer``, not through this iterator.
     """
 
+    __slots__ = ()
+
     async def start(self) -> None:
         pass
 

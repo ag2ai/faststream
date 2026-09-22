@@ -21,7 +21,7 @@ if HAS_OPENTELEMETRY:
 MQTTVersionUnset = cast("str", object())
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class MQTTBrokerConfig(BrokerConfig):
     version: MQTTVersion | Literal["unset"] = "unset"
 

@@ -138,6 +138,8 @@ class TestKafkaBroker(
 
 
 class FakeConsumer:
+    __slots__ = ()
+
     async def start(self) -> None:
         pass
 

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic
 
 
-@dataclass
+@dataclass(slots=True)
 class ConsumerBuilder:
     config: "ConfluentFastConfig"
     admin: "AdminService"
@@ -37,7 +37,7 @@ class ConsumerBuilder:
         )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class KafkaBrokerConfig(BrokerConfig):
     connection_config: "ConfluentFastConfig" = field(
         default_factory=ConfluentFastConfig,

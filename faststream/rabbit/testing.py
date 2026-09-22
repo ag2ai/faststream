@@ -147,6 +147,8 @@ class PatchedMessage(IncomingMessage):
     This class extends aio_pika's IncomingMessage class and is used to simulate RabbitMQ message handling during tests.
     """
 
+    __slots__ = ()
+
     routing_key: str
 
     async def ack(self, multiple: bool = False) -> None:

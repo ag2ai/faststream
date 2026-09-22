@@ -286,6 +286,17 @@ class FakeProducer(AsyncConfluentFastProducer):
 
 
 class MockConfluentMessage:
+    __slots__ = (
+        "_error",
+        "_headers",
+        "_key",
+        "_offset",
+        "_partition",
+        "_raw_msg",
+        "_timestamp",
+        "_topic",
+    )
+
     def __init__(
         self,
         raw_msg: bytes | None,

@@ -11,11 +11,11 @@ T = TypeVar("T")
 
 class ContextRepo:
     """A class to represent a context repository."""
+
     __slots__ = (
         "_global_context",
         "_scope_context",
     )
-
 
     def __init__(self, initial: dict[str, Any] | None = None, /) -> None:
         """Initialize the class.

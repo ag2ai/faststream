@@ -30,6 +30,8 @@ class KafkaPublisher(ArgsContainer):
     Just a copy of `KafkaRegistrator.publisher(...)` arguments.
     """
 
+    __slots__ = ()
+
     def __init__(
         self,
         topic: Union[str, "Topic"],
@@ -86,6 +88,8 @@ class KafkaPublisher(ArgsContainer):
 
 class KafkaRoute(SubscriberRoute):
     """Class to store delayed KafkaBroker subscriber registration."""
+
+    __slots__ = ()
 
     def __init__(
         self,

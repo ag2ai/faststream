@@ -22,7 +22,7 @@ class JsInitOptions(TypedDict, total=False):
     publish_async_max_pending: int
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class NatsBrokerConfig(BrokerConfig):
     js_options: JsInitOptions | dict[str, Any] = field(default_factory=dict)
 

@@ -61,7 +61,7 @@ __all__ = (
 )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class Entry:
     handler: "LogicSubscriber"
     msg: Any
@@ -71,6 +71,12 @@ PELKey = tuple[str | None, uuid.UUID, str | None]
 
 
 class PEL:
+    __slots__ = (
+        "entries",
+        "put",
+        "remove",
+    )
+
     def __init__(self) -> None:
         self.entries: dict[PELKey, Entry] = {}
         self.put = MagicMock(wraps=self._put)

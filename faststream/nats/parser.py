@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 class NatsBaseParser:
     """A class to parse NATS messages."""
 
+    __slots__ = ("_path_re",)
+
     def __init__(
         self,
         *,
@@ -41,6 +43,8 @@ class NatsBaseParser:
 
 class NatsParser(NatsBaseParser):
     """A class to parse NATS core messages."""
+
+    __slots__ = ("is_ack_disabled",)
 
     def __init__(self, *, pattern: str, is_ack_disabled: bool) -> None:
         super().__init__(pattern=pattern)
@@ -72,6 +76,8 @@ class NatsParser(NatsBaseParser):
 
 class JsParser(NatsBaseParser):
     """A class to parse NATS JS messages."""
+
+    __slots__ = ()
 
     async def parse_message(
         self,
@@ -137,6 +143,8 @@ class BatchParser(JsParser):
 
 
 class KvParser(NatsBaseParser):
+    __slots__ = ()
+
     async def parse_message(
         self,
         msg: "KeyValue.Entry",
@@ -149,6 +157,8 @@ class KvParser(NatsBaseParser):
 
 
 class ObjParser(NatsBaseParser):
+    __slots__ = ()
+
     async def parse_message(self, msg: "ObjectInfo") -> StreamMessage["ObjectInfo"]:  # noqa: PLR6301
         return NatsObjMessage(
             raw_message=msg,
