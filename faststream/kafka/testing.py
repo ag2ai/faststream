@@ -91,8 +91,8 @@ class TestKafkaBroker(
         *args: Any,
         **kwargs: Any,
     ) -> Callable[..., AsyncMock]:
-        broker.config.broker_config._admin_client = AsyncMock()
-
+        # Leave the admin client unset so `_ensure_topics` sees IncorrectState
+        # and skips: an AsyncMock has no CreateTopics response to parse.
         builder = MagicMock(return_value=FakeConsumer())
         broker.config.broker_config.builder = builder
 
@@ -420,7 +420,7 @@ def _is_handler_matches(
     ):
         return True
 
-    if topic in handler.topics:
+    if any(t.name == topic for t in handler.topics):
         return True
 
     pattern = handler.pattern
