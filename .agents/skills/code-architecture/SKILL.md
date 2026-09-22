@@ -62,8 +62,7 @@ All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start(
 
 ## Option surface
 
-- A user-facing option exists at **every** level it can reasonably be set: `broker` → `router` → `subscriber`/`publisher` → FastAPI router. The innermost level wins; each level gets its own test (#2871, #2827, #3026).
-- The inverse also holds: an option that belongs to one object stays on that object and is not duplicated upward. A route-scoped setting does not become an application-level setting (#2777).
+- **Ask whether a user could want it set differently for different parts of one application.** If yes, the option exists at **every** level: `broker` → `router` → `subscriber`/`publisher` → FastAPI router, the innermost wins, and each level gets its own test (#2871, #2827, #3026). If the setting describes the application as one object, it lives at the root and nowhere else (#2777).
 - One knob, not two. Prefer a single parameter over a `bool` + `str` pair; `None` disables it (#2894).
 - A default that depends on a neighbouring parameter is derived through the `EMPTY` sentinel, not by guessing inside the body (#2894).
 - Behaviour that differs by **broker/server version** lives in the versioned implementation, not behind `if self._version` scattered through the broker (#2819). (Python and Pydantic differences go through `_compat` — see Typing.)
