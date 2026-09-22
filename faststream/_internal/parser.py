@@ -86,6 +86,8 @@ class BatchCodecProto(Protocol):
 
 
 class DefaultCodec:
+    __slots__ = ()
+
     async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # noqa: PLR6301
         return decode_message(msg)
 

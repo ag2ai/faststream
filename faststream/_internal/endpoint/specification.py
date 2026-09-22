@@ -20,6 +20,11 @@ class EndpointSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     endpoint reads through and the endpoint's own, and one rule decides whether
     the document lists it at all.
     """
+    __slots__ = (
+        "_outer_config",
+        "config",
+    )
+
 
     def __init__(
         self,

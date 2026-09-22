@@ -22,6 +22,8 @@ class MultiLock:
     This lock can be acquired multiple times.
     `wait_release` method waits for all locks will be released.
     """
+    __slots__ = ("queue",)
+
 
     def __init__(self) -> None:
         """Initialize a new instance of the class."""

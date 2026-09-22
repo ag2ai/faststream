@@ -55,6 +55,14 @@ def change_producer(
 
 class TestBroker(Generic[Broker, EnterType]):
     """A class to represent a test broker."""
+    __slots__ = (
+        "_ctx",
+        "_fake_subscribers",
+        "brokers",
+        "connect_only",
+        "with_real",
+    )
+
 
     # This is set so pytest ignores this class
     __test__ = False

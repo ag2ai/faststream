@@ -8,7 +8,7 @@ class ExternalDocsDict(TypedDict, total=False):
     description: str
 
 
-@dataclass
+@dataclass(slots=True)
 class ExternalDocs:
     url: str
     description: str | None = None

@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class Endpoint:
+    __slots__ = ("_outer_config",)
+
     def __init__(self, config: "BrokerConfig") -> None:
         self._outer_config = config
 

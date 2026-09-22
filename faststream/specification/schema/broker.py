@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from faststream.specification.schema.extra import Tag, TagDict
 
 
-@dataclass
+@dataclass(slots=True)
 class BrokerSpec:
     url: list[str]
     protocol: str | None

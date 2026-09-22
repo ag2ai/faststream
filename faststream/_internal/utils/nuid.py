@@ -34,6 +34,13 @@ class NUID:
     NUID is an implementation of the approach for fast generation
     of unique identifiers used for inboxes in NATS.
     """
+    __slots__ = (
+        "_inc",
+        "_prand",
+        "_prefix",
+        "_seq",
+    )
+
 
     def __init__(self) -> None:
         self._prand = Random(randbelow(max_int))  # nosec B311  # noqa: S311

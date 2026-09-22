@@ -16,6 +16,15 @@ if TYPE_CHECKING:
 
 class BaseReload:
     """A base class for implementing a reloader process."""
+    __slots__ = (
+        "_args",
+        "_process",
+        "_target",
+        "pid",
+        "reload_delay",
+        "should_exit",
+    )
+
 
     _process: SpawnProcess
 

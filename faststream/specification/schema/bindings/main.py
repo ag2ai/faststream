@@ -11,7 +11,7 @@ from faststream.specification.schema.bindings import (
 )
 
 
-@dataclass
+@dataclass(slots=True)
 class ChannelBinding:
     """A class to represent channel bindings.
 
@@ -31,7 +31,7 @@ class ChannelBinding:
     redis: redis_bindings.ChannelBinding | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class OperationBinding:
     """A class to represent an operation binding.
 

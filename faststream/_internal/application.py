@@ -59,6 +59,12 @@ T_HookReturn = TypeVar("T_HookReturn")
 
 
 class StartAbleApplication:
+    __slots__ = (
+        "brokers",
+        "config",
+        "schema",
+    )
+
     def __init__(
         self,
         *brokers: "BrokerUsecase[Any, Any, Any]",
