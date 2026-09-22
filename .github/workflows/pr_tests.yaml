@@ -664,7 +664,7 @@ jobs:
           --compare-branch "origin/$BASE_REF"
           --include 'faststream/**'
           --fail-under 90
-          --markdown-report diff-cover.md
+          --format markdown:diff-cover.md
       - name: Show the diff coverage in the job summary
         if: always() && github.event_name == 'pull_request'
         run: |
