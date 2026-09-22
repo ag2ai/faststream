@@ -27,7 +27,6 @@ NOT_TESTED_YET = {
         "getting_started/" + snippet.format(b=broker)
         for broker in BROKERS
         for snippet in (
-            "cli/{b}/worker_id.py",
             "manual_run/{b}_base_run.py",
             "subscription/{b}/dynamic.py",
             "subscription/{b}/dynamic_iter.py",

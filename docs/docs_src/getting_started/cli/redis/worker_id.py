@@ -1,7 +1,7 @@
 from faststream import FastStream
-from faststream.rabbit import RabbitBroker
+from faststream.redis import RedisBroker
 
-broker = RabbitBroker()
+broker = RedisBroker()
 app = FastStream(broker)
 
 
