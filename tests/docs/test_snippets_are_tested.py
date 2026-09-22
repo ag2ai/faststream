@@ -39,11 +39,6 @@ NOT_TESTED_YET = {
             "subscription/{b}/msgspec_struct.py",
         )
     ),
-    *(
-        f"getting_started/lifespan/{broker}/basic.py"
-        for broker in BROKERS
-        if broker != "mqtt"
-    ),
 }
 
 
