@@ -28,7 +28,11 @@ if TYPE_CHECKING:
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
-    """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream)."""
+    """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream).
+
+    Unslotted on purpose: `ConcurrentCoreSubscriber` inherits this and `ConcurrentMixin`,
+    and two slotted bases under one `SubscriberUsecase` are an instance lay-out conflict.
+    """
 
     subscription: Unsubscriptable | None
     _fetch_sub: Unsubscriptable | None

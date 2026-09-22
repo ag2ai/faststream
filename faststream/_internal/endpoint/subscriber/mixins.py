@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class TasksMixin(SubscriberUsecase[Any]):
+    __slots__ = ("tasks",)
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.tasks: list[asyncio.Task[Any]] = []

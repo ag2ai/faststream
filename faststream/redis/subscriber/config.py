@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class RedisSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    pass
+    __slots__ = ()
 
 
 @dataclass(kw_only=True, slots=True)

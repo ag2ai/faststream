@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 class RedisSubscriberSpecification(
     SubscriberSpecification[RedisBrokerConfig, RedisSubscriberSpecificationConfig],
 ):
+    __slots__ = ()
+
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 

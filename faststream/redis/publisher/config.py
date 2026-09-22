@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class RedisPublisherSpecificationConfig(PublisherSpecificationConfig):
-    pass
+    __slots__ = ()
 
 
 @dataclass(kw_only=True, slots=True)

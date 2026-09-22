@@ -34,6 +34,13 @@ class BrokerUsecase(
     Extends `Registrator` by connection, publish and AsyncAPI behavior.
     """
 
+    __slots__ = (
+        "_connection",
+        "_connection_kwargs",
+        "running",
+        "specification",
+    )
+
     _connection: ConnectionType | None
 
     def __init__(

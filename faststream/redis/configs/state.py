@@ -103,6 +103,12 @@ class RedisSentinelConnectionState(RedisConnectionState):
     (both go through ``connection.client``).
     """
 
+    __slots__ = (
+        "_master_name",
+        "_sentinel_kwargs",
+        "_sentinels",
+    )
+
     def __init__(
         self,
         options: dict[str, Any] | None = None,

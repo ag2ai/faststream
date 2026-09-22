@@ -11,6 +11,8 @@ from .config import RedisPublisherSpecificationConfig
 class RedisPublisherSpecification(
     PublisherSpecification[RedisBrokerConfig, RedisPublisherSpecificationConfig],
 ):
+    __slots__ = ()
+
     def get_schema(self) -> dict[str, PublisherSpec]:
         payloads = self.get_payloads()
 

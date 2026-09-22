@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 class _FastStreamDependant(Dependant):
     """FastAPI dependant extended with fields required by FastStream."""
 
+    __slots__ = ("custom_fields", "flat_params", "model")
+
     model: type[Any]
     custom_fields: dict[str, Any]
     flat_params: list[OptionItem]

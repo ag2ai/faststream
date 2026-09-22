@@ -45,6 +45,8 @@ if TYPE_CHECKING:
 class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     """Includable to RedisBroker router."""
 
+    __slots__ = ()
+
     @overload  # type: ignore[override]
     def subscriber(
         self,

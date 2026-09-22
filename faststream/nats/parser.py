@@ -102,6 +102,8 @@ class JsParser(NatsBaseParser):
 class BatchParser(JsParser):
     """A class to parse NATS batch messages."""
 
+    __slots__ = ()
+
     async def parse_batch(
         self,
         message: list["Msg"],

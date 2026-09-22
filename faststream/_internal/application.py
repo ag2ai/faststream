@@ -126,6 +126,12 @@ class StartAbleApplication:
 
 
 class Application(StartAbleApplication):
+    """Unslotted on purpose: an application object is the user's own.
+
+    One exists per process, so slots would save nothing, and user code and our own
+    CLI tests assign to it (`app.run` is patched in `tests/cli/test_logs.py`).
+    """
+
     def __init__(
         self,
         *brokers: "BrokerUsecase[Any, Any, Any]",
