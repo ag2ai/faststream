@@ -16,14 +16,14 @@ if TYPE_CHECKING:
     from faststream.kafka.schemas import TopicPartition
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     topics: Sequence[str] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
     pattern: str | None = None
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 

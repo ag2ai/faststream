@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 
 
 class RedisPublisherSpecificationConfig(PublisherSpecificationConfig):
-    __slots__ = ()
+    pass
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class RedisPublisherConfig(PublisherUsecaseConfig):
     _outer_config: RedisBrokerConfig
 

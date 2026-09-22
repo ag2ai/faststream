@@ -7,12 +7,12 @@ from faststream._internal.configs import (
 from faststream.confluent.configs import KafkaBrokerConfig
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class KafkaPublisherSpecificationConfig(PublisherSpecificationConfig):
     topic: str
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class KafkaPublisherConfig(PublisherUsecaseConfig):
     _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 

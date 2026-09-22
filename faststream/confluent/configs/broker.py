@@ -37,7 +37,7 @@ class ConsumerBuilder:
         )
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class KafkaBrokerConfig(BrokerConfig):
     connection_config: "ConfluentFastConfig" = field(
         default_factory=ConfluentFastConfig,

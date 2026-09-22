@@ -21,7 +21,7 @@ from faststream.kafka.schemas.params import (
 )
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class KafkaBrokerConfig(BrokerConfig):
     producer: "AioKafkaFastProducer" = field(default_factory=FakeAioKafkaFastProducer)
     builder: Callable[..., aiokafka.AIOKafkaConsumer] = lambda: None

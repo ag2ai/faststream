@@ -510,6 +510,10 @@ exclude-classes = '''
   ^faststream\.specification\.(asyncapi\.v[0-9_]+\.schema|base|schema\.bindings\.http)
       # pydantic models: the fields live in BaseModel's own `__dict__` slot and the
       # AsyncAPI ones accept extra keys, so declaring `__slots__` would save nothing
+| ^faststream\._internal\.configs\.(broker:BrokerConfig|endpoint:EndpointConfig|specification:SpecificationConfig)$
+      # the config dataclass roots, and with them every broker config below. Python
+      # 3.10 re-emits inherited fields into a `slots=True` subclass, doubling the
+      # storage it is meant to save; safe again once 3.10 support is dropped
 | ^faststream\._internal\.application:Application$
       # the user's application object, one per process; our CLI tests patch `app.run`
 | ^faststream\._internal\.broker\.broker:BrokerUsecase$

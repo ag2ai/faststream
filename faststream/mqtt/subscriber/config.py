@@ -12,14 +12,14 @@ from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class MQTTSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     address: Address
     qos: QoS = QoS.AT_MOST_ONCE
     shared: str | None = None
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class MQTTSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "MQTTBrokerConfig" = field(default_factory=MQTTBrokerConfig)
 
