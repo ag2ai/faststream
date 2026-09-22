@@ -18,7 +18,7 @@ from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
 from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.exceptions import IncorrectState
-from faststream.kafka.helpers import create_topics, make_logging_listener
+from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
 from faststream.kafka.publisher.fake import KafkaFakePublisher
@@ -141,16 +141,14 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             return
 
         try:
-            admin_client = self._outer_config.admin_client
+            for create_result in await self._outer_config.admin.create_topics(topics):
+                if create_result.error:
+                    self._log(
+                        logging.WARNING,
+                        f"Failed to create topic {create_result.topic}: {create_result.error}",
+                    )
         except IncorrectState:
             return
-
-        for create_result in await create_topics(admin_client, topics):
-            if create_result.error:
-                self._log(
-                    logging.WARNING,
-                    f"Failed to create topic {create_result.topic}: {create_result.error}",
-                )
 
     async def start(self) -> None:
         """Start the consumer."""

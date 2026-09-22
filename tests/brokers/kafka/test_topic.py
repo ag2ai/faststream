@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from faststream.kafka import KafkaBroker, KafkaRouter, Topic, TopicPartition
-from faststream.kafka.helpers.admin import create_topics
+from faststream.kafka.helpers.admin import AdminService
 from faststream.kafka.testing import TestKafkaBroker
 
 
@@ -223,11 +223,12 @@ class TestConflictingTopics:
             broker.subscriber(*topics)
 
 
-def _admin_with_topic_errors(*errors: dict[str, Any]) -> AsyncMock:
+def _admin_with_topic_errors(*errors: dict[str, Any]) -> AdminService:
     response = MagicMock()
     response.to_object.return_value = {"topic_errors": list(errors)}
-    admin = AsyncMock()
-    admin.create_topics.return_value = response
+    admin = AdminService()
+    admin.admin_client = AsyncMock()
+    admin.admin_client.create_topics.return_value = response
     return admin
 
 
@@ -236,12 +237,12 @@ def _admin_with_topic_errors(*errors: dict[str, Any]) -> AsyncMock:
 async def test_admin_creates_topics_with_their_settings() -> None:
     admin = _admin_with_topic_errors({"topic": "test", "error_code": 0})
 
-    await create_topics(
-        admin,
+    await admin.create_topics(
         [Topic("test", num_partitions=3, replication_factor=2)],
     )
 
-    (new_topics,) = admin.create_topics.call_args.args
+    assert admin.admin_client is not None
+    (new_topics,) = admin.admin_client.create_topics.call_args.args
     (new_topic,) = new_topics
 
     assert new_topic.name == "test"
@@ -252,10 +253,11 @@ async def test_admin_creates_topics_with_their_settings() -> None:
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_admin_skips_request_without_topics() -> None:
-    admin = AsyncMock()
+    admin = AdminService()
+    admin.admin_client = AsyncMock()
 
-    assert await create_topics(admin, []) == []
-    admin.create_topics.assert_not_called()
+    assert await admin.create_topics([]) == []
+    admin.admin_client.create_topics.assert_not_called()
 
 
 @pytest.mark.kafka()
@@ -265,7 +267,7 @@ async def test_admin_treats_already_exists_as_success() -> None:
         {"topic": "test", "error_code": 36, "error_message": "already exists"},
     )
 
-    results = await create_topics(admin, [Topic("test")])
+    results = await admin.create_topics([Topic("test")])
 
     assert results[0].topic == "test"
     assert results[0].error is None
@@ -278,7 +280,7 @@ async def test_admin_collects_other_errors() -> None:
         {"topic": "test", "error_code": 37, "error_message": "invalid partitions"},
     )
 
-    results = await create_topics(admin, [Topic("test")])
+    results = await admin.create_topics([Topic("test")])
 
     assert results[0].topic == "test"
     assert results[0].error is not None
@@ -341,8 +343,9 @@ async def test_not_declared_topic_is_not_created(queue: str) -> None:
     @broker.subscriber(Topic(queue, declare=False), auto_offset_reset="earliest")
     async def handler(msg: str) -> None: ...
 
-    with patch(
-        "faststream.kafka.subscriber.usecase.create_topics",
+    with patch.object(
+        AdminService,
+        "create_topics",
         new_callable=AsyncMock,
     ) as mocked_create:
         async with broker:
