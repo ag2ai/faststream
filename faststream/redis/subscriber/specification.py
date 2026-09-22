@@ -54,6 +54,8 @@ class RedisSubscriberSpecification(
 
 
 class ChannelSubscriberSpecification(RedisSubscriberSpecification):
+    __slots__ = ("channel",)
+
     def __init__(
         self,
         _outer_config: "RedisBrokerConfig",
@@ -79,6 +81,8 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
 
 
 class ListSubscriberSpecification(RedisSubscriberSpecification):
+    __slots__ = ("list_sub",)
+
     def __init__(
         self,
         _outer_config: "RedisBrokerConfig",
@@ -102,6 +106,8 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
 
 
 class StreamSubscriberSpecification(RedisSubscriberSpecification):
+    __slots__ = ("stream_sub",)
+
     def __init__(
         self,
         _outer_config: "RedisBrokerConfig",

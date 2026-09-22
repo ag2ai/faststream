@@ -161,6 +161,8 @@ class RedisRouter(
 ):
     """Includable to RedisBroker router."""
 
+    __slots__ = ()
+
     def __init__(
         self,
         prefix: str = "",

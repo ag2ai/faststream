@@ -29,6 +29,13 @@ if TYPE_CHECKING:
 class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     """Base class for all MQTT subscribers."""
 
+    __slots__ = (
+        "_address",
+        "_qos",
+        "_shared",
+        "_subscription",
+    )
+
     _outer_config: "MQTTBrokerConfig"
 
     def __init__(
@@ -204,6 +211,8 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
 class MQTTDefaultSubscriber(MQTTBaseSubscriber):
     """Sequential MQTT subscriber — processes one message at a time."""
+
+    __slots__ = ()
 
     async def _consume_loop(self) -> None:
         assert self._subscription is not None

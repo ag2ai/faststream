@@ -50,6 +50,8 @@ class TestRabbitBroker(
 ):
     """A class to test RabbitMQ brokers."""
 
+    __slots__ = ()
+
     @overload
     def __init__(
         self: "TestRabbitBroker[RabbitBroker]",

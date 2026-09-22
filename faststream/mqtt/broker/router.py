@@ -108,6 +108,8 @@ class MQTTRouter(
 ):
     """Includable to MQTTBroker router."""
 
+    __slots__ = ()
+
     def __init__(
         self,
         prefix: str = "",

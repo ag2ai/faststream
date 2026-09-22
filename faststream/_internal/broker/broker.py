@@ -32,14 +32,10 @@ class BrokerUsecase(
     """Basic class for brokers-only.
 
     Extends `Registrator` by connection, publish and AsyncAPI behavior.
-    """
 
-    __slots__ = (
-        "_connection",
-        "_connection_kwargs",
-        "running",
-        "specification",
-    )
+    Unslotted on purpose: one broker exists per process, and it is the object test
+    suites mock — `patch.object(broker, "start")` needs somewhere to put the mock.
+    """
 
     _connection: ConnectionType | None
 

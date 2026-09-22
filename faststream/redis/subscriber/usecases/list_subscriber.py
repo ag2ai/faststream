@@ -35,6 +35,11 @@ Offset: TypeAlias = bytes
 
 
 class _ListHandlerMixin(LogicSubscriber):
+    __slots__ = (
+        "_list_sub",
+        "_read_lock",
+    )
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -163,6 +168,8 @@ class _ListHandlerMixin(LogicSubscriber):
 
 
 class ListSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -194,6 +201,8 @@ class ListSubscriber(_ListHandlerMixin):
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",

@@ -41,8 +41,8 @@ if TYPE_CHECKING:
 class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
     """Includable to NatsBroker router.
 
-    Unslotted on purpose: `NatsBroker` inherits this and `BrokerUsecase`, and the
-    stream builder this one adds makes the two lay-outs conflict.
+    Unslotted on purpose: `NatsRouter` mixes this with `BrokerRouter`, a sibling under
+    `Registrator`, and the stream builder this one adds makes the two lay-outs conflict.
     """
 
     def __init__(self, **kwargs: Any) -> None:

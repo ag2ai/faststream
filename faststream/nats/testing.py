@@ -56,6 +56,8 @@ class TestNatsBroker(
 ):
     """A class to test NATS brokers."""
 
+    __slots__ = ()
+
     @overload
     def __init__(
         self: "TestNatsBroker[NatsBroker]",

@@ -217,6 +217,8 @@ class RabbitRoute(SubscriberRoute):
 class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBrokerConfig]):
     """Includable to RabbitBroker router."""
 
+    __slots__ = ()
+
     def __init__(
         self,
         prefix: str = "",

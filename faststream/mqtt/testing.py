@@ -84,6 +84,8 @@ class TestMQTTBroker(
             handler.mock.assert_called_once_with("hello")
     """
 
+    __slots__ = ()
+
     @overload
     def __init__(
         self: "TestMQTTBroker[MQTTBroker]",

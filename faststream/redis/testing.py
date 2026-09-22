@@ -103,6 +103,8 @@ class TestRedisBroker(
 ):
     """A class to test Redis brokers."""
 
+    __slots__ = ("pel",)
+
     @overload
     def __init__(
         self: "TestRedisBroker[RedisBroker]",

@@ -313,6 +313,8 @@ class KafkaRouter(
 ):
     """Includable to KafkaBroker router."""
 
+    __slots__ = ()
+
     def __init__(
         self,
         prefix: str = "",

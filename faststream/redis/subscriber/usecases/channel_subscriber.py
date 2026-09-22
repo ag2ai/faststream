@@ -34,6 +34,12 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
+    """Unslotted on purpose.
+
+    `RedisClusterBroker._make_channel_subscriber` replaces `start` on the instance,
+    which needs a `__dict__` to put the replacement in.
+    """
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",

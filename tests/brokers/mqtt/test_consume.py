@@ -40,10 +40,11 @@ async def test_terminal_subscription_failure_is_not_restarted(
 
     broker._setup_logger()
 
-    async def create_subscription() -> None:
+    async def create_subscription(self: object) -> None:
         subscriber._subscription = _FailingSubscription()  # type: ignore[assignment]
 
-    monkeypatch.setattr(subscriber, "_create_subscription", create_subscription)
+    # The subscriber is slotted, so the stand-in goes on its class, not the instance
+    monkeypatch.setattr(type(subscriber), "_create_subscription", create_subscription)
 
     await subscriber.start()
     await asyncio.gather(*subscriber.tasks, return_exceptions=True)

@@ -43,6 +43,8 @@ class TestKafkaBroker(
 ):
     """A class to test Kafka brokers."""
 
+    __slots__ = ()
+
     @overload
     def __init__(
         self: "TestKafkaBroker[KafkaBroker]",
