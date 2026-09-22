@@ -30,7 +30,6 @@ NOT_TESTED_YET = {
             "cli/{b}/extra_options.py",
             "cli/{b}/worker_id.py",
             "manual_run/{b}_base_run.py",
-            "opentelemetry/{b}_telemetry.py",
             "subscription/{b}/dynamic.py",
             "subscription/{b}/dynamic_iter.py",
         )
