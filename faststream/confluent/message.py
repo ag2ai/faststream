@@ -44,6 +44,11 @@ class KafkaMessage(
     This class extends `StreamMessage` and is specialized for handling confluent_kafka.Message objects.
     """
 
+    __slots__ = (
+        "consumer",
+        "is_manual",
+    )
+
     def __init__(
         self,
         *args: Any,

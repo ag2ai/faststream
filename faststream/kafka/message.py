@@ -56,6 +56,8 @@ class KafkaMessage(
     This class extends `StreamMessage` and is specialized for handling Kafka ConsumerRecord objects.
     """
 
+    __slots__ = ("consumer",)
+
     def __init__(self, *args: Any, consumer: ConsumerProtocol, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.consumer = consumer
@@ -63,6 +65,8 @@ class KafkaMessage(
 
 
 class KafkaAckableMessage(KafkaMessage):
+    __slots__ = ()
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.committed = None

@@ -7,6 +7,12 @@ from .publish_type import PublishType
 
 
 class Response:
+    __slots__ = (
+        "body",
+        "correlation_id",
+        "headers",
+    )
+
     def __init__(
         self,
         body: Any,
@@ -41,6 +47,12 @@ class Response:
 
 
 class PublishCommand(Response):
+    __slots__ = (
+        "destination",
+        "publish_type",
+        "reply_to",
+    )
+
     def __init__(
         self,
         body: Any,
@@ -85,6 +97,8 @@ class PublishCommand(Response):
 
 
 class BatchPublishCommand(PublishCommand):
+    __slots__ = ("extra_bodies",)
+
     def __init__(
         self,
         body: Any,
