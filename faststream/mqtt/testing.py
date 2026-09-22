@@ -178,6 +178,11 @@ class FakeProducer(ZmqttBaseProducer):
     MQTT version: V311 envelope for 3.1.1, PublishProperties for 5.0.
     """
 
+    __slots__ = (
+        "broker",
+        "brokers",
+    )
+
     def __init__(
         self,
         broker: MQTTBroker,

@@ -26,6 +26,13 @@ if TYPE_CHECKING:
 class LogicPublisher(PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
 
+    __slots__ = (
+        "_topic",
+        "headers",
+        "partition",
+        "reply_to",
+    )
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -103,6 +110,12 @@ class LogicPublisher(PublisherUsecase):
 
 
 class DefaultPublisher(LogicPublisher):
+    """Unslotted on purpose.
+
+    `create_publisher(autoflush=True)` wraps `_basic_publish` on the instance, which
+    needs a `__dict__` to hold the replacement.
+    """
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -297,6 +310,12 @@ class DefaultPublisher(LogicPublisher):
 
 
 class BatchPublisher(LogicPublisher):
+    """Unslotted on purpose.
+
+    `create_publisher(autoflush=True)` wraps `_basic_publish_batch` on the instance, which
+    needs a `__dict__` to hold the replacement.
+    """
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",

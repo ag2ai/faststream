@@ -139,6 +139,14 @@ class TestNatsBroker(
 
 
 class FakeProducer(NatsFastProducer):
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "broker",
+        "brokers",
+        "codec",
+    )
+
     def __init__(
         self,
         broker: NatsBroker,

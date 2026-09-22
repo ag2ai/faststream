@@ -40,6 +40,8 @@ EnterType = TypeVar313("EnterType", default=Any)
 
 
 class _ProducerContains(Protocol):
+    __slots__ = ()
+
     producer: Any
 
 

@@ -48,6 +48,8 @@ if TYPE_CHECKING:
 
 
 class ServerState(Protocol):
+    __slots__ = ()
+
     extra_options: dict[str, "SettingField"]
 
     @abstractmethod
@@ -55,6 +57,8 @@ class ServerState(Protocol):
 
 
 class OuterRunState(ServerState):
+    __slots__ = ("extra_options",)
+
     def __init__(self) -> None:
         self.extra_options = {}
 
@@ -64,6 +68,11 @@ class OuterRunState(ServerState):
 
 
 class CliRunState(ServerState):
+    __slots__ = (
+        "extra_options",
+        "server",
+    )
+
     def __init__(
         self,
         server: "UvicornServerProtocol",

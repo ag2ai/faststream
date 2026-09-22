@@ -28,6 +28,14 @@ if TYPE_CHECKING:
 class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
     """Shared logic for Redis producers."""
 
+    __slots__ = (
+        "_connection",
+        "_decoder",
+        "_parser",
+        "codec",
+        "serializer",
+    )
+
     _connection: "ConnectionState[Any]"
     _decoder: "ParserComposition"
     _parser: "ParserComposition"
@@ -89,6 +97,8 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
 
 class RedisFastProducer(BaseRedisFastProducer):
     """Producer for a single-node Redis."""
+
+    __slots__ = ()
 
     _connection: "ConnectionState[Redis[bytes]]"
 
@@ -193,6 +203,8 @@ class RedisFastProducer(BaseRedisFastProducer):
 
 class RedisClusterFastProducer(BaseRedisFastProducer):
     """Producer that routes channel operations through the sync cluster."""
+
+    __slots__ = ("_cluster_state",)
 
     def __init__(
         self,

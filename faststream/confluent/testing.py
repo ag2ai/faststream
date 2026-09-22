@@ -145,6 +145,14 @@ class FakeProducer(AsyncConfluentFastProducer):
     This class extends AsyncConfluentFastProducer and is used to simulate Kafka message publishing during tests.
     """
 
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "broker",
+        "brokers",
+        "codec",
+    )
+
     def __init__(
         self,
         broker: KafkaBroker,

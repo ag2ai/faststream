@@ -503,8 +503,34 @@ skips = ["B101"]
 # A module that fails to import is an error, not a silently skipped one.
 strict-imports = true
 require-superclass = true
-# `require-subclass` is not set here: it would report every class that merely could have
-# slots. `just slotscheck` runs it a second time, scoped to the set agreed in #3201.
+require-subclass = true
+# Every other class in the package is slotted (#3201). These are not, each for a reason
+# a `__slots__` line would not fix. The pattern is verbose, so `#` carries the reasons.
+exclude-classes = '''
+  ^faststream\.specification\.(asyncapi\.v[0-9_]+\.schema|base|schema\.bindings\.http)
+      # pydantic models: the fields live in BaseModel's own `__dict__` slot and the
+      # AsyncAPI ones accept extra keys, so declaring `__slots__` would save nothing
+| ^faststream\._internal\.application:Application$
+      # the user's application object, one per process; our CLI tests patch `app.run`
+| ^faststream\._internal\.broker\.broker:BrokerUsecase$
+      # one broker per process, and what suites mock: `patch.object(broker, "start")`
+| ^faststream\._internal\.configs\.broker:ConfigComposition$
+      # a `__getattr__` proxy: reads forward to the inner config, writes land here
+| ^faststream\._internal\.endpoint\.subscriber\.mixins:ConcurrentMixin$
+      # mixed into each broker's slotted subscriber; two slotted bases conflict
+| ^faststream\.(kafka|confluent)\.message:FakeConsumer$
+      # the FAKE_CONSUMER singleton, whose methods tests patch on the instance
+| ^faststream\.(kafka|confluent)\.publisher\.usecase:(Default|Batch)Publisher$
+      # `create_publisher(autoflush=True)` wraps `_basic_publish*` on the instance
+| ^faststream\.nats\.broker\.registrator:NatsRegistrator$
+      # NatsRouter mixes it with BrokerRouter, a slotted sibling under Registrator
+| ^faststream\.nats\.subscriber\.usecases\.basic:LogicSubscriber$
+      # ConcurrentCoreSubscriber mixes TasksMixin in beside it; the lay-outs conflict
+| ^faststream\.rabbit\.configs\.base:RabbitConfig$
+      # mixed into two slotted dataclass configs; the lay-outs conflict
+| ^faststream\.redis\.subscriber\.usecases\.channel_subscriber:ChannelSubscriber$
+      # RedisClusterBroker replaces `start` on the instance
+'''
 
 [tool.typos.default.extend-identifiers]
 # Contributor handles in the generated release notes. Names, not misspellings.

@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 
 class ParserConfig(Protocol):
+    __slots__ = ()
+
     @property
     def message_format(self) -> type["MessageFormat"]: ...
 

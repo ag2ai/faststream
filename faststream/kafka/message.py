@@ -12,6 +12,8 @@ from faststream.message import AckStatus, StreamMessage
 class ConsumerProtocol(Protocol):
     """A protocol for Kafka consumers."""
 
+    __slots__ = ()
+
     async def commit(self) -> None: ...
 
     def seek(
