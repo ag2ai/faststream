@@ -30,7 +30,7 @@ if TYPE_CHECKING:
         BrokerMiddleware,
         CustomCallable,
     )
-    from faststream.kafka.schemas import TopicPartition
+    from faststream.kafka.schemas import Topic, TopicPartition
 
 
 class KafkaPublisher(ArgsContainer):
@@ -41,7 +41,7 @@ class KafkaPublisher(ArgsContainer):
 
     def __init__(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -104,7 +104,7 @@ class KafkaRoute(SubscriberRoute):
         self,
         call: Callable[..., "SendableMessage"]
         | Callable[..., Awaitable["SendableMessage"]],
-        *topics: str,
+        *topics: Union[str, "Topic"],
         publishers: Iterable[KafkaPublisher] = (),
         batch: bool = False,
         group_id: str | None = None,
@@ -155,7 +155,8 @@ class KafkaRoute(SubscriberRoute):
             call:
                 Message handler function
                 to wrap the same with `@broker.subscriber(...)` way.
-            *topics: "Kafka topics to consume messages from.
+            *topics: Kafka topics to consume messages from. Pass a `Topic` object
+                instead of a plain name to configure how the topic is created.
             publishers: Kafka publishers to broadcast the handler result.
             batch: Whether to consume messages in batches or not.
             group_id:
