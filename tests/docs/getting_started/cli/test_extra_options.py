@@ -1,12 +1,7 @@
-import logging
-from contextlib import AbstractAsyncContextManager
-from typing import Any
-
 import pytest
 from typer.testing import CliRunner
 
-from faststream import FastStream, TestApp
-from faststream._internal.cli.main import cli
+from tests.docs.getting_started.cli.run_app import run_app
 from tests.marks import (
     require_aiokafka,
     require_aiopika,
@@ -19,33 +14,6 @@ from tests.marks import (
 # `faststream run main:app --port 5000 --foo bar`, as the page spells it
 OPTIONS = ("--port", "5000", "--foo", "bar")
 OUTPUT = "Port: 5000\nFoo: bar\n"
-
-
-def run_app(
-    runner: CliRunner,
-    monkeypatch: pytest.MonkeyPatch,
-    patched_broker: AbstractAsyncContextManager[Any],
-    app_path: str,
-    *options: str,
-) -> str:
-    """Run `faststream run <app_path> <options>` and return what the app printed."""
-
-    async def run(
-        self: FastStream,
-        log_level: int = logging.INFO,
-        run_extra_options: dict[str, Any] | None = None,
-    ) -> None:
-        # the real `run` blocks until a signal: start the app against an
-        # in-memory broker, run its hooks with the options the CLI parsed, stop it
-        async with patched_broker, TestApp(self, run_extra_options):
-            pass
-
-    with monkeypatch.context() as patch:
-        patch.setattr(FastStream, "run", run)
-        result = runner.invoke(cli, ["run", app_path, *options])
-
-    assert result.exit_code == 0, result.output
-    return result.output
 
 
 @pytest.mark.kafka()
