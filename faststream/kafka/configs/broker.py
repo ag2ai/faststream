@@ -29,6 +29,7 @@ class KafkaBrokerConfig(BrokerConfig):
     client_id: str | None = SERVICE_NAME
     client_rack: str | None = None
     consumer_only: bool = False
+    allow_auto_create_topics: bool = True
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
 
