@@ -44,10 +44,6 @@ class RedisClusterBroker(RedisBroker):
     ) -> "ConnectionState[Any]":
         return RedisClusterConnectionState(connection_options)
 
-    @property
-    def _cluster_state(self) -> RedisClusterConnectionState:
-        return cast("RedisClusterConnectionState", self.config.broker_config.connection)
-
     async def publish(  # type: ignore[override]
         self,
         message: "SendableMessage" = None,
@@ -120,9 +116,6 @@ class RedisClusterBroker(RedisBroker):
                 category=RuntimeWarning,
                 stacklevel=2,
             )
-
-        if not self._cluster_state:
-            await self._connect()
 
         return await super().publish_batch(
             *messages,

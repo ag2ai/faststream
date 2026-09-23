@@ -14,13 +14,7 @@ from faststream.exceptions import IncorrectState
 ClientT = TypeVar("ClientT")
 
 
-def _get_driver_info() -> dict[str, Any]:
-    return {
-        "driver_info": DriverInfo(
-            name="faststream",
-            lib_version=__version__,
-        )
-    }
+_DRIVER_INFO = DriverInfo(name="faststream", lib_version=__version__)
 
 
 class ConnectionState(ABC, Generic[ClientT]):
@@ -56,9 +50,7 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 class RedisConnectionState(ConnectionState["Redis[bytes]"]):
     async def connect(self) -> "Redis[bytes]":
-        connection_kwargs = self._options | _get_driver_info()
-
-        pool = ConnectionPool(**connection_kwargs)
+        pool = ConnectionPool(**self._options, driver_info=_DRIVER_INFO)
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
         self._client = client
@@ -94,13 +86,12 @@ class RedisSentinelConnectionState(RedisConnectionState):
         connection_kwargs = {
             k: v for k, v in self._options.items() if k not in {"host", "port"}
         }
-        connection_kwargs |= _get_driver_info()
-
         manager = Sentinel(
             self._sentinels,
             sentinel_kwargs=dict(self._sentinel_kwargs)
             if self._sentinel_kwargs is not None
             else None,
+            driver_info=_DRIVER_INFO,
             **connection_kwargs,
         )
         client: Redis[bytes] = manager.master_for(self._master_name)
@@ -123,9 +114,10 @@ class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):
             return self.client
 
         connection_kwargs = {k: v for k, v in self._options.items() if v is not None}
-        connection_kwargs |= _get_driver_info()
-
-        client: RedisCluster[bytes] = RedisCluster(**connection_kwargs)
+        client: RedisCluster[bytes] = RedisCluster(  # type: ignore[call-arg]
+            **connection_kwargs,
+            driver_info=_DRIVER_INFO,
+        )
 
         # `ClusterPubSub` reads the slot map directly instead of going through
         # `execute_command`, so it can't rely on the client's lazy discovery.
