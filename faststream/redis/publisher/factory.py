@@ -66,7 +66,7 @@ def create_publisher(
             channel_sub,
         )
 
-        return ChannelPublisher(publisher_config, specification, channel=channel_sub)
+        return ChannelPublisher[Any](publisher_config, specification, channel=channel_sub)
 
     if stream_sub := StreamSub.validate(stream):
         specification = StreamPublisherSpecification(
@@ -75,14 +75,14 @@ def create_publisher(
             stream_sub,
         )
 
-        return StreamPublisher(publisher_config, specification, stream=stream_sub)
+        return StreamPublisher[Any](publisher_config, specification, stream=stream_sub)
 
     if list_sub := ListSub.validate(list):
         specification = ListPublisherSpecification(config, specification_config, list_sub)
 
         if list_sub.batch:
-            return ListBatchPublisher(publisher_config, specification, list=list_sub)
+            return ListBatchPublisher[Any](publisher_config, specification, list=list_sub)
 
-        return ListPublisher(publisher_config, specification, list=list_sub)
+        return ListPublisher[Any](publisher_config, specification, list=list_sub)
 
     raise SetupError(INCORRECT_SETUP_MSG)

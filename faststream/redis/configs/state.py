@@ -54,12 +54,12 @@ class ConnectionState(ABC, Generic[ClientT]):
         self._connected = False
 
 
-class RedisConnectionState(ConnectionState["Redis[bytes]"]):
+class RedisConnectionState(ConnectionState["Redis"]):
     __slots__ = ()
 
-    async def connect(self) -> "Redis[bytes]":
+    async def connect(self) -> "Redis":
         pool = ConnectionPool(**self._options, driver_info=_DRIVER_INFO)
-        client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
+        client: Redis = Redis.from_pool(pool)
 
         self._client = client
         self._connected = True
@@ -94,13 +94,13 @@ class RedisSentinelConnectionState(RedisConnectionState):
         self._master_name = master_name
         self._sentinel_kwargs = sentinel_kwargs
 
-    async def connect(self) -> "Redis[bytes]":
+    async def connect(self) -> "Redis":
         # ``host``/``port`` describe a single node and are meaningless for
         # Sentinel — the master address is discovered from the sentinels.
         connection_kwargs = {
             k: v for k, v in self._options.items() if k not in {"host", "port"}
         }
-        manager = Sentinel(
+        manager = Sentinel(  # type: ignore[no-untyped-call]
             self._sentinels,
             sentinel_kwargs=dict(self._sentinel_kwargs)
             if self._sentinel_kwargs is not None
@@ -108,7 +108,7 @@ class RedisSentinelConnectionState(RedisConnectionState):
             driver_info=_DRIVER_INFO,
             **connection_kwargs,
         )
-        client: Redis[bytes] = manager.master_for(self._master_name)
+        client: Redis = manager.master_for(self._master_name)
 
         self._client = client
         self._connected = True
@@ -116,7 +116,7 @@ class RedisSentinelConnectionState(RedisConnectionState):
         return client
 
 
-class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):
+class RedisClusterConnectionState(ConnectionState["RedisCluster"]):
     """Manages a Redis Cluster connection lifecycle.
 
     The async ``RedisCluster`` serves every command family — Channels, Lists,
@@ -125,12 +125,12 @@ class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):
 
     __slots__ = ()
 
-    async def connect(self) -> "RedisCluster[bytes]":
+    async def connect(self) -> "RedisCluster":
         if self._connected:
             return self.client
 
         connection_kwargs = {k: v for k, v in self._options.items() if v is not None}
-        client: RedisCluster[bytes] = RedisCluster(  # type: ignore[call-arg]
+        client: RedisCluster = RedisCluster(
             **connection_kwargs,
             driver_info=_DRIVER_INFO,
         )

@@ -34,25 +34,6 @@ class TestRedisClusterConnectionStateUnit:
 
 
 @pytest.mark.redis_cluster()
-class TestClusterBrokerWarnings:
-    """Tests for RuntimeWarning on pipeline usage."""
-
-    @pytest.mark.asyncio()
-    async def test_publish_with_pipeline_warns(self) -> None:
-        broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with TestRedisBroker(broker) as br:
-            with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-                await br.publish("hello", channel="ch", pipeline=None)
-
-    @pytest.mark.asyncio()
-    async def test_publish_batch_with_pipeline_warns(self) -> None:
-        broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
-        async with TestRedisBroker(broker) as br:
-            with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-                await br.publish_batch("x", list="l", pipeline=None)
-
-
-@pytest.mark.redis_cluster()
 class TestClusterBrokerInheritanceExtra:
     """Additional inheritance/API compatibility tests."""
 

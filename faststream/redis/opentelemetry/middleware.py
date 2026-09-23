@@ -1,3 +1,5 @@
+from typing import Any
+
 from opentelemetry.metrics import Meter, MeterProvider
 from opentelemetry.trace import TracerProvider
 
@@ -6,7 +8,7 @@ from faststream.redis.opentelemetry.provider import RedisTelemetrySettingsProvid
 from faststream.redis.response import RedisPublishCommand
 
 
-class RedisTelemetryMiddleware(TelemetryMiddleware[RedisPublishCommand]):
+class RedisTelemetryMiddleware(TelemetryMiddleware[RedisPublishCommand[Any]]):
     def __init__(
         self,
         *,

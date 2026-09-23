@@ -33,7 +33,7 @@ def _parse_base_security(security: BaseSecurity) -> dict[str, Any]:
 
             def _connection_arguments(self) -> Any:
                 return {
-                    **super()._connection_arguments(),  # type: ignore[misc]
+                    **super()._connection_arguments(),
                     "ssl": self._security.ssl_context or True,
                 }
 

@@ -83,7 +83,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         if self.subscription is not None:
             await self.subscription.unsubscribe()
-            await self.subscription.aclose()  # type: ignore[attr-defined]
+            await self.subscription.aclose()  # type: ignore[no-untyped-call]
             self.subscription = None
 
     @override
