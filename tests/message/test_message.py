@@ -1,3 +1,6 @@
+import copy
+import weakref
+
 import pytest
 
 from faststream.message import StreamMessage
@@ -51,3 +54,13 @@ async def test_decode_caches_non_none_result() -> None:
     assert first is sentinel
     assert second is sentinel
     assert call_count == 1, f"Decoder was called {call_count} times; expected exactly 1"
+
+
+def test_message_takes_a_weak_reference() -> None:
+    msg: StreamMessage[bytes] = StreamMessage(raw_message=b"", body=b"")
+
+    ref = weakref.ref(msg)
+
+    assert ref() is msg
+    # the copy is a different object, so the reference stays with the original
+    assert weakref.ref(copy.copy(msg))() is not msg
