@@ -80,6 +80,7 @@ search:
     - [How-To](howto/kafka/index.md)
         - [Kafka RPC](howto/kafka/rpc.md)
 - [RabbitMQ](rabbit/index.md)
+    - [Connection](rabbit/connection.md)
     - [Subscription](rabbit/examples/index.md)
         - [Direct](rabbit/examples/direct.md)
         - [Fanout](rabbit/examples/fanout.md)
