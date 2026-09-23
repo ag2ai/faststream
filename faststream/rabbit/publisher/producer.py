@@ -40,6 +40,8 @@ if TYPE_CHECKING:
 
 
 class LockState(Protocol):
+    __slots__ = ()
+
     @property
     def lock(self) -> "anyio.Lock": ...
 
@@ -61,6 +63,8 @@ class RealLock:
 
 
 class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
+    __slots__ = ()
+
     def connect(
         self,
         serializer: Optional["SerializerProto"] = None,
@@ -85,6 +89,8 @@ class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
 
 
 class FakeAioPikaFastProducer(AioPikaFastProducer):
+    __slots__ = ()
+
     def __bool__(self) -> bool:
         return False
 
@@ -112,6 +118,16 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
 
 class AioPikaFastProducerImpl(AioPikaFastProducer):
     """A class for fast producing messages using aio-pika."""
+
+    __slots__ = (
+        "__lock",
+        "_decoder",
+        "_parser",
+        "codec",
+        "declarer",
+        "id_generator",
+        "serializer",
+    )
 
     _decoder: "AsyncCallable"
     _parser: "AsyncCallable"
@@ -221,6 +237,14 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
 
 class _RPCCallback:
     """A class provides an RPC lock."""
+
+    __slots__ = (
+        "consumer_tag",
+        "lock",
+        "queue",
+        "receive_response_stream",
+        "send_response_stream",
+    )
 
     def __init__(self, lock: "anyio.Lock", callback_queue: "RobustQueue") -> None:
         self.lock = lock

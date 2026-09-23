@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
     """A base middleware class."""
 
+    __slots__ = ("context", "msg")
+
     def __init__(
         self,
         msg: AnyMsg | None,

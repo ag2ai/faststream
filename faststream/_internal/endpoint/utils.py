@@ -49,6 +49,12 @@ async def process_msg(
 
 
 class ParserComposition:
+    __slots__ = (
+        "custom_func",
+        "default_func",
+        "wrapped_func",
+    )
+
     def __init__(
         self,
         custom_func: Optional["CustomCallable"],

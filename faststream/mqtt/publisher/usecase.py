@@ -21,6 +21,13 @@ if TYPE_CHECKING:
 class MQTTPublisher(PublisherUsecase):
     """Publisher for MQTT topics."""
 
+    __slots__ = (
+        "_address",
+        "headers",
+        "qos",
+        "retain",
+    )
+
     _outer_config: "MQTTBrokerConfig"
 
     def __init__(

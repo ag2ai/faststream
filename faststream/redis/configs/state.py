@@ -42,6 +42,14 @@ def _get_driver_info() -> dict[str, Any]:
 class ConnectionState(ABC, Generic[ClientT]):
     """Base connection state."""
 
+    __slots__ = (
+        "_client",
+        "_connected",
+        "_options",
+        "_sync_cluster",
+        "_thread_pool",
+    )
+
     def __init__(self, options: dict[str, Any] | None = None) -> None:
         self._options = options or {}
 
@@ -73,6 +81,8 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 
 class RedisConnectionState(ConnectionState["Redis[bytes]"]):
+    __slots__ = ()
+
     async def connect(self) -> "Redis[bytes]":
         connection_kwargs = self._options | _get_driver_info()
 
@@ -92,6 +102,12 @@ class RedisSentinelConnectionState(RedisConnectionState):
     on every reconnect, so publishers and stream consumers fail over for free
     (both go through ``connection.client``).
     """
+
+    __slots__ = (
+        "_master_name",
+        "_sentinel_kwargs",
+        "_sentinels",
+    )
 
     def __init__(
         self,
@@ -137,6 +153,8 @@ class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):
     ``run_in_executor``) for Pub/Sub — the async client doesn't expose
     ``publish`` / ``pubsub`` until ``redis-py >= 8.0.0``.
     """
+
+    __slots__ = ()
 
     def __init__(self, options: dict[str, Any] | None = None) -> None:
         self._options = options or {}
@@ -230,6 +248,11 @@ class _SyncPubSubProxy:
     ``ThreadPoolExecutor`` (following the same pattern as the Confluent
     adapter) so Pub/Sub works with ``redis-py >= 7.4.0``.
     """
+
+    __slots__ = (
+        "_pool",
+        "_psub",
+    )
 
     def __init__(self, sync_cluster: Any, pool: ThreadPoolExecutor) -> None:
         self._pool = pool

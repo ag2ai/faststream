@@ -34,6 +34,8 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -176,6 +178,8 @@ class ChannelConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     ChannelSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
