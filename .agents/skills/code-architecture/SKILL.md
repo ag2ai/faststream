@@ -13,6 +13,11 @@ description: Use when writing or modifying FastStream library source code under 
 
 **Rule:** implement shared behavior in `_internal/`, expose it through broker packages. User-facing code (docs, examples, error messages) must never import from `faststream._internal`.
 
+Two directions `just import-linter` cannot see, both crossed in review (#2038, #2644, #2290):
+
+- **A field only one broker needs lives in that broker's config**, not in the shared one.
+- **A neighbour is read through its public surface.** `_foo` of another module is outside its contract, even inside `_internal/`.
+
 ## Broker package anatomy
 
 Every broker package mirrors the same layout. Canonical reference: `faststream/kafka/`.
@@ -37,6 +42,13 @@ Brokers also carry optional integration subpackages where supported — kafka ha
 
 A broker package is closed over its driver: `faststream.<broker>` never imports another broker package, nothing outside it imports it, and its driver (`aiokafka`, `confluent_kafka`, `aio_pika`, `nats`, `redis`, `zmqtt`) is imported nowhere else. `just import-linter` checks all three; the contracts live in `[tool.importlinter]` in `pyproject.toml`.
 
+## Shape of a public object
+
+- **An extensible object, not a magic dict.** A structure a user passes or receives is a class with named fields (`Response`, `PublishMessage`), not a free-form dict; a format is a class, not a boolean flag (#2586, #2287).
+- **`broker.subscriber()` is a facade with no logic.** Assembly belongs to the factory; the DTO validates itself and exposes derived values through `@property` (#2038).
+- **Handler metadata lives on a class, not as an attribute stapled to the function.** Constructor options are keyword-only (#2142).
+- **A message method reads the fields the parser lifted onto it.** Everything the framework needs later comes off the message object; a method that reaches into the driver's payload is re-parsing it (#3066). `raw_message` itself is for handing back to the driver (`ack`, `commit`), for the broker-specific attributes of telemetry, and for the user.
+
 ## Feature mirroring
 
 All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start()`, `stop()`, routers, publishers, message/response types. When adding a feature:
@@ -44,6 +56,16 @@ All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start(
 1. Find the closest analogue in another broker (kafka is usually the most complete) and follow its shape and naming.
 2. Keep the public API identical across brokers unless the feature is inherently broker-specific.
 3. Broker-specific features stay in the broker package — don't leak them into `_internal/`.
+4. **Kafka has two backends.** A fix in `faststream/kafka/` (aiokafka) is mirrored into `faststream/confluent/` in the same PR, and vice versa (#2932).
+5. Logic that does not depend on the broker lives in the shared class, and values shared by all brokers go through one common type (e.g. `Address`) rather than a per-broker string (#3072, #3042).
+6. **An invariant is established once, at the entry point**, and every reader takes it from there: the default of an outgoing message is applied in `producer._publish` alone. Two names for one value is a bug, not a convenience (#2226, #3072).
+
+## Option surface
+
+- **Scope decides the level.** A **scoped** option — one a user could want different for different parts of one application — exists at every level: `broker` → `router` → `subscriber`/`publisher` → FastAPI router, innermost wins, each level tested (#2871, #2827, #3026). A **global** setting, one that describes the application as a single object, lives at the root alone (#2777).
+- One knob, not two. Prefer a single parameter over a `bool` + `str` pair; `None` disables it (#2894).
+- A default that depends on a neighbouring parameter is derived through the `EMPTY` sentinel, not by guessing inside the body (#2894).
+- Behaviour that differs by **broker/server version** lives in the versioned implementation, not behind `if self._version` scattered through the broker (#2819). (Python and Pydantic differences go through `_compat` — see Typing.)
 
 ## Typing
 
@@ -59,15 +81,61 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 
 ## Public API
 
-- Every `__init__.py` declares `__all__` explicitly.
+- Every `__init__.py` declares `__all__` explicitly, and every name in it resolves at runtime — a name imported only under `if TYPE_CHECKING:` passes mypy and fails in production (#2841 → #2898). `tests/test_public_exports.py` imports each public module and reads every name it exports.
 - Optional dependencies are guarded with try/except raising an `ImportError` that tells the user which extra to install — see `faststream/kafka/__init__.py`.
+- **A user imports the driver for its exception types.** FastStream re-exports none of them (#2911, #2819).
+- A distinct connection mode (Cluster, Sentinel) is its own broker class, not a flag on the existing one (#2895).
+- An endpoint returns the result itself. No envelope, no wrapper object around it (#2777).
+
+## Invariants review checks by hand
+
+Every entry here needs a person, and is backed by a bug that reached `main` or a rewrite that landed on
+top of a merged contribution.
+
+**Compatibility**
+
+- Identity semantics and any behaviour pinned by an existing test are a contract. They change on a bug report, not on the way past (#2796).
+- A new positional parameter goes **after** the existing ones. Anything that cannot preserve the old call sites waits for a major release (#2894, #2828, #2777).
+- **A public attribute is not removed by a refactor**, and a new option does not change an existing default (#2038, #2572).
+- New code does not introduce a deprecated API, even when the surrounding module still uses one (#2819).
+- **`DeprecationWarning` goes where the user makes the choice** — at every intake point and in every `@overload` — and fires on an explicit choice, never on `EMPTY`. Warning a user about a default they never selected is noise (#2236, #2287, #2819).
+- A third-party incompatibility is solved by an adapter on the user's side, not by bending the framework; a fix stays inside the reported problem; when part of a contribution is wrong, that part is cut and the rest is merged (#2828, #2373, #2127, #2142).
+- A pattern the framework cannot support is forbidden loudly, with a link to the docs — not patched around so it half-works (#2828).
+
+**Errors and lifecycle**
+
+- An infrastructure failure gets its own exception type; it is not folded into a generic one (#2855).
+- A configuration error is terminal: stop the consumer, do not retry. Retrying a permanent failure hides it and burns the broker (#3049 → #3115).
+- One failure, one exception — the same condition raises the same type on every consumption path (`get_one`, iterator, subscriber) (#3049).
+- A configuration conflict warns at **registration** time, with `stacklevel` pointing at the user's line, and only when the values actually differ (#3026, #2849).
+- A parameter filter never silently drops user intent. If an option cannot be honoured, say so — do not pass a subset on (#2935: TLS settings were dropped silently).
+- An unrecoverable error waits with a pause; it never spins in an idle loop (#2319).
+- **A class-level container with no eviction is a leak.** Anything keyed per instance and never cleaned belongs to the instance (#2661).
+- Static data is separated from dynamic once, at initialisation, not re-computed on the hot path (#2555).
+- `connect()` → `setup_logger()` ordering is a contract. Shutdown order is `running = False` → wait for in-flight → `super().stop()` under the lock, and an object is removed from its registry only after `stop()` completes (#2531, #2859, #3108).
+- A string built for a log line is not reused as an address, key or identifier. Display and identity are separate values (#3041 → #3070).
+
+## AsyncAPI schema
+
+- The schema follows the specification, not what is convenient to generate (#2142).
+- An explicit `title` is used as given — never mangled (#2638).
+- A subscriber on N addresses produces N channels (#3070).
+- Only the application's own routes end up in the schema; routes mounted from elsewhere do not.
 
 ## Style
 
 - ruff uses `select = ["ALL"]` with curated ignores in `ruff.toml` — don't assume a rule is disabled; run `just linter` to check.
-- Line length 90, double quotes, Google-style docstrings.
-- `just mypy` must pass before a PR.
-- A class that declares `__slots__` needs slotted bases all the way up (`__slots__ = ()` on a `Protocol` or mixin), otherwise instances keep a `__dict__` and the slots do nothing; `just slotscheck` checks it.
+- `just linter` and `just mypy` must pass before a PR.
+
+### Module layout
+
+- **Public first.** A module opens with the class or function it exists for, then the rest of the public surface by significance, then `_`-prefixed helpers. Quote an annotation (`syntax: "AddressSyntax"`) when the headline class refers to something defined below it. A reorder gets its own commit, so it cannot hide a behaviour change (#3072).
+- **A helper that never reads `self` is a module-level function** (`_name` in the library). `PLR6301` enforces it in `faststream/` only: an override takes `@override`, a hook users subclass keeps `self` under `# noqa: PLR6301`. Test classes, class-scoped fixtures and testcase hooks stay methods (#3049, #3158).
+- **A heavy import stays lazy.** The AsyncAPI generators (`specification/asyncapi/v2_6_0`, `v3_0_0`) build pydantic models on import: hoisting them cost `import faststream` +28 ms and 71 modules. Before moving a local import to the top, run `python -X importtime -c "import faststream"`; a module that must stay lazy is listed in `banned-module-level-imports` in `ruff.toml`, so the lint holds it there (#3158).
+
+### Docstrings
+
+A docstring is a one-line summary, or a Google `Args:` section when parameters need explaining — measure the neighbours: none of `faststream/rabbit/*.py` has a module docstring, and their functions carry one-liners. The reasoning goes in a comment (#3109).
 
 ### Comments
 

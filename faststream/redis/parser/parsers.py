@@ -67,7 +67,12 @@ class SimpleParser:
             content_type=headers.get("content-type"),
             message_id=headers.get("message_id", id_),
             correlation_id=headers.get("correlation_id", id_),
+            **self._own_fields(message),
         )
+
+    def _own_fields(self, message: Mapping[str, Any]) -> dict[str, Any]:  # noqa: PLR6301
+        """Fields only this parser's message class takes."""
+        return {}
 
     def _parse_data(
         self,
@@ -120,6 +125,10 @@ class RedisBatchListParser(SimpleParser):
 class RedisStreamParser(SimpleParser):
     msg_class = RedisStreamMessage
 
+    def _own_fields(self, message: Mapping[str, Any]) -> dict[str, Any]:  # noqa: PLR6301
+        # a stream message acks and deletes itself by id, so it carries them
+        return {"stream": message["channel"], "message_ids": message["message_ids"]}
+
     def _parse_data(
         self,
         message: Mapping[str, Any],
@@ -133,6 +142,10 @@ class RedisStreamParser(SimpleParser):
 
 class RedisBatchStreamParser(SimpleParser):
     msg_class = RedisBatchStreamMessage
+
+    def _own_fields(self, message: Mapping[str, Any]) -> dict[str, Any]:  # noqa: PLR6301
+        # a stream message acks and deletes itself by id, so it carries them
+        return {"stream": message["channel"], "message_ids": message["message_ids"]}
 
     def _parse_data(
         self,

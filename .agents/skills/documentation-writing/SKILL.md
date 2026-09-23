@@ -74,12 +74,33 @@ All example code must follow idiomatic FastStream usage:
 - Use `Annotated[str, Path()]` for subject path params and `Annotated[..., Context()]` for context access (built-ins: `broker`, `context`, `logger`, `message`).
 - Import only from public packages — never `faststream._internal`.
 
+## What review checks in docs
+
+Docs are the largest source of review findings in this project's history — 73 events, a quarter of them
+about behaviour rather than wording.
+
+- **Every claim is verified against the code of the current version.** Docs drift silently: a sentence true at 0.5 survives into 0.6 and becomes a lie no test catches (#2425, #2457, #2885, #2534).
+- **A feature is documented for every broker that has it**, not only for the one it was written against (#2238).
+- **LLM output is checked by the author before it is committed.** Generated prose reads plausible and states things the code does not do (#2421, #3042).
+- A risky pattern is not published at all; when a snippet relies on an assumption (idempotency, ordering, a single consumer), the assumption is stated next to it (#3011).
+- **Every page is self-contained.** A reader of the Confluent page never opens the Kafka one, so near-identical kafka/confluent or redis list/stream/pubsub pages are intended. Review a copied page for the broker-specific behaviour it must carry (Confluent's `group_id`), not for being a copy; a shared include under `docs/includes/` is for text verified against every broker that embeds it (#3124).
+- The example is minimal: no test scaffolding, no defensive code around a guaranteed key, nothing the point does not need.
+
 ## Build & serve
 
 - `just docs-serve` — live dev server on port 8000.
 - `just docs-build` — build the static site.
 - `just docs-build-api` — regenerate the API reference.
 - `just docs-check` — the PR gate: strict build of the guides (broken links and anchors fail) plus `docs/check_site.py` (unique titles, canonicals, sitemap, JSON-LD, image `alt`), about 10 s. Run it before pushing a docs change.
+
+`docs/docs/en/release.md` is generated from GitHub releases by CI; a hand edit is a repair of what the generator got wrong, nothing else. `docs.py build` runs `update_releases` first and appends any missing release, so run `git checkout -- docs/docs/en/release.md` after a local build; a feature PR that touches the file is reverting it (#3042 → #3151).
+
+The deploy runs on `release: published` or a manual dispatch. A dispatch from `main` publishes unreleased docs into `/latest/`: compare the `pyproject.toml` version with the last release first.
+
+Two SEO choices look like bugs and are deliberate (#3133):
+
+- `robots.txt` has no `Disallow` for archived versions — a blocked crawl would stop Google reading their `noindex` and leave them indexed as bare URLs.
+- `canonical_version: latest` stays in `mkdocs.yml` — without it `/latest/` canonicals point at the numbered version, which becomes the indexed one after the next release.
 
 ## Related skills
 
