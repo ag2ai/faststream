@@ -38,6 +38,9 @@ class ChannelSubscriber(LogicSubscriber):
 
     `RedisClusterBroker._make_channel_subscriber` replaces `start` on the instance,
     which needs a `__dict__` to put the replacement in.
+
+    NOTE: the replacement goes away with the native async cluster Pub/Sub (#3131,
+    redis-py 8, on the 1.0.0 branch); slot this class once that reaches `main`.
     """
 
     def __init__(

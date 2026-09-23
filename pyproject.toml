@@ -533,7 +533,7 @@ exclude-classes = '''
 | ^faststream\.rabbit\.configs\.base:RabbitConfig$
       # mixed into two slotted dataclass configs; the lay-outs conflict
 | ^faststream\.redis\.subscriber\.usecases\.channel_subscriber:ChannelSubscriber$
-      # RedisClusterBroker replaces `start` on the instance
+      # RedisClusterBroker replaces `start` on the instance; slot it once #3131 is on main
 '''
 
 [tool.typos.default.extend-identifiers]
