@@ -27,6 +27,7 @@ search:
         - [Decoder](getting-started/serialization/decoder.md)
         - [Examples](getting-started/serialization/examples.md)
     - [Lifespan](getting-started/lifespan/index.md)
+        - [Application Lifecycle](getting-started/lifespan/lifecycle.md)
         - [Hooks](getting-started/lifespan/hooks.md)
         - [Lifespan Option](getting-started/lifespan/context.md)
         - [Events Testing](getting-started/lifespan/test.md)
