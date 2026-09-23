@@ -84,6 +84,7 @@ plugins:
       manual: true
   - macros:                      # Jinja templates
       include_dir: includes
+      on_error_fail: true
   - git-revision-date-localized: # show page edition date
       enabled: !ENV [CI, false]
       type: timeago

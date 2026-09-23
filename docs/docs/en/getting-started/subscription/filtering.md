@@ -122,14 +122,14 @@ Let's break down how message filtering works in a subscription mechanism.
 
 ### Core Filtering Logic
 
-Consider a simple example of a filter implementation:
+Consider a simplified (pseudo-code) example of the filter implementation:
 
 ```python
 for handler in subscriber.handlers:
     if await handler.filter(msg):
         return await handler.process(msg)
 
-raise HandlerNotFoundError
+raise SubscriberNotFound
 ```
 
 This code selects the first suitable handler to process the message. This means the **default handler should be placed last** in the list. If no logical handlers match, the message must still be processed. For this, we need a special trash handler that defines the system's default behavior for such cases.

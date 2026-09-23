@@ -258,7 +258,7 @@ Dependencies can also contain other dependencies. This works in a very predictab
     This means that all nested dependencies will receive the cached result of dependency execution.
     But, between different calls of the main function, these results will be different.
 
-    To prevent this behavior, just use `#!python Depends(..., cache=False)`. In this case, the dependency will be used for each function
+    To prevent this behavior, just use `#!python Depends(..., use_cache=False)`. In this case, the dependency will be used for each function
     in the call stack where it is used.
 
 ## Use with Regular Functions

@@ -51,7 +51,7 @@ But how can we serialize a more complex message, like `#!json { "name": "John", 
 For sure, we can serialize it as a simple `#!python dict`
 
 ```python linenums="1" hl_lines="5"
-from typing import Dict, Any
+from typing import Any
 
 @broker.subscriber("test")
 async def handle(

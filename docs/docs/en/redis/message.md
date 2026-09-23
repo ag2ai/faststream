@@ -18,7 +18,6 @@ When dealing with the **Redis** broker in **FastStream**, you can easily access 
 
 * `#!python body: Union[bytes, Any]`
 * `#!python raw_message: Any`
-* `#!python decoded_body: Optional[DecodedMessage]`
 * `#!python headers: dict[str, Any]`
 * `#!python path: dict[str, Any]`
 * `#!python content_type: Optional[str]`
@@ -26,7 +25,7 @@ When dealing with the **Redis** broker in **FastStream**, you can easily access 
 * `#!python message_id: str`
 * `#!python correlation_id: str`
 * `#!python processed: bool`
-* `#!python committed: bool`
+* `#!python committed: Optional[AckStatus]`
 
 For instance, if you need to retrieve headers from an incoming **Redis** message, here’s how you might do it:
 

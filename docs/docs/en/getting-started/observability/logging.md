@@ -15,7 +15,7 @@ search:
 
 ## Logging Requests
 
-To log requests, it is strongly recommended to use the `access_logger` of your broker, as it is available from the [Context](../context.md#existing-fields){.internal-link} of your application.
+To log requests, it is strongly recommended to use the `logger` of your broker (the `faststream.Logger` annotation), as it is available from the [Context](../context.md#existing-fields){.internal-link} of your application.
 
 ```python
 from faststream import Logger

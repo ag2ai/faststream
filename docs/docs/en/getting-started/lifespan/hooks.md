@@ -270,7 +270,6 @@ If you want to declare multiple lifecycle hooks, they will be used in the order 
 ### Async or not async
 
 In the asynchronous version of the application, both asynchronous and synchronous methods can be used as hooks.
-In the synchronous version, only synchronous methods are available.
 
 ### Command line arguments
 
