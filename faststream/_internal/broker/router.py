@@ -49,6 +49,8 @@ class SubscriberRoute(ArgsContainer):
 class BrokerRouter(Registrator[MsgType, BrokerConfigType_co]):
     """A generic class representing a broker router."""
 
+    __slots__ = ("_handlers",)
+
     def __init__(
         self,
         *,

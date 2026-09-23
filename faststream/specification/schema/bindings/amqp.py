@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
 
 
-@dataclass
+@dataclass(slots=True)
 class Queue:
     name: str
     durable: bool
@@ -22,7 +22,7 @@ class Queue:
         )
 
 
-@dataclass
+@dataclass(slots=True)
 class Exchange:
     type: Literal[
         "default",
@@ -60,14 +60,14 @@ class Exchange:
         }
 
 
-@dataclass
+@dataclass(slots=True)
 class ChannelBinding:
     queue: Queue
     exchange: Exchange
     virtual_host: str
 
 
-@dataclass
+@dataclass(slots=True)
 class OperationBinding:
     routing_key: str | None
     queue: Queue

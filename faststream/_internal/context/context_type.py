@@ -19,6 +19,13 @@ class Context(CustomField):
         use : method to use the context
     """
 
+    __slots__ = (
+        "default",
+        "initial",
+        "name",
+        "prefix",
+    )
+
     param_name: str
 
     def __init__(

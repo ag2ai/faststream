@@ -8,6 +8,12 @@ if TYPE_CHECKING:
 
 
 class AsgiResponse:
+    __slots__ = (
+        "body",
+        "raw_headers",
+        "status_code",
+    )
+
     def __init__(
         self,
         body: bytes = b"",
