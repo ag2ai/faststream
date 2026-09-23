@@ -41,6 +41,8 @@ CONSUME_ERROR_BACKOFF_SECONDS = 5
 class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
 
+    __slots__ = ("config",)
+
     _outer_config: "RedisBrokerConfig"
 
     def __init__(
@@ -138,6 +140,8 @@ class ConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     LogicSubscriber,
 ):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",

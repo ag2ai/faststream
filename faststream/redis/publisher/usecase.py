@@ -26,6 +26,13 @@ if TYPE_CHECKING:
 class LogicPublisher(PublisherUsecase):
     """A class to represent a Redis publisher."""
 
+    __slots__ = (
+        "config",
+        "headers",
+        "producer",
+        "reply_to",
+    )
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -58,6 +65,8 @@ class LogicPublisher(PublisherUsecase):
 
 
 class ChannelPublisher(LogicPublisher):
+    __slots__ = ("_channel",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -158,6 +167,8 @@ class ChannelPublisher(LogicPublisher):
 
 
 class ListPublisher(LogicPublisher):
+    __slots__ = ("_list",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -259,6 +270,8 @@ class ListPublisher(LogicPublisher):
 
 
 class ListBatchPublisher(ListPublisher):
+    __slots__ = ()
+
     @override
     async def publish(
         self,
@@ -317,6 +330,8 @@ class ListBatchPublisher(ListPublisher):
 
 
 class StreamPublisher(LogicPublisher):
+    __slots__ = ("_stream",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",

@@ -20,6 +20,12 @@ _DRIVER_INFO = DriverInfo(name="faststream", lib_version=__version__)
 class ConnectionState(ABC, Generic[ClientT]):
     """Base connection state."""
 
+    __slots__ = (
+        "_client",
+        "_connected",
+        "_options",
+    )
+
     def __init__(self, options: dict[str, Any] | None = None) -> None:
         self._options = options or {}
 
@@ -49,6 +55,8 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 
 class RedisConnectionState(ConnectionState["Redis[bytes]"]):
+    __slots__ = ()
+
     async def connect(self) -> "Redis[bytes]":
         pool = ConnectionPool(**self._options, driver_info=_DRIVER_INFO)
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
@@ -66,6 +74,12 @@ class RedisSentinelConnectionState(RedisConnectionState):
     on every reconnect, so publishers and stream consumers fail over for free
     (both go through ``connection.client``).
     """
+
+    __slots__ = (
+        "_master_name",
+        "_sentinel_kwargs",
+        "_sentinels",
+    )
 
     def __init__(
         self,
@@ -108,6 +122,8 @@ class RedisClusterConnectionState(ConnectionState["RedisCluster[bytes]"]):
     The async ``RedisCluster`` serves every command family — Channels, Lists,
     Streams and KV — since ``redis-py`` 8.0.0 gave it ``publish`` / ``pubsub``.
     """
+
+    __slots__ = ()
 
     async def connect(self) -> "RedisCluster[bytes]":
         if self._connected:

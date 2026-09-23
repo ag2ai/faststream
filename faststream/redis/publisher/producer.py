@@ -30,6 +30,14 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
     connections drive the very same publish path.
     """
 
+    __slots__ = (
+        "_connection",
+        "_decoder",
+        "_parser",
+        "codec",
+        "serializer",
+    )
+
     _connection: "ConnectionState[Any]"
     _decoder: "ParserComposition"
     _parser: "ParserComposition"

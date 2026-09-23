@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class PublisherProto(Protocol[PublishCommandType_contra]):
+    __slots__ = ()
+
     @abstractmethod
     async def publish(
         self,

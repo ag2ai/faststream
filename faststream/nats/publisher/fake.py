@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 class NatsFakePublisher(FakePublisher):
     """Publisher Interface implementation to use as RPC or REPLY TO answer publisher."""
 
+    __slots__ = ("subject",)
+
     def __init__(
         self,
         producer: "ProducerProto[NatsPublishCommand]",

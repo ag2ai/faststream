@@ -19,6 +19,8 @@ from .config import RabbitPublisherSpecificationConfig
 class RabbitPublisherSpecification(
     PublisherSpecification[RabbitBrokerConfig, RabbitPublisherSpecificationConfig],
 ):
+    __slots__ = ()
+
     @property
     def routing(self) -> str | None:
         """The routing key this publisher was declared with, as the name reads it.

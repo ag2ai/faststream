@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 
 class CoreSubscriber(DefaultSubscriber["Msg"]):
+    __slots__ = ()
+
     subscription: Optional["Subscription"]
     _fetch_sub: Optional["Subscription"]
 
@@ -139,6 +141,8 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
 
 class ConcurrentCoreSubscriber(ConcurrentMixin["Msg"], CoreSubscriber):
+    __slots__ = ()
+
     @override
     async def _create_subscription(self) -> None:
         """Create NATS subscription and start consume task."""

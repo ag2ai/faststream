@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
 
 
@@ -78,6 +79,7 @@ class MQTTRoute(SubscriberRoute):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         super().__init__(
             call,
@@ -95,6 +97,7 @@ class MQTTRoute(SubscriberRoute):
             title=title,
             description=description,
             include_in_schema=include_in_schema,
+            codec=codec,
         )
 
 

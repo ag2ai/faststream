@@ -55,6 +55,14 @@ class _LazyLoggerProxy(logging.Logger):
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
 
+    __slots__ = (
+        "__running",
+        "_poll_task",
+        "config",
+        "logger_state",
+        "producer",
+    )
+
     def __init__(
         self,
         *,
@@ -204,6 +212,19 @@ class AsyncConfluentProducer:
 
 class AsyncConfluentConsumer:
     """An asynchronous Python Kafka client for consuming messages using the "confluent-kafka" package."""
+
+    __slots__ = (
+        "_on_assign",
+        "_on_lost",
+        "_on_revoke",
+        "_thread_pool",
+        "admin_client",
+        "config",
+        "consumer",
+        "logger_state",
+        "partitions",
+        "topics",
+    )
 
     def __init__(
         self,
@@ -434,6 +455,8 @@ def check_msg_error(msg: Message | None) -> Message | None:
 
 class BatchBuilder:
     """A helper class to build a batch of messages to send to Kafka."""
+
+    __slots__ = ("_builder",)
 
     def __init__(self) -> None:
         """Initializes a new BatchBuilder instance."""

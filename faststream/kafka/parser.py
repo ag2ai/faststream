@@ -21,6 +21,12 @@ if TYPE_CHECKING:
 class AioKafkaParser:
     """A class to parse Kafka messages."""
 
+    __slots__ = (
+        "_consumer",
+        "msg_class",
+        "regex",
+    )
+
     def __init__(
         self,
         msg_class: type[KafkaMessage],
@@ -62,6 +68,8 @@ class AioKafkaParser:
 
 
 class AioKafkaBatchParser(AioKafkaParser):
+    __slots__ = ()
+
     async def parse_batch(
         self,
         message: tuple["ConsumerRecord", ...],
