@@ -233,14 +233,10 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_publisher_assertions_take_the_kafka_fields(self, queue: str) -> None:
         broker = self.get_broker()
 
-        publisher = broker.publisher(queue + "2")
+        publisher = broker.publisher(queue)
 
-        @broker.subscriber(queue)
-        async def handle(msg) -> None:
+        async with self.patch_broker(broker):
             await publisher.publish("response", key=b"k", partition=1)
-
-        async with self.patch_broker(broker) as br:
-            await br.publish("hello", queue)
 
             await publisher.assert_called_once_with("response", key=b"k", partition=1)
             await publisher.assert_called_with(key=b"k")
