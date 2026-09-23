@@ -58,9 +58,7 @@ repos:
     hooks:
     -   id: uv-lock
         name: uv.lock is in sync
-        # rewrites uv.lock instead of only checking it: the modified file fails the hook,
-        # and in a PR pre-commit-ci-lite commits it to the branch
-        entry: just lock
+        entry: just lock-check
         language: python
         files: ^(pyproject\.toml|uv\.lock)$
         require_serial: true

@@ -19,11 +19,6 @@ init python="3.10":
   docker build . --build-arg PYTHON_VERSION={{python}}
   uv sync --group dev -p {{python}}
 
-[doc("Update uv.lock to match pyproject.toml")]
-[group("infra")]
-lock:
-  uv lock
-
 [doc("Fail when uv.lock is out of sync with pyproject.toml")]
 [group("infra")]
 lock-check:
