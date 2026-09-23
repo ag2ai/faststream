@@ -1,9 +1,7 @@
-from typing import Any
+from typing import Any, Self
 
 from pydantic import BaseModel
-from typing_extensions import Self
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.schema.operation import Operation as OperationSpec
 
 from .bindings import OperationBinding
@@ -40,13 +38,7 @@ class Operation(BaseModel):
 
     tags: list[Tag | dict[str, Any]] | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @classmethod
     def from_sub(cls, operation: OperationSpec) -> Self:

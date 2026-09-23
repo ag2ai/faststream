@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from redis.asyncio.client import Pipeline
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 _PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline | None)
 
 
-class DestinationType(str, Enum):
+class DestinationType(StrEnum):
     Channel = "channel"
     List = "list"
     Stream = "stream"

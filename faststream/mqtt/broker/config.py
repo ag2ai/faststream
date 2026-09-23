@@ -29,6 +29,8 @@ class MQTTBrokerConfig(BrokerConfig):
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
+        super().__post_init__()
+
         for m in self.broker_middlewares:
             self._validate_middleware(m)
 

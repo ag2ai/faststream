@@ -13,6 +13,7 @@ from tests.tools import spy_decorator
 from .basic import ConfluentTestcaseConfig
 
 
+@pytest.mark.confluent()
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
@@ -77,7 +78,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.ACK_FIRST,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -136,7 +137,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=ack_policy,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -194,7 +195,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=ack_policy,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
             raise Exception  # noqa: TRY002
@@ -237,7 +238,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.NACK_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
             raise Exception  # noqa: TRY002
@@ -287,5 +288,5 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             match="AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK.",
         ):
 
-            @consume_broker.subscriber(*args, **kwargs)
+            @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
             async def handler(msg: KafkaMessage) -> None: ...

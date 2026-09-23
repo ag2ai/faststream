@@ -3,8 +3,9 @@
 References: https://github.com/asyncapi/bindings/tree/master/kafka
 """
 
+from typing import Self
+
 from pydantic import BaseModel, PositiveInt
-from typing_extensions import Self
 
 from faststream.specification.schema.bindings import kafka
 

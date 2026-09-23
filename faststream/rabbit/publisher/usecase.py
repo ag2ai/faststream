@@ -27,6 +27,17 @@ if TYPE_CHECKING:
 class RabbitPublisher(PublisherUsecase):
     """A class to represent a RabbitMQ publisher."""
 
+    __slots__ = (
+        "_message_options",
+        "exchange",
+        "headers",
+        "publish_options",
+        "queue",
+        "reply_to",
+        "routing_key",
+        "timeout",
+    )
+
     _outer_config: "RabbitBrokerConfig"
 
     def __init__(

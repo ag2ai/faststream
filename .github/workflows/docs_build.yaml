@@ -17,7 +17,7 @@ jobs:
         with:  # zizmor: ignore[artipacked]
           fetch-depth: 0
           token: ${{ secrets.AUTOMERGE_TOKEN }}
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -34,34 +34,44 @@ jobs:
         with:
           just-version: 1.42.4
 
-      - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV
-      - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> $GITHUB_ENV
-      - run: echo $VERSION
-      - run: echo $IS_RC
+      - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> "$GITHUB_ENV"
+      - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> "$GITHUB_ENV"
+      - run: echo "$VERSION"
+      - run: echo "$IS_RC"
 
       - name: Configure Git user
         run: |
           git config --local user.email "faststream-actions[bot]@users.noreply.github.com"
           git config --local user.name "faststream-actions[bot]"
 
+      # `git checkout gh-pages` below replaces the working tree, so the script
+      # and the files it copies have to be taken out of it first.
+      - name: Stage the SEO script
+        run: cp -r docs/create_seo_files.py docs/site_root "$RUNNER_TEMP/"
+
       - name: Build docs
         run: |
+          cd docs
           if [ "$IS_RC" == "False" ]; then
-            cd docs
-            mike deploy -F mkdocs.yml --update-aliases $VERSION latest
+            mike deploy -F mkdocs.yml --update-aliases "$VERSION" latest
             mike set-default --allow-empty -F mkdocs.yml latest
-
-            # Doc commits are large, keep only the last one
-            git checkout gh-pages
-            git reset --soft HEAD~3
           else
-            cd docs
-            mike deploy -F mkdocs.yml --update-aliases $VERSION
-
-            # Doc commits are large, keep only the last one
-            git checkout gh-pages
-            git reset --soft HEAD~2
+            mike deploy -F mkdocs.yml --update-aliases "$VERSION"
           fi
+
+          # Doc commits are large, keep only the last one. Reset to the root
+          # rather than `HEAD~N`: a hand-pushed commit would shift the count.
+          git checkout gh-pages
+          git reset --soft "$(git rev-list --max-parents=0 HEAD)"
+
+      # `git checkout gh-pages` leaves behind everything the build had ignored —
+      # `docs/site/`, `__pycache__`. On `gh-pages` there is no `.gitignore` to
+      # keep them out of the commit.
+      - name: Drop the build artifacts left over from the source checkout
+        run: git clean -fdx
+
+      - name: Add robots.txt, root sitemap.xml and archive markers
+        run: python3 "$RUNNER_TEMP/create_seo_files.py" . "$RUNNER_TEMP/site_root"
 
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0

@@ -14,65 +14,65 @@ If you know [**FastAPI**](https://fastapi.tiangolo.com/){.external-link target="
 ---
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/19979" target="_blank"><img src="https://trendshift.io/api/badge/repositories/19979" alt="ag2ai%2Ffaststream | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  <a href="https://trendshift.io/repositories/19979" target="_blank"><img fetchpriority="high" src="https://trendshift.io/api/badge/repositories/19979" alt="ag2ai%2Ffaststream | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
   <br/>
   <br/>
 
   <a href="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml" target="_blank">
-    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main" alt="Test Passing"/>
+    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_tests.yaml/badge.svg?branch=main" alt="FastStream tests status" width="146" height="20"/>
   </a>
 
   <a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/ag2ai/faststream" target="_blank">
-      <img src="https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg" alt="Coverage"/>
+      <img src="https://coverage-badge.samuelcolvin.workers.dev/ag2ai/faststream.svg" alt="FastStream test coverage" width="110" height="20"/>
   </a>
 
   <a href="https://www.pepy.tech/projects/faststream" target="_blank">
-    <img src="https://static.pepy.tech/personalized-badge/faststream?period=month&units=international_system&left_color=grey&right_color=green&left_text=downloads/month" alt="Downloads"/>
+    <img src="https://static.pepy.tech/personalized-badge/faststream?period=month&units=international_system&left_color=grey&right_color=green&left_text=downloads/month" alt="FastStream monthly downloads from PyPI" width="136" height="20"/>
   </a>
 
   <a href="https://pypi.org/project/faststream" target="_blank">
-    <img src="https://img.shields.io/pypi/v/faststream?label=PyPI" alt="Package version">
+    <img src="https://img.shields.io/pypi/v/faststream?label=PyPI" alt="FastStream version on PyPI" width="80" height="20">
   </a>
 
   <a href="https://pypi.org/project/faststream" target="_blank">
-    <img src="https://img.shields.io/pypi/pyversions/faststream.svg" alt="Supported Python versions">
+    <img src="https://img.shields.io/pypi/pyversions/faststream.svg" alt="Python versions supported by FastStream" width="234" height="20">
   </a>
 
   <br/>
 
   <a href="https://github.com/ag2ai/faststream/actions/workflows/pr_codeql.yaml" target="_blank">
-    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_codeql.yaml/badge.svg" alt="CodeQL"/>
+    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_codeql.yaml/badge.svg" alt="CodeQL" width="120" height="20"/>
   </a>
 
   <a href="https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml" target="_blank">
-    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml/badge.svg" alt="Dependency Review"/>
+    <img src="https://github.com/ag2ai/faststream/actions/workflows/pr_dependency-review.yaml/badge.svg" alt="Dependency Review" width="188" height="20"/>
   </a>
 
   <a href="https://github.com/ag2ai/faststream/blob/main/LICENSE" target="_blank">
-    <img src="https://img.shields.io/github/license/ag2ai/faststream.svg" alt="License"/>
+    <img src="https://img.shields.io/github/license/ag2ai/faststream.svg" alt="License" width="120" height="20"/>
   </a>
 
-  <a href="https://github.com/ag2ai/faststream/blob/main/CODE_OF_CONDUCT.md" target="_blank">
-    <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct"/>
+  <a href="https://github.com/ag2ai/faststream/blob/main/.github/CODE_OF_CONDUCT.md" target="_blank">
+    <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct" width="156" height="20"/>
   </a>
 
   <br/>
 
   <a href="https://github.com/ag2ai/faststream/discussions" target="_blank">
-      <img alt="Discussions" src="https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions"/>
+      <img alt="Discussions" src="https://img.shields.io/github/discussions/ag2ai/faststream?logo=github&label=discussions" width="149" height="20"/>
   </a>
 
-  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fassets%2Fimg%2Fshield.json" alt="FastStream"/>
+  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fag2ai%2Ffaststream%2Fmain%2Fdocs%2Fdocs%2Fen%2Fassets%2Fimg%2Fshield.json" alt="FastStream" width="97" height="20"/>
 
   <a href="https://t.me/python_faststream" target="_blank">
-    <img alt="Telegram" src="https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram"/>
+    <img alt="Telegram" src="https://img.shields.io/badge/-telegram-black?color=blue&logo=telegram" width="77" height="20"/>
   </a>
 
   <br/>
 
   <a href="https://context7.com/ag2ai/faststream" target="_blank">
-    <img alt="Context7" src="https://img.shields.io/badge/Context7-Ask%20AI-003257"/>
+    <img alt="Context7" src="https://img.shields.io/badge/Context7-Ask%20AI-003257" width="106" height="20"/>
   </a>
 </p>
 
@@ -93,7 +93,7 @@ Making streaming microservices has never been easier. The API is small enough to
 
 - [**Your Broker, In Full**](#your-broker-in-full): **FastStream** is a client for *your* broker, not a layer above all of them — [**Kafka**](https://kafka.apache.org/){.external-link target="_blank"} consumer groups and partitioning, [**RabbitMQ**](https://www.rabbitmq.com/){.external-link target="_blank"} exchanges and DLQ, [**NATS**](https://nats.io/){.external-link target="_blank"} JetStream and KeyValue, [**Redis**](https://redis.io/){.external-link target="_blank"} Streams, [**MQTT**](https://mqtt.org/){.external-link target="_blank"} QoS. Five first-class clients that happen to share their ergonomics.
 
-- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
+- [**Built-in Serialization**](#writing-app-code): Leverage [**Pydantic**](https://docs.pydantic.dev/){.external-link target="_blank"} or [**Msgspec**](https://msgspec.dev/){.external-link target="_blank"} validation capabilities to serialize and validate incoming messages
 
 - [**Powerful Dependency Injection System**](#dependencies): Manage your service dependencies efficiently with **FastStream**'s built-in DI system
 
@@ -236,20 +236,12 @@ to define messages using a declarative syntax, making it easy to specify the fie
     ```
 
 !!! tip ""
-    By default we use **PydanticV2** written in **Rust** as serialization library, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
-
-    To choose the **Pydantic** version, you can install the required one using the regular
-
-    ```shell
-    pip install pydantic==1.X.Y
-    ```
-
-    **FastStream** (and **FastDepends** inside) should work correctly with almost any version.
+    By default we use **Pydantic v2**, written in **Rust**, as the serialization library.
 
 
 ### Msgspec serialization
 
-Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://jcristharif.com/msgspec/){.external-link target="_blank"}.
+Moreover, **FastStream** is not tied to any specific serialization library, so you can use any preferred one. Fortunately, we provide a built‑in alternative for the most popular **Pydantic** replacement - [**Msgspec**](https://msgspec.dev/){.external-link target="_blank"}.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="1 4"
@@ -414,7 +406,7 @@ What the five clients share is a deliberately small surface:
 Beyond this scope you can use any broker-native features you need:
 
 * **Kafka** - specific partition reads, partitioner control, consumer groups, batch processing, etc.
-* **RabbitMQ** - all exchange types, Redis Streams, RPC, manual channel configuration, DLQ, etc.
+* **RabbitMQ** - all exchange types, RabbitMQ Streams, RPC, manual channel configuration, DLQ, etc.
 * **NATS** - core and Push/Pull JetStream subscribers, KeyValue, ObjectStorage, RPC, etc.
 * **Redis** - Pub/Sub, List, Stream subscribers, consumer groups, acknowledgements, etc.
 * **MQTT** - topic subscriptions (including wildcards), QoS and retain, MQTT 3.1.1 and 5.0, request/reply (RPC), TLS, etc.
@@ -426,7 +418,7 @@ If a particular feature is missing or not yet supported, you can always fall bac
 ---
 ## Testing the service
 
-The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, puts the Broker into "testing mode".
+The service can be [tested](./getting-started/subscription/test.md){.internal-link} using the `TestBroker` context managers, which, by default, put the Broker into "testing mode".
 
 The Tester will redirect your `subscriber` and `publisher` decorated functions to the InMemory brokers, allowing you to quickly test your app without the need for a running broker and all its dependencies.
 
@@ -502,7 +494,7 @@ And multiprocessing horizontal scaling feature as well:
 faststream run basic:app --workers 3
 ```
 
-You can learn more about **CLI** features [here](./getting-started/cli.md){.internal-link}
+You can learn more about [**CLI** features](./getting-started/cli.md){.internal-link}
 
 ---
 
@@ -512,7 +504,7 @@ You can learn more about **CLI** features [here](./getting-started/cli.md){.inte
 
 The availability of such documentation significantly simplifies the integration of services: you can immediately see what channels and message formats the application works with. And most importantly, it won't cost anything - **FastStream** has already created the docs for you!
 
-![HTML-page](../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
+![AsyncAPI HTML documentation that FastStream generated for a Kafka subscriber and publisher](assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
 
 ---
 
@@ -595,7 +587,9 @@ them **ECMWF**, **Hydro-Québec**, the **Rubin Observatory**, **NERSC** and **Re
 projects such as **Pydantic Logfire**, **RabbitMQ** and **EMQX** maintain a **FastStream**
 integration of their own.
 
-See the full list on the [Used By](./who-uses.md){.internal-link} page, and open a pull request to add your own project.
+See the full list on the [Used By](./who-uses.md){.internal-link} page.
+
+Running **FastStream** in production? Add your organization to [`ADOPTERS.md`](https://github.com/ag2ai/faststream/blob/main/ADOPTERS.md){.external-link target="_blank"} — a directory maintained by adopters themselves, with the brokers and scale they run. Not up for a pull request? Comment on [issue #3143](https://github.com/ag2ai/faststream/issues/3143){.external-link target="_blank"} and we will add you.
 
 ---
 
@@ -620,5 +614,5 @@ support!
 Thanks to all of these amazing people who made the project better!
 
 <a href="https://github.com/ag2ai/faststream/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=ag2ai/faststream"/>
+  <img src="https://contrib.rocks/image?repo=ag2ai/faststream" alt="Avatars of FastStream contributors on GitHub"/>
 </a>

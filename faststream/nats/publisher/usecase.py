@@ -1,7 +1,7 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
-from typing_extensions import overload, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.utils.path import Address
@@ -24,6 +24,14 @@ if TYPE_CHECKING:
 
 class LogicPublisher(PublisherUsecase):
     """A class to represent a NATS publisher."""
+
+    __slots__ = (
+        "_subject",
+        "headers",
+        "reply_to",
+        "stream",
+        "timeout",
+    )
 
     _outer_config: "NatsBrokerConfig"
 

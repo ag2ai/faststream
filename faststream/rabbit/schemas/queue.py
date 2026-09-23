@@ -1,5 +1,5 @@
 from copy import deepcopy
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, overload
 
 from faststream._internal.constants import EMPTY
@@ -19,7 +19,7 @@ RABBIT_ADDRESS_SYNTAX = AddressSyntax(
 )
 
 
-class QueueType(str, Enum):
+class QueueType(StrEnum):
     """Queue types for RabbitMQ.
 
     Enum should be lowercase to match RabbitMQ API.
@@ -42,9 +42,9 @@ class RabbitQueue(NameRequired):
         "arguments",
         "auto_delete",
         "bind_arguments",
+        "declare",
         "durable",
         "exclusive",
-        "name",
         "robust",
         "routing_address",
         "timeout",

@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 from typing import TYPE_CHECKING, TypeAlias
 
 from faststream._internal.parser import ParserProto
@@ -28,10 +29,19 @@ try:
     from .broker import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
     from .response import NatsPublishCommand, NatsResponse
     from .schemas import JStream, KvWatch, ObjWatch, PubAck, PullSub, Schedule
+    from .security import (
+        NatsCredentials,
+        NatsJWT,
+        NatsNKey,
+        NatsSecurity,
+        NatsToken,
+        NatsUserPassword,
+    )
     from .testing import TestNatsBroker
 
 except ImportError as e:
-    if "'nats'" not in e.msg:
+    # the package is installed: the failure is its own, not a missing extra
+    if find_spec("nats") is not None:
         raise
 
     from faststream.exceptions import INSTALL_FASTSTREAM_NATS
@@ -48,13 +58,19 @@ __all__ = (
     "JStream",
     "KvWatch",
     "NatsBroker",
+    "NatsCredentials",
+    "NatsJWT",
     "NatsMessage",
+    "NatsNKey",
     "NatsParserType",
     "NatsPublishCommand",
     "NatsPublisher",
     "NatsResponse",
     "NatsRoute",
     "NatsRouter",
+    "NatsSecurity",
+    "NatsToken",
+    "NatsUserPassword",
     "ObjWatch",
     "Placement",
     "PubAck",

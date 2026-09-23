@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 import pytest
 
@@ -6,11 +6,11 @@ from faststream import Depends
 from faststream._internal.utils import apply_types
 
 
-def sync_dep(key):
+def sync_dep(key: Any) -> Any:
     return key
 
 
-async def async_dep(key):
+async def async_dep(key: Any) -> Any:
     return key
 
 
@@ -19,10 +19,10 @@ async def test_sync_depends() -> None:
     key = 1000
 
     @apply_types
-    def func(k=Depends(sync_dep)):
+    def func(k: Any = Depends(sync_dep)) -> Any:
         return k is key
 
-    assert func(key=key)
+    assert func(key=key)  # type: ignore[call-arg]
 
 
 @pytest.mark.asyncio()
@@ -30,7 +30,7 @@ async def test_sync_with_async_depends() -> None:
     with pytest.raises(AssertionError):
 
         @apply_types
-        def func(k=Depends(async_dep)) -> None:  # pragma: no cover
+        def func(k: Any = Depends(async_dep)) -> None:  # pragma: no cover
             pass
 
 
@@ -39,10 +39,10 @@ async def test_async_depends() -> None:
     key = 1000
 
     @apply_types
-    async def func(k=Depends(async_dep)):
+    async def func(k: Any = Depends(async_dep)) -> Any:
         return k is key
 
-    assert await func(key=key)
+    assert await func(key=key)  # type: ignore[call-arg]
 
 
 @pytest.mark.asyncio()
@@ -50,10 +50,10 @@ async def test_async_with_sync_depends() -> None:
     key = 1000
 
     @apply_types
-    async def func(k=Depends(sync_dep)):
+    async def func(k: Any = Depends(sync_dep)) -> Any:
         return k is key
 
-    assert await func(key=key)
+    assert await func(key=key)  # type: ignore[call-arg]
 
 
 @pytest.mark.asyncio()
@@ -63,7 +63,7 @@ async def test_annotated_depends() -> None:
     key = 1000
 
     @apply_types
-    async def func(k: D):
+    async def func(k: D) -> Any:
         return k == key
 
-    assert await func(key=key)
+    assert await func(key=key)  # type: ignore[call-arg]

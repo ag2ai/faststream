@@ -1,8 +1,8 @@
+from io import StringIO
 from typing import Any
 
 from pydantic import BaseModel
-
-from faststream._internal._compat import model_to_json, model_to_jsonable
+from pydantic_core import to_jsonable_python
 
 from .info import BaseApplicationInfo
 
@@ -27,7 +27,7 @@ class BaseApplicationSchema(BaseModel):
 
     def to_jsonable(self) -> Any:
         """Convert the schema to a JSON-serializable object."""
-        return model_to_jsonable(
+        return to_jsonable_python(
             self,
             by_alias=True,
             exclude_none=True,
@@ -35,16 +35,13 @@ class BaseApplicationSchema(BaseModel):
 
     def to_json(self) -> str:
         """Convert the schema to a JSON string."""
-        return model_to_json(
-            self,
+        return self.model_dump_json(
             by_alias=True,
             exclude_none=True,
         )
 
     def to_yaml(self) -> str:
         """Convert the schema to a YAML string."""
-        from io import StringIO
-
         import yaml
 
         io = StringIO(initial_value="", newline="\n")

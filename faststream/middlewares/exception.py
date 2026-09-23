@@ -132,6 +132,8 @@ class ExceptionMiddleware:
 
 
 class _BaseExceptionMiddleware(BaseMiddleware):
+    __slots__ = ("_handlers", "_publish_handlers")
+
     def __init__(
         self,
         *,

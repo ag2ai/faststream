@@ -13,6 +13,11 @@ if TYPE_CHECKING:
 
 
 class Endpoint:
+    # Subscribers and publishers keep a `__dict__`: users patch their methods on the
+    # instance in tests (`patch.object(publisher, "publish")`), and there are only a
+    # few per application. `Registrator` holds them in a WeakSet, hence `__weakref__`.
+    __slots__ = ("__dict__", "__weakref__", "_outer_config")
+
     def __init__(self, config: "BrokerConfig") -> None:
         self._outer_config = config
 

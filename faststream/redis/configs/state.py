@@ -14,17 +14,17 @@ from faststream.exceptions import IncorrectState
 ClientT = TypeVar("ClientT")
 
 
-def _get_driver_info() -> dict[str, Any]:
-    return {
-        "driver_info": DriverInfo(
-            name="faststream",
-            lib_version=__version__,
-        )
-    }
+_DRIVER_INFO = DriverInfo(name="faststream", lib_version=__version__)
 
 
 class ConnectionState(ABC, Generic[ClientT]):
     """Base connection state."""
+
+    __slots__ = (
+        "_client",
+        "_connected",
+        "_options",
+    )
 
     def __init__(self, options: dict[str, Any] | None = None) -> None:
         self._options = options or {}
@@ -55,10 +55,10 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 
 class RedisConnectionState(ConnectionState["Redis"]):
-    async def connect(self) -> "Redis":
-        connection_kwargs = self._options | _get_driver_info()
+    __slots__ = ()
 
-        pool = ConnectionPool(**connection_kwargs)
+    async def connect(self) -> "Redis":
+        pool = ConnectionPool(**self._options, driver_info=_DRIVER_INFO)
         client: Redis = Redis.from_pool(pool)
 
         self._client = client
@@ -74,6 +74,12 @@ class RedisSentinelConnectionState(RedisConnectionState):
     on every reconnect, so publishers and stream consumers fail over for free
     (both go through ``connection.client``).
     """
+
+    __slots__ = (
+        "_master_name",
+        "_sentinel_kwargs",
+        "_sentinels",
+    )
 
     def __init__(
         self,
@@ -94,13 +100,12 @@ class RedisSentinelConnectionState(RedisConnectionState):
         connection_kwargs = {
             k: v for k, v in self._options.items() if k not in {"host", "port"}
         }
-        connection_kwargs |= _get_driver_info()
-
         manager = Sentinel(  # type: ignore[no-untyped-call]
             self._sentinels,
             sentinel_kwargs=dict(self._sentinel_kwargs)
             if self._sentinel_kwargs is not None
             else None,
+            driver_info=_DRIVER_INFO,
             **connection_kwargs,
         )
         client: Redis = manager.master_for(self._master_name)
@@ -118,18 +123,21 @@ class RedisClusterConnectionState(ConnectionState["RedisCluster"]):
     Streams and KV — since ``redis-py`` 8.0.0 gave it ``publish`` / ``pubsub``.
     """
 
+    __slots__ = ()
+
     async def connect(self) -> "RedisCluster":
         if self._connected:
             return self.client
 
         connection_kwargs = {k: v for k, v in self._options.items() if v is not None}
-        connection_kwargs |= _get_driver_info()
-
-        client: RedisCluster = RedisCluster(**connection_kwargs)
+        client: RedisCluster = RedisCluster(
+            **connection_kwargs,
+            driver_info=_DRIVER_INFO,
+        )
 
         # `ClusterPubSub` reads the slot map directly instead of going through
         # `execute_command`, so it can't rely on the client's lazy discovery.
-        await client.initialize()
+        _ = await client.initialize()
 
         self._client = client
         self._connected = True

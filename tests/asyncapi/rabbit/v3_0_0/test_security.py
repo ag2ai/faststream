@@ -1,6 +1,7 @@
 import ssl
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import RabbitBroker, RabbitExternalAuth
 from faststream.security import (
@@ -11,7 +12,7 @@ from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
 @pytest.mark.rabbit()
-def test_base_security_schema() -> None:
+def test_base_security_schema(snapshot_json: SnapshotAssertion) -> None:
     ssl_context = ssl.create_default_context()
     security = BaseSecurity(ssl_context=ssl_context)
 
@@ -22,27 +23,11 @@ def test_base_security_schema() -> None:
 
     schema = get_3_0_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {"messages": {}, "schemas": {}, "securitySchemes": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "amqps",
-                "protocolVersion": "0.9.1",
-                "security": [],
-                "host": "guest:guest@localhost:5672",
-                "pathname": "/",
-            },
-        },
-    }
+    assert schema == snapshot_json
 
 
 @pytest.mark.rabbit()
-def test_plaintext_security_schema() -> None:
+def test_plaintext_security_schema(snapshot_json: SnapshotAssertion) -> None:
     ssl_context = ssl.create_default_context()
 
     security = SASLPlaintext(
@@ -58,31 +43,11 @@ def test_plaintext_security_schema() -> None:
 
     schema = get_3_0_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {
-            "messages": {},
-            "schemas": {},
-            "securitySchemes": {"user-password": {"type": "userPassword"}},
-        },
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "amqps",
-                "protocolVersion": "0.9.1",
-                "security": [{"$ref": "#/components/securitySchemes/user-password"}],
-                "host": "admin:password@localhost:5671",
-                "pathname": "/",
-            },
-        },
-    }
+    assert schema == snapshot_json
 
 
 @pytest.mark.rabbit()
-def test_plaintext_security_schema_without_ssl() -> None:
+def test_plaintext_security_schema_without_ssl(snapshot_json: SnapshotAssertion) -> None:
     security = SASLPlaintext(
         username="admin",
         password="password",
@@ -94,31 +59,11 @@ def test_plaintext_security_schema_without_ssl() -> None:
 
     schema = get_3_0_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {
-            "messages": {},
-            "schemas": {},
-            "securitySchemes": {"user-password": {"type": "userPassword"}},
-        },
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "amqp",
-                "protocolVersion": "0.9.1",
-                "security": [{"$ref": "#/components/securitySchemes/user-password"}],
-                "host": "admin:password@localhost:5672",
-                "pathname": "/",
-            },
-        },
-    }
+    assert schema == snapshot_json
 
 
 @pytest.mark.rabbit()
-def test_external_auth_security_schema() -> None:
+def test_external_auth_security_schema(snapshot_json: SnapshotAssertion) -> None:
     ssl_context = ssl.create_default_context()
     security = RabbitExternalAuth(ssl_context=ssl_context)
 
@@ -129,24 +74,4 @@ def test_external_auth_security_schema() -> None:
 
     schema = get_3_0_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {
-            "messages": {},
-            "schemas": {},
-            "securitySchemes": {"rabbitmq-external": {"type": "X509"}},
-        },
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "amqps",
-                "protocolVersion": "0.9.1",
-                "security": [{"$ref": "#/components/securitySchemes/rabbitmq-external"}],
-                "host": "localhost:5671",
-                "pathname": "/",
-            },
-        },
-    }
+    assert schema == snapshot_json

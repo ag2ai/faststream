@@ -7,18 +7,14 @@ from pathlib import Path
 
 import mkdocs.commands.serve
 import typer
+from check_site import check_site
 from mkdocs.config import load_config
 from typing_extensions import Annotated
 from update_releases import update_release_notes as _update_release_notes
 
-IGNORE_DIRS = ("assets", "stylesheets")
-
 BASE_DIR = Path(__file__).resolve().parent
 CONFIG = BASE_DIR / "mkdocs.yml"
 DOCS_DIR = BASE_DIR / "docs"
-LANGUAGES_DIRS = tuple(
-    filter(lambda f: f.is_dir() and f.name not in IGNORE_DIRS, DOCS_DIR.iterdir()),
-)
 BUILD_DIR = BASE_DIR / "site"
 
 EN_DOCS_DIR = DOCS_DIR / "en"
@@ -70,6 +66,15 @@ def live(port: Annotated[str | None, typer.Argument()] = None) -> None:
 def build() -> None:
     """Build documentation in full preview."""
     _build()
+
+
+@app.command()
+def check() -> None:
+    """Build the guides with --strict and check the built site, as CI does on PRs."""
+    subprocess.run(["mkdocs", "build", "--site-dir", BUILD_DIR, "--strict"], check=True)
+
+    typer.echo("Checking the built site")
+    check_site(BUILD_DIR)
 
 
 @app.command()

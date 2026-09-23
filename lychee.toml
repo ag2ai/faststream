@@ -1,0 +1,23 @@
+# External links of the guides and the README. `mkdocs build --strict` already
+# covers the internal ones.
+no_progress = true
+max_retries = 5
+# seconds; a host that resets the connection needs longer than the default 1s
+retry_wait_time = 20
+timeout = 30
+accept = ["200..=299", "429"]
+
+exclude_path = [
+    # generated from GitHub releases
+    "docs/docs/en/release.md",
+]
+
+exclude = [
+    # addresses of the reader's own running application
+    '^https?://(localhost|127\.0\.0\.1)',
+    # answers 403 to anything that is not a browser
+    '^https://sentry\.io/?$',
+    # the howto pages point contributors at the nav file by its path on `main`,
+    # which only carries it once 1.0.0 ships. Drop this line with that release.
+    '^https://github\.com/ag2ai/faststream/blob/main/docs/docs/en/SUMMARY\.md$',
+]

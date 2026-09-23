@@ -6,8 +6,6 @@ import msgspec
 import pytest
 from fast_depends.msgspec import MsgSpecSerializer
 
-from faststream._internal.broker.broker import BrokerUsecase
-from faststream._internal.testing.broker import TestBroker
 from faststream.confluent import (
     KafkaBroker as ConfluentBroker,
     TestKafkaBroker as TestConfluentBroker,
@@ -77,8 +75,8 @@ async def test_msgspec_serialize(
     message_type: Any,
     expected_message: Any,
     mock: MagicMock,
-    broker_cls: type[BrokerUsecase[Any, Any]],
-    test_cls: type[TestBroker[Any, Any]],
+    broker_cls: Any,
+    test_cls: Any,
 ) -> None:
     broker = broker_cls(serializer=MsgSpecSerializer())
 
@@ -107,7 +105,7 @@ async def test_publisher(
     mock: MagicMock,
     queue: str,
     event: asyncio.Event,
-    broker_cls: type[BrokerUsecase[Any, Any]],
+    broker_cls: Any,
 ) -> None:
     broker = broker_cls(serializer=MsgSpecSerializer())
     publisher = broker.publisher(queue)

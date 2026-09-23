@@ -44,7 +44,10 @@ if TYPE_CHECKING:
 __all__ = ("TestRabbitBroker",)
 
 
-class TestRabbitBroker(TestBroker[RabbitBroker, EnterType]):
+class TestRabbitBroker(
+    TestBroker[RabbitBroker, EnterType],
+    broker=RabbitBroker,
+):
     """A class to test RabbitMQ brokers."""
 
     @overload
@@ -350,12 +353,10 @@ def _is_handler_matches(
     headers = headers or {}
     exchange = RabbitExchange.validate(exchange)
 
-    if (handler.exchange.name if handler.exchange else "") != (
-        exchange.name if exchange else ""
-    ):
+    if handler.exchange.name != exchange.name:
         return False
 
-    if handler.exchange is None or handler.exchange.type == ExchangeType.DIRECT:
+    if handler.exchange.type == ExchangeType.DIRECT:
         return handler.routing() == routing_key
 
     if handler.exchange.type == ExchangeType.FANOUT:

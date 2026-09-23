@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.exceptions import SetupError
@@ -9,12 +11,12 @@ from faststream.rabbit import RabbitRouter
 @pytest.mark.nats()
 def test_use_only_nats_router() -> None:
     broker = NatsBroker()
-    router = RabbitRouter()
+    router: Any = RabbitRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [NatsRouter(), RabbitRouter()]
+    routers: list[Any] = [NatsRouter(), RabbitRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)

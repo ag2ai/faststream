@@ -16,7 +16,9 @@ from faststream.exceptions import SetupError
 from . import config as config_module
 
 if TYPE_CHECKING:
-    from typing_extensions import NotRequired, TypedDict
+    from typing import NotRequired
+
+    from typing_extensions import TypedDict
 
     from faststream._internal.logger import LoggerState
 
@@ -52,6 +54,14 @@ class _LazyLoggerProxy(logging.Logger):
 
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
+
+    __slots__ = (
+        "__running",
+        "_poll_task",
+        "config",
+        "logger_state",
+        "producer",
+    )
 
     def __init__(
         self,
@@ -133,7 +143,7 @@ class AsyncConfluentProducer:
         produce_key: bytes | None = (
             kwargs["key"]
             if isinstance(kwargs["key"], (bytes, type(None)))
-            else (kwargs["key"].encode() if kwargs["key"] is not None else None)
+            else kwargs["key"].encode()
         )
         produce_headers: (
             dict[str, str | bytes | None] | list[tuple[str, str | bytes | None]] | None
@@ -154,7 +164,7 @@ class AsyncConfluentProducer:
             return result_future
         return await result_future
 
-    def create_batch(self) -> "BatchBuilder":
+    def create_batch(self) -> "BatchBuilder":  # noqa: PLR6301
         """Creates a batch for sending multiple messages."""
         return BatchBuilder()
 
@@ -169,7 +179,7 @@ class AsyncConfluentProducer:
         """Sends a batch of messages to a Kafka topic."""
         async with anyio.create_task_group() as tg:
             for msg in batch._builder:
-                tg.start_soon(
+                _ = tg.start_soon(
                     self.send,
                     topic,
                     msg["value"],
@@ -202,6 +212,19 @@ class AsyncConfluentProducer:
 
 class AsyncConfluentConsumer:
     """An asynchronous Python Kafka client for consuming messages using the "confluent-kafka" package."""
+
+    __slots__ = (
+        "_on_assign",
+        "_on_lost",
+        "_on_revoke",
+        "_thread_pool",
+        "admin_client",
+        "config",
+        "consumer",
+        "logger_state",
+        "partitions",
+        "topics",
+    )
 
     def __init__(
         self,
@@ -432,6 +455,8 @@ def check_msg_error(msg: Message | None) -> Message | None:
 
 class BatchBuilder:
     """A helper class to build a batch of messages to send to Kafka."""
+
+    __slots__ = ("_builder",)
 
     def __init__(self) -> None:
         """Initializes a new BatchBuilder instance."""

@@ -1,5 +1,5 @@
 import warnings
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.constants import EMPTY
@@ -48,6 +48,7 @@ def create_subscriber(
         partitions=partitions,
         ack_policy=ack_policy,
         max_workers=max_workers,
+        batch=batch,
     )
 
     subscriber_config = KafkaSubscriberConfig(
@@ -97,9 +98,17 @@ def _validate_input_for_misconfigure(
     *topics: "Topic",
     ack_policy: "AckPolicy",
     max_workers: int,
+    batch: bool,
     group_id: str | None,
-    partitions: Iterable["TopicPartition"],
+    partitions: Sequence["TopicPartition"],
 ) -> None:
+    if batch and max_workers > 1:
+        warnings.warn(
+            "The `max_workers` option is ignored by a batch subscriber.",
+            RuntimeWarning,
+            stacklevel=4,
+        )
+
     effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy
     if effective_ack is AckPolicy.REJECT_ON_ERROR:
         warnings.warn(

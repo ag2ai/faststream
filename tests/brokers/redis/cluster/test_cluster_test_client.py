@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.redis import ListSub, StreamSub
@@ -18,19 +20,22 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
-    @pytest.mark.connected()
-    async def test_broker_with_real_doesnt_get_patched(self) -> None:
-        await super().test_broker_with_real_doesnt_get_patched()
+    # the two below start the broker for real, and a cluster `connect()` now
+    # reaches the network to discover the slot map
 
     @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
+    @pytest.mark.connected()
+    async def test_broker_with_real_doesnt_get_patched(self) -> None:
+        await super().test_broker_with_real_doesnt_get_patched()
+
     async def test_pub_sub_pattern(self) -> None:
         broker = self.get_broker()
 
         @broker.subscriber("test.{name}")
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -44,7 +49,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(list=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -58,7 +63,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(_) -> None:
+        async def m(_: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -72,7 +77,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(_) -> None:
+        async def m(_: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -90,7 +95,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
 
         @publisher
         @broker.subscriber(channel=queue)
-        async def m(_):
+        async def m(_: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -105,7 +110,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(stream=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -119,7 +124,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(stream=StreamSub(queue, batch=True))
-        async def m(_) -> None:
+        async def m(_: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -137,7 +142,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
 
         @publisher
         @broker.subscriber(channel=queue)
-        async def m(_):
+        async def m(_: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -155,10 +160,9 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
-        queue: str,
     ) -> None:
         pytest.skip("Real-cluster testclient requires running cluster")
 
     @pytest.mark.connected()
-    async def test_real_respect_middleware(self, queue: str) -> None:
+    async def test_real_respect_middleware(self) -> None:
         pytest.skip("Real-cluster middleware test requires running cluster")

@@ -4,12 +4,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    assert_never,
 )
 from urllib.parse import urlsplit
 
 import zmqtt
 from fast_depends import Provider, dependency_provider
-from typing_extensions import assert_never, override
+from typing_extensions import override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -77,7 +78,7 @@ class MQTTBroker(
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         ack_policy: AckPolicy = EMPTY,

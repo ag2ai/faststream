@@ -6,7 +6,7 @@ import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             final_result.total_events,
             round(final_result.eps, 2),
             final_result.elapsed_time,
-            datetime.now(tz=timezone.utc).isoformat(),
+            datetime.now(tz=UTC).isoformat(),
             platform.python_version(),
             case.comment,
             f"{mem.total / (1024**3):.2f} GB",

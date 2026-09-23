@@ -1,8 +1,8 @@
 from collections.abc import Awaitable, Callable
+from typing import assert_type
 
 import prometheus_client
 from nats.aio.msg import Msg
-from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.nats import (
@@ -387,6 +387,10 @@ async def check_object_store_watch_subscriber_message_type(
         assert_type(msg, NatsObjMessage)
 
 
+def fake_bool() -> bool:
+    return True
+
+
 def check_subscriber_instance_type(
     broker: NatsBroker | NatsRouter,
 ) -> None:
@@ -401,7 +405,17 @@ def check_subscriber_instance_type(
         stream="stream",
         pull_sub=PullSub(batch=True),
     )
-    assert_type(sub3, BatchPullStreamSubscriber | PullStreamSubscriber)
+    assert_type(sub3, BatchPullStreamSubscriber)
+
+    sub3_plain = broker.subscriber("test", stream="stream", pull_sub=PullSub())
+    assert_type(sub3_plain, PullStreamSubscriber)
+
+    sub3_unknown = broker.subscriber(
+        "test",
+        stream="stream",
+        pull_sub=PullSub(batch=fake_bool()),
+    )
+    assert_type(sub3_unknown, BatchPullStreamSubscriber | PullStreamSubscriber)
 
     sub4 = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=2)
     assert_type(sub4, ConcurrentPullStreamSubscriber)
@@ -436,3 +450,7 @@ NatsBroker().include_routers(NatsRouter())
 NatsRouter(routers=[NatsRouter()])
 NatsRouter().include_router(NatsRouter())
 NatsRouter().include_routers(NatsRouter())
+
+
+@NatsBroker().subscriber("test", stream="stream", pull_sub=PullSub(batch=True))
+async def handle_pull_batch() -> None: ...

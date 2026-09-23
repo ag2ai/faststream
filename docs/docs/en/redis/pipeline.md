@@ -25,7 +25,7 @@ You can pass the `pipeline` parameter to the `publish` method to delay the execu
 The `pipeline` object is injected by the `Pipeline` annotation:
 
 ```python
-from faststream.redis.annotations import Pipeline
+from faststream.redis import Pipeline
 ```
 
 `Pipeline` is a **Redis** pipeline object (`redis.asyncio.client.Pipeline`), which is wrapped in a FastStream dependency and will be automatically available in any subscriber.

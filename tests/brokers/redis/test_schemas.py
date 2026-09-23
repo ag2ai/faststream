@@ -1,7 +1,16 @@
+from typing import Any
+
 import pytest
 
 from faststream.exceptions import SetupError
-from faststream.redis import StreamSub
+from faststream.redis import ListSub, StreamSub
+
+
+@pytest.mark.redis()
+def test_list_records() -> None:
+    # computed on a slotted instance, where there is no `__dict__` to cache it in
+    assert ListSub("test", batch=True, max_records=5).records == 5
+    assert ListSub("test", max_records=5).records is None
 
 
 @pytest.mark.redis()
@@ -56,7 +65,9 @@ def test_stream_group() -> None:
         ),
     ),
 )
-def test_stream_claim_min_idle_time_misconfiguration(kwargs: dict, match: str) -> None:
+def test_stream_claim_min_idle_time_misconfiguration(
+    kwargs: dict[str, Any], match: str
+) -> None:
     with pytest.raises(SetupError, match=match):
         StreamSub("test", **kwargs)
 

@@ -1,8 +1,7 @@
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
 from opentelemetry import baggage, context
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
-from typing_extensions import Self
 
 if TYPE_CHECKING:
     from faststream.message import StreamMessage

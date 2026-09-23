@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PublishType(str, Enum):
+class PublishType(StrEnum):
     PUBLISH = "PUBLISH"
     """Regular `broker/publisher.publish(...)` call."""
 

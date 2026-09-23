@@ -17,6 +17,11 @@ _PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline | None)
 class RedisFakePublisher(FakePublisher):
     """Publisher Interface implementation to use as RPC or REPLY TO answer publisher."""
 
+    __slots__ = (
+        "channel",
+        "message_format",
+    )
+
     def __init__(
         self,
         producer: "ProducerProto[RedisPublishCommand[Any]]",

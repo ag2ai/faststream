@@ -1,10 +1,10 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 ContentType = str
 
 
-class ContentTypes(str, Enum):
+class ContentTypes(StrEnum):
     """A class to represent content types."""
 
     TEXT = "text/plain"
@@ -12,6 +12,8 @@ class ContentTypes(str, Enum):
 
 
 class EmptyPlaceholder:
+    __slots__ = ()
+
     def __repr__(self) -> str:
         return "EMPTY"
 
@@ -20,6 +22,9 @@ class EmptyPlaceholder:
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, EmptyPlaceholder)
+
+    def __hash__(self) -> int:
+        return hash(EmptyPlaceholder)
 
 
 EMPTY: Any = EmptyPlaceholder()
