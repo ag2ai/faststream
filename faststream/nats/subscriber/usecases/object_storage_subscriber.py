@@ -37,6 +37,8 @@ class ObjStoreWatchSubscriber(
     TasksMixin,
     LogicSubscriber[ObjectInfo],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
     _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
 
@@ -187,6 +189,7 @@ class ObjStoreWatchSubscriber(
                     with context.scope(OBJECT_STORAGE_CONTEXT_KEY, self.bucket):
                         await self.consume(message)
 
+    @override
     def _make_response_publisher(
         self,
         message: "StreamMessage[ObjectInfo]",

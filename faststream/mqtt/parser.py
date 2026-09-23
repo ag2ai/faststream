@@ -3,7 +3,7 @@ from re import Pattern
 from typing import TYPE_CHECKING, Any, Literal
 
 import zmqtt
-from typing_extensions import assert_never
+from typing_extensions import assert_never, override
 
 from faststream._internal._compat import json_loads
 from faststream.message import StreamMessage, decode_message
@@ -20,6 +20,8 @@ MQTTVersion = Literal["3.1.1", "5.0"]
 
 class MQTTBaseParser:
     """Base parser for MQTT messages — shared parse + decode logic."""
+
+    __slots__ = ("_path_regex",)
 
     def __init__(
         self,
@@ -38,12 +40,14 @@ class MQTTBaseParser:
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         raise NotImplementedError
 
-    async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
+    async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # noqa: PLR6301
         return decode_message(msg)
 
 
 class MQTTParserV311(MQTTBaseParser):
     """Parser for MQTT 3.1.1 messages — raw payload, no metadata."""
+
+    __slots__ = ()
 
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         return MQTTMessage(
@@ -56,6 +60,7 @@ class MQTTParserV311(MQTTBaseParser):
             correlation_id=None,
         )
 
+    @override
     async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
         body: bytes = msg.body
         with suppress(Exception):
@@ -72,6 +77,8 @@ class MQTTParserV5(MQTTBaseParser):
     Extracts content_type, response_topic, correlation_data, and
     user_properties from PUBLISH properties when available.
     """
+
+    __slots__ = ()
 
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         props = msg.properties

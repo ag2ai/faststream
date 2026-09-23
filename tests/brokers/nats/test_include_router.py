@@ -37,5 +37,7 @@ def test_included_stream_subjects_respects_prefix() -> None:
 
     broker.include_router(router, prefix="test.")
 
-    _, subjects = broker._stream_builder.get(stream)
+    built = broker._stream_builder.get(stream)
+    assert built
+    _, subjects = built
     assert set(subjects) == {"test.*", "logs", "useless"}

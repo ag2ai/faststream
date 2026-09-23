@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.types import PublisherMiddleware
     from faststream.confluent.message import KafkaMessage
+    from faststream.confluent.types import KafkaSendableMessage
     from faststream.response.response import PublishCommand
 
     from .config import KafkaPublisherConfig
@@ -27,6 +28,13 @@ if TYPE_CHECKING:
 
 class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
+
+    __slots__ = (
+        "_topic",
+        "headers",
+        "partition",
+        "reply_to",
+    )
 
     _call_wrapper_class = KafkaHandlerCallWrapper
     _read_field = KafkaHandlerCallWrapper._read_field
@@ -95,6 +103,8 @@ class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
 
 
 class DefaultPublisher(LogicPublisher):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -116,8 +126,8 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[True] = ...,
-    ) -> asyncio.Future[Message | None]: ...
+        no_confirm: Literal[False] = False,
+    ) -> Message | None: ...
 
     @overload
     async def publish(
@@ -131,8 +141,8 @@ class DefaultPublisher(LogicPublisher):
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
-        no_confirm: Literal[False] = False,
-    ) -> Message | None: ...
+        no_confirm: Literal[True] = ...,
+    ) -> asyncio.Future[Message | None]: ...
 
     @overload
     async def publish(
@@ -231,6 +241,8 @@ class DefaultPublisher(LogicPublisher):
 
 
 class BatchPublisher(LogicPublisher):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -242,7 +254,7 @@ class BatchPublisher(LogicPublisher):
     @override
     async def publish(
         self,
-        *messages: "SendableMessage",
+        *messages: "KafkaSendableMessage",
         topic: str = "",
         key: bytes | str | None = None,
         partition: int | None = None,

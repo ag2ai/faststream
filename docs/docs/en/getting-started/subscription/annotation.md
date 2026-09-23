@@ -37,7 +37,7 @@ async def handle(
 ```
 
 
-As with other Python primitive types as well (`#!python float`, `#!python bool`, `#!python datetime`, etc)
+The same applies to other Python primitive types as well (`#!python float`, `#!python bool`, `#!python datetime`, etc.)
 
 !!! note
     If the incoming message cannot be serialized by the described schema, **FastStream** raises a `pydantic.ValidationError` with a correct log message.
@@ -46,12 +46,12 @@ Also, thanks to **Pydantic** (again), **FastStream** is able to serialize (and v
 
 ## JSON Basic Serialization
 
-But how can we serialize more complex message, like `#!json { "name": "John", "user_id": 1 }` ?
+But how can we serialize a more complex message, like `#!json { "name": "John", "user_id": 1 }` ?
 
 For sure, we can serialize it as a simple `#!python dict`
 
 ```python linenums="1" hl_lines="5"
-from typing import Dict, Any
+from typing import Any
 
 @broker.subscriber("test")
 async def handle(
@@ -61,9 +61,9 @@ async def handle(
 ```
 
 
-But it doesn't looks like a correct message validation, does it?
+But it doesn't look like a correct message validation, does it?
 
-For this reason, **FastStream** supports per-argument message serialization: you can declare multiple arguments with various types and your message will unpack to them:
+For this reason, **FastStream** supports per-argument message serialization: you can declare multiple arguments with various types and your message will be unpacked into them:
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="3-4"
@@ -97,15 +97,15 @@ For this reason, **FastStream** supports per-argument message serialization: you
 
 
 !!! tip
-    By default **FastStream** uses `#!python json.loads()` to decode and `#!python json.dumps()` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"} just install it and framework will use it automatically.
+    By default **FastStream** uses `#!python json.loads()` to decode and `#!python json.dumps()` to encode your messages. But if you prefer [**orjson**](https://github.com/ijl/orjson){.external-link target="_blank"} just install it and the framework will use it automatically.
 
 ### Serialization details
 
 #### Simple message
 
-If you expect to consume simple message like `#!python b"1"` or `#!python b"any_string"`, using the single argument as a function annotation.
+If you expect to consume a simple message like `#!python b"1"` or `#!python b"any_string"`, use a single argument as the function annotation.
 
-In this case your argument name has no matter cuz it is a total message body.
+In this case, your argument name does not matter, because it is the whole message body.
 
 See the examples below:
 
@@ -121,9 +121,9 @@ async def handler(body: str): ...
 
 #### JSON-like message
 
-If you expect to consume a message with a specific structure like JSON, multiple arguments is a shortcut for JSONs.
+If you expect to consume a message with a specific structure like JSON, multiple arguments are a shortcut for JSON.
 
-In this case your message will be unpacked and serialized by various fields
+In this case, your message will be unpacked and serialized by its fields.
 
 See the examples below:
 
@@ -132,7 +132,7 @@ async def handler(name: str, id: int): ...
     # waits for { "name": "John", "id": 1, ... }
 ```
 
-To consume single JSON, you should create a single-field pydantic model and use it for annotation.
+To consume a single JSON object, you should create a single-field pydantic model and use it for annotation.
 
 ```python linenums="1"
 class User(BaseModel):
@@ -145,7 +145,7 @@ async def handler(body: User): ...
 
 #### Partial body consuming
 
-If you don't need to use all the fields, you can simply specify the fields you want to use, and the other will be ignored. See the example below:
+If you don't need to use all the fields, you can simply specify the fields you want to use, and the others will be ignored. See the example below:
 
 ```python linenums="1" hl_lines="14-18"
 from faststream import FastStream

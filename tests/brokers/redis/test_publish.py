@@ -24,11 +24,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=queue + "resp")
-        async def m(msg) -> str:
+        async def m(msg: Any) -> str:
             return ""
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -52,10 +52,10 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
     ) -> None:
         pub_broker = self.get_broker()
 
-        msgs_queue = asyncio.Queue(maxsize=2)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(list=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
@@ -82,11 +82,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=batch_list)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         @pub_broker.subscriber(list=batch_list)
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -113,11 +113,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(stream=queue)
         @pub_broker.publisher(stream=stream)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         @pub_broker.subscriber(stream=stream)
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -149,7 +149,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
             return RedisResponse(1, correlation_id="1")
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg=Context("message")) -> None:
+        async def resp(msg: Any = Context("message")) -> None:
             mock(
                 body=msg.body,
                 correlation_id=msg.correlation_id,
@@ -208,10 +208,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
     ) -> None:
         broker = self.get_broker(apply_types=True)
 
-        destination = {type_queue: queue + "resp"}
+        source: dict[str, Any] = {type_queue: queue}
+        destination: dict[str, Any] = {type_queue: queue + "resp"}
         publisher = broker.publisher(**destination)
 
-        @broker.subscriber(**{type_queue: queue})
+        @broker.subscriber(**source)  # type: ignore[untyped-decorator]
         async def m(msg: str, pipe: Pipeline) -> None:
             for _ in range(5):
                 # publish 5 messages by publisher
@@ -222,7 +223,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
             await pipe.execute()
 
-        @broker.subscriber(**destination)
+        @broker.subscriber(**destination)  # type: ignore[untyped-decorator]
         async def resp(msg: str) -> None:
             mock(msg)
             if mock.call_count == 10:
@@ -232,7 +233,7 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
             await br.start()
 
             tasks = (
-                asyncio.create_task(br.publish("", **{type_queue: queue})),
+                asyncio.create_task(br.publish("", **source)),
                 asyncio.create_task(event.wait()),
             )
             await asyncio.wait(tasks, timeout=3)

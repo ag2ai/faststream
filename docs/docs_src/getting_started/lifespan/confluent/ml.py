@@ -1,10 +1,12 @@
+from typing import Any
+
 from faststream import Context, ContextRepo, FastStream
 from faststream.confluent import KafkaBroker
 
 broker = KafkaBroker("localhost:9092")
 app = FastStream(broker)
 
-ml_models = {}  # fake ML model
+ml_models: dict[str, Any] = {}  # fake ML model
 
 
 def fake_answer_to_everything_ml_model(x: float) -> float:

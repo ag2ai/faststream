@@ -14,7 +14,7 @@ FastStream mirrors the [RabbitMQ RPC](../rabbit/rpc.md){.internal-link} style: `
 
 ## MQTT 5.0 (recommended)
 
-Set `version="5.0"`. The producer uses zmqtt’s **`request()`**, which allocates a private **response topic**, subscribes, publishes with **Correlation Data**, and waits for one matching PUBLISH.
+Use `version="5.0"` (the default). The producer uses zmqtt’s **`request()`**, which allocates a private **response topic**, subscribes, publishes with **Correlation Data**, and waits for one matching PUBLISH.
 
 - You usually **do not** pass `reply_to` — it is generated for you.
 - **`correlation_id`** and **`headers`** are supported on the request and are carried in `PublishProperties`.

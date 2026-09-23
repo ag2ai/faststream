@@ -1,14 +1,14 @@
 import asyncio
 from contextlib import suppress
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from dirty_equals import HasLen, IsInstance, IsInt, IsPartialDict
-from redis.asyncio import Redis, RedisCluster
+from dirty_equals import HasLen, IsInt, IsPartialDict
+from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
-from faststream.redis import RedisBroker, StreamClaimUnsupportedError, StreamSub
+from faststream.redis import RedisBroker, StreamSub
 from faststream.redis.annotations import RedisBatchStreamMessage, RedisStreamMessage
 from tests.brokers.base.basic import BaseTestcaseConfig
 from tests.marks import require_redis_v710
@@ -16,7 +16,8 @@ from tests.marks import require_redis_v710
 
 async def skip_without_claim_support(broker: RedisBroker) -> None:
     """XREADGROUP CLAIM needs Redis server 8.4+; there is no client-side gate for it."""
-    info = await broker._connection.info("server")
+    client = await broker.connect()
+    info = await client.info("server")
     major, minor, *_ = info["redis_version"].split(".")
     if (int(major), int(minor)) < (8, 4):
         pytest.skip("XREADGROUP CLAIM requires Redis server 8.4+")
@@ -32,10 +33,11 @@ async def make_pending(
     for payload in payloads:
         await br.publish(payload, stream=queue)
 
+    client = await br.connect()
     with suppress(Exception):
-        await br._connection.xgroup_create(queue, group, id="0", mkstream=True)
+        await client.xgroup_create(queue, group, id="0", mkstream=True)
 
-    await br._connection.xreadgroup(
+    await client.xreadgroup(
         groupname=group,
         consumername="temp",
         streams={queue: ">"},
@@ -43,8 +45,8 @@ async def make_pending(
     )
 
 
-class StreamClaimTestcase(BaseTestcaseConfig):
-    client_cls: type[Redis | RedisCluster] = Redis
+class StreamClaimTestcase(BaseTestcaseConfig[Any]):
+    client_cls: Any = Redis
     """The client class whose `xreadgroup` the unsupported-server test patches; the cluster overrides it."""
 
     @pytest.mark.slow()
@@ -117,7 +119,7 @@ class StreamClaimTestcase(BaseTestcaseConfig):
                 claim_min_idle_time=300,
             ),
         )
-        async def handler(msg: list, message: RedisBatchStreamMessage) -> None:
+        async def handler(msg: list[Any], message: RedisBatchStreamMessage) -> None:
             snapshots.append(dict(message.raw_message))
             if sum(len(s["message_ids"]) for s in snapshots) >= 2:
                 event.set()
@@ -236,10 +238,15 @@ class StreamClaimTestcase(BaseTestcaseConfig):
 
     @pytest.mark.slow()
     @require_redis_v710
-    async def test_unsupported_server_stops_subscriber(
+    async def test_unsupported_server_stops_app(
         self,
         queue: str,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        # The global conftest disables the task supervisor; this test is about
+        # not entering its restart loop, so turn it back on.
+        monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")
+
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -253,6 +260,9 @@ class StreamClaimTestcase(BaseTestcaseConfig):
         async def handler(msg: str) -> None: ...
 
         async with self.patch_broker(consume_broker) as br:
+            fake_app = MagicMock()
+            br.context.set_global("app", fake_app)
+
             reject = AsyncMock(side_effect=ResponseError("syntax error"))
             with patch.object(self.client_cls, "xreadgroup", reject):
                 await br.start()
@@ -260,15 +270,12 @@ class StreamClaimTestcase(BaseTestcaseConfig):
 
                 calls_after_stop = reject.call_count
                 await asyncio.sleep(0.3)
-                # Stopped after the rejection instead of retrying in a hot loop
+                # The supervisor is live: a stable count proves the rejection
+                # stops the subscriber instead of restarting it in a hot loop
                 assert reject.call_count == calls_after_stop
 
-                errors = [
-                    task.exception()
-                    for task in br.subscribers[0].tasks
-                    if task.done() and not task.cancelled()
-                ]
-                assert errors == [IsInstance(StreamClaimUnsupportedError)]
+                assert not br.subscribers[0].running
+                fake_app.exit.assert_called_once()
 
     @pytest.mark.slow()
     @require_redis_v710

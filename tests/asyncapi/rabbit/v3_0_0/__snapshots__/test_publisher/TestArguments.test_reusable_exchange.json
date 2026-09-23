@@ -1,0 +1,143 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "key1:test-ex:Publisher": {
+      "address": "key1",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "test-ex",
+            "type": "direct",
+            "vhost": "/vhost"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "Message": {
+          "$ref": "#/components/messages/key1:test-ex:Publisher:Message"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    },
+    "key2:test-ex:Publisher": {
+      "address": "key2",
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.3.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "test-ex",
+            "type": "direct",
+            "vhost": "/vhost"
+          },
+          "is": "routingKey"
+        }
+      },
+      "messages": {
+        "Message": {
+          "$ref": "#/components/messages/key2:test-ex:Publisher:Message"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "key1:test-ex:Publisher:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/key1:test-ex:Publisher:Message:Payload"
+        },
+        "title": "key1:test-ex:Publisher:Message"
+      },
+      "key2:test-ex:Publisher:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/key2:test-ex:Publisher:Message:Payload"
+        },
+        "title": "key2:test-ex:Publisher:Message"
+      }
+    },
+    "schemas": {
+      "key1:test-ex:Publisher:Message:Payload": {},
+      "key2:test-ex:Publisher:Message:Payload": {}
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "key1:test-ex:Publisher": {
+      "action": "send",
+      "bindings": {
+        "amqp": {
+          "ack": true,
+          "bindingVersion": "0.3.0",
+          "cc": [
+            "key1"
+          ],
+          "deliveryMode": 1,
+          "mandatory": true
+        }
+      },
+      "channel": {
+        "$ref": "#/channels/key1:test-ex:Publisher"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/key1:test-ex:Publisher/messages/Message"
+        }
+      ]
+    },
+    "key2:test-ex:Publisher": {
+      "action": "send",
+      "bindings": {
+        "amqp": {
+          "ack": true,
+          "bindingVersion": "0.3.0",
+          "cc": [
+            "key2"
+          ],
+          "deliveryMode": 1,
+          "mandatory": true,
+          "priority": 10
+        }
+      },
+      "channel": {
+        "$ref": "#/channels/key2:test-ex:Publisher"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/key2:test-ex:Publisher/messages/Message"
+        }
+      ]
+    }
+  },
+  "servers": {
+    "development": {
+      "host": "guest:guest@localhost:5672",
+      "pathname": "/vhost",
+      "protocol": "amqp",
+      "protocolVersion": "0.9.1"
+    }
+  }
+}

@@ -29,6 +29,8 @@ class KeyValueWatchSubscriber(
     TasksMixin,
     LogicSubscriber["KeyValue.Entry"],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[KeyValue.KeyWatcher]"]
     _fetch_sub: UnsubscribeAdapter["KeyValue.KeyWatcher"] | None
 
@@ -186,6 +188,7 @@ class KeyValueWatchSubscriber(
                 if message:
                     await self.consume(message)
 
+    @override
     def _make_response_publisher(
         self,
         message: "StreamMessage[KeyValue.Entry]",

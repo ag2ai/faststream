@@ -61,12 +61,27 @@ if TYPE_CHECKING:
 class _CallOptions(NamedTuple):
     parser: Optional["CustomCallable"]
     decoder: Optional["CustomCallable"]
-    dependencies: Iterable["Dependant"]
+    dependencies: Sequence["Dependant"]
     codec: Optional["CodecProto"] = None
 
 
 class SubscriberUsecase(Endpoint, Generic[MsgType]):
     """A class representing an asynchronous handler."""
+
+    __slots__ = (
+        "__auto_ack_disabled",
+        "_call_decorators",
+        "_call_options",
+        "_decoder",
+        "_no_reply",
+        "_parser",
+        "ack_policy",
+        "calls",
+        "extra_watcher_options",
+        "lock",
+        "running",
+        "specification",
+    )
 
     lock: "AbstractContextManager[Any]"
     extra_watcher_options: dict[str, Any]
@@ -232,7 +247,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         *,
         parser_: Optional["CustomCallable"],
         decoder_: Optional["CustomCallable"],
-        dependencies_: Iterable["Dependant"],
+        dependencies_: Sequence["Dependant"],
         codec_: Optional["CodecProto"] = None,
     ) -> Self:
         self._call_options = _CallOptions(
@@ -251,7 +266,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
 
     @overload
@@ -262,7 +277,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> Callable[
         [Callable[P_HandlerParams, T_HandlerReturn]],
         "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
@@ -276,7 +291,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> Union[
         "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         Callable[
@@ -332,7 +347,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             if app := self._outer_config.context.get("app"):
                 app.exit()
 
-        except Exception:  # nosec B110
+        except Exception:  # nosec B110  # noqa: S110
             # All other exceptions were logged by CriticalLogMiddleware
             pass
 
@@ -477,7 +492,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         # which the `async for` protocol does not accept.
         raise NotImplementedError
 
-    def get_log_context(
+    def get_log_context(  # noqa: PLR6301
         self,
         message: Optional["StreamMessage[MsgType]"],
     ) -> dict[str, str]:

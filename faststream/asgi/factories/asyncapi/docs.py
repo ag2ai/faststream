@@ -45,7 +45,7 @@ def make_asyncapi_asgi(
         tags=tags,
         unique_id=unique_id,
     )
-    async def docs(scope: Scope) -> AsgiResponse:
+    async def docs(scope: Scope) -> AsgiResponse:  # noqa: ARG001
         nonlocal cached_docs
         if not cached_docs:
             cached_docs = get_asyncapi_html(

@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 
 from nats.aio.msg import Msg
@@ -39,7 +39,11 @@ if TYPE_CHECKING:
 
 
 class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
-    """Includable to NatsBroker router."""
+    """Includable to NatsBroker router.
+
+    Unslotted on purpose: `NatsRouter` mixes this with `BrokerRouter`, a sibling under
+    `Registrator`, and the stream builder this one adds makes the two lay-outs conflict.
+    """
 
     def __init__(self, **kwargs: Any) -> None:
         self._stream_builder = StreamBuilder()
@@ -71,7 +75,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -110,7 +114,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -149,7 +153,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: Union[str, "JStream"] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -188,7 +192,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: Union[str, "JStream"] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -220,14 +224,14 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         deliver_policy: Optional["api.DeliverPolicy"] = None,
         headers_only: bool | None = None,
         # pull arguments
-        pull_sub: Literal[True] = ...,
+        pull_sub: Union[Literal[True], "PullSub[Literal[False]]"] = ...,
         kv_watch: None = None,
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,
         # custom
         stream: Union[str, "JStream"] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -266,7 +270,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: Union[str, "JStream"] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -298,6 +302,45 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         deliver_policy: Optional["api.DeliverPolicy"] = None,
         headers_only: bool | None = None,
         # pull arguments
+        pull_sub: "PullSub[Literal[True]]" = ...,
+        kv_watch: None = None,
+        obj_watch: Literal[False] = False,
+        inbox_prefix: bytes = api.INBOX_PREFIX,
+        # custom
+        stream: Union[str, "JStream"] = ...,
+        # broker arguments
+        dependencies: Sequence["Dependant"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
+        persistent: bool = True,
+        max_workers: None = None,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # AsyncAPI information
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+    ) -> "BatchPullStreamSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        subject: str = "",
+        queue: str = "",
+        pending_msgs_limit: int | None = None,
+        pending_bytes_limit: int | None = None,
+        # Core arguments
+        max_msgs: int = 0,
+        # JS arguments
+        durable: str | None = None,
+        config: Optional["api.ConsumerConfig"] = None,
+        ordered_consumer: bool = False,
+        idle_heartbeat: float | None = None,
+        flow_control: bool | None = None,
+        deliver_policy: Optional["api.DeliverPolicy"] = None,
+        headers_only: bool | None = None,
+        # pull arguments
         pull_sub: PullSub = ...,
         kv_watch: None = None,
         obj_watch: Literal[False] = False,
@@ -305,7 +348,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: Union[str, "JStream"] = ...,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -344,7 +387,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -383,7 +426,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -422,7 +465,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: Union[str, "JStream", None] = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -461,7 +504,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # custom
         stream: Union[str, "JStream", None] = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -631,7 +674,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         router: "NatsRegistrator",
         *,
         prefix: str = "",
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:

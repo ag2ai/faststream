@@ -1,7 +1,10 @@
+from typing import Any
+
 import pytest
 
 from faststream.kafka import KafkaBroker, KafkaRoute
 from faststream.kafka.configs.broker import KafkaBrokerConfig
+from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
 
 
 @pytest.mark.kafka()
@@ -19,14 +22,16 @@ class TestBrokerClientRack:
 
         broker_config = broker.config.broker_config
         assert broker_config.client_rack == "us-east-1a"
-        assert broker_config.builder.keywords["client_rack"] == "us-east-1a"
+        # the builder is a `functools.partial`, typed as a plain callable
+        builder: Any = broker_config.builder
+        assert builder.keywords["client_rack"] == "us-east-1a"
 
     def test_broker_omits_client_rack_when_not_set(self) -> None:
         broker = KafkaBroker()
 
         # When client_rack is not provided it must not be passed to the
         # consumer at all, so older aiokafka versions remain unaffected.
-        builder = broker.config.broker_config.builder
+        builder: Any = broker.config.broker_config.builder
         assert "client_rack" not in builder.keywords
 
 
@@ -62,7 +67,7 @@ class TestSubscriberClientRack:
         )
 
         # The broker-level default still feeds the consumer builder...
-        builder = broker.config.broker_config.builder
+        builder: Any = broker.config.broker_config.builder
         assert builder.keywords["client_rack"] == "broker-rack"
         # ...while the subscriber override is forwarded at consume time and
         # takes precedence over the builder default.
@@ -81,9 +86,6 @@ class TestSubscriberClientRack:
         assert route.kwargs["client_rack"] == "route-rack"
 
     def test_fastapi_router_passes_client_rack(self) -> None:
-        pytest.importorskip("fastapi")
-        from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
-
         router = FastAPIKafkaRouter()
         sub = router.subscriber(
             "test-topic",

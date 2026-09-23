@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Install FastStream and write your first asynchronous Python consumer and publisher for
+  Kafka, RabbitMQ, NATS, Redis or MQTT in a few lines.
 search:
   boost: 10
 hide:
@@ -108,7 +111,7 @@ Install using `pip`:
 ## Basic Usage
 
 !!! note
-    Before continuing with the next steps, make sure you install *Fastream* CLI.
+    Before continuing with the next steps, make sure you install *FastStream* CLI.
     ```shell
     pip install "faststream[cli]"
     ```

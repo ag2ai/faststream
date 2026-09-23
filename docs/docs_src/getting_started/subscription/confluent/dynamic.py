@@ -2,7 +2,7 @@ from faststream.confluent import KafkaBroker, KafkaMessage
 
 async def main():
     async with KafkaBroker() as broker:  # connect the broker
-        subscriber = broker.subscriber("test-topic", persistent=False)
+        subscriber = broker.subscriber("dynamic-topic-confluent", persistent=False)
         await subscriber.start()
 
         message: KafkaMessage | None = await subscriber.get_one(timeout=3.0)
@@ -10,6 +10,6 @@ async def main():
         await subscriber.stop()
 
         async with subscriber:
-            message: KafkaMessage | None = await subscriber.get_one(timeout=3.0)
+            message = await subscriber.get_one(timeout=3.0)
 
     return message

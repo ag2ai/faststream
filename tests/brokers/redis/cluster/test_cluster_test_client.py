@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.redis import ListSub, StreamSub
@@ -25,7 +27,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber("test.{name}")
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -39,7 +41,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(list=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -53,7 +55,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(_) -> None:
+        async def m(_: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -67,7 +69,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(_) -> None:
+        async def m(_: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -85,7 +87,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
 
         @publisher
         @broker.subscriber(channel=queue)
-        async def m(_):
+        async def m(_: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -100,7 +102,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(stream=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -114,7 +116,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
         broker = self.get_broker()
 
         @broker.subscriber(stream=StreamSub(queue, batch=True))
-        async def m(_) -> None:
+        async def m(_: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -132,7 +134,7 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
 
         @publisher
         @broker.subscriber(channel=queue)
-        async def m(_):
+        async def m(_: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -150,10 +152,9 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     @pytest.mark.connected()
     async def test_with_real_testclient(
         self,
-        queue: str,
     ) -> None:
         pytest.skip("Real-cluster testclient requires running cluster")
 
     @pytest.mark.connected()
-    async def test_real_respect_middleware(self, queue: str) -> None:
+    async def test_real_respect_middleware(self) -> None:
         pytest.skip("Real-cluster middleware test requires running cluster")

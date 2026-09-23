@@ -47,6 +47,16 @@ KAFKA_ADDRESS_SYNTAX = AddressSyntax(
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
+    __slots__ = (
+        "_connection_args",
+        "_listener",
+        "_partitions",
+        "_pattern",
+        "_topics",
+        "consumer",
+        "group_id",
+    )
+
     consumer: Optional["AIOKafkaConsumer"]
 
     batch: bool
@@ -344,6 +354,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
+    __slots__ = ("parser",)
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
@@ -364,6 +376,7 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
 
+    @override
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "ConsumerRecord":
         assert consumer, "You should setup subscriber at first."
         return await consumer.getone()
@@ -385,6 +398,12 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
 
 
 class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
+    __slots__ = (
+        "batch_timeout_ms",
+        "max_records",
+        "parser",
+    )
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
@@ -444,6 +463,8 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
 
 
 class ConcurrentDefaultSubscriber(ConcurrentMixin["ConsumerRecord"], DefaultSubscriber):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
@@ -453,6 +474,11 @@ class ConcurrentDefaultSubscriber(ConcurrentMixin["ConsumerRecord"], DefaultSubs
 
 
 class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
+    __slots__ = (
+        "consumer_subgroup",
+        "max_workers",
+    )
+
     consumer_subgroup: list["AIOKafkaConsumer"]
 
     def __init__(
@@ -505,7 +531,7 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
                     ),
                 )
 
-                tg.start_soon(c.start)
+                _ = tg.start_soon(c.start)
 
         self._post_start()
 
@@ -517,12 +543,13 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
         if self.consumer_subgroup:
             async with anyio.create_task_group() as tg:
                 for consumer in self.consumer_subgroup:
-                    tg.start_soon(consumer.stop)
+                    _ = tg.start_soon(consumer.stop)
 
             self.consumer_subgroup = []
 
         await super().stop()
 
+    @override
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "KafkaRawMessage":
         assert consumer, "You should setup subscriber at first."
         message = await consumer.getone()

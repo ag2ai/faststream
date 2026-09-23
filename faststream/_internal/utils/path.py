@@ -92,7 +92,7 @@ class Address:
         return self._compiled
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AddressSyntax:
     """How one broker spells a wildcard where an Address template has a Path parameter.
 

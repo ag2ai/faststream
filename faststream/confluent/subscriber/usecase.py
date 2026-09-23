@@ -41,6 +41,15 @@ if TYPE_CHECKING:
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
+    __slots__ = (
+        "__connection_data",
+        "_partitions",
+        "_topics",
+        "consumer",
+        "group_id",
+        "polling_interval",
+    )
+
     _outer_config: "KafkaBrokerConfig"
     _call_wrapper_class = KafkaHandlerCallWrapper
 
@@ -281,6 +290,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber[Message]):
+    __slots__ = ("parser",)
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
@@ -313,6 +324,8 @@ class DefaultSubscriber(LogicSubscriber[Message]):
 
 
 class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
@@ -322,6 +335,11 @@ class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber)
 
 
 class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
+    __slots__ = (
+        "max_records",
+        "parser",
+    )
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
