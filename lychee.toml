@@ -17,4 +17,7 @@ exclude = [
     '^https?://(localhost|127\.0\.0\.1)',
     # answers 403 to anything that is not a browser
     '^https://sentry\.io/?$',
+    # the howto pages point contributors at the nav file by its path on `main`,
+    # which only carries it once 1.0.0 ships. Drop this line with that release.
+    '^https://github\.com/ag2ai/faststream/blob/main/docs/docs/en/SUMMARY\.md$',
 ]
