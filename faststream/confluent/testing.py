@@ -1,6 +1,6 @@
 from collections.abc import Callable, Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
@@ -378,7 +378,7 @@ async def build_message(
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
-        timestamp_ms=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp_ms=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 
@@ -409,7 +409,7 @@ def _build_mock_message(
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
-        timestamp_ms=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp_ms=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 

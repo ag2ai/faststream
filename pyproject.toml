@@ -13,7 +13,7 @@ authors = [
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 version = "1.0.0"
 
 keywords = [
@@ -34,7 +34,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -183,7 +182,7 @@ module-name = "faststream"
 [tool.mypy]
 files = ["faststream", "tests", "docs/docs_src"]
 strict = true
-python_version = "3.10"
+python_version = "3.11"
 strict_bytes = true
 local_partial_types = true
 ignore_missing_imports = true
@@ -264,14 +263,14 @@ disallow_subclassing_any = false
 # user does. Pyright still follows imports into `faststream/`, so breakage in
 # the framework surfaces here — but internal annotations are not policed.
 include = ["tests/mypy"]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "strict"
 
 [tool.pyrefly]
 # Same scope as pyright, for the same reason: the documented API has to type
 # check for a user of any checker, internal annotations are mypy's job.
 project-includes = ["tests/mypy"]
-python-version = "3.10"
+python-version = "3.11"
 # the include is explicit; a checkout under an ignored path (a worktree) matches nothing otherwise
 use-ignore-files = false
 

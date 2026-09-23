@@ -1,4 +1,4 @@
-from typing_extensions import assert_type
+from typing import assert_type
 
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream.mqtt import (

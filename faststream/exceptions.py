@@ -157,11 +157,6 @@ To use feature which need yaml, please install dependencies:\n
 pip install PyYAML
 """
 
-INSTALL_TOML = """
-To use feature which need toml, please install dependencies:\n
-pip install tomli
-"""
-
 INSTALL_WATCHFILES = """
 To use restart feature, please install dependencies:\n
 pip install watchfiles

@@ -1,7 +1,7 @@
 import asyncio
+from typing import assert_type
 
 from confluent_kafka import Message
-from typing_extensions import assert_type
 
 from faststream.confluent import (
     ConfluentConfig,

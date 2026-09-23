@@ -1,7 +1,6 @@
-from typing import Any
+from typing import Any, Self
 
 from pydantic import BaseModel
-from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.schema.operation import Operation as OperationSpec

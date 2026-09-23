@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import suppress
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -26,7 +26,7 @@ class SimpleDataclass:
     r: str
 
 
-now = datetime.now(timezone.utc)
+now = datetime.now(UTC)
 
 parametrized = (
     pytest.param(

@@ -1,8 +1,8 @@
 from collections.abc import Awaitable, Callable
+from typing import assert_type
 
 import prometheus_client
 from nats.aio.msg import Msg
-from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.nats import (

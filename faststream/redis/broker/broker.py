@@ -5,6 +5,7 @@ from typing import (
     ClassVar,
     Optional,
     cast,
+    overload,
 )
 from urllib.parse import urlparse
 
@@ -15,7 +16,7 @@ from redis.asyncio.connection import (
     parse_url,
 )
 from redis.exceptions import ConnectionError
-from typing_extensions import Unpack, overload, override
+from typing_extensions import Unpack, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY

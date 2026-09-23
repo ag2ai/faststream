@@ -21,7 +21,6 @@ __all__ = (
     "BaseModel",
     "CoreSchema",
     "EmailStr",
-    "ExceptionGroup",
     "GetJsonSchemaHandler",
     "PydanticUndefined",
     "json_dumps",
@@ -153,11 +152,6 @@ else:
     ) -> JsonSchemaValue:
         return {}
 
-
-if sys.version_info >= (3, 11):
-    ExceptionGroup = ExceptionGroup  # noqa: F821,PLW0127
-else:
-    from exceptiongroup import ExceptionGroup
 
 try:
     import email_validator

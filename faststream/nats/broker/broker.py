@@ -7,6 +7,7 @@ from typing import (
     Optional,
     Union,
     cast,
+    overload,
 )
 from urllib.parse import urlparse
 
@@ -29,7 +30,7 @@ from nats.aio.client import (
 from nats.aio.msg import Msg
 from nats.errors import Error
 from nats.js.errors import BadRequestError
-from typing_extensions import deprecated, overload, override
+from typing_extensions import deprecated, override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.broker import BrokerUsecase
@@ -706,7 +707,7 @@ class NatsBroker(
                     subjects=list(subjects),
                 )
 
-            except BadRequestError as e:  # noqa: PERF203
+            except BadRequestError as e:
                 self._setup_logger()
 
                 log_context = LogicSubscriber.build_log_context(

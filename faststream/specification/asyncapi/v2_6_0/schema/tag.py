@@ -1,7 +1,6 @@
-from typing import Any, cast, overload
+from typing import Any, Self, cast, overload
 
 from pydantic import BaseModel
-from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
 from faststream._internal.utils.data import filter_by_dict

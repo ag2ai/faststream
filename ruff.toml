@@ -7,7 +7,7 @@ preview = true
 line-length = 90
 indent-width = 4
 
-target-version = "py310"
+target-version = "py311"
 
 include = [
     "faststream/**/*.py",
@@ -159,8 +159,6 @@ ignore-variadic-names = true
 banned-module-level-imports = [
     "yaml",
     "uvloop",
-    "tomli",
-    "tomllib",
     "faststream._internal.cli.supervisors.watchfiles",
     "faststream._internal.cli.utils.errors",
     # build many pydantic models on import; loaded only when a schema is generated

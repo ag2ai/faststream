@@ -1,6 +1,6 @@
 import sys
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 import pydantic
@@ -313,7 +313,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
             }
 
     def test_pydantic_model_with_enum(self) -> None:
-        class Status(str, Enum):
+        class Status(StrEnum):
             registered = "registered"
             banned = "banned"
 

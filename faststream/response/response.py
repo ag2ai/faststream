@@ -1,7 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
-
-from typing_extensions import Self
+from typing import Any, Self
 
 from .publish_type import PublishType
 

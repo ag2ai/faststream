@@ -1,8 +1,8 @@
 import warnings
 from copy import deepcopy
-from typing import Any, Generic, Literal, overload
+from typing import Any, Generic, Literal, Self, overload
 
-from typing_extensions import Self, TypeVar
+from typing_extensions import TypeVar
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError

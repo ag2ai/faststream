@@ -1,5 +1,6 @@
+from typing import Self
+
 from pydantic import BaseModel
-from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.schema import PublisherSpec, SubscriberSpec

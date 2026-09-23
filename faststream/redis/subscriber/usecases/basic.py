@@ -95,7 +95,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             try:
                 await self._get_msgs(*args)
 
-            except Exception as e:  # noqa: PERF203
+            except Exception as e:
                 self._log(
                     log_level=logging.ERROR,
                     message="Message fetch error",

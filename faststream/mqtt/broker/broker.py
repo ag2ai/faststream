@@ -4,12 +4,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Optional,
+    assert_never,
 )
 from urllib.parse import urlsplit
 
 import zmqtt
 from fast_depends import Provider, dependency_provider
-from typing_extensions import assert_never, override
+from typing_extensions import override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY

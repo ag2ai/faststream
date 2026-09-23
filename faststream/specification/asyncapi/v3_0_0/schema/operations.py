@@ -1,8 +1,7 @@
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+from typing import Any, Self
 
 from pydantic import BaseModel, Field
-from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.schema.operation import Operation as OperationSpec
@@ -13,7 +12,7 @@ from .tag import Tag
 from .utils import Reference
 
 
-class Action(str, Enum):
+class Action(StrEnum):
     SEND = "send"
     RECEIVE = "receive"
 

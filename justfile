@@ -15,7 +15,7 @@ default:
 # Infra
 [doc("Init infra")]
 [group("infra")]
-init python="3.10":
+init python="3.11":
   docker build . --build-arg PYTHON_VERSION={{python}}
   uv sync --group dev -p {{python}}
 

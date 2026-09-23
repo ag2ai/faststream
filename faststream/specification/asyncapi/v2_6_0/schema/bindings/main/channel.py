@@ -1,7 +1,6 @@
-from typing import overload
+from typing import Self, overload
 
 from pydantic import BaseModel
-from typing_extensions import Self
 
 from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema.bindings import (
