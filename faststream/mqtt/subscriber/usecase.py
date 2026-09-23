@@ -223,6 +223,8 @@ class MQTTDefaultSubscriber(MQTTBaseSubscriber):
 class MQTTConcurrentSubscriber(ConcurrentMixin[zmqtt.Message], MQTTBaseSubscriber):
     """Concurrent MQTT subscriber — processes up to max_workers messages in parallel."""
 
+    __slots__ = ()
+
     @override
     async def start(self) -> None:
         await super().start()

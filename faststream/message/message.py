@@ -23,13 +23,17 @@ _UNSET = object()
 
 
 def _slot_names(cls: type) -> tuple[str, ...]:
-    """Every slot a message class holds, private names mangled as they are stored."""
+    """Every slot a message class holds, private names mangled as they are stored.
+
+    `__weakref__` is left out: a weak reference belongs to the object, not its copy.
+    """
     return tuple(
         f"_{owner.__name__.lstrip('_')}{name}"
         if name.startswith("__") and not name.endswith("__")
         else name
         for owner in cls.__mro__
         for name in owner.__dict__.get("__slots__", ())
+        if name != "__weakref__"
     )
 
 
@@ -45,6 +49,8 @@ class StreamMessage(Generic[MsgType]):
     __slots__ = (
         "__decoded_caches",
         "__decoder",
+        # User code may key a WeakKeyDictionary by the message
+        "__weakref__",
         # The FastAPI plugin parks its BackgroundTasks here and
         # `_BackgroundMiddleware` runs them; unset on every other path.
         "background",

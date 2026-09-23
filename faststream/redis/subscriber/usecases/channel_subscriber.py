@@ -34,14 +34,7 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
-    """Unslotted on purpose.
-
-    `RedisClusterBroker._make_channel_subscriber` replaces `start` on the instance,
-    which needs a `__dict__` to put the replacement in.
-
-    NOTE: the replacement goes away with the native async cluster Pub/Sub (#3131,
-    redis-py 8, on the 1.0.0 branch); slot this class once that reaches `main`.
-    """
+    __slots__ = ()
 
     def __init__(
         self,
@@ -185,6 +178,8 @@ class ChannelConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     ChannelSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

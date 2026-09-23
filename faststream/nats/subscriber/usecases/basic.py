@@ -125,6 +125,8 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 class DefaultSubscriber(LogicSubscriber[MsgType]):
     """Basic class for Core & JetStream Subscribers."""
 
+    __slots__ = ()
+
     def _make_response_publisher(
         self,
         message: "StreamMessage[Any]",

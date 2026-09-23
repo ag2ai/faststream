@@ -110,11 +110,7 @@ class LogicPublisher(PublisherUsecase):
 
 
 class DefaultPublisher(LogicPublisher):
-    """Unslotted on purpose.
-
-    `create_publisher(autoflush=True)` wraps `_basic_publish` on the instance, which
-    needs a `__dict__` to hold the replacement.
-    """
+    __slots__ = ()
 
     def __init__(
         self,
@@ -310,11 +306,7 @@ class DefaultPublisher(LogicPublisher):
 
 
 class BatchPublisher(LogicPublisher):
-    """Unslotted on purpose.
-
-    `create_publisher(autoflush=True)` wraps `_basic_publish_batch` on the instance, which
-    needs a `__dict__` to hold the replacement.
-    """
+    __slots__ = ()
 
     def __init__(
         self,

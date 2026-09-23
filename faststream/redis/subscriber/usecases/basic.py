@@ -140,6 +140,8 @@ class ConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     LogicSubscriber,
 ):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",

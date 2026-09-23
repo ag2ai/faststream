@@ -262,6 +262,8 @@ class DefaultSubscriber(LogicSubscriber[Message]):
 
 
 class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

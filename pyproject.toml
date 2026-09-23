@@ -524,16 +524,12 @@ exclude-classes = '''
       # mixed into each broker's slotted subscriber; two slotted bases conflict
 | ^faststream\.(kafka|confluent)\.message:FakeConsumer$
       # the FAKE_CONSUMER singleton, whose methods tests patch on the instance
-| ^faststream\.(kafka|confluent)\.publisher\.usecase:(Default|Batch)Publisher$
-      # `create_publisher(autoflush=True)` wraps `_basic_publish*` on the instance
 | ^faststream\.nats\.broker\.registrator:NatsRegistrator$
       # NatsRouter mixes it with BrokerRouter, a slotted sibling under Registrator
 | ^faststream\.nats\.subscriber\.usecases\.basic:LogicSubscriber$
       # ConcurrentCoreSubscriber mixes TasksMixin in beside it; the lay-outs conflict
 | ^faststream\.rabbit\.configs\.base:RabbitConfig$
       # mixed into two slotted dataclass configs; the lay-outs conflict
-| ^faststream\.redis\.subscriber\.usecases\.channel_subscriber:ChannelSubscriber$
-      # RedisClusterBroker replaces `start` on the instance; slot it once #3131 is on main
 '''
 
 [tool.typos.default.extend-identifiers]
