@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Iterable, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
@@ -91,7 +91,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
 
     @overload
@@ -102,7 +102,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> Callable[
         [Callable[P_HandlerParams, T_HandlerReturn]],
         "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
@@ -116,7 +116,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         filter: "Filter[Any]" = default_filter,
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
     ) -> Union[
         "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
         Callable[

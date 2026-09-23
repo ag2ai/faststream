@@ -319,6 +319,10 @@ class MockConfluentMessage(Message):
     def len(self) -> int:
         return 0 if self._raw_msg is None else len(self._raw_msg)
 
+    # `Message.__len__` reads the C-level value this mock never sets
+    def __len__(self) -> int:
+        return self.len()
+
     def error(self) -> KafkaError | None:
         return self._error
 

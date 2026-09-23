@@ -168,7 +168,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue)
-        async def handle(msg) -> None: ...
+        async def handle(msg: str) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", queue, key=b"k", partition=1)
@@ -194,15 +194,16 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @require_aiopika
     async def test_kafka_fields_refuse_another_brokers_message(self, queue: str) -> None:
-        from faststream.rabbit import RabbitBroker, TestRabbitBroker
+        from faststream.rabbit import RabbitBroker, TestRabbitBroker  # noqa: PLC0415
 
         broker = self.get_broker()
         rabbit = RabbitBroker()
 
-        # The first decorator decides the wrapper class: Kafka's here
-        @rabbit.subscriber(queue)
         @broker.subscriber(queue)
-        async def handle(msg) -> None: ...
+        async def handle(msg: str) -> None: ...
+
+        # The broker that wraps a handler first decides its wrapper class: Kafka's here
+        _ = rabbit.subscriber(queue)(handle)
 
         async with self.patch_broker(broker), TestRabbitBroker(rabbit):
             await rabbit.publish("hello", queue)
