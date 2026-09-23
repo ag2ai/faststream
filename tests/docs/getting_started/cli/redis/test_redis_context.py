@@ -2,12 +2,10 @@ import pytest
 
 from faststream import TestApp
 from faststream.redis import TestRedisBroker
-from tests.marks import pydantic_v2
 from tests.mocks import mock_pydantic_settings_env
 
 
 @pytest.mark.redis()
-@pydantic_v2
 @pytest.mark.asyncio()
 async def test() -> None:
     with mock_pydantic_settings_env({"any_flag": "True"}):

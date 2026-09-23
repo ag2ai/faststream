@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 import typer
 from pydantic import ValidationError
 
-from faststream._internal._compat import json_dumps, model_parse
+from faststream._internal._compat import json_dumps
 from faststream._internal.cli.utils.imports import import_from_string
 from faststream.exceptions import INSTALL_WATCHFILES, INSTALL_YAML, SCHEMA_NOT_SUPPORTED
 from faststream.specification.asyncapi.site import serve_app
@@ -236,7 +236,7 @@ def _parse_and_serve(args: RunArgs) -> None:
         raw_schema = None
         for version_label, schema in (("3.0", SchemaV3), ("2.6", SchemaV2_6)):
             try:
-                raw_schema = model_parse(schema, data)
+                raw_schema = schema.model_validate_json(data)
                 break
             except ValidationError as e:
                 validation_errors.append((version_label, e))

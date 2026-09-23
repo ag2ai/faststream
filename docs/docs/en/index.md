@@ -236,15 +236,7 @@ to define messages using a declarative syntax, making it easy to specify the fie
     ```
 
 !!! tip ""
-    By default we use **PydanticV2** written in **Rust** as serialization library, but you can downgrade it manually, if your platform has no **Rust** support - **FastStream** will work correctly with **PydanticV1** as well.
-
-    To choose the **Pydantic** version, you can install the required one using the regular
-
-    ```shell
-    pip install pydantic==1.X.Y
-    ```
-
-    **FastStream** (and **FastDepends** inside) should work correctly with almost any version.
+    By default we use **Pydantic v2**, written in **Rust**, as the serialization library.
 
 
 ### Msgspec serialization

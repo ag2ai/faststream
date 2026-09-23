@@ -2,7 +2,6 @@ from typing import Self
 
 from pydantic import BaseModel
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     amqp as amqp_bindings,
     http as http_bindings,
@@ -35,13 +34,7 @@ class OperationBinding(BaseModel):
     redis: redis_bindings.OperationBinding | None = None
     http: http_bindings.OperationBinding | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @classmethod
     def from_sub(cls, binding: SpecBinding | None) -> Self | None:

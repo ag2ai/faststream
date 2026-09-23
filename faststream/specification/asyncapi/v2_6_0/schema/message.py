@@ -2,7 +2,6 @@ from typing import Any, Self
 
 from pydantic import BaseModel
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema.tag import Tag
 from faststream.specification.schema.message import Message as SpecMessage
 
@@ -21,13 +20,7 @@ class CorrelationId(BaseModel):
     location: str
     description: str | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
 
 class Message(BaseModel):
@@ -63,13 +56,7 @@ class Message(BaseModel):
 
     tags: list[Tag | dict[str, Any]] | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @classmethod
     def from_spec(cls, message: SpecMessage) -> Self:

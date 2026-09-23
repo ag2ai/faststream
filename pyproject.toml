@@ -52,12 +52,12 @@ classifiers = [
     "Environment :: Web Environment",
     "Framework :: AsyncIO",
     "Framework :: Pydantic",
-    "Framework :: Pydantic :: 1",
     "Framework :: Pydantic :: 2",
 ]
 
 dependencies = [
     "fast-depends[pydantic]>=3.0.9",
+    "pydantic>=2.4,<3",
     "typing-extensions>=4.12.0",
     "anyio>=4.14.2,<5",
 ]
@@ -247,11 +247,6 @@ disable_error_code = ["comparison-overlap"]
 # Page fragments: `tracer_provider` is built by the code block shown above them.
 module = ["docs.docs_src.getting_started.opentelemetry.*"]
 disable_error_code = ["name-defined"]
-
-[[tool.mypy.overrides]]
-# The pydantic v1 spelling, shown beside the v2 one.
-module = ["docs.docs_src.getting_started.config.settings_base_1"]
-ignore_errors = true
 
 [[tool.mypy.overrides]]
 # tornado is not installed, so its `RequestHandler` is `Any`.
