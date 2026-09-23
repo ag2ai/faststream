@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional
 from fast_depends import Provider
 from typing_extensions import Self
 
-from faststream._internal.configs import BrokerConfigType
+from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import (
     BrokerMiddleware,
     ConnectionType,
@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 
 
 class BrokerUsecase(
-    Registrator[MsgType, BrokerConfigType],
+    Registrator[MsgType, BrokerConfigType_co],
     BrokerPublishMixin[MsgType],
-    Generic[MsgType, ConnectionType, BrokerConfigType],
+    Generic[MsgType, ConnectionType, BrokerConfigType_co],
 ):
     """Basic class for brokers-only.
 
@@ -42,7 +42,7 @@ class BrokerUsecase(
     def __init__(
         self,
         *,
-        config: BrokerConfigType,
+        config: BrokerConfigType_co,
         specification: "BrokerSpec",
         routers: Iterable[Registrator[Any, Any]],
         **connection_kwargs: Any,
