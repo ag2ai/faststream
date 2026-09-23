@@ -7,8 +7,6 @@ from faststream.redis.response import RedisPublishCommand
 
 
 class RedisTelemetryMiddleware(TelemetryMiddleware[RedisPublishCommand]):
-    __slots__ = ()
-
     def __init__(
         self,
         *,

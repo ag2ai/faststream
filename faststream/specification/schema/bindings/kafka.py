@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass(slots=True)
+@dataclass
 class ChannelBinding:
     """A class to represent a channel binding.
 
@@ -25,7 +25,7 @@ class ChannelBinding:
     # topicConfiguration
 
 
-@dataclass(slots=True)
+@dataclass
 class OperationBinding:
     """A class to represent an operation binding.
 

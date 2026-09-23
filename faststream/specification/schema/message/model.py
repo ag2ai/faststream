@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass(slots=True)
+@dataclass
 class Message:
     payload: dict[str, Any]  # JSON Schema
 

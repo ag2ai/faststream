@@ -14,13 +14,6 @@ if TYPE_CHECKING:
 class TestApp:
     """A class to represent a test application."""
 
-    __slots__ = (
-        "_extra_options",
-        "app",
-        "exit_stack",
-        "lifespan_scope",
-    )
-
     __test__ = False
 
     app: "Application"

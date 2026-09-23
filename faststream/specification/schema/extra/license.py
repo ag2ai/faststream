@@ -9,7 +9,7 @@ class LicenseDict(TypedDict, total=False):
     url: AnyHttpUrl | str
 
 
-@dataclass(slots=True)
+@dataclass
 class License:
     name: str
     url: AnyHttpUrl | str | None = None

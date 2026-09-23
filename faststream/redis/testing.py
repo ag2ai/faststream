@@ -61,7 +61,7 @@ __all__ = (
 )
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class Entry:
     handler: "LogicSubscriber"
     msg: Any
@@ -71,12 +71,6 @@ PELKey = tuple[str | None, uuid.UUID, str | None]
 
 
 class PEL:
-    __slots__ = (
-        "entries",
-        "put",
-        "remove",
-    )
-
     def __init__(self) -> None:
         self.entries: dict[PELKey, Entry] = {}
         self.put = MagicMock(wraps=self._put)
@@ -102,8 +96,6 @@ class TestRedisBroker(
     broker=RedisBroker,
 ):
     """A class to test Redis brokers."""
-
-    __slots__ = ("pel",)
 
     @overload
     def __init__(
@@ -238,13 +230,6 @@ class TestRedisBroker(
 
 
 class FakeProducer(RedisFastProducer):
-    __slots__ = (
-        "_fake_config",
-        "broker",
-        "brokers",
-        "pel",
-    )
-
     def __init__(
         self,
         broker: RedisBroker,
@@ -516,8 +501,6 @@ async def build_message(
 
 
 class Visitor(Protocol):
-    __slots__ = ()
-
     def visit(
         self,
         *,
@@ -531,8 +514,6 @@ class Visitor(Protocol):
 
 
 class ChannelVisitor(Visitor):
-    __slots__ = ()
-
     @override
     def visit(
         self,
@@ -584,8 +565,6 @@ class ChannelVisitor(Visitor):
 
 
 class ListVisitor(Visitor):
-    __slots__ = ()
-
     @override
     def visit(
         self,
@@ -625,8 +604,6 @@ class ListVisitor(Visitor):
 
 
 class StreamVisitor(Visitor):
-    __slots__ = ()
-
     @override
     def visit(
         self,

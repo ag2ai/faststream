@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 class NatsPrometheusMiddleware(
     PrometheusMiddleware[Msg | Sequence[Msg], NatsPublishCommand],
 ):
-    __slots__ = ()
-
     def __init__(
         self,
         *,

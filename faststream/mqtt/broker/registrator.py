@@ -30,8 +30,6 @@ if TYPE_CHECKING:
 class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
     """Includable to MQTTBroker router."""
 
-    __slots__ = ()
-
     @overload  # type: ignore[override]
     def subscriber(
         self,

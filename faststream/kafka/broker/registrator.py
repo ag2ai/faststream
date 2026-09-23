@@ -52,8 +52,6 @@ class KafkaRegistrator(
 ):
     """Includable to KafkaBroker router."""
 
-    __slots__ = ()
-
     @overload  # type: ignore[override]
     def subscriber(
         self,

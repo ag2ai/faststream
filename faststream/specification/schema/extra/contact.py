@@ -12,7 +12,7 @@ class ContactDict(TypedDict, total=False):
     email: EmailStr
 
 
-@dataclass(slots=True)
+@dataclass
 class Contact:
     name: str
     url: AnyHttpUrl | str | None = None

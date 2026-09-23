@@ -19,22 +19,6 @@ if TYPE_CHECKING:
 MsgType = TypeVar("MsgType")
 
 _NOT_CACHED = object()
-_UNSET = object()
-
-
-def _slot_names(cls: type) -> tuple[str, ...]:
-    """Every slot a message class holds, private names mangled as they are stored.
-
-    `__weakref__` is left out: a weak reference belongs to the object, not its copy.
-    """
-    return tuple(
-        f"_{owner.__name__.lstrip('_')}{name}"
-        if name.startswith("__") and not name.endswith("__")
-        else name
-        for owner in cls.__mro__
-        for name in owner.__dict__.get("__slots__", ())
-        if name != "__weakref__"
-    )
 
 
 class AckStatus(str, Enum):
@@ -45,28 +29,6 @@ class AckStatus(str, Enum):
 
 class StreamMessage(Generic[MsgType]):
     """Generic class to represent a stream message."""
-
-    __slots__ = (
-        "__decoded_caches",
-        "__decoder",
-        # User code may key a WeakKeyDictionary by the message
-        "__weakref__",
-        # The FastAPI plugin parks its BackgroundTasks here and
-        # `_BackgroundMiddleware` runs them; unset on every other path.
-        "background",
-        "batch_headers",
-        "body",
-        "committed",
-        "content_type",
-        "correlation_id",
-        "headers",
-        "message_id",
-        "path",
-        "processed",
-        "raw_message",
-        "reply_to",
-        "source_type",
-    )
 
     def __init__(
         self,
@@ -112,11 +74,7 @@ class StreamMessage(Generic[MsgType]):
 
     def __copy__(self) -> Self:
         message = self.__class__.__new__(self.__class__)
-        # Walks the MRO, so a broker's own slots (`KafkaMessage.consumer`) come
-        # along with this class's; a slot never assigned stays unset on the copy.
-        for name in _slot_names(self.__class__):
-            if (value := getattr(self, name, _UNSET)) is not _UNSET:
-                setattr(message, name, value)
+        message.__dict__.update(self.__dict__)
         # A copy answers for its own body, so it must not share the decode cache
         message.__decoded_caches = {}
         return message

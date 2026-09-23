@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic
 
 
-@dataclass(slots=True)
+@dataclass
 class ConsumerBuilder:
     config: "ConfluentFastConfig"
     admin: "AdminService"

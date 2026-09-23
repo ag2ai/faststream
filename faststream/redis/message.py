@@ -41,7 +41,7 @@ class UnifyRedisDict(TypedDict):
 
 
 class RedisMessage(BrokerStreamMessage[UnifyRedisDict]):
-    __slots__ = ()
+    pass
 
 
 class PubSubMessage(TypedDict):
@@ -54,7 +54,7 @@ class PubSubMessage(TypedDict):
 
 
 class RedisChannelMessage(BrokerStreamMessage[PubSubMessage]):
-    __slots__ = ()
+    pass
 
 
 class _ListMessage(TypedDict):
@@ -80,13 +80,9 @@ class BatchListMessage(_ListMessage):
 class RedisListMessage(BrokerStreamMessage[DefaultListMessage]):
     """StreamMessage for single List message."""
 
-    __slots__ = ()
-
 
 class RedisBatchListMessage(BrokerStreamMessage[BatchListMessage]):
     """StreamMessage for single List message."""
-
-    __slots__ = ()
 
     decoded_body: list["DecodedMessage"]
 
@@ -118,8 +114,6 @@ _StreamMsgType = TypeVar("_StreamMsgType", bound=_StreamMessage)
 
 
 class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
-    __slots__ = ()
-
     @override
     async def ack(
         self,
@@ -156,8 +150,6 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
-    __slots__ = ()
-
     async def get_delivery_count(
         self,
         redis: "Redis[bytes]",
@@ -184,6 +176,4 @@ class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
 
 
 class RedisBatchStreamMessage(_RedisStreamMessageMixin[BatchStreamMessage]):
-    __slots__ = ()
-
     decoded_body: list["DecodedMessage"]

@@ -50,8 +50,6 @@ class TestRabbitBroker(
 ):
     """A class to test RabbitMQ brokers."""
 
-    __slots__ = ()
-
     @overload
     def __init__(
         self: "TestRabbitBroker[RabbitBroker]",
@@ -149,8 +147,6 @@ class PatchedMessage(IncomingMessage):
     This class extends aio_pika's IncomingMessage class and is used to simulate RabbitMQ message handling during tests.
     """
 
-    __slots__ = ()
-
     routing_key: str
 
     async def ack(self, multiple: bool = False) -> None:
@@ -245,14 +241,6 @@ class FakeProducer(AioPikaFastProducer):
 
     This class extends AioPikaFastProducer and is used to simulate RabbitMQ message publishing during tests.
     """
-
-    __slots__ = (
-        "_decoder",
-        "_parser",
-        "broker",
-        "brokers",
-        "codec",
-    )
 
     def __init__(
         self,

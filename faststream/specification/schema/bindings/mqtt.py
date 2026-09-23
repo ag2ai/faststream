@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass(slots=True)
+@dataclass
 class ChannelBinding:
     """MQTT channel binding.
 
@@ -27,7 +27,7 @@ class ChannelBinding:
     bindingVersion: str = "0.2.0"
 
 
-@dataclass(slots=True)
+@dataclass
 class OperationBinding:
     """MQTT operation binding.
 
@@ -44,7 +44,7 @@ class OperationBinding:
     bindingVersion: str = "0.2.0"
 
 
-@dataclass(slots=True)
+@dataclass
 class LastWillBinding:
     """MQTT Last Will and Testament configuration.
 
@@ -61,7 +61,7 @@ class LastWillBinding:
     retain: bool = False
 
 
-@dataclass(slots=True)
+@dataclass
 class ServerBinding:
     """MQTT server binding.
 
@@ -84,7 +84,7 @@ class ServerBinding:
     bindingVersion: str = "0.2.0"
 
 
-@dataclass(slots=True)
+@dataclass
 class MessageBinding:
     """MQTT 5.0 message binding.
 

@@ -13,18 +13,6 @@ class ClientDisconnectError(Exception): ...
 
 
 class AsgiRequest:
-    __slots__ = (
-        "_body",
-        "_headers",
-        "_is_disconnected",
-        "_json",
-        "_query_params",
-        "_receive",
-        "_scope",
-        "_send",
-        "_stream_consumed",
-    )
-
     def __init__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         self._scope = scope
         self._receive = receive

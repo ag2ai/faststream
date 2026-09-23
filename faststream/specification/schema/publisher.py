@@ -4,7 +4,7 @@ from .bindings import ChannelBinding
 from .operation import Operation
 
 
-@dataclass(slots=True)
+@dataclass
 class PublisherSpec:
     """One publisher, as the specification generators see it.
 

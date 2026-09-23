@@ -17,8 +17,6 @@ if TYPE_CHECKING:
 
 
 class BrokerPublishMixin(Generic[MsgType]):
-    __slots__ = ()
-
     @property
     @abstractmethod
     def middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:

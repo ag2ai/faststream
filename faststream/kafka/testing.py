@@ -45,8 +45,6 @@ class TestKafkaBroker(
 ):
     """A class to test Kafka brokers."""
 
-    __slots__ = ()
-
     @overload
     def __init__(
         self: "TestKafkaBroker[KafkaBroker]",
@@ -140,8 +138,6 @@ class TestKafkaBroker(
 
 
 class FakeConsumer:
-    __slots__ = ()
-
     async def start(self) -> None:
         pass
 
@@ -157,14 +153,6 @@ class FakeProducer(AioKafkaFastProducer):
 
     This class extends AioKafkaFastProducer and is used to simulate Kafka message publishing during tests.
     """
-
-    __slots__ = (
-        "_decoder",
-        "_parser",
-        "broker",
-        "brokers",
-        "codec",
-    )
 
     def __init__(
         self,

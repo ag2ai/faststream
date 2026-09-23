@@ -45,8 +45,6 @@ class TryItOutForm(TypedDict):
 class TryItOutProcessor:
     """Dispatch try-it-out requests by the exact AsyncAPI channel when possible."""
 
-    __slots__ = ("_entries",)
-
     def __init__(self, *brokers: "BrokerUsecase[Any, Any, Any]") -> None:
         self._entries: list[
             tuple[BrokerUsecase[Any, Any, Any], type[TestBroker[Any, Any]]]

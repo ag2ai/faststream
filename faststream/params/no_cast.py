@@ -14,8 +14,6 @@ class NoCastField(CustomField):
     `data: Annotated[..., NoCast()]`
     """
 
-    __slots__ = ()
-
     def __init__(self) -> None:
         super().__init__(cast=False)
 

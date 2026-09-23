@@ -13,8 +13,6 @@ if TYPE_CHECKING:
 class RedisPrometheusMiddleware(
     PrometheusMiddleware[dict[str, Any], RedisPublishCommand]
 ):
-    __slots__ = ()
-
     def __init__(
         self,
         *,

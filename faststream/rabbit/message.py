@@ -10,8 +10,6 @@ class RabbitMessage(StreamMessage[IncomingMessage]):
     or nack-ing RabbitMQ messages.
     """
 
-    __slots__ = ()
-
     async def ack(
         self,
         multiple: bool = False,

@@ -30,8 +30,6 @@ class RedisPublisher(ArgsContainer):
     Just a copy of RedisRegistrator.publisher(...) arguments.
     """
 
-    __slots__ = ()
-
     def __init__(
         self,
         channel: Union[str, "PubSub"] | None = None,
@@ -83,8 +81,6 @@ class RedisPublisher(ArgsContainer):
 
 class RedisRoute(SubscriberRoute):
     """Class to store delayed RedisBroker subscriber registration."""
-
-    __slots__ = ()
 
     def __init__(
         self,
@@ -160,8 +156,6 @@ class RedisRouter(
     BrokerRouter[UnifyRedisDict, RedisRouterConfig],
 ):
     """Includable to RedisBroker router."""
-
-    __slots__ = ()
 
     def __init__(
         self,

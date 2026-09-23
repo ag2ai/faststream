@@ -41,8 +41,6 @@ class _BlockingSubscription:
     happens through ``FakeProducer``, not through this iterator.
     """
 
-    __slots__ = ()
-
     async def start(self) -> None:
         pass
 
@@ -83,8 +81,6 @@ class TestMQTTBroker(
             await br.publish("hello", "sensors/temp")
             handler.mock.assert_called_once_with("hello")
     """
-
-    __slots__ = ()
 
     @overload
     def __init__(
@@ -177,11 +173,6 @@ class FakeProducer(ZmqttBaseProducer):
     Encodes messages in the wire format matching the broker's configured
     MQTT version: V311 envelope for 3.1.1, PublishProperties for 5.0.
     """
-
-    __slots__ = (
-        "broker",
-        "brokers",
-    )
 
     def __init__(
         self,

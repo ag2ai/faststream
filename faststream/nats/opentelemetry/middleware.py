@@ -7,8 +7,6 @@ from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 
 class NatsTelemetryMiddleware(TelemetryMiddleware[NatsPublishCommand]):
-    __slots__ = ()
-
     def __init__(
         self,
         *,

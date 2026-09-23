@@ -22,11 +22,6 @@ class DestinationType(str, Enum):
 
 
 class RedisResponse(Response):
-    __slots__ = (
-        "maxlen",
-        "message_format",
-    )
-
     def __init__(
         self,
         body: Optional["SendableMessage"] = None,
@@ -58,14 +53,6 @@ class RedisResponse(Response):
 
 
 class RedisPublishCommand(BatchPublishCommand):
-    __slots__ = (
-        "destination_type",
-        "maxlen",
-        "message_format",
-        "pipeline",
-        "timeout",
-    )
-
     destination_type: DestinationType
 
     def __init__(

@@ -18,27 +18,6 @@ if TYPE_CHECKING:
 class AsyncAPIRoute:
     """Configuration for AsyncAPI documentation route with try-it-out support."""
 
-    __slots__ = (
-        "asyncapi_css_url",
-        "asyncapi_js_url",
-        "asyncapi_json_path",
-        "description",
-        "errors",
-        "expand_message_examples",
-        "include_in_schema",
-        "info",
-        "messages",
-        "operations",
-        "path",
-        "schemas",
-        "servers",
-        "sidebar",
-        "tags",
-        "try_it_out_path",
-        "try_it_out_plugin_url",
-        "unique_id",
-    )
-
     def __init__(
         self,
         path: str,

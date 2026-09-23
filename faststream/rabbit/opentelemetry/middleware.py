@@ -7,8 +7,6 @@ from faststream.rabbit.response import RabbitPublishCommand
 
 
 class RabbitTelemetryMiddleware(TelemetryMiddleware[RabbitPublishCommand]):
-    __slots__ = ()
-
     def __init__(
         self,
         *,
