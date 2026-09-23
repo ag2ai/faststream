@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class BrokerConfig:
     prefix: str = ""
     include_in_schema: bool | None = True

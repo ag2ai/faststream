@@ -9,6 +9,8 @@ from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 
 class KafkaTelemetryMiddleware(TelemetryMiddleware[KafkaPublishCommand]):
+    __slots__ = ()
+
     def __init__(
         self,
         *,

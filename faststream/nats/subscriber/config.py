@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from nats.js.api import ConsumerConfig
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     subject: str
     queue: str | None
@@ -22,7 +22,7 @@ class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     filter_subjects: list[str] = field(default_factory=list)
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class NatsSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 

@@ -13,6 +13,11 @@ T = TypeVar("T")
 
 
 class ContextRepoComposition(ContextRepo):
+    __slots__ = (
+        "_contexts",
+        "_inner_context",
+    )
+
     def __init__(self, *contexts: ContextRepo) -> None:
         super().__init__()
 

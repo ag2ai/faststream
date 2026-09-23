@@ -8,6 +8,8 @@ from faststream.message import AckStatus, StreamMessage
 class ConsumerProtocol(Protocol):
     """A protocol for Kafka consumers."""
 
+    __slots__ = ()
+
     async def commit(self) -> None: ...
 
     async def seek(
@@ -43,6 +45,11 @@ class KafkaMessage(
 
     This class extends `StreamMessage` and is specialized for handling confluent_kafka.Message objects.
     """
+
+    __slots__ = (
+        "consumer",
+        "is_manual",
+    )
 
     def __init__(
         self,

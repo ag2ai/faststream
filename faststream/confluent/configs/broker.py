@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic
 
 
-@dataclass
+@dataclass(slots=True)
 class ConsumerBuilder:
     config: "ConfluentFastConfig"
     admin: "AdminService"
@@ -37,7 +37,7 @@ class ConsumerBuilder:
         )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class KafkaBrokerConfig(BrokerConfig):
     connection_config: "ConfluentFastConfig" = field(
         default_factory=ConfluentFastConfig,
@@ -52,7 +52,9 @@ class KafkaBrokerConfig(BrokerConfig):
     )
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        # `slots=True` rebuilds the class, and below 3.13 a bare `super()` still
+        # points at the class from before the rebuild
+        super(KafkaBrokerConfig, self).__post_init__()
 
         self.builder = ConsumerBuilder(
             config=self.connection_config,

@@ -30,6 +30,11 @@ class KafkaResponse(Response):
     For publish operations, consider using the more semantic alias `KafkaPublishMessage`.
     """
 
+    __slots__ = (
+        "key",
+        "timestamp_ms",
+    )
+
     def __init__(
         self,
         body: "SendableMessage",
@@ -68,6 +73,15 @@ class KafkaResponse(Response):
 
 
 class KafkaPublishCommand(BatchPublishCommand):
+    __slots__ = (
+        "_per_message_keys",
+        "key",
+        "no_confirm",
+        "partition",
+        "timeout",
+        "timestamp_ms",
+    )
+
     def __init__(
         self,
         message: "KafkaSendableMessage",
