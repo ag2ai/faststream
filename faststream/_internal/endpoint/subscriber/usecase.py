@@ -214,6 +214,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return async_parser, async_decoder
 
     def _build_fastdepends_model(self) -> None:
+        fd_config = self._outer_config.fd_config
+        # nothing is injected without FastDepends, and FastAPI builds its own model
+        driver_annotations = (
+            self._outer_config.resolved_underlying_driver_annotations
+            if fd_config.use_fastdepends and not fd_config.get_dependent
+            else {}
+        )
+
         for call in self.calls:
             async_parser, async_decoder = self._get_parser_and_decoder(
                 call.item_parser, call.item_decoder
@@ -226,6 +234,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 broker_dependencies=self._outer_config.broker_dependencies,
                 _call_decorators=self._call_decorators,
             )
+
+            if driver_annotations and call.dependant is not None:
+                check_context_annotations(call.dependant, driver_annotations)
 
             call.handler.refresh(with_mock=False)
 
@@ -311,47 +322,25 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         def real_wrapper(
             func: Callable[P_HandlerParams, T_HandlerReturn],
         ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
-            return self._create_call(
-                func,
-                filter=async_filter,
-                parser=parser,
-                decoder=decoder,
-                dependencies=total_deps,
+            handler = super(SubscriberUsecase, self).__call__(func)
+            handler._subscribers.append(self)
+
+            self.calls.add_call(
+                HandlerItem[MsgType](
+                    handler=handler,
+                    filter=async_filter,
+                    item_parser=parser,
+                    item_decoder=decoder,
+                    dependencies=total_deps,
+                ),
             )
+
+            return handler
 
         if func is None:
             return real_wrapper
 
         return real_wrapper(func)
-
-    def _create_call(
-        self,
-        func: Callable[P_HandlerParams, T_HandlerReturn],
-        *,
-        filter: "AsyncFilter[StreamMessage[MsgType]]",
-        parser: Optional["CustomCallable"],
-        decoder: Optional["CustomCallable"],
-        dependencies: Sequence["Dependant"],
-    ) -> "HandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
-        check_context_annotations(
-            func,
-            self._outer_config.resolved_underlying_driver_annotations,
-        )
-
-        handler = super().__call__(func)
-        handler._subscribers.append(self)
-
-        self.calls.add_call(
-            HandlerItem[MsgType](
-                handler=handler,
-                filter=filter,
-                item_parser=parser,
-                item_decoder=decoder,
-                dependencies=dependencies,
-            ),
-        )
-
-        return handler
 
     async def consume(self, msg: MsgType) -> Any:
         """Consume a message asynchronously."""

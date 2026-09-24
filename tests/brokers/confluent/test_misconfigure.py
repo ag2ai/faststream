@@ -3,13 +3,15 @@ from typing import Any
 import pytest
 
 from faststream import AckPolicy
-from faststream._internal._compat import ExceptionGroup
-from faststream.confluent import KafkaBroker, TopicPartition
+from faststream.confluent import KafkaBroker, TopicPartition, annotations
 from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.helpers import AsyncConfluentConsumer
 from faststream.confluent.subscriber.usecase import ConcurrentDefaultSubscriber
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
+from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
+
+from .basic import ConfluentMemoryTestcaseConfig
 
 
 @pytest.mark.confluent()
@@ -73,20 +75,8 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
 
 @pytest.mark.confluent()
-def test_driver_class_annotation_names_the_import_to_use() -> None:
-    expected = (
-        "`consumer` is annotated with"
-        " `faststream.confluent.helpers.client.AsyncConfluentConsumer`,"
-        " which FastStream cannot inject.\n"
-        "Use the context annotation instead:\n"
-        "\n    from faststream.confluent.annotations import Consumer\n"
-    )
-
-    broker = KafkaBroker()
-
-    with pytest.raises(ExceptionGroup) as excinfo:
-
-        @broker.subscriber("test")
-        async def handler(consumer: AsyncConfluentConsumer) -> None: ...
-
-    assert [str(e) for e in excinfo.value.exceptions] == [expected]
+class TestDriverAnnotations(ConfluentMemoryTestcaseConfig, DriverAnnotationTestcase):
+    driver_class = AsyncConfluentConsumer
+    driver_path = "faststream.confluent.helpers.client.AsyncConfluentConsumer"
+    context_annotation = annotations.Consumer
+    annotation_import = "from faststream.confluent.annotations import Consumer"

@@ -4,15 +4,17 @@ import pytest
 from aiokafka import AIOKafkaConsumer
 
 from faststream import AckPolicy
-from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
-from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition
+from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition, annotations
 from faststream.kafka.subscriber.usecase import (
     ConcurrentBetweenPartitionsSubscriber,
     ConcurrentDefaultSubscriber,
 )
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
+from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
+
+from .basic import KafkaMemoryTestcaseConfig
 
 
 @pytest.mark.kafka()
@@ -119,20 +121,8 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
 
 @pytest.mark.kafka()
-def test_driver_class_annotation_names_the_import_to_use() -> None:
-    expected = (
-        "`consumer` is annotated with"
-        " `aiokafka.consumer.consumer.AIOKafkaConsumer`,"
-        " which FastStream cannot inject.\n"
-        "Use the context annotation instead:\n"
-        "\n    from faststream.kafka.annotations import Consumer\n"
-    )
-
-    broker = KafkaBroker()
-
-    with pytest.raises(ExceptionGroup) as excinfo:
-
-        @broker.subscriber("test")
-        async def handler(consumer: AIOKafkaConsumer) -> None: ...
-
-    assert [str(e) for e in excinfo.value.exceptions] == [expected]
+class TestDriverAnnotations(KafkaMemoryTestcaseConfig, DriverAnnotationTestcase):
+    driver_class = AIOKafkaConsumer
+    driver_path = "aiokafka.consumer.consumer.AIOKafkaConsumer"
+    context_annotation = annotations.Consumer
+    annotation_import = "from faststream.kafka.annotations import Consumer"

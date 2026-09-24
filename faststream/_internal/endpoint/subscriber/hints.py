@@ -1,63 +1,76 @@
-from collections.abc import Callable
-from inspect import unwrap
-from typing import TYPE_CHECKING, Any, get_type_hints
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 from faststream._internal._compat import ExceptionGroup
 from faststream._internal.configs import UnderlyingDriverAnnotation
-from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    from fast_depends.core import CallModel
+    from fast_depends.library.serializer import OptionItem
+
 
 def check_context_annotations(
-    call: Callable[..., Any],
-    annotations: "Mapping[Any, Any]",
+    dependent: "CallModel",
+    annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]",
 ) -> None:
-    """Reject handler arguments annotated with a broker's own driver class.
+    """Reject call model arguments annotated with a broker's own driver class.
 
-    A working argument is `Annotated[...]` rather than a class, so the context
-    annotations a broker wraps around these same classes are never matched.
+    Context annotations never reach the model's params, so any driver class
+    found there would be validated as message data.
 
     Args:
-        call: the decorated handler.
+        dependent: the handler's call model, dependencies included.
         annotations: driver type hint to the context annotation replacing it. An
             `UnderlyingDriverAnnotation` value also names the import to suggest.
     """
-    if not annotations:
-        return
-
-    # A publisher decorator applied first hands us its wrapper, and the wrapper
-    # class carries annotations of its own that are not the handler's.
-    if isinstance(call, HandlerCallWrapper):
-        call = call._declared_call
-
-    handler = unwrap(call)
-
-    errors = [
-        SetupError(_format_hint(field_name, hint, annotations[hint]))
-        for field_name, hint in get_type_hints(handler, include_extras=True).items()
-        if field_name != "return" and _is_mapped(hint, annotations)
+    messages = [
+        _format_hint(option.field_name, hint, annotations[hint], dependency)
+        for dependency, option in _options(dependent)
+        if (hint := _find_mapped(option.field_type, annotations)) is not None
     ]
+    # a dependency shared by several arguments is still one mistake
+    errors = [SetupError(m) for m in dict.fromkeys(messages)]
+
+    if len(errors) == 1:
+        raise errors[0]
 
     if errors:
-        call_name = getattr(handler, "__name__", str(handler))
-        msg = f"`{call_name}` has arguments FastStream cannot inject."
+        msg = f"`{dependent.call_name}` has arguments FastStream cannot inject."
         raise ExceptionGroup(msg, errors)
 
 
-def _is_mapped(hint: Any, annotations: "Mapping[Any, Any]") -> bool:
+def _options(
+    model: "CallModel",
+    dependency: str | None = None,
+) -> Iterator[tuple[str | None, "OptionItem"]]:
+    for option in model.params:
+        yield dependency, option
+
+    for key in (*model.dependencies.values(), *model.extra_dependencies):
+        sub_model = model.dependency_provider.get_dependant(key)
+        yield from _options(sub_model, sub_model.call_name)
+
+
+def _find_mapped(hint: Any, annotations: "Mapping[Any, Any]") -> Any:
     try:
-        return hint in annotations
+        return hint if hint in annotations else None
     except TypeError:
         # An unhashable hint cannot be a key, so it cannot be mapped.
-        return False
+        return None
 
 
-def _format_hint(field_name: str, hint: Any, annotation: Any) -> str:
+def _format_hint(
+    field_name: str,
+    hint: Any,
+    annotation: Any,
+    dependency: str | None,
+) -> str:
+    owner = f" of dependency `{dependency}`" if dependency else ""
     message = (
-        f"`{field_name}` is annotated with `{_describe(hint)}`, "
+        f"`{field_name}`{owner} is annotated with `{_describe(hint)}`, "
         "which FastStream cannot inject.\n"
     )
 

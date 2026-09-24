@@ -8,8 +8,18 @@ from faststream._internal._compat import ExceptionGroup
 from faststream._internal.configs import UnderlyingDriverAnnotation
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
-from faststream.redis import ListSub, RedisBroker, RedisRouter, StreamSub, annotations
+from faststream.redis import (
+    ListSub,
+    RedisBroker,
+    RedisRouter,
+    StreamSub,
+    TestRedisBroker,
+    annotations,
+)
 from faststream.redis.subscriber.usecases import StreamConcurrentSubscriber
+from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
+
+from .basic import RedisMemoryTestcaseConfig
 
 
 @pytest.mark.redis()
@@ -86,56 +96,36 @@ def test_max_workers_ignored_by_batch(destination: dict[str, Any]) -> None:
 
 
 @pytest.mark.redis()
-def test_driver_class_annotation_names_the_import_to_use() -> None:
-    expected = (
-        "`redis` is annotated with"
-        " `redis.asyncio.client.Redis`,"
-        " which FastStream cannot inject.\n"
-        "Use the context annotation instead:\n"
-        "\n    from faststream.redis.annotations import Redis\n"
-    )
-
-    broker = RedisBroker()
-
-    with pytest.raises(ExceptionGroup) as excinfo:
-
-        @broker.subscriber("test")
-        async def handler(redis: Redis) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
-
-    assert [str(e) for e in excinfo.value.exceptions] == [expected]
+class TestDriverAnnotations(RedisMemoryTestcaseConfig, DriverAnnotationTestcase):
+    driver_class = Redis
+    driver_path = "redis.asyncio.client.Redis"
+    context_annotation = annotations.Redis
+    annotation_import = "from faststream.redis.annotations import Redis"
 
 
 @pytest.mark.redis()
-def test_context_annotations_are_accepted() -> None:
+@pytest.mark.asyncio()
+async def test_every_driver_class_argument_is_reported() -> None:
     broker = RedisBroker()
 
     @broker.subscriber("test")
-    async def handler(
-        msg: annotations.RedisStreamMessage,
-        redis: annotations.Redis,
-        pipe: annotations.Pipeline,
-        client: annotations.RedisBroker,
-    ) -> None: ...
-
-
-@pytest.mark.redis()
-def test_annotation_behind_depends_names_its_import() -> None:
-    expected = (
-        "`pipe` is annotated with"
-        " `redis.asyncio.client.Pipeline`,"
-        " which FastStream cannot inject.\n"
-        "Use the context annotation instead:\n"
-        "\n    from faststream.redis.annotations import Pipeline\n"
-    )
-
-    broker = RedisBroker()
+    async def handler(redis: Redis, pipe: Pipeline) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
 
     with pytest.raises(ExceptionGroup) as excinfo:
+        async with TestRedisBroker(broker):
+            pass
 
-        @broker.subscriber("test")
-        async def handler(pipe: Pipeline) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
-
-    assert [str(e) for e in excinfo.value.exceptions] == [expected]
+    assert excinfo.value.message == "`handler` has arguments FastStream cannot inject."
+    assert [str(e).splitlines()[0] for e in excinfo.value.exceptions] == [
+        (
+            "`redis` is annotated with `redis.asyncio.client.Redis`,"
+            " which FastStream cannot inject."
+        ),
+        (
+            "`pipe` is annotated with `redis.asyncio.client.Pipeline`,"
+            " which FastStream cannot inject."
+        ),
+    ]
 
 
 class _CustomDriver:
@@ -146,7 +136,8 @@ _CustomAnnotation = Annotated[_CustomDriver, Context("custom")]
 
 
 @pytest.mark.redis()
-def test_custom_row_names_its_import() -> None:
+@pytest.mark.asyncio()
+async def test_custom_row_names_its_import() -> None:
     expected = (
         f"`thing` is annotated with `{__name__}._CustomDriver`,"
         " which FastStream cannot inject.\n"
@@ -162,16 +153,19 @@ def test_custom_row_names_its_import() -> None:
         },
     )
 
-    with pytest.raises(ExceptionGroup) as excinfo:
+    @broker.subscriber("test")
+    async def handler(thing: _CustomDriver) -> None: ...
 
-        @broker.subscriber("test")
-        async def handler(thing: _CustomDriver) -> None: ...
+    with pytest.raises(SetupError) as excinfo:
+        async with TestRedisBroker(broker):
+            pass
 
-    assert [str(e) for e in excinfo.value.exceptions] == [expected]
+    assert str(excinfo.value) == expected
 
 
 @pytest.mark.redis()
-def test_bare_custom_row_suggests_no_import() -> None:
+@pytest.mark.asyncio()
+async def test_bare_custom_row_suggests_no_import() -> None:
     expected = (
         f"`thing` is annotated with `{__name__}._CustomDriver`,"
         " which FastStream cannot inject.\n"
@@ -182,50 +176,36 @@ def test_bare_custom_row_suggests_no_import() -> None:
         underlying_driver_annotations={_CustomDriver: _CustomAnnotation},
     )
 
-    with pytest.raises(ExceptionGroup) as excinfo:
+    @broker.subscriber("test")
+    async def handler(thing: _CustomDriver) -> None: ...
 
-        @broker.subscriber("test")
-        async def handler(thing: _CustomDriver) -> None: ...
+    with pytest.raises(SetupError) as excinfo:
+        async with TestRedisBroker(broker):
+            pass
 
-    assert [str(e) for e in excinfo.value.exceptions] == [expected]
+    assert str(excinfo.value) == expected
 
 
 @pytest.mark.redis()
-def test_custom_rows_do_not_replace_the_broker_defaults() -> None:
+@pytest.mark.asyncio()
+async def test_custom_rows_do_not_replace_the_broker_defaults() -> None:
     broker = RedisBroker(
         underlying_driver_annotations={_CustomDriver: _CustomAnnotation},
     )
 
-    with pytest.raises(ExceptionGroup) as excinfo:
+    @broker.subscriber("test")
+    async def handler(redis: Redis) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
 
-        @broker.subscriber("test")
-        async def handler(redis: Redis) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
+    with pytest.raises(SetupError) as excinfo:
+        async with TestRedisBroker(broker):
+            pass
 
-    assert "from faststream.redis.annotations import Redis" in str(
-        excinfo.value.exceptions[0]
-    )
-
-
-@pytest.mark.redis()
-def test_router_honours_custom_rows() -> None:
-    router = RedisRouter(
-        underlying_driver_annotations={
-            _CustomDriver: UnderlyingDriverAnnotation(
-                type_hint=_CustomAnnotation, module=__name__, name="_CustomAnnotation"
-            ),
-        },
-    )
-
-    with pytest.raises(ExceptionGroup) as excinfo:
-
-        @router.subscriber("test")
-        async def handler(thing: _CustomDriver) -> None: ...
-
-    assert f"from {__name__} import _CustomAnnotation" in str(excinfo.value.exceptions[0])
+    assert "from faststream.redis.annotations import Redis" in str(excinfo.value)
 
 
 @pytest.mark.redis()
-def test_a_row_can_be_a_union_hint() -> None:
+@pytest.mark.asyncio()
+async def test_a_row_can_be_a_union_hint() -> None:
     broker = RedisBroker(
         underlying_driver_annotations={
             Redis | None: UnderlyingDriverAnnotation(
@@ -236,11 +216,11 @@ def test_a_row_can_be_a_union_hint() -> None:
         },
     )
 
-    with pytest.raises(ExceptionGroup) as excinfo:
+    @broker.subscriber("test")
+    async def handler(redis: Redis | None = None) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
 
-        @broker.subscriber("test")
-        async def handler(redis: Redis | None = None) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
+    with pytest.raises(SetupError) as excinfo:
+        async with TestRedisBroker(broker):
+            pass
 
-    assert "from faststream.redis.annotations import Redis" in str(
-        excinfo.value.exceptions[0]
-    )
+    assert "from faststream.redis.annotations import Redis" in str(excinfo.value)
