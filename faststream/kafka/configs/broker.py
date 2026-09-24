@@ -22,7 +22,7 @@ from faststream.kafka.schemas.params import (
 )
 
 
-def _context_annotations_factory() -> "Mapping[Any, Any]":
+def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from aiokafka.consumer.consumer import AIOKafkaConsumer  # noqa: PLC0415
@@ -73,7 +73,7 @@ class KafkaBrokerConfig(BrokerConfig):
 
     _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
 
-    default_driver_annotations: "Mapping[Any, Any]" = field(
+    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
         default_factory=_context_annotations_factory,
     )
 

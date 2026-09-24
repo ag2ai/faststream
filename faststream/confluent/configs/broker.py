@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic
 
 
-def _context_annotations_factory() -> "Mapping[Any, Any]":
+def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from faststream.confluent import annotations  # noqa: PLC0415
@@ -95,7 +95,7 @@ class KafkaBrokerConfig(BrokerConfig):
         default_factory=FakeConfluentFastProducer,
     )
 
-    default_driver_annotations: "Mapping[Any, Any]" = field(
+    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
         default_factory=_context_annotations_factory,
     )
 

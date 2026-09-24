@@ -51,8 +51,12 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
-    underlying_driver_annotations: Mapping[Any, Any] = field(default_factory=dict)
-    default_driver_annotations: Mapping[Any, Any] = field(default_factory=dict)
+    underlying_driver_annotations: Mapping[Any, UnderlyingDriverAnnotation | Any] = field(
+        default_factory=dict
+    )
+    default_driver_annotations: Mapping[Any, UnderlyingDriverAnnotation | Any] = field(
+        default_factory=dict
+    )
     broker_dependencies: Sequence["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
@@ -63,7 +67,9 @@ class BrokerConfig:
         self.broker_dependencies = tuple(self.broker_dependencies)
 
     @property
-    def resolved_underlying_driver_annotations(self) -> Mapping[Any, Any]:
+    def resolved_underlying_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
         # A broker's own rows are the defaults; anything the user passed wins.
         return {
             **self.default_driver_annotations,
@@ -197,21 +203,27 @@ class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
         return context
 
     @property
-    def underlying_driver_annotations(self) -> Mapping[Any, Any]:
+    def underlying_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
         annotations: dict[Any, Any] = {}
         for c in self.configs:
             annotations |= c.underlying_driver_annotations
         return annotations
 
     @property
-    def default_driver_annotations(self) -> Mapping[Any, Any]:
+    def default_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
         annotations: dict[Any, Any] = {}
         for c in self.configs:
             annotations |= c.default_driver_annotations
         return annotations
 
     @property
-    def resolved_underlying_driver_annotations(self) -> Mapping[Any, Any]:
+    def resolved_underlying_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
         return {
             **self.default_driver_annotations,
             **self.underlying_driver_annotations,

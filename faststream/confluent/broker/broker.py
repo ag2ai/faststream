@@ -48,6 +48,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.configs import UnderlyingDriverAnnotation
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -122,7 +123,9 @@ class KafkaBroker(
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
         context: Optional["ContextRepo"] = None,
-        underlying_driver_annotations: Optional["Mapping[Any, Any]"] = None,
+        underlying_driver_annotations: Optional[
+            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
+        ] = None,
     ) -> None:
         """Initialize KafkaBroker.
 

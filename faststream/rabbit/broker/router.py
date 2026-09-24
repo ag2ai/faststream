@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.configs import UnderlyingDriverAnnotation
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -239,7 +240,9 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBroker
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: "AckPolicy" = EMPTY,
-        underlying_driver_annotations: Optional["Mapping[Any, Any]"] = None,
+        underlying_driver_annotations: Optional[
+            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
+        ] = None,
     ) -> None:
         """Initialized RabbitRouter.
 

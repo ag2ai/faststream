@@ -25,7 +25,7 @@ class JsInitOptions(TypedDict, total=False):
     publish_async_max_pending: int
 
 
-def _context_annotations_factory() -> "Mapping[Any, Any]":
+def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from nats.aio.client import Client as ClientDriver  # noqa: PLC0415
@@ -87,7 +87,7 @@ class NatsBrokerConfig(BrokerConfig):
     kv_declarer: KVBucketDeclarer = field(default_factory=KVBucketDeclarer)
     os_declarer: OSBucketDeclarer = field(default_factory=OSBucketDeclarer)
 
-    default_driver_annotations: "Mapping[Any, Any]" = field(
+    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
         default_factory=_context_annotations_factory,
     )
 

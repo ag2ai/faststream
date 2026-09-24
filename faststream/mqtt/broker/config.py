@@ -24,7 +24,7 @@ if HAS_OPENTELEMETRY:
 MQTTVersionUnset = cast("str", object())
 
 
-def _context_annotations_factory() -> "Mapping[Any, Any]":
+def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from zmqtt.client import MQTTClient  # noqa: PLC0415
@@ -63,7 +63,7 @@ class MQTTBrokerConfig(BrokerConfig):
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
 
-    default_driver_annotations: "Mapping[Any, Any]" = field(
+    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
         default_factory=_context_annotations_factory,
     )
 

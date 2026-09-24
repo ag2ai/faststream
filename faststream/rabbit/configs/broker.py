@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
 
 
-def _context_annotations_factory() -> "Mapping[Any, Any]":
+def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from aio_pika.robust_channel import RobustChannel  # noqa: PLC0415
@@ -72,7 +72,7 @@ class RabbitBrokerConfig(BrokerConfig):
     virtual_host: str = ""
     app_id: str | None = None
 
-    default_driver_annotations: "Mapping[Any, Any]" = field(
+    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
         default_factory=_context_annotations_factory,
     )
 
