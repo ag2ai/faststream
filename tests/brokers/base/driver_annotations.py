@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Annotated, Any
 
 import pytest
 
@@ -26,9 +27,25 @@ class DriverAnnotationTestcase(BaseTestcaseConfig[Any]):
         )
 
     @pytest.mark.asyncio()
-    async def test_driver_class_names_the_import_to_use(self, queue: str) -> None:
+    @pytest.mark.parametrize(
+        "wrap",
+        (
+            pytest.param(lambda hint: hint, id="class"),
+            pytest.param(lambda hint: hint | None, id="optional"),
+            pytest.param(lambda hint: Annotated[hint, "doc"], id="annotated"),
+            pytest.param(
+                lambda hint: Annotated[hint, "doc"] | None,
+                id="optional annotated",
+            ),
+        ),
+    )
+    async def test_driver_class_names_the_import_to_use(
+        self,
+        queue: str,
+        wrap: Callable[[Any], Any],
+    ) -> None:
         broker = self.get_broker(apply_types=True)
-        driver_class = self.driver_class
+        driver_class = wrap(self.driver_class)
 
         args, kwargs = self.get_subscriber_params(queue)
 

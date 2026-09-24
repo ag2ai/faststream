@@ -1,5 +1,6 @@
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any
+from types import UnionType
+from typing import TYPE_CHECKING, Annotated, Any, Union, get_args, get_origin
 
 from faststream._internal._compat import ExceptionGroup
 from faststream._internal.configs import UnderlyingDriverAnnotation
@@ -55,6 +56,17 @@ def _options(
 
 
 def _find_mapped(hint: Any, annotations: "Mapping[Any, Any]") -> Any:
+    origin = get_origin(hint)
+
+    if origin is Annotated:
+        return _find_mapped(get_args(hint)[0], annotations)
+
+    if origin is Union or origin is UnionType:
+        for arg in get_args(hint):
+            if (mapped := _find_mapped(arg, annotations)) is not None:
+                return mapped
+        return None
+
     try:
         return hint if hint in annotations else None
     except TypeError:

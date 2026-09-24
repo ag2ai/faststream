@@ -201,26 +201,3 @@ async def test_custom_rows_do_not_replace_the_broker_defaults() -> None:
             pass
 
     assert "from faststream.redis.annotations import Redis" in str(excinfo.value)
-
-
-@pytest.mark.redis()
-@pytest.mark.asyncio()
-async def test_a_row_can_be_a_union_hint() -> None:
-    broker = RedisBroker(
-        underlying_driver_annotations={
-            Redis | None: UnderlyingDriverAnnotation(
-                type_hint=_CustomAnnotation,
-                module="faststream.redis.annotations",
-                name="Redis",
-            ),
-        },
-    )
-
-    @broker.subscriber("test")
-    async def handler(redis: Redis | None = None) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
-
-    with pytest.raises(SetupError) as excinfo:
-        async with TestRedisBroker(broker):
-            pass
-
-    assert "from faststream.redis.annotations import Redis" in str(excinfo.value)
