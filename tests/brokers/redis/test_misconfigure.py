@@ -201,3 +201,38 @@ async def test_custom_rows_do_not_replace_the_broker_defaults() -> None:
             pass
 
     assert "from faststream.redis.annotations import Redis" in str(excinfo.value)
+
+
+class _RouterDriver:
+    pass
+
+
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+async def test_included_router_merges_its_rows_with_the_broker_rows() -> None:
+    broker = RedisBroker(
+        underlying_driver_annotations={_CustomDriver: _CustomAnnotation},
+    )
+    router = RedisRouter(
+        underlying_driver_annotations={_RouterDriver: _CustomAnnotation},
+    )
+
+    @router.subscriber("test")
+    async def handler(thing: _CustomDriver, other: _RouterDriver) -> None: ...
+
+    broker.include_router(router)
+
+    with pytest.raises(ExceptionGroup) as excinfo:
+        async with TestRedisBroker(broker):
+            pass
+
+    assert [str(e).splitlines()[0] for e in excinfo.value.exceptions] == [
+        (
+            f"`thing` is annotated with `{__name__}._CustomDriver`,"
+            " which FastStream cannot inject."
+        ),
+        (
+            f"`other` is annotated with `{__name__}._RouterDriver`,"
+            " which FastStream cannot inject."
+        ),
+    ]

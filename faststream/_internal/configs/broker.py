@@ -197,6 +197,27 @@ class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
         return context
 
     @property
+    def underlying_driver_annotations(self) -> Mapping[Any, Any]:
+        annotations: dict[Any, Any] = {}
+        for c in self.configs:
+            annotations |= c.underlying_driver_annotations
+        return annotations
+
+    @property
+    def default_driver_annotations(self) -> Mapping[Any, Any]:
+        annotations: dict[Any, Any] = {}
+        for c in self.configs:
+            annotations |= c.default_driver_annotations
+        return annotations
+
+    @property
+    def resolved_underlying_driver_annotations(self) -> Mapping[Any, Any]:
+        return {
+            **self.default_driver_annotations,
+            **self.underlying_driver_annotations,
+        }
+
+    @property
     def prefix(self) -> str:
         return "".join(c.prefix for c in self.configs)
 
