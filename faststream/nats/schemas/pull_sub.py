@@ -11,9 +11,10 @@ class PullSub(Generic[BatchT_co]):
     """A class to represent a NATS pull subscription.
 
     Args:
-        batch_size (int): Consuming messages batch size. (default is `1`).
-        timeout (:obj:`float`, optional): Wait this time for required batch size will be accumulated in stream
-            in seconds (default is `5.0`).
+        batch_size (int): The maximum number of messages taken per request; a request returns
+            the messages already in the stream without waiting to fill it (default is `1`).
+        timeout (:obj:`float`, optional): How long a request waits for the first message when the
+            stream is empty, in seconds (default is `5.0`).
         batch (bool): Whether to propagate consuming batch as iterable object to your handler (default is `False`).
     """
 
