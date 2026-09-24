@@ -42,36 +42,44 @@ def _context_annotations_factory() -> "Mapping[Any, Any]":
     return MappingProxyType(
         {
             RedisDriver: UnderlyingDriverAnnotation(
-                annotations.Redis, "faststream.redis.annotations", "Redis"
+                type_hint=annotations.Redis,
+                module="faststream.redis.annotations",
+                name="Redis",
             ),
             PipelineDriver: UnderlyingDriverAnnotation(
-                annotations.Pipeline, "faststream.redis.annotations", "Pipeline"
+                type_hint=annotations.Pipeline,
+                module="faststream.redis.annotations",
+                name="Pipeline",
             ),
             RedisBrokerDriver: UnderlyingDriverAnnotation(
-                annotations.RedisBroker, "faststream.redis.annotations", "RedisBroker"
+                type_hint=annotations.RedisBroker,
+                module="faststream.redis.annotations",
+                name="RedisBroker",
             ),
             RedisMessageDriver: UnderlyingDriverAnnotation(
-                annotations.RedisMessage, "faststream.redis.annotations", "RedisMessage"
+                type_hint=annotations.RedisMessage,
+                module="faststream.redis.annotations",
+                name="RedisMessage",
             ),
             RedisChannelMessageDriver: UnderlyingDriverAnnotation(
-                annotations.RedisChannelMessage,
-                "faststream.redis.annotations",
-                "RedisChannelMessage",
+                type_hint=annotations.RedisChannelMessage,
+                module="faststream.redis.annotations",
+                name="RedisChannelMessage",
             ),
             RedisStreamMessageDriver: UnderlyingDriverAnnotation(
-                annotations.RedisStreamMessage,
-                "faststream.redis.annotations",
-                "RedisStreamMessage",
+                type_hint=annotations.RedisStreamMessage,
+                module="faststream.redis.annotations",
+                name="RedisStreamMessage",
             ),
             RedisBatchStreamMessageDriver: UnderlyingDriverAnnotation(
-                annotations.RedisBatchStreamMessage,
-                "faststream.redis.annotations",
-                "RedisBatchStreamMessage",
+                type_hint=annotations.RedisBatchStreamMessage,
+                module="faststream.redis.annotations",
+                name="RedisBatchStreamMessage",
             ),
             RedisListMessageDriver: UnderlyingDriverAnnotation(
-                annotations.RedisListMessage,
-                "faststream.redis.annotations",
-                "RedisListMessage",
+                type_hint=annotations.RedisListMessage,
+                module="faststream.redis.annotations",
+                name="RedisListMessage",
             ),
         },
     )

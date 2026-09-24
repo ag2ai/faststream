@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
 
 
-@dataclass
+@dataclass(kw_only=True, slots=True)
 class UnderlyingDriverAnnotation:
     """A driver class mapped to the context annotation that injects it.
 

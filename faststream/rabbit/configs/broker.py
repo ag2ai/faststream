@@ -31,23 +31,29 @@ def _context_annotations_factory() -> "Mapping[Any, Any]":
     return MappingProxyType(
         {
             RobustConnection: UnderlyingDriverAnnotation(
-                annotations.Connection, "faststream.rabbit.annotations", "Connection"
+                type_hint=annotations.Connection,
+                module="faststream.rabbit.annotations",
+                name="Connection",
             ),
             RobustChannel: UnderlyingDriverAnnotation(
-                annotations.Channel, "faststream.rabbit.annotations", "Channel"
+                type_hint=annotations.Channel,
+                module="faststream.rabbit.annotations",
+                name="Channel",
             ),
             RabbitBrokerDriver: UnderlyingDriverAnnotation(
-                annotations.RabbitBroker, "faststream.rabbit.annotations", "RabbitBroker"
+                type_hint=annotations.RabbitBroker,
+                module="faststream.rabbit.annotations",
+                name="RabbitBroker",
             ),
             RabbitMessageDriver: UnderlyingDriverAnnotation(
-                annotations.RabbitMessage,
-                "faststream.rabbit.annotations",
-                "RabbitMessage",
+                type_hint=annotations.RabbitMessage,
+                module="faststream.rabbit.annotations",
+                name="RabbitMessage",
             ),
             AioPikaFastProducer: UnderlyingDriverAnnotation(
-                annotations.RabbitProducer,
-                "faststream.rabbit.annotations",
-                "RabbitProducer",
+                type_hint=annotations.RabbitProducer,
+                module="faststream.rabbit.annotations",
+                name="RabbitProducer",
             ),
         },
     )

@@ -3,8 +3,9 @@ from typing import Annotated, Any
 import pytest
 from redis.asyncio.client import Pipeline, Redis
 
-from faststream import AckPolicy, Context, UnderlyingDriverAnnotation
+from faststream import AckPolicy, Context
 from faststream._internal._compat import ExceptionGroup
+from faststream._internal.configs import UnderlyingDriverAnnotation
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from faststream.redis import ListSub, RedisBroker, RedisRouter, StreamSub, annotations
@@ -156,7 +157,7 @@ def test_custom_row_names_its_import() -> None:
     broker = RedisBroker(
         underlying_driver_annotations={
             _CustomDriver: UnderlyingDriverAnnotation(
-                _CustomAnnotation, __name__, "_CustomAnnotation"
+                type_hint=_CustomAnnotation, module=__name__, name="_CustomAnnotation"
             ),
         },
     )
@@ -210,7 +211,7 @@ def test_router_honours_custom_rows() -> None:
     router = RedisRouter(
         underlying_driver_annotations={
             _CustomDriver: UnderlyingDriverAnnotation(
-                _CustomAnnotation, __name__, "_CustomAnnotation"
+                type_hint=_CustomAnnotation, module=__name__, name="_CustomAnnotation"
             ),
         },
     )
@@ -228,7 +229,9 @@ def test_a_row_can_be_a_union_hint() -> None:
     broker = RedisBroker(
         underlying_driver_annotations={
             Redis | None: UnderlyingDriverAnnotation(
-                _CustomAnnotation, "faststream.redis.annotations", "Redis"
+                type_hint=_CustomAnnotation,
+                module="faststream.redis.annotations",
+                name="Redis",
             ),
         },
     )

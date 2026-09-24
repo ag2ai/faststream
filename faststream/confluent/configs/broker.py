@@ -34,20 +34,24 @@ def _context_annotations_factory() -> "Mapping[Any, Any]":
     return MappingProxyType(
         {
             AsyncConfluentConsumer: UnderlyingDriverAnnotation(
-                annotations.Consumer, "faststream.confluent.annotations", "Consumer"
+                type_hint=annotations.Consumer,
+                module="faststream.confluent.annotations",
+                name="Consumer",
             ),
             KafkaBrokerDriver: UnderlyingDriverAnnotation(
-                annotations.KafkaBroker, "faststream.confluent.annotations", "KafkaBroker"
+                type_hint=annotations.KafkaBroker,
+                module="faststream.confluent.annotations",
+                name="KafkaBroker",
             ),
             KafkaMessageDriver: UnderlyingDriverAnnotation(
-                annotations.KafkaMessage,
-                "faststream.confluent.annotations",
-                "KafkaMessage",
+                type_hint=annotations.KafkaMessage,
+                module="faststream.confluent.annotations",
+                name="KafkaMessage",
             ),
             AsyncConfluentFastProducer: UnderlyingDriverAnnotation(
-                annotations.KafkaProducer,
-                "faststream.confluent.annotations",
-                "KafkaProducer",
+                type_hint=annotations.KafkaProducer,
+                module="faststream.confluent.annotations",
+                name="KafkaProducer",
             ),
         },
     )

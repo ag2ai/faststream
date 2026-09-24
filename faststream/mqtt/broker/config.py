@@ -36,13 +36,19 @@ def _context_annotations_factory() -> "Mapping[Any, Any]":
     return MappingProxyType(
         {
             MQTTClient: UnderlyingDriverAnnotation(
-                annotations.Client, "faststream.mqtt.annotations", "Client"
+                type_hint=annotations.Client,
+                module="faststream.mqtt.annotations",
+                name="Client",
             ),
             MQTTBrokerDriver: UnderlyingDriverAnnotation(
-                annotations.MQTTBroker, "faststream.mqtt.annotations", "MQTTBroker"
+                type_hint=annotations.MQTTBroker,
+                module="faststream.mqtt.annotations",
+                name="MQTTBroker",
             ),
             MQTTMessageDriver: UnderlyingDriverAnnotation(
-                annotations.MQTTMessage, "faststream.mqtt.annotations", "MQTTMessage"
+                type_hint=annotations.MQTTMessage,
+                module="faststream.mqtt.annotations",
+                name="MQTTMessage",
             ),
         },
     )

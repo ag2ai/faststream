@@ -42,22 +42,34 @@ def _context_annotations_factory() -> "Mapping[Any, Any]":
     return MappingProxyType(
         {
             ClientDriver: UnderlyingDriverAnnotation(
-                annotations.Client, "faststream.nats.annotations", "Client"
+                type_hint=annotations.Client,
+                module="faststream.nats.annotations",
+                name="Client",
             ),
             JetStreamContext: UnderlyingDriverAnnotation(
-                annotations.JsClient, "faststream.nats.annotations", "JsClient"
+                type_hint=annotations.JsClient,
+                module="faststream.nats.annotations",
+                name="JsClient",
             ),
             ObjectStore: UnderlyingDriverAnnotation(
-                annotations.ObjectStorage, "faststream.nats.annotations", "ObjectStorage"
+                type_hint=annotations.ObjectStorage,
+                module="faststream.nats.annotations",
+                name="ObjectStorage",
             ),
             NatsBrokerDriver: UnderlyingDriverAnnotation(
-                annotations.NatsBroker, "faststream.nats.annotations", "NatsBroker"
+                type_hint=annotations.NatsBroker,
+                module="faststream.nats.annotations",
+                name="NatsBroker",
             ),
             NatsMessageDriver: UnderlyingDriverAnnotation(
-                annotations.NatsMessage, "faststream.nats.annotations", "NatsMessage"
+                type_hint=annotations.NatsMessage,
+                module="faststream.nats.annotations",
+                name="NatsMessage",
             ),
             NatsKvMessageDriver: UnderlyingDriverAnnotation(
-                annotations.NatsKvMessage, "faststream.nats.annotations", "NatsKvMessage"
+                type_hint=annotations.NatsKvMessage,
+                module="faststream.nats.annotations",
+                name="NatsKvMessage",
             ),
         },
     )
