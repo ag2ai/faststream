@@ -28,13 +28,15 @@ class JsInitOptions(TypedDict, total=False):
 def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from nats.aio.client import Client as ClientDriver
-    from nats.js.client import JetStreamContext
-    from nats.js.object_store import ObjectStore
+    from nats.aio.client import Client as ClientDriver  # noqa: PLC0415
+    from nats.js.client import JetStreamContext  # noqa: PLC0415
+    from nats.js.object_store import ObjectStore  # noqa: PLC0415
 
-    from faststream.nats import annotations
-    from faststream.nats.broker.broker import NatsBroker as NatsBrokerDriver
-    from faststream.nats.message import (
+    from faststream.nats import annotations  # noqa: PLC0415
+    from faststream.nats.broker.broker import (  # noqa: PLC0415
+        NatsBroker as NatsBrokerDriver,
+    )
+    from faststream.nats.message import (  # noqa: PLC0415
         NatsKvMessage as NatsKvMessageDriver,
         NatsMessage as NatsMessageDriver,
     )

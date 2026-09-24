@@ -27,11 +27,13 @@ MQTTVersionUnset = cast("str", object())
 def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from zmqtt.client import MQTTClient
+    from zmqtt.client import MQTTClient  # noqa: PLC0415
 
-    from faststream.mqtt import annotations
-    from faststream.mqtt.broker.broker import MQTTBroker as MQTTBrokerDriver
-    from faststream.mqtt.message import MQTTMessage as MQTTMessageDriver
+    from faststream.mqtt import annotations  # noqa: PLC0415
+    from faststream.mqtt.broker.broker import (  # noqa: PLC0415
+        MQTTBroker as MQTTBrokerDriver,
+    )
+    from faststream.mqtt.message import MQTTMessage as MQTTMessageDriver  # noqa: PLC0415
 
     return MappingProxyType(
         {

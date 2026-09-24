@@ -20,13 +20,17 @@ if TYPE_CHECKING:
 def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from aio_pika.robust_channel import RobustChannel
-    from aio_pika.robust_connection import RobustConnection
+    from aio_pika.robust_channel import RobustChannel  # noqa: PLC0415
+    from aio_pika.robust_connection import RobustConnection  # noqa: PLC0415
 
-    from faststream.rabbit import annotations
-    from faststream.rabbit.broker.broker import RabbitBroker as RabbitBrokerDriver
-    from faststream.rabbit.message import RabbitMessage as RabbitMessageDriver
-    from faststream.rabbit.publisher.producer import AioPikaFastProducer
+    from faststream.rabbit import annotations  # noqa: PLC0415
+    from faststream.rabbit.broker.broker import (  # noqa: PLC0415
+        RabbitBroker as RabbitBrokerDriver,
+    )
+    from faststream.rabbit.message import (  # noqa: PLC0415
+        RabbitMessage as RabbitMessageDriver,
+    )
+    from faststream.rabbit.publisher.producer import AioPikaFastProducer  # noqa: PLC0415
 
     return MappingProxyType(
         {

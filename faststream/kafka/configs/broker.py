@@ -25,12 +25,16 @@ from faststream.kafka.schemas.params import (
 def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from aiokafka.consumer.consumer import AIOKafkaConsumer
+    from aiokafka.consumer.consumer import AIOKafkaConsumer  # noqa: PLC0415
 
-    from faststream.kafka import annotations
-    from faststream.kafka.broker.broker import KafkaBroker as KafkaBrokerDriver
-    from faststream.kafka.message import KafkaMessage as KafkaMessageDriver
-    from faststream.kafka.publisher.producer import AioKafkaFastProducer
+    from faststream.kafka import annotations  # noqa: PLC0415
+    from faststream.kafka.broker.broker import (  # noqa: PLC0415
+        KafkaBroker as KafkaBrokerDriver,
+    )
+    from faststream.kafka.message import (  # noqa: PLC0415
+        KafkaMessage as KafkaMessageDriver,
+    )
+    from faststream.kafka.publisher.producer import AioKafkaFastProducer  # noqa: PLC0415
 
     return MappingProxyType(
         {

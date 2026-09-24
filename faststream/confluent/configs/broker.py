@@ -25,11 +25,19 @@ if TYPE_CHECKING:
 def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from faststream.confluent import annotations
-    from faststream.confluent.broker.broker import KafkaBroker as KafkaBrokerDriver
-    from faststream.confluent.helpers.client import AsyncConfluentConsumer
-    from faststream.confluent.message import KafkaMessage as KafkaMessageDriver
-    from faststream.confluent.publisher.producer import AsyncConfluentFastProducer
+    from faststream.confluent import annotations  # noqa: PLC0415
+    from faststream.confluent.broker.broker import (  # noqa: PLC0415
+        KafkaBroker as KafkaBrokerDriver,
+    )
+    from faststream.confluent.helpers.client import (  # noqa: PLC0415
+        AsyncConfluentConsumer,
+    )
+    from faststream.confluent.message import (  # noqa: PLC0415
+        KafkaMessage as KafkaMessageDriver,
+    )
+    from faststream.confluent.publisher.producer import (  # noqa: PLC0415
+        AsyncConfluentFastProducer,
+    )
 
     return MappingProxyType(
         {

@@ -150,16 +150,6 @@ ignore = [
     "PLC0415",
 ]
 
-# the driver annotation rows name the broker's own runtime objects, which are
-# only importable once the package is built, so the table is filled on call
-"faststream/{confluent,kafka,nats,rabbit,redis}/configs/broker.py" = [
-    "PLC0415",
-]
-
-"faststream/mqtt/broker/config.py" = [
-    "PLC0415",
-]
-
 "docs/*.py" = [
     "ALL",      # FIXME
 ]

@@ -24,14 +24,16 @@ if TYPE_CHECKING:
 def _context_annotations_factory() -> "Mapping[Any, Any]":
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from redis.asyncio.client import (
+    from redis.asyncio.client import (  # noqa: PLC0415
         Pipeline as PipelineDriver,
         Redis as RedisDriver,
     )
 
-    from faststream.redis import annotations
-    from faststream.redis.broker.broker import RedisBroker as RedisBrokerDriver
-    from faststream.redis.message import (
+    from faststream.redis import annotations  # noqa: PLC0415
+    from faststream.redis.broker.broker import (  # noqa: PLC0415
+        RedisBroker as RedisBrokerDriver,
+    )
+    from faststream.redis.message import (  # noqa: PLC0415
         RedisBatchStreamMessage as RedisBatchStreamMessageDriver,
         RedisChannelMessage as RedisChannelMessageDriver,
         RedisListMessage as RedisListMessageDriver,
