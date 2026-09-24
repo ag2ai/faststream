@@ -1,6 +1,6 @@
 from .broker import (
     BrokerConfig,
-    BrokerConfigType,
+    BrokerConfigType_co,
     ConfigComposition,
     UnderlyingDriverAnnotation,
 )
@@ -12,7 +12,7 @@ from .specification import (
 
 __all__ = (
     "BrokerConfig",
-    "BrokerConfigType",
+    "BrokerConfigType_co",
     "ConfigComposition",
     "PublisherSpecificationConfig",
     "PublisherUsecaseConfig",

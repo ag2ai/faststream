@@ -11,6 +11,12 @@ if TYPE_CHECKING:
 
 
 class NatsParamsStorage(DefaultLoggerStorage):
+    __slots__ = (
+        "_max_queue_len",
+        "_max_stream_len",
+        "_max_subject_len",
+    )
+
     def __init__(self) -> None:
         super().__init__()
 

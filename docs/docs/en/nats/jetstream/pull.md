@@ -12,7 +12,7 @@ search:
 
 ## Overview
 
-**NATS JetStream** supports two different ways to consume messages: [**Push** and **Pull**](https://docs.nats.io/using-nats/developer/develop_jetstream/consumers#push-and-pull-consumers){.external-link target="_blank} consumers.
+**NATS JetStream** supports two different ways to consume messages: [**Push** and **Pull**](https://docs.nats.io/using-nats/developer/develop_jetstream/consumers#push-and-pull-consumers){.external-link target="_blank"} consumers.
 
 The **Push** consumer is used by default to consume messages with **FastStream**. It means that the **NATS** server delivers messages to your consumer as fast as possible by itself. However, it also means that **NATS** should control all current consumer connections and increase server load.
 
@@ -32,10 +32,10 @@ The **Pull** consumer is just a regular *Stream* consumer, but with the `pull_su
 {! docs_src/nats/js/pull_sub.py !}
 ```
 
-The batch size doesn't mean that your `msg` argument is a list of messages, but it means that you consume up to `#!python 10` messages for one request to **NATS** and call your handler for each message in an `asyncio.gather` pool.
+The batch size doesn't mean that your `msg` argument is a list of messages, but it means that you consume up to `#!python 10` messages for one request to **NATS** and call your handler for each message concurrently in an `anyio` task group.
 
 !!! tip
-    If you want to consume list of messages, just set the `batch=True` in `PullSub` class.
+    If you want to consume a list of messages, just set the `batch=True` in `PullSub` class.
 
 ### Batch Pull Subscriber Example
 

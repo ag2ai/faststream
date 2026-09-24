@@ -19,4 +19,6 @@ class RunArgs:
 
 
 class RunFunction(Protocol):
+    __slots__ = ()
+
     def __call__(self, args: "RunArgs") -> None: ...
