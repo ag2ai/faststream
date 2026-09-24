@@ -18,7 +18,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
 
     def __init__(
         self,
-        msg: AnyMsg | None,
+        msg: AnyMsg,
         /,
         *,
         context: "ContextRepo",
