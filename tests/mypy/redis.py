@@ -28,6 +28,7 @@ from faststream.redis.publisher.usecase import (
     ChannelPublisher,
     ListBatchPublisher,
     ListPublisher,
+    LogicPublisher,
     StreamPublisher,
 )
 from faststream.redis.subscriber.usecases import (
@@ -36,6 +37,7 @@ from faststream.redis.subscriber.usecases import (
     ListBatchSubscriber,
     ListConcurrentSubscriber,
     ListSubscriber,
+    LogicSubscriber,
     StreamBatchSubscriber,
     StreamConcurrentSubscriber,
     StreamSubscriber,
@@ -494,6 +496,27 @@ def check_list_subscriber_instance_type(
 
     sub3 = broker.subscriber(list="test", max_workers=2)
     assert_type(sub3, ListConcurrentSubscriber)
+
+
+def check_destination_is_required(
+    broker: RedisBroker | RedisRouter | FastAPIRouter,
+) -> None:
+    # without a channel, list or stream both raise `SetupError`
+    broker.subscriber()  # type: ignore[call-overload]
+    broker.publisher()  # type: ignore[call-overload]
+
+
+def check_runtime_destination_type(
+    broker: RedisBroker | RedisRouter,
+    name: str | None,
+) -> None:
+    assert_type(broker.subscriber(name), LogicSubscriber)
+    assert_type(broker.subscriber(list=name), LogicSubscriber)
+    assert_type(broker.subscriber(stream=name), LogicSubscriber)
+
+    assert_type(broker.publisher(name), LogicPublisher)
+    assert_type(broker.publisher(list=name), LogicPublisher)
+    assert_type(broker.publisher(stream=name), LogicPublisher)
 
 
 RedisBroker(routers=[RedisRouter()])
