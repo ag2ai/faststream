@@ -38,7 +38,7 @@ class PrometheusMiddleware(BrokerMiddleware[AnyMsg, PublishCommandType]):
         self,
         *,
         settings_provider_factory: Callable[
-            [AnyMsg],
+            [AnyMsg | None],
             MetricsSettingsProvider[AnyMsg, PublishCommandType] | None,
         ],
         registry: "CollectorRegistry",
@@ -88,16 +88,16 @@ class PrometheusMiddleware(BrokerMiddleware[AnyMsg, PublishCommandType]):
 
 
 class BasePrometheusMiddleware(
-    BaseMiddleware[PublishCommandType, AnyMsg],
+    BaseMiddleware[PublishCommandType, AnyMsg | None],
     Generic[PublishCommandType, AnyMsg],
 ):
     def __init__(
         self,
-        msg: AnyMsg,
+        msg: AnyMsg | None,
         /,
         *,
         settings_provider_factory: Callable[
-            [AnyMsg],
+            [AnyMsg | None],
             MetricsSettingsProvider[AnyMsg, PublishCommandType] | None,
         ],
         metrics_manager: MetricsManager,
