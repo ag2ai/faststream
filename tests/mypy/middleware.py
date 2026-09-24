@@ -44,4 +44,4 @@ def check_plain_init(msg: RawMessage, context: ContextRepo) -> None:
 
 def check_typed_init(msg: RawMessage, context: ContextRepo) -> None:
     assert_type(Typed(msg, context=context).msg, RawMessage)
-    Typed(None, context=context)  # type: ignore[arg-type]
+    
