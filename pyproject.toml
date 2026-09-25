@@ -14,7 +14,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
-version = "0.7.6"
+version = "0.7.7"
 
 keywords = [
     "rabbitmq",
@@ -73,7 +73,7 @@ confluent = [
     "confluent-kafka>=2.6,!=2.8.1,<3; python_version >= '3.13'",
 ]
 
-nats = ["nats-py>=2.12.0,<=3.0.0"]
+nats = ["nats-py>=2.14.0,<=3.0.0"]
 
 redis = ["redis>=5.0.0,<9.0.0"]
 
@@ -110,12 +110,12 @@ docs = [
 lint = [
     "ruff==0.14.14",
     "bandit==1.9.3",
-    "semgrep==1.150.0",
     "codespell==2.4.1",
     "zizmor==1.22.0",
     "import-linter==2.15",
     "actionlint-py==1.7.12.24",
     "shellcheck-py==0.11.0.1",                          # actionlint runs it over `run:` scripts
+    "slotscheck==0.21.0",
     "mypy==1.19.1",
     "pyright==1.1.407",
     "pyrefly==1.3.1",
@@ -150,6 +150,7 @@ testing = [
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
     "msgspec",
+    "nkeys",
     "uvicorn>=0.34.3",
     "uvloop>=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
     "psutil==7.2.2",
@@ -177,9 +178,6 @@ Discussions = "https://github.com/ag2ai/faststream/discussions"
 
 [project.scripts]
 faststream = "faststream.__main__:cli"
-
-[tool.uv]
-override-dependencies = ["rich>=13.8.1"]
 
 [tool.uv.build-backend]
 module-root = "."
@@ -500,6 +498,51 @@ ignore_imports = [
 
 [tool.bandit]
 skips = ["B101"]
+
+[tool.slotscheck]
+# A module that fails to import is an error, not a silently skipped one.
+strict-imports = true
+require-superclass = true
+require-subclass = true
+# Every other class in the package is slotted (#3201). These are not, each for a reason
+# a `__slots__` line would not fix. The pattern is verbose, so `#` carries the reasons.
+exclude-classes = '''
+  ^faststream\.specification\.(asyncapi\.v[0-9_]+\.schema|base|schema\.bindings\.http)
+      # pydantic models: the fields live in BaseModel's own `__dict__` slot and the
+      # AsyncAPI ones accept extra keys, so declaring `__slots__` would save nothing
+| ^faststream\._internal\.configs\.(broker:BrokerConfig|endpoint:EndpointConfig|specification:SpecificationConfig)$
+      # the config dataclass roots, and with them every broker config below. Python
+      # 3.10 re-emits inherited fields into a `slots=True` subclass, doubling the
+      # storage it is meant to save; safe again once 3.10 support is dropped
+| ^faststream\._internal\.application:Application$
+      # the user's application object, one per process; our CLI tests patch `app.run`
+| ^faststream\._internal\.broker\.broker:BrokerUsecase$
+      # one broker per process, and what suites mock: `patch.object(broker, "start")`
+| ^faststream\._internal\.configs\.broker:ConfigComposition$
+      # a `__getattr__` proxy: reads forward to the inner config, writes land here
+| ^faststream\._internal\.endpoint\.subscriber\.mixins:ConcurrentMixin$
+      # mixed into each broker's slotted subscriber; two slotted bases conflict
+| ^faststream\.(kafka|confluent)\.message:FakeConsumer$
+      # the FAKE_CONSUMER singleton, whose methods tests patch on the instance
+| ^faststream\.nats\.broker\.registrator:NatsRegistrator$
+      # NatsRouter mixes it with BrokerRouter, a slotted sibling under Registrator
+| ^faststream\.nats\.subscriber\.usecases\.basic:LogicSubscriber$
+      # ConcurrentCoreSubscriber mixes TasksMixin in beside it; the lay-outs conflict
+| ^faststream\.rabbit\.configs\.base:RabbitConfig$
+      # mixed into two slotted dataclass configs; the lay-outs conflict
+| ^faststream\._internal\.(broker\.(pub_base|registrator)|context|testing)[.:]
+      # public objects user code constructs, receives or holds (messages, responses,
+      # routers, test clients, context, ASGI, specification schema): slotting them is a
+      # breaking change, so they are slotted in the 1.0 follow-up, which removes this
+      # entry and the ones below it
+| ^faststream\.asgi\.
+| ^faststream\.(message\.message|response\.response|params\.no_cast):
+| ^faststream\.specification\.schema\.
+| ^faststream\.(kafka|confluent|mqtt|nats|rabbit|redis)\.(broker\.router|testing):
+| ^faststream\.(kafka|confluent|mqtt|nats|rabbit|redis)\.(opentelemetry|prometheus)\.middleware:\w+Middleware$
+| ^faststream\.middlewares\.acknowledgement\.middleware:AcknowledgementMiddleware$
+| ^faststream\.(confluent\.configs\.broker:ConsumerBuilder|nats\.schemas\.schedule:Schedule|rabbit\.schemas\.channel:Channel)$
+'''
 
 [tool.typos.default.extend-identifiers]
 # Contributor handles in the generated release notes. Names, not misspellings.

@@ -35,6 +35,8 @@ if TYPE_CHECKING:
 
 
 class NatsFastProducer(ProducerProto[NatsPublishCommand]):
+    __slots__ = ()
+
     def connect(
         self,
         connection: Any,
@@ -58,6 +60,14 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
 
 class NatsFastProducerImpl(NatsFastProducer):
     """A class to represent a NATS producer."""
+
+    __slots__ = (
+        "__state",
+        "_decoder",
+        "_parser",
+        "codec",
+        "serializer",
+    )
 
     _decoder: "AsyncCallable"
     _parser: "AsyncCallable"
@@ -124,6 +134,14 @@ class NatsFastProducerImpl(NatsFastProducer):
 
 class NatsJSFastProducer(NatsFastProducer):
     """A class to represent a NATS JetStream producer."""
+
+    __slots__ = (
+        "__state",
+        "_decoder",
+        "_parser",
+        "codec",
+        "serializer",
+    )
 
     _decoder: "AsyncCallable"
     _parser: "AsyncCallable"
@@ -212,6 +230,8 @@ class NatsJSFastProducer(NatsFastProducer):
 
 
 class FakeNatsFastProducer(NatsFastProducer):
+    __slots__ = ()
+
     def connect(
         self,
         connection: Any,

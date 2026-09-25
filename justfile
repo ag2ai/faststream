@@ -154,10 +154,17 @@ pyrefly *params:
 bandit:
   just _static bandit -c pyproject.toml -r faststream
 
+# Not in the `lint` group: semgrep pins `opentelemetry-sdk~=1.37`, and inside the
+# project's resolution that pin held the version FastStream is locked and tested with.
 [doc("Semgrep check")]
 [group("static analysis")]
 semgrep:
-  just _static semgrep scan --config auto --error --skip-unknown-extensions faststream
+  uvx semgrep@1.150.0 scan --config auto --error --skip-unknown-extensions faststream
+
+[doc("Slotscheck check")]
+[group("static analysis")]
+slotscheck:
+  just _static slotscheck -m faststream
 
 [doc("Zizmor check")]
 [group("static analysis")]
@@ -176,7 +183,7 @@ actionlint:
 
 [doc("Static analysis check")]
 [group("static analysis")]
-static-analysis: mypy pyright pyrefly bandit semgrep import-linter
+static-analysis: mypy pyright pyrefly bandit semgrep import-linter slotscheck
 
 
 # Pre-commit

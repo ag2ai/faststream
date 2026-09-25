@@ -48,6 +48,14 @@ if HAS_UVICORN:
 
 
 class ASGIMultiprocess:
+    __slots__ = (
+        "_is_factory",
+        "_log_level",
+        "_run_extra_options",
+        "_target",
+        "_workers",
+    )
+
     def __init__(
         self,
         target: str,

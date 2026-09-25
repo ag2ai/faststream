@@ -67,6 +67,7 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 - ruff uses `select = ["ALL"]` with curated ignores in `ruff.toml` — don't assume a rule is disabled; run `just linter` to check.
 - Line length 90, double quotes, Google-style docstrings.
 - `just mypy` must pass before a PR.
+- A class that declares `__slots__` needs slotted bases all the way up (`__slots__ = ()` on a `Protocol` or mixin), otherwise instances keep a `__dict__` and the slots do nothing; `just slotscheck` checks it.
 
 ### Comments
 

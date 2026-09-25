@@ -20,7 +20,9 @@ This can be easily implemented with **FastStream**, so let's take a look at the 
 
 Let's imagine we have a simple **FastStream** echo subscriber like this:
 
-```python linenums="1" hl_lines="7-9"
+```python linenums="1" hl_lines="9-11"
+from typing import Any
+
 from faststream import FastStream
 from faststream.kafka import KafkaBroker
 
@@ -32,7 +34,7 @@ async def echo_handler(msg: Any) -> Any:
     return msg
 ```
 
-It does nothing but publishes responses to all messages with the `reply_to` header.
+It does nothing but publish responses to all messages with the `reply_to` header.
 
 Now, we want to send a message and consume the echo callback. For this reason, we need to create a *reply consumer* in our producer service. It can look like the following:
 
@@ -143,7 +145,7 @@ from uuid import uuid4
 from asyncio import Future, wait_for
 
 from faststream.types import SendableMessage
-from faststream.kafka import KafkaMessage
+from faststream.kafka import KafkaBroker, KafkaMessage
 
 class RPCWorker:
     def __init__(self, broker: KafkaBroker, reply_topic: str) -> None:
@@ -168,7 +170,7 @@ class RPCWorker:
         correlation_id = str(uuid4())
         future = self.responses[correlation_id] = Future[bytes]()
 
-        await broker.publish(
+        await self.broker.publish(
             data, topic,
             reply_to=self.reply_topic,
             correlation_id=correlation_id,
@@ -196,7 +198,7 @@ app = FastStream(broker)
 @app.after_startup
 async def send_request() -> None:
     data = await worker.request("echo", "echo-topic")
-    assert data == "echo"
+    assert data == b"echo"
 ```
 
 Or, if you want to make the `RPCWorker` work after startup, you should add a manual `start` method to it:
@@ -222,7 +224,7 @@ async def send_request() -> None:
     await worker.start()
 
     data = await worker.request("echo", "echo-topic")
-    assert data == "echo"
+    assert data == b"echo"
 ```
 
 ??? example "Full Class Example"
@@ -231,7 +233,7 @@ async def send_request() -> None:
     from asyncio import Future, wait_for
 
     from faststream.types import SendableMessage
-    from faststream.kafka import KafkaMessage
+    from faststream.kafka import KafkaBroker, KafkaMessage
 
     class RPCWorker:
         responses: dict[str, Future[bytes]]
@@ -248,7 +250,7 @@ async def send_request() -> None:
             await self.subscriber.start()
 
         async def stop(self) -> None:
-            await self.subscriber.close()
+            await self.subscriber.stop()
 
         def _handle_responses(self, msg: KafkaMessage) -> None:
             if (future := self.responses.pop(msg.correlation_id, None)):
@@ -263,7 +265,7 @@ async def send_request() -> None:
             correlation_id = str(uuid4())
             future = self.responses[correlation_id] = Future[bytes]()
 
-            await broker.publish(
+            await self.broker.publish(
                 data, topic,
                 reply_to=self.reply_topic,
                 correlation_id=correlation_id,

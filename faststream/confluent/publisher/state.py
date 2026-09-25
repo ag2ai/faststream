@@ -7,6 +7,8 @@ if TYPE_CHECKING:
 
 
 class ProducerState(Protocol):
+    __slots__ = ()
+
     @property
     def producer(self) -> "AsyncConfluentProducer": ...
 

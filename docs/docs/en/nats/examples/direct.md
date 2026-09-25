@@ -22,7 +22,7 @@ a `subject` sends messages to all consumers subscribed to it.
 The **Direct** Subject is the type used in **FastStream** by default: you can simply declare it as follows
 
 ```python
-@broker.handler("test_subject")
+@broker.subscriber("test_subject")
 async def handler():
 ...
 ```

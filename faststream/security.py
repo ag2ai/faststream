@@ -13,6 +13,8 @@ class BaseSecurity:
     SSL encryption and provides methods to retrieve security requirements and schemas.
     """
 
+    __slots__ = ("ssl_context", "use_ssl")
+
     ssl_context: Optional["SSLContext"]
     use_ssl: bool
 
@@ -48,8 +50,6 @@ class SASLPlaintext(BaseSecurity):
     # TODO: mv to SecretStr
     __slots__ = (
         "password",
-        "ssl_context",
-        "use_ssl",
         "username",
     )
 
@@ -88,8 +88,6 @@ class SASLScram256(BaseSecurity):
     # TODO: mv to SecretStr
     __slots__ = (
         "password",
-        "ssl_context",
-        "use_ssl",
         "username",
     )
 
@@ -128,8 +126,6 @@ class SASLScram512(BaseSecurity):
     # TODO: mv to SecretStr
     __slots__ = (
         "password",
-        "ssl_context",
-        "use_ssl",
         "username",
     )
 
@@ -165,7 +161,7 @@ class SASLOAuthBearer(BaseSecurity):
     This class defines basic security configuration for SASL/OAUTHBEARER authentication.
     """
 
-    __slots__ = ("ssl_context", "use_ssl")
+    __slots__ = ()
 
     @override
     def get_requirement(self) -> list["dict[str, Any]"]:
@@ -184,7 +180,7 @@ class SASLGSSAPI(BaseSecurity):
     This class defines security configuration for SASL/GSSAPI authentication.
     """
 
-    __slots__ = ("ssl_context", "use_ssl")
+    __slots__ = ()
 
     @override
     def get_requirement(self) -> list["dict[str, Any]"]:

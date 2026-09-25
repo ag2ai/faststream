@@ -32,6 +32,8 @@ class PullStreamSubscriber(
     TasksMixin,
     StreamSubscriber,
 ):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PullSubscription"]
 
     def __init__(
@@ -90,6 +92,8 @@ class PullStreamSubscriber(
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
+    __slots__ = ()
+
     @override
     async def _create_subscription(self) -> None:
         """Create NATS subscription and start consume task."""
@@ -111,6 +115,8 @@ class BatchPullStreamSubscriber(
     DefaultSubscriber[list["Msg"]],
 ):
     """Batch-message consumer class."""
+
+    __slots__ = ()
 
     subscription: Optional["JetStreamContext.PullSubscription"]
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
