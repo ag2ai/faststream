@@ -29,6 +29,8 @@ class KeyValueWatchSubscriber(
     TasksMixin,
     LogicSubscriber["KeyValue.Entry"],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[KeyValue.KeyWatcher]"]
     _fetch_sub: UnsubscribeAdapter["KeyValue.KeyWatcher"] | None
 

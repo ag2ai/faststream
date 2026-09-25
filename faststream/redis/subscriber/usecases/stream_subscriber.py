@@ -69,6 +69,15 @@ class ClaimMeta(NamedTuple):
 
 
 class _StreamHandlerMixin(LogicSubscriber):
+    __slots__ = (
+        "_stream_sub",
+        "autoclaim_start_id",
+        "claim_min_idle_time",
+        "last_id",
+        "min_idle_time",
+        "read_id",
+    )
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -439,6 +448,8 @@ class _StreamHandlerMixin(LogicSubscriber):
 
 
 class StreamSubscriber(_StreamHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -473,6 +484,8 @@ class StreamSubscriber(_StreamHandlerMixin):
 
 
 class StreamBatchSubscriber(_StreamHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -516,6 +529,8 @@ class StreamConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     StreamSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

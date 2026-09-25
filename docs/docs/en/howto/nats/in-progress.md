@@ -10,7 +10,7 @@ search:
 
 # In-Progress sender
 
-Nats Jetstream uses the at least once principle, so the message will be delivered until it receives the ACK status (even if your handler takes a long time to process the message), so you can extend the message processing status with a request
+NATS JetStream uses the at-least-once principle, so the message will be redelivered until it receives the ACK status (even if your handler takes a long time to process the message). You can extend the message processing time with an in-progress request.
 
 ??? example "Full Example"
     ```python linenums="1"

@@ -91,6 +91,8 @@ class BasePrometheusMiddleware(
     BaseMiddleware[PublishCommandType, AnyMsg | None],
     Generic[PublishCommandType, AnyMsg],
 ):
+    __slots__ = ("_custom_labels", "_metrics_manager", "_settings_provider")
+
     def __init__(
         self,
         msg: AnyMsg | None,

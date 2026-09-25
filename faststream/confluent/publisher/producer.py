@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     """A class to represent Kafka producer."""
 
+    __slots__ = ()
+
     def connect(
         self,
         producer: "AsyncConfluentProducer",
@@ -64,6 +66,8 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
 
 
 class FakeConfluentFastProducer(AsyncConfluentFastProducer):
+    __slots__ = ()
+
     def connect(
         self,
         producer: "AsyncConfluentProducer",
@@ -95,6 +99,14 @@ class FakeConfluentFastProducer(AsyncConfluentFastProducer):
 
 class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     """A class to represent Kafka producer."""
+
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "_producer",
+        "codec",
+        "serializer",
+    )
 
     def __init__(
         self,

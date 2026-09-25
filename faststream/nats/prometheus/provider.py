@@ -29,6 +29,8 @@ class BaseNatsMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
 
 
 class NatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider["Msg"]):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,
@@ -42,6 +44,8 @@ class NatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider["Msg"]):
 
 
 class BatchNatsMetricsSettingsProvider(BaseNatsMetricsSettingsProvider[list["Msg"]]):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,

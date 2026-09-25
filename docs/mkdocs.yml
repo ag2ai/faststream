@@ -84,6 +84,7 @@ plugins:
       manual: true
   - macros:                      # Jinja templates
       include_dir: includes
+      on_error_fail: true
   - mkdocstrings:                # Generate References
       default_handler: python
       handlers:

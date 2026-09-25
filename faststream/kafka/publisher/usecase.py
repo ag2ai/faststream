@@ -26,6 +26,13 @@ if TYPE_CHECKING:
 class LogicPublisher(PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
 
+    __slots__ = (
+        "_topic",
+        "headers",
+        "partition",
+        "reply_to",
+    )
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -103,6 +110,8 @@ class LogicPublisher(PublisherUsecase):
 
 
 class DefaultPublisher(LogicPublisher):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",
@@ -297,6 +306,8 @@ class DefaultPublisher(LogicPublisher):
 
 
 class BatchPublisher(LogicPublisher):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "KafkaPublisherConfig",

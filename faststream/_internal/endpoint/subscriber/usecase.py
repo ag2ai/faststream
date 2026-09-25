@@ -68,6 +68,21 @@ class _CallOptions(NamedTuple):
 class SubscriberUsecase(Endpoint, Generic[MsgType]):
     """A class representing an asynchronous handler."""
 
+    __slots__ = (
+        "__auto_ack_disabled",
+        "_call_decorators",
+        "_call_options",
+        "_decoder",
+        "_no_reply",
+        "_parser",
+        "ack_policy",
+        "calls",
+        "extra_watcher_options",
+        "lock",
+        "running",
+        "specification",
+    )
+
     lock: "AbstractContextManager[Any]"
     extra_watcher_options: dict[str, Any]
     graceful_timeout: float | None

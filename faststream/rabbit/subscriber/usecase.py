@@ -32,6 +32,16 @@ if TYPE_CHECKING:
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
+    __slots__ = (
+        "__no_ack",
+        "_consumer_tag",
+        "_queue_obj",
+        "channel",
+        "consume_args",
+        "exchange",
+        "queue",
+    )
+
     _outer_config: "RabbitBrokerConfig"
 
     def __init__(

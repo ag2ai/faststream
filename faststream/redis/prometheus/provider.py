@@ -26,6 +26,8 @@ class BaseRedisMetricsSettingsProvider(
 
 
 class RedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,
@@ -39,6 +41,8 @@ class RedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
 
 
 class BatchRedisMetricsSettingsProvider(BaseRedisMetricsSettingsProvider):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,

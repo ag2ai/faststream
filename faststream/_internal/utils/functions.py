@@ -69,6 +69,8 @@ async def fake_context(*args: Any, **kwargs: Any) -> AsyncGenerator[None, None]:
 
 
 class FakeContext:
+    __slots__ = ()
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
