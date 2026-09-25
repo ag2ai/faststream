@@ -565,6 +565,10 @@ class NatsBroker(
             nkeys_seed_str=nkeys_seed_str,
         )
 
+        parsed_servers = [
+            urlparse(server if "://" in server else f"//{server}") for server in servers
+        ]
+
         if (
             security is not None
             and type(security)
@@ -572,10 +576,7 @@ class NatsBroker(
                 BaseSecurity,
                 NatsSecurity,
             }
-            and any(
-                urlparse(url if "://" in url else f"//{url}").username is not None
-                for url in servers
-            )
+            and any(parsed.username is not None for parsed in parsed_servers)
         ):
             msg = "URL credentials conflict with `security`."
             raise SetupError(msg)
@@ -591,8 +592,8 @@ class NatsBroker(
                 specification_url = list(specification_url)
         else:
             specification_url = [
-                parsed._replace(netloc=parsed.netloc.rpartition("@")[-1]).geturl()
-                for parsed in map(urlparse, servers)
+                server.replace(parsed.netloc, parsed.netloc.rpartition("@")[-1], 1)
+                for server, parsed in zip(servers, parsed_servers, strict=True)
             ]
 
         js_producer = NatsJSFastProducer(

@@ -60,6 +60,16 @@ def test_base() -> None:
             ["[::1]:4222"],
             id="ipv6-with-credentials",
         ),
+        pytest.param(
+            "user:password@localhost:4222",
+            ["localhost:4222"],
+            id="schemeless-with-credentials",
+        ),
+        pytest.param(
+            ["nats://user:pass@host1:4222", "admin:secret@host2:4222"],
+            ["host1:4222", "host2:4222"],
+            id="schemeless-mixed-with-schemed",
+        ),
     ),
 )
 def test_credentials_stripped(
