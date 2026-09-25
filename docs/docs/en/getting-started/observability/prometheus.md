@@ -157,34 +157,34 @@ To integrate your custom metrics with FastStream, you should declare the metric,
 
 To learn about all the metric types supported by the `prometheus_client` Python library, check out the official instrumentation [**documentation**](https://prometheus.github.io/client_python/instrumenting/){.external-link target="_blank"}.
 
-## Prometheus Metrics in Multi-Process Mode
+### Multi-process mode
 
 When running FastStream with multiple worker processes (e.g., via `uvicorn --workers N`), you need special configuration for Prometheus metrics collection.
 
-### Basic Configuration
+#### Basic configuration
 
 1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory:
 
-   ```bash
-   export PROMETHEUS_MULTIPROC_DIR=/path/to/metrics/directory
-   ```
+    ```bash
+    export PROMETHEUS_MULTIPROC_DIR=/path/to/metrics/directory
+    ```
 
 2. Configure your broker with Prometheus middleware and create a metrics endpoint:
 
-```python linenums="1" hl_lines="17-18 35-45"
-{!> docs_src/getting_started/prometheus/kafka_multiprocess.py!}
-```
+    ```python linenums="1" hl_lines="18-21 26-37 43"
+    {!> docs_src/getting_started/prometheus/kafka_multiprocess.py!}
+    ```
 
-### How It Works
+#### How it works
 
-The metrics endpoint checks for the `PROMETHEUS_MULTIPROC_DIR` environment variable:
+The metrics endpoint is a regular [ASGI route](../asgi.md){.internal-link} declared with the `#!python @get` decorator. It checks for the `PROMETHEUS_MULTIPROC_DIR` environment variable:
 
 - **Multi-process mode**: When the variable is set, it creates a new `CollectorRegistry` with `MultiProcessCollector` that aggregates metrics from all worker processes
-- **Single-process mode**: When the variable is not set, it falls back to using the default registry
+- **Single-process mode**: When the variable is not set, it falls back to the registry passed to the middleware
 
 This allows the same code to work in both single and multi-process deployments.
 
-### Running with Multiple Workers
+#### Running with multiple workers
 
 Start your application with uvicorn using multiple workers:
 
@@ -194,17 +194,16 @@ mkdir -p $PROMETHEUS_MULTIPROC_DIR
 uvicorn app:app --workers 4
 ```
 
-### Important Requirements
+#### Important requirements
 
 1. **The metrics directory must:**
-   - Exist before application start
-   - Be writable by all worker processes
-   - Be on a filesystem accessible to all workers
-   - Be emptied between application runs
+    - Exist before application start
+    - Be writable by all worker processes
+    - Be on a filesystem accessible to all workers
+    - Be emptied before each application start
 
 2. **For better performance:**
-   - Consider mounting the directory on `tmpfs`
-   - Set up regular cleanup of old metric files
+    - Consider mounting the directory on `tmpfs`
 
 ---
 

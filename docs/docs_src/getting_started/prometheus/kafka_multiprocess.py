@@ -1,39 +1,36 @@
 import os
 
-from prometheus_client import CollectorRegistry, generate_latest, multiprocess
-from prometheus_client import CONTENT_TYPE_LATEST
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    generate_latest,
+    multiprocess,
+)
 
-from faststream.asgi import AsgiFastStream, AsgiResponse
+from faststream.asgi import AsgiFastStream, AsgiResponse, get
 from faststream.kafka import KafkaBroker
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 
-# Create registry for metrics
 registry = CollectorRegistry()
 
-# Create broker with Prometheus middleware
 broker = KafkaBroker(
-    middlewares=[
+    middlewares=(
         KafkaPrometheusMiddleware(
             registry=registry,
             app_name="your-app-name",
-        )
-    ]
+        ),
+    ),
 )
 
 
-@broker.subscriber("test-queue")
-async def handle_message(msg: str) -> None:
-    """Handle incoming messages."""
-
-
+@get
 async def metrics(scope):
-    """Metrics endpoint that supports multi-process mode."""
     if path := os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
-        # Multi-process mode: collect metrics from all workers
+        # multi-process mode: collect metrics from all workers
         registry_ = CollectorRegistry()
         multiprocess.MultiProcessCollector(registry_, path=path)
     else:
-        # Single process mode: use the default registry
+        # single-process mode: use the application registry
         registry_ = registry
 
     headers = {"Content-Type": CONTENT_TYPE_LATEST}
