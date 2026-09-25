@@ -16,6 +16,7 @@ from tests.marks import (
 async def test_handle_kafka() -> None:
     from docs.docs_src.getting_started.subscription.kafka.advanced_testing import (
         test_handle,
+        test_kafka_fields,
         test_message_context,
         test_several_messages,
     )
@@ -23,6 +24,7 @@ async def test_handle_kafka() -> None:
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_kafka_fields()
 
 
 @pytest.mark.confluent()
@@ -31,6 +33,7 @@ async def test_handle_kafka() -> None:
 async def test_handle_confluent() -> None:
     from docs.docs_src.getting_started.subscription.confluent.advanced_testing import (
         test_handle,
+        test_kafka_fields,
         test_message_context,
         test_several_messages,
     )
@@ -38,6 +41,7 @@ async def test_handle_confluent() -> None:
     await test_handle()
     await test_message_context()
     await test_several_messages()
+    await test_kafka_fields()
 
 
 @pytest.mark.rabbit()

@@ -11,6 +11,7 @@ from faststream.confluent import (
     KafkaRouter,
     TestKafkaBroker,
 )
+from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
@@ -149,6 +150,31 @@ def check_subscriber_instance_type(
 
     sub3 = broker.subscriber("test", max_workers=2)
     assert_type(sub3, ConcurrentDefaultSubscriber)
+
+
+async def check_call_assertions_take_the_kafka_fields(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    # A sync handler: mypy and pyright spell an `async def`'s return type differently
+    @broker.subscriber("test")
+    def handle() -> None: ...
+
+    assert_type(handle, KafkaHandlerCallWrapper[[], None])
+    await handle.assert_called_once_with(None, key=b"k", partition=0)
+    await handle.assert_called_with(key=b"k")
+    await handle.assert_any_call(partition=0)
+
+    # The publisher's own type is pinned in `check_publisher_instance_type`; here its
+    # methods take the two fields, which only the Kafka mixin gives them
+    publisher = broker.publisher("test")
+
+    @publisher
+    def published() -> None: ...
+
+    assert_type(published, KafkaHandlerCallWrapper[[], None])
+    await publisher.assert_called_once_with(None, key=b"k", partition=0)
+    await publisher.assert_called_with(key=b"k")
+    await publisher.assert_any_call(partition=0)
 
 
 config: ConfluentConfig = {"topic.metadata.refresh.fast.interval.ms": 300}
