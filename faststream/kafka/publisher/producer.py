@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.response import KafkaPublishCommand
-from faststream.message import encode_message
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -21,14 +21,18 @@ if TYPE_CHECKING:
     from aiokafka.structs import RecordMetadata
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
 
 
 class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
+    __slots__ = ()
+
     async def connect(
         self,
         producer: "AIOKafkaProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None: ...
 
     async def disconnect(self) -> None: ...
@@ -40,7 +44,7 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
     def closed(self) -> bool:
         return True
 
-    async def flush(self) -> None:
+    async def flush(self) -> None:  # noqa: PLR6301
         return None
 
     @abstractmethod
@@ -55,6 +59,7 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]: ...
 
+    @override
     async def request(self, cmd: "KafkaPublishCommand") -> Any:
         msg = "Kafka doesn't support `request` method without test client."
         raise FeatureNotSupportedException(msg)
@@ -63,6 +68,14 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
 class AioKafkaFastProducerImpl(AioKafkaFastProducer):
     """A class to represent Kafka producer."""
 
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "_producer",
+        "codec",
+        "serializer",
+    )
+
     def __init__(
         self,
         parser: Optional["CustomCallable"],
@@ -70,6 +83,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         # NOTE: register default parser to be compatible with request
         default = AioKafkaParser(msg_class=KafkaMessage, regex=None)
@@ -80,8 +94,10 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         self,
         producer: "AIOKafkaProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         await producer.start()
         self._producer = RealProducer(producer)
 
@@ -105,7 +121,12 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        message, content_type = encode_message(cmd.body, serializer=self.serializer)
+        if cmd.body is None and cmd.key is not None:
+            # keyed None is a tombstone: aiokafka requires at least key or value,
+            # so a keyless None still goes through the codec as b""
+            message, content_type = None, None
+        else:
+            message, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -135,9 +156,17 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
-        for message_position, body in enumerate(cmd.batch_bodies):
-            message, content_type = encode_message(body, serializer=self.serializer)
+        if isinstance(self.codec, BatchCodecProto):
+            encoded_batch = await self.codec.encode_batch(
+                cmd.batch_bodies, self.serializer
+            )
+        else:
+            encoded_batch = [
+                await self.codec.encode(body, self.serializer)
+                for body in cmd.batch_bodies
+            ]
 
+        for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:
                 final_headers = {
                     "content-type": content_type,
@@ -147,7 +176,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
                 final_headers = headers_to_send.copy()
 
             metadata = batch.append(
-                key=None,
+                key=cmd.key_for(message_position),
                 value=message,
                 timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],
@@ -166,10 +195,13 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
 
 class FakeAioKafkaFastProducer(AioKafkaFastProducer):
+    __slots__ = ()
+
     async def connect(
         self,
         producer: "AIOKafkaProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         raise NotImplementedError
 

@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
+from faststream._internal.utils.path import match_path
 from faststream.message import (
     StreamMessage,
     decode_message,
@@ -23,28 +24,17 @@ if TYPE_CHECKING:
 class NatsBaseParser:
     """A class to parse NATS messages."""
 
+    __slots__ = ("_path_re",)
+
     def __init__(
         self,
         *,
         pattern: str,
     ) -> None:
         path_re, _ = compile_nats_wildcard(pattern)
-        self.__path_re = path_re
+        self._path_re = path_re
 
-    def get_path(
-        self,
-        subject: str,
-    ) -> dict[str, Any] | None:
-        path: dict[str, Any] | None = None
-
-        if (path_re := self.__path_re) is not None and (
-            match := path_re.match(subject)
-        ) is not None:
-            path = match.groupdict()
-
-        return path
-
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: "StreamMessage[Any]",
     ) -> "DecodedMessage":
@@ -54,6 +44,8 @@ class NatsBaseParser:
 class NatsParser(NatsBaseParser):
     """A class to parse NATS core messages."""
 
+    __slots__ = ("is_ack_disabled",)
+
     def __init__(self, *, pattern: str, is_ack_disabled: bool) -> None:
         super().__init__(pattern=pattern)
 
@@ -62,11 +54,8 @@ class NatsParser(NatsBaseParser):
     async def parse_message(
         self,
         message: "Msg",
-        *,
-        path: dict[str, Any] | None = None,
     ) -> "StreamMessage[Msg]":
-        if path is None:
-            path = self.get_path(message.subject)
+        path = match_path(self._path_re, message.subject)
 
         headers = message.header or {}
 
@@ -76,7 +65,7 @@ class NatsParser(NatsBaseParser):
         return NatsMessage(
             raw_message=message,
             body=message.data,
-            path=path or {},
+            path=path,
             reply_to=message.reply,
             headers=headers,
             content_type=headers.get("content-type", ""),
@@ -88,21 +77,20 @@ class NatsParser(NatsBaseParser):
 class JsParser(NatsBaseParser):
     """A class to parse NATS JS messages."""
 
+    __slots__ = ()
+
     async def parse_message(
         self,
         message: "Msg",
-        *,
-        path: dict[str, Any] | None = None,
     ) -> "StreamMessage[Msg]":
-        if path is None:
-            path = self.get_path(message.subject)
+        path = match_path(self._path_re, message.subject)
 
         headers = message.header or {}
 
         return NatsMessage(
             raw_message=message,
             body=message.data,
-            path=path or {},
+            path=path,
             reply_to=headers.get("reply_to", ""),  # differ from core
             headers=headers,
             content_type=headers.get("content-type"),
@@ -114,6 +102,8 @@ class JsParser(NatsBaseParser):
 class BatchParser(JsParser):
     """A class to parse NATS batch messages."""
 
+    __slots__ = ()
+
     async def parse_batch(
         self,
         message: list["Msg"],
@@ -122,21 +112,21 @@ class BatchParser(JsParser):
         batch_headers: list[dict[str, str]] = []
 
         if message:
-            path = self.get_path(message[0].subject)
+            path = match_path(self._path_re, message[0].subject)
 
             for m in message:
                 batch_headers.append(m.headers or {})
                 body.append(m.data)
 
         else:
-            path = None
+            path = {}
 
         headers = next(iter(batch_headers), {})
 
         return NatsBatchMessage(
             raw_message=message,
             body=body,
-            path=path or {},
+            path=path,
             headers=headers,
             batch_headers=batch_headers,
         )
@@ -147,17 +137,16 @@ class BatchParser(JsParser):
     ) -> list["DecodedMessage"]:
         data: list[DecodedMessage] = []
 
-        path: dict[str, Any] | None = None
         for m in msg.raw_message:
-            one_msg = await self.parse_message(m, path=path)
-            path = one_msg.path
-
+            one_msg = await self.parse_message(m)
             data.append(decode_message(one_msg))
 
         return data
 
 
 class KvParser(NatsBaseParser):
+    __slots__ = ()
+
     async def parse_message(
         self,
         msg: "KeyValue.Entry",
@@ -165,12 +154,14 @@ class KvParser(NatsBaseParser):
         return NatsKvMessage(
             raw_message=msg,
             body=msg.value,
-            path=self.get_path(msg.key) or {},
+            path=match_path(self._path_re, msg.key),
         )
 
 
 class ObjParser(NatsBaseParser):
-    async def parse_message(self, msg: "ObjectInfo") -> StreamMessage["ObjectInfo"]:
+    __slots__ = ()
+
+    async def parse_message(self, msg: "ObjectInfo") -> StreamMessage["ObjectInfo"]:  # noqa: PLR6301
         return NatsObjMessage(
             raw_message=msg,
             body=msg.name,

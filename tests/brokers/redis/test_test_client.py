@@ -1,8 +1,10 @@
 import asyncio
+from typing import Any
 
 import pytest
 
 from faststream import BaseMiddleware
+from faststream.exceptions import SetupError
 from faststream.redis import ListSub, StreamSub
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
@@ -14,16 +16,11 @@ from .basic import RedisMemoryTestcaseConfig
 @pytest.mark.asyncio()
 class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
     @pytest.mark.connected()
-    async def test_with_real_testclient(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker, with_real=True) as br:
@@ -38,7 +35,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         assert event.is_set()
 
     async def test_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -48,10 +45,10 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(m) -> None: ...
+        async def h1(m: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(m) -> None: ...
+        async def h2(m: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("", queue)
@@ -61,7 +58,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -71,10 +68,10 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(m) -> None: ...
+        async def h1(m: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(m) -> None: ...
+        async def h2(m: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
@@ -88,7 +85,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test.{name}")
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -102,7 +99,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -116,7 +113,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -130,12 +127,27 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
             await br.publish_batch("hello", list=queue)
             m.mock.assert_called_once_with(["hello"])
+
+    async def test_batch_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(list=ListSub(queue, batch=True))
+        async def m(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch({"n": 1}, {"n": 2}, list=queue)
+
+            await m.assert_called_once_with([{"n": 1}, {"n": 2}])
+
+            # A batch has one header set per message, so there is no single answer
+            with pytest.raises(SetupError, match="received a batch"):
+                await m.assert_called_once_with(headers={"key": "value"})
 
     async def test_batch_publisher_mock(
         self,
@@ -148,13 +160,51 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", queue)
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
+
+    @pytest.mark.parametrize(
+        "returned",
+        (pytest.param(None, id="None"), pytest.param([], id="Empty Sequence")),
+    )
+    async def test_batch_publisher_empty_result_matches_default_publisher(
+        self,
+        queue: str,
+        returned: Any,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3056.
+
+        An empty result publishes one empty message, exactly as a non-batch
+        publisher does.
+        """
+        broker = self.get_broker()
+
+        batch_publisher = broker.publisher(list=ListSub(queue + "1", batch=True))
+        default_publisher = broker.publisher(list=queue + "2")
+
+        @batch_publisher
+        @broker.subscriber(queue)
+        async def batched(msg: Any) -> Any:
+            return returned
+
+        @default_publisher
+        @broker.subscriber(queue + "3")
+        async def single(msg: Any) -> None:
+            return None
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+            await br.publish("hello", queue + "3")
+
+            default_publisher.mock.assert_called_once_with(b"")
+            # Redis batch subscribers decode every element to `str`, so the same
+            # empty message on the wire is observed as `""` rather than `b""`.
+            batch_publisher.mock.assert_called_once_with([""])
 
     async def test_stream(
         self,
@@ -163,7 +213,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(stream=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -177,7 +227,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(stream=StreamSub(queue, batch=True))
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -195,13 +245,79 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", queue)
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
+
+    async def test_stream_same_group_delivers_to_one_consumer(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers", consumer="consumer-1"),
+        )
+        async def subscriber1(msg: Any) -> None: ...
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers", consumer="consumer-2"),
+        )
+        async def subscriber2(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+            # exactly one consumer of the group handles the message
+            called = [m for m in (subscriber1.mock, subscriber2.mock) if m.call_count]
+            assert len(called) == 1
+            called[0].assert_called_once_with("hello")
+
+    async def test_stream_different_groups_all_receive(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers-a", consumer="consumer-1"),
+        )
+        async def subscriber1(msg: Any) -> None: ...
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers-b", consumer="consumer-1"),
+        )
+        async def subscriber2(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+            subscriber1.mock.assert_called_once_with("hello")
+            subscriber2.mock.assert_called_once_with("hello")
+
+    async def test_stream_without_group_always_receives(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(
+            stream=StreamSub(queue, group="workers", consumer="consumer-1"),
+        )
+        async def grouped(msg: Any) -> None: ...
+
+        @broker.subscriber(stream=queue)
+        async def ungrouped(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", stream=queue)
+
+            grouped.mock.assert_called_once_with("hello")
+            ungrouped.mock.assert_called_once_with("hello")
 
     async def test_publish_to_none(self) -> None:
         broker = self.get_broker()

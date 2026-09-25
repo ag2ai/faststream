@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,9 +17,7 @@ class TestRouter(FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = RedisRouter
 
-    async def test_path(self, mock: MagicMock) -> None:
-        event = asyncio.Event()
-
+    async def test_path(self, mock: MagicMock, event: asyncio.Event) -> None:
         router = self.router_class()
 
         @router.subscriber("in.{name}")
@@ -40,16 +39,12 @@ class TestRouter(FastAPITestcase):
         mock.assert_called_once_with(msg="hello", name="john")
 
     async def test_batch_real(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(list=ListSub(queue, batch=True, max_records=1))
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -68,16 +63,12 @@ class TestRouter(FastAPITestcase):
 
     @pytest.mark.slow()
     async def test_consume_stream(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, polling_interval=1000))
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -97,16 +88,12 @@ class TestRouter(FastAPITestcase):
 
     @pytest.mark.slow()
     async def test_consume_stream_batch(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, polling_interval=1000, batch=True))
-        async def handler(msg: list[str]):
+        async def handler(msg: list[str]) -> None:
             mock(msg)
             event.set()
 
@@ -131,16 +118,12 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
     broker_router_class = RedisRouter
 
     async def test_batch_testclient(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(list=ListSub(queue, batch=True, max_records=1))
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -157,16 +140,12 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
         mock.assert_called_with(["hi"])
 
     async def test_stream_batch_testclient(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, batch=True))
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -186,7 +165,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
         router = self.router_class()
 
         @router.subscriber(queue + ".{name}")
-        async def hello(name):
+        async def hello(name: Any) -> Any:
             return name
 
         async with self.patch_broker(router.broker) as br:

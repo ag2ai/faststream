@@ -1,25 +1,43 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from confluent_kafka.admin import AdminClient, NewTopic
+from confluent_kafka.admin import AdminClient
+
+from .client import _LazyLoggerProxy
 
 if TYPE_CHECKING:
+    from faststream._internal.logger import LoggerState
+    from faststream.confluent.schemas import Topic
+
     from .config import ConfluentFastConfig
 
 
-@dataclass
+@dataclass(slots=True)
 class CreateResult:
     topic: str
     error: Exception | None
 
 
 class AdminService:
+    __slots__ = ("admin_client",)
+
     def __init__(self) -> None:
         self.admin_client: AdminClient | None = None
 
-    async def connect(self, config: "ConfluentFastConfig") -> None:
+    async def connect(
+        self,
+        config: "ConfluentFastConfig",
+        logger: "LoggerState | None" = None,
+    ) -> None:
         if self.admin_client is None:
-            self.admin_client = AdminClient(config.admin_config)
+            admin_config = config.admin_config
+            if logger is not None:
+                self.admin_client = AdminClient(
+                    admin_config,
+                    logger=_LazyLoggerProxy(logger),
+                )
+            else:
+                self.admin_client = AdminClient(admin_config)
 
     async def disconnect(self) -> None:
         self.admin_client = None
@@ -31,9 +49,12 @@ class AdminService:
         )
         return self.admin_client
 
-    def create_topics(self, topics: list[str]) -> list[CreateResult]:
+    def create_topics(self, topics: list["Topic"]) -> list[CreateResult]:
+        if not topics:
+            return []
+
         create_result = self.client.create_topics(
-            [NewTopic(topic, num_partitions=1, replication_factor=1) for topic in topics],
+            [topic.to_confluent() for topic in topics],
         )
 
         final_results = []

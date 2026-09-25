@@ -1,27 +1,66 @@
 from abc import abstractmethod
-from typing import Any
+from collections.abc import AsyncGenerator
+from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager
+from typing import Any, Generic, overload
+
+from typing_extensions import TypeVar
 
 from faststream._internal.broker import BrokerUsecase
-from faststream._internal.broker.router import BrokerRouter
+
+_BrokerT = TypeVar(
+    "_BrokerT",
+    bound=BrokerUsecase[Any, Any, Any],
+    default=BrokerUsecase[Any, Any, Any],
+)
 
 
-class BaseTestcaseConfig:
+class BaseTestcaseConfig(Generic[_BrokerT]):
     timeout: float = 3.0
+    # Default channel/list/core subscribers that force MANUAL ack have no
+    # AcknowledgementMiddleware, so cancel cannot hit the shared ack skip path.
+    supports_cancel_ack_skip: bool = True
 
     @abstractmethod
     def get_broker(
         self,
         apply_types: bool = False,
         **kwargs: Any,
-    ) -> BrokerUsecase[Any, Any]:
+    ) -> _BrokerT:
         raise NotImplementedError
+
+    @overload
+    def patch_broker(
+        self,
+        brokers: _BrokerT,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[_BrokerT]: ...
+
+    @overload
+    def patch_broker(
+        self,
+        *brokers: _BrokerT,
+        **kwargs: Any,
+    ) -> AbstractAsyncContextManager[tuple[_BrokerT, ...]]: ...
 
     def patch_broker(
         self,
-        broker: BrokerUsecase,
+        *brokers: _BrokerT,
         **kwargs: Any,
-    ) -> BrokerUsecase:
-        return broker
+    ) -> Any:
+        if len(brokers) == 1:
+            return brokers[0]
+
+        @asynccontextmanager
+        async def enter_broker() -> AsyncGenerator[tuple[Any, ...], None]:
+            started_brokers: list[Any] = []
+
+            async with AsyncExitStack() as stack:
+                for br in brokers:
+                    started_brokers.append(await stack.enter_async_context(br))  # noqa: PERF401
+
+                yield tuple(started_brokers)
+
+        return enter_broker()
 
     def get_subscriber_params(
         self,
@@ -33,6 +72,10 @@ class BaseTestcaseConfig:
     ]:
         return args, kwargs
 
+    def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
+        """Extra subscriber kwargs for cancel acknowledgement-skip consume tests."""
+        return {}
+
     @abstractmethod
-    def get_router(self, **kwargs: Any) -> BrokerRouter:
+    def get_router(self, **kwargs: Any) -> Any:
         raise NotImplementedError

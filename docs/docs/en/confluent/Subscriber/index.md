@@ -22,7 +22,7 @@ The full app code looks like this:
 
 ## Import FastStream and KafkaBroker
 
-To use the `#!python @broker.subscriber(...)` decorator, first, we need to import the base FastStream app KafkaBroker to create our broker.
+To use the `#!python @broker.subscriber(...)` decorator, first, we need to import the base FastStream app and KafkaBroker to create our broker.
 
 ```python linenums="1"
 {! docs_src/confluent/consumes_basics/app.py [ln:3-4] !}
@@ -57,3 +57,18 @@ The function decorated with the `#!python @broker.subscriber(...)` decorator wil
 The message will then be injected into the typed `msg` argument of the function, and its type will be used to parse the message.
 
 In this example case, when the message is sent to a `#!python "hello_world"` topic, it will be parsed into a `HelloWorld` class, and the `on_hello_world` function will be called with the parsed class as the `msg` argument value.
+
+## Multiple Topics
+
+You can subscribe to multiple topics with a single `#!python @broker.subscriber(...)` call by passing multiple topic names as positional arguments:
+
+```python linenums="1"
+{! docs_src/confluent/multiple_topics_subscription/app.py !}
+```
+
+A single handler will receive messages from all listed topics, under one consumer group.
+
+This differs from stacking multiple `#!python @broker.subscriber(...)` decorators, which creates separate independent handlers.
+
+!!! warning
+    `max_workers > 1` is only compatible with `AckPolicy.ACK_FIRST`. Using any other ack policy with `max_workers > 1` raises a `SetupError` when the subscriber is declared, regardless of how many topics are subscribed to.

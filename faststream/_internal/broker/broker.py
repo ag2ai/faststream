@@ -3,9 +3,9 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Optional
 
 from fast_depends import Provider
-from typing_extensions import Self, deprecated
+from typing_extensions import Self
 
-from faststream._internal.configs import BrokerConfigType
+from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import (
     BrokerMiddleware,
     ConnectionType,
@@ -25,13 +25,16 @@ if TYPE_CHECKING:
 
 
 class BrokerUsecase(
-    Registrator[MsgType, BrokerConfigType],
+    Registrator[MsgType, BrokerConfigType_co],
     BrokerPublishMixin[MsgType],
-    Generic[MsgType, ConnectionType, BrokerConfigType],
+    Generic[MsgType, ConnectionType, BrokerConfigType_co],
 ):
     """Basic class for brokers-only.
 
     Extends `Registrator` by connection, publish and AsyncAPI behavior.
+
+    Unslotted on purpose: one broker exists per process, and it is the object test
+    suites mock — `patch.object(broker, "start")` needs somewhere to put the mock.
     """
 
     _connection: ConnectionType | None
@@ -39,7 +42,7 @@ class BrokerUsecase(
     def __init__(
         self,
         *,
-        config: BrokerConfigType,
+        config: BrokerConfigType_co,
         specification: "BrokerSpec",
         routers: Iterable[Registrator[Any, Any]],
         **connection_kwargs: Any,
@@ -65,7 +68,7 @@ class BrokerUsecase(
 
     @property
     def context(self) -> "ContextRepo":
-        return self.config.fd_config.context
+        return self.config.context
 
     @property
     def provider(self) -> Provider:
@@ -103,7 +106,7 @@ class BrokerUsecase(
             log_context.pop("message_id", None)
             self.config.logger.params_storage.register_subscriber(log_context)
 
-        self.config.logger._setup(self.config.fd_config.context)
+        self.config.logger._setup(self.config.context)
 
     async def connect(self) -> ConnectionType:
         """Connect to a remote server."""
@@ -128,22 +131,6 @@ class BrokerUsecase(
             await sub.stop()
 
         self.running = False
-
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        """Closes the object."""
-        await self.stop(exc_type, exc_val, exc_tb)
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

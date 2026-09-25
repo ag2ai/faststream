@@ -2,7 +2,6 @@ import logging
 from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Literal,
     Optional,
@@ -18,13 +17,15 @@ from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream._internal.types import IdGenerator
 from faststream.confluent.broker import KafkaBroker as KB
+from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
@@ -38,16 +39,13 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.confluent.helpers.config import ConfluentConfig
-    from faststream.confluent.message import KafkaMessage
     from faststream.confluent.publisher.usecase import (
         BatchPublisher,
         DefaultPublisher,
     )
-    from faststream.confluent.schemas import TopicPartition
+    from faststream.confluent.schemas import Topic, TopicPartition
     from faststream.confluent.subscriber.usecase import (
         BatchSubscriber,
         ConcurrentDefaultSubscriber,
@@ -94,6 +92,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         transaction_timeout_ms: int = 60 * 1000,
         # broker base args
         graceful_timeout: float | None = 15.0,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -217,6 +216,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             transactional_id: Transactional ID for the producer.
             transaction_timeout_ms: Transaction timeout in milliseconds.
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            id_generator: Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
+                Defaults to `gen_cor_id` (uuid4-based).
             decoder: Custom decoder object.
             parser: Custom parser object.
             middlewares: Middlewares to apply to all broker publishers/subscribers.
@@ -363,6 +364,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             transaction_timeout_ms=transaction_timeout_ms,
             # broker args
             graceful_timeout=graceful_timeout,
+            id_generator=id_generator,
             decoder=decoder,
             parser=parser,
             middlewares=middlewares,
@@ -403,7 +405,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -413,13 +415,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -430,26 +425,16 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: Literal[False] = False,
         max_records: int | None = None,
         # broker args
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -470,7 +455,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -480,13 +465,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -497,26 +475,16 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: Literal[False] = False,
         max_records: int | None = None,
         # broker args
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -537,7 +505,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -547,13 +515,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -564,19 +525,16 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: Literal[True] = ...,
         max_records: int | None = None,
         # broker args
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         max_workers: None = None,
         # Specification args
         title: str | None = None,
@@ -595,7 +553,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -605,13 +563,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -622,26 +573,16 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: bool = False,
         max_records: int | None = None,
         # broker args
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -666,7 +607,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @override
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         partitions: Sequence["TopicPartition"] = (),
         polling_interval: float = 0.1,
         group_id: str | None = None,
@@ -676,13 +617,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         fetch_min_bytes: int = 1,
         max_partition_fetch_bytes: int = 1 * 1024 * 1024,
         auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit: Annotated[
-            bool,
-            deprecated(
-                "This option is deprecated and will be removed in 0.7.0 release. "
-                "Please, use `ack_policy=AckPolicy.ACK_FIRST` instead."
-            ),
-        ] = EMPTY,
         auto_commit_interval_ms: int = 5 * 1000,
         check_crcs: bool = True,
         partition_assignment_strategy: Sequence[str] = ("roundrobin",),
@@ -693,26 +627,16 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             "read_uncommitted",
             "read_committed",
         ] = "read_uncommitted",
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
         batch: bool = False,
         max_records: int | None = None,
         # broker args
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[KafkaMessage]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
@@ -732,7 +656,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         """Create a subscriber for Kafka topics.
 
         Args:
-            *topics: Kafka topics to consume messages from.
+            *topics: Kafka topics to consume messages from. Pass a `Topic` object
+                instead of a plain name to configure how the topic is created.
             partitions: Sequence of topic partitions.
             polling_interval: Polling interval in seconds.
             group_id: Name of the consumer group to join for dynamic
@@ -838,6 +763,12 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 return the ALSO. See method docs below.
             batch: Whether to consume messages in batches or not.
             max_records: Number of messages to consume as one batch.
+            on_assign: Callback called when partitions are assigned to the consumer
+                during a rebalance. Receives ``(consumer, partitions)`` arguments.
+            on_revoke: Callback called when partitions are revoked from the consumer
+                during a rebalance. Receives ``(consumer, partitions)`` arguments.
+            on_lost: Callback called when partitions are lost (e.g., due to session
+                timeout). Receives ``(consumer, partitions)`` arguments.
             dependencies: Dependencies list (`[Dependant(),]`) to apply to the subscriber.
             parser: Parser to map original **Message** object to FastStream one.
             decoder: Function to decode FastStream msg bytes body to python objects.
@@ -942,7 +873,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             fetch_min_bytes=fetch_min_bytes,
             max_partition_fetch_bytes=max_partition_fetch_bytes,
             auto_offset_reset=auto_offset_reset,
-            auto_commit=auto_commit,
             auto_commit_interval_ms=auto_commit_interval_ms,
             check_crcs=check_crcs,
             partition_assignment_strategy=partition_assignment_strategy,
@@ -950,15 +880,16 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             session_timeout_ms=session_timeout_ms,
             heartbeat_interval_ms=heartbeat_interval_ms,
             isolation_level=isolation_level,
+            on_assign=on_assign,
+            on_revoke=on_revoke,
+            on_lost=on_lost,
             batch=batch,
             max_records=max_records,
             # broker args
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             ack_policy=ack_policy,
-            no_ack=no_ack,
             no_reply=no_reply,
             title=title,
             description=description,
@@ -984,7 +915,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload  # type: ignore[override]
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
@@ -992,13 +923,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         reply_to: str = "",
         batch: Literal[False] = False,
         # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -1009,7 +933,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
@@ -1017,13 +941,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         reply_to: str = "",
         batch: Literal[True] = ...,
         # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -1034,7 +951,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
@@ -1042,13 +959,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         reply_to: str = "",
         batch: bool = False,
         # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -1059,7 +969,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
     @override
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
@@ -1067,13 +977,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         reply_to: str = "",
         batch: bool = False,
         # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -1083,7 +986,9 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         """Publish messages to a Kafka topic.
 
         Args:
-            topic: Topic where the message will be published.
+            topic: Topic where the message will be published. A `Topic` object is
+                accepted as well, but **FastStream** never creates publisher topics,
+                so its creation settings are ignored.
             key: A key to associate with the message. Can be used to
                 determine which partition to send the message to. If partition
                 is `None` (and producer's partitioner config is left as default),
@@ -1098,7 +1003,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
                 Can be overridden by `publish.headers` if specified.
             reply_to: Topic name to send response.
             batch: Whether to send messages in batches or not.
-            middlewares: Publisher middlewares to wrap outgoing messages.
             title: Specification publisher object title.
             description: Specification publisher object description.
             schema: Specification publishing message type.
@@ -1115,8 +1019,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             headers=headers,
             batch=batch,
             reply_to=reply_to,
-            # broker options
-            middlewares=middlewares,
             # Specification options
             title=title,
             description=description,

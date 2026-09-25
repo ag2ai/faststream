@@ -1,16 +1,14 @@
 import asyncio
+import json
 from typing import Any
 from unittest.mock import MagicMock
 
+import anyio
 import pytest
 
 from faststream._internal._compat import json_dumps
 from faststream.redis import RedisBroker, TestRedisBroker
-from faststream.redis.parser import (
-    BinaryMessageFormatV1,
-    JSONMessageFormat,
-    MessageFormat,
-)
+from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from tests.brokers.base.parser import CustomParserTestcase
 
 from .basic import RedisTestcaseConfig
@@ -19,7 +17,32 @@ from .basic import RedisTestcaseConfig
 @pytest.mark.connected()
 @pytest.mark.redis()
 class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
-    pass
+    async def test_request_respect_decoder(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        async def custom_decoder(msg: Any, original: Any) -> Any:
+            mock()
+            return await original(msg)
+
+        broker = self.get_broker(decoder=custom_decoder)
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(msg: Any) -> Any:
+            return msg
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            with anyio.fail_after(self.timeout):
+                msg = await br.request("Hi!", queue)
+
+        assert mock.call_count == 1
+        await msg.decode()
+        assert mock.call_count == 2
 
 
 @pytest.mark.parametrize(
@@ -40,32 +63,12 @@ class TestCustomParser(RedisTestcaseConfig, CustomParserTestcase):
     ),
 )
 @pytest.mark.redis()
-def test_binary_message_encode_parse(input: Any, should_be: bytes) -> None:
-    raw_message = BinaryMessageFormatV1.encode(
+@pytest.mark.asyncio()
+async def test_binary_message_encode_parse(input: Any, should_be: bytes) -> None:
+    raw_message = await BinaryMessageFormatV1.encode(
         message=input, reply_to=None, headers=None, correlation_id="id"
     )
     parsed, _ = BinaryMessageFormatV1.parse(raw_message)
-    assert parsed == should_be
-
-
-@pytest.mark.parametrize(
-    ("input", "should_be"),
-    (
-        pytest.param("", b"", id="empty"),
-        pytest.param("plain text", b"plain text", id="plain text"),
-        pytest.param(
-            {"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"},
-            json_dumps({"id": "12345678" * 4, "date": "2021-01-01T00:00:00Z"}),
-            id="complex json",
-        ),
-    ),
-)
-@pytest.mark.redis()
-def test_json_message_encode_parse(input: Any, should_be: bytes) -> None:
-    raw_message = JSONMessageFormat.encode(
-        message=input, reply_to=None, headers=None, correlation_id="id"
-    )
-    parsed, _ = JSONMessageFormat.parse(raw_message)
     assert parsed == should_be
 
 
@@ -91,12 +94,9 @@ class TestFormats:
         ("message_format", "message"),
         (
             pytest.param(
-                JSONMessageFormat,
+                BinaryMessageFormatV1,
                 b'{"data": "hello"}',
-                id="json",
-                marks=pytest.mark.filterwarnings(
-                    "ignore:JSONMessageFormat has been deprecated"
-                ),
+                id="json_envelope",
             ),
             pytest.param(
                 BinaryMessageFormatV1,
@@ -116,16 +116,17 @@ class TestFormats:
         broker = RedisBroker(apply_types=False)
 
         @broker.subscriber(queue, message_format=message_format)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             event.set()
             mock(msg)
 
         async with broker:
             await broker.start()
 
+            client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.publish(queue, message)),
+                    asyncio.create_task(client.publish(queue, message)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -136,12 +137,9 @@ class TestFormats:
         ("message_format", "message"),
         (
             pytest.param(
-                JSONMessageFormat,
+                BinaryMessageFormatV1,
                 b'{"data": "hello"}',
-                id="json",
-                marks=pytest.mark.filterwarnings(
-                    "ignore:JSONMessageFormat has been deprecated"
-                ),
+                id="json_envelope",
             ),
             pytest.param(
                 BinaryMessageFormatV1,
@@ -162,27 +160,27 @@ class TestFormats:
 
         @broker.subscriber(queue, message_format=message_format)
         @broker.publisher(queue + "resp", message_format=message_format)
-        async def resp(msg):
+        async def resp(msg: Any) -> Any:
             return msg
 
         @broker.subscriber(queue + "resp", message_format=message_format)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
         async with broker:
             await broker.start()
 
+            client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.publish(queue, message)),
+                    asyncio.create_task(client.publish(queue, message)),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
             )
         mock.assert_called_once_with(b"hello")
 
-    @pytest.mark.filterwarnings("ignore:JSONMessageFormat has been deprecated")
     async def test_publisher_format_overrides_broker(
         self,
         queue: str,
@@ -191,15 +189,15 @@ class TestFormats:
     ) -> None:
         broker = RedisBroker(
             apply_types=False,
-            message_format=BinaryMessageFormatV1,  # will be ignored
+            message_format=BinaryMessageFormatV1,
         )
 
-        @broker.subscriber(queue, message_format=JSONMessageFormat)
-        async def resp(msg) -> None:
+        @broker.subscriber(queue, message_format=BinaryMessageFormatV1)
+        async def resp(msg: Any) -> None:
             mock(msg)
             event.set()
 
-        publisher = broker.publisher(queue, message_format=JSONMessageFormat)
+        publisher = broker.publisher(queue, message_format=BinaryMessageFormatV1)
 
         async with broker:
             await broker.start()
@@ -213,42 +211,40 @@ class TestFormats:
             )
         mock.assert_called_once_with("Hi!")
 
-    @pytest.mark.filterwarnings("ignore:JSONMessageFormat has been deprecated")
     async def test_parse_json_with_binary_format(
         self, queue: str, event: asyncio.Event, mock: MagicMock
     ) -> None:
-        broker = RedisBroker(apply_types=False, message_format=JSONMessageFormat)
+        broker = RedisBroker(apply_types=False, message_format=BinaryMessageFormatV1)
 
         @broker.subscriber(queue, message_format=BinaryMessageFormatV1)
-        async def resp(msg):
+        async def resp(msg: Any) -> None:
             mock(msg)
             event.set()
 
         async with broker:
             await broker.start()
 
+            client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(broker._connection.publish(queue, "hello world")),
+                    asyncio.create_task(client.publish(queue, "hello world")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
             )
         mock.assert_called_once_with(b"hello world")
 
-    @pytest.mark.filterwarnings("ignore:JSONMessageFormat has been deprecated")
     async def test_parse_response_with_publisher_format(self, queue: str) -> None:
         broker = RedisBroker(
             apply_types=False,
-            # message_format will be ignored
             message_format=None,  # type: ignore[arg-type]
         )
 
-        @broker.subscriber(queue, message_format=JSONMessageFormat)
-        async def resp(msg):
+        @broker.subscriber(queue, message_format=BinaryMessageFormatV1)
+        async def resp(msg: Any) -> Any:
             return "Response"
 
-        publisher = broker.publisher(queue, message_format=JSONMessageFormat)
+        publisher = broker.publisher(queue, message_format=BinaryMessageFormatV1)
 
         async with broker:
             await broker.start()
@@ -262,34 +258,58 @@ class TestFormats:
 class TestTestBrokerFormats:
     @pytest.mark.parametrize(
         ("msg_format"),
-        (
-            pytest.param(
-                JSONMessageFormat,
-                id="json",
-                marks=pytest.mark.filterwarnings(
-                    "ignore:JSONMessageFormat has been deprecated"
-                ),
-            ),
-            pytest.param(BinaryMessageFormatV1, id="binary"),
-        ),
+        (pytest.param(BinaryMessageFormatV1, id="binary"),),
     )
     async def test_formats(self, queue: str, msg_format: type["MessageFormat"]) -> None:
         broker = RedisBroker(apply_types=False, message_format=msg_format)
 
         @broker.subscriber(queue, message_format=msg_format)
-        async def handler(msg): ...
+        async def handler(msg: Any) -> None: ...
 
         async with TestRedisBroker(broker) as br:
             await br.publish("hello", queue)
             handler.mock.assert_called_once_with("hello")
 
-    @pytest.mark.filterwarnings("ignore:JSONMessageFormat has been deprecated")
     async def test_parse_json_with_binary_format(self, queue: str) -> None:
-        broker = RedisBroker(apply_types=False, message_format=JSONMessageFormat)
+        broker = RedisBroker(apply_types=False, message_format=BinaryMessageFormatV1)
 
         @broker.subscriber(queue, message_format=BinaryMessageFormatV1)
-        async def handler(msg) -> None: ...
+        async def handler(msg: Any) -> None: ...
 
         async with TestRedisBroker(broker) as br:
             await br.publish("hello", queue)
             handler.mock.assert_called_once_with("hello")
+
+    @pytest.mark.connected()
+    async def test_binary_fallback_to_json(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2552."""
+        broker = RedisBroker()
+
+        @broker.subscriber(stream=queue, message_format=BinaryMessageFormatV1)
+        async def handler(msg: Any) -> None:
+            mock(msg)
+            if mock.call_count == 2:
+                event.set()
+
+        data = {
+            "name": "John",
+            "age": "25",
+        }
+
+        async with broker:
+            await broker.start()
+
+            client = await broker.connect()
+            await asyncio.wait(
+                (
+                    asyncio.create_task(client.xadd(queue, data)),
+                    asyncio.create_task(client.xadd(queue, {"data": json.dumps(data)})),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=3,
+            )
+
+        mock.assert_called_with(data)
+        assert mock.call_count == 2

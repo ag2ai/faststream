@@ -18,7 +18,10 @@ def Context(  # noqa: N802
     """Get access to objects of the Context."""
 
     def solve_context(
-        context: Annotated[Any, params.Header(alias="context__")],
+        context: Annotated[
+            Any,
+            params.Header(alias="context__", include_in_schema=False),
+        ],
     ) -> Any:
         return resolve_context_by_name(
             name=name,

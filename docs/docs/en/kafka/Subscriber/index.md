@@ -22,7 +22,7 @@ The full app code looks like this:
 
 ## Import FastStream and KafkaBroker
 
-To use the `#!python @broker.subscriber(...)` decorator, first, we need to import the base FastStream app KafkaBroker to create our broker.
+To use the `#!python @broker.subscriber(...)` decorator, first, we need to import the base FastStream app and KafkaBroker to create our broker.
 
 ```python linenums="1"
 {! docs_src/kafka/consumes_basics/app.py [ln:3-4] !}
@@ -58,6 +58,21 @@ The message will then be injected into the typed `msg` argument of the function,
 
 In this example case, when the message is sent to a `#!python "hello_world"` topic, it will be parsed into a `HelloWorld` class, and the `on_hello_world` function will be called with the parsed class as the `msg` argument value.
 
+## Multiple Topics
+
+You can subscribe to multiple topics with a single `#!python @broker.subscriber(...)` call by passing multiple topic names as positional arguments:
+
+```python linenums="1"
+{! docs_src/kafka/multiple_topics_subscription/app.py !}
+```
+
+A single handler will receive messages from all listed topics, under one consumer group.
+
+This differs from stacking multiple `#!python @broker.subscriber(...)` decorators, which creates separate independent handlers.
+
+!!! warning
+    When using multiple topics with `max_workers > 1`, only `AckPolicy.ACK_FIRST` is supported. Combining multiple topics, `max_workers > 1`, and any other ack policy (`ACK`, `NACK_ON_ERROR`, `REJECT_ON_ERROR`, `MANUAL`) raises a `SetupError` when the subscriber is declared.
+
 ### Pattern data access
 
 You can also use pattern subscription feature to encode some data directly in the topic name. With **FastStream** you can easily access this data using the following code:
@@ -73,9 +88,23 @@ async def base_handler(
     ...
 ```
 
+### Literal braces
+{% raw %}
+
+If your topic name legitimately contains `{` or `}` characters (e.g. `cache{shard}`), escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
+
+```python
+@broker.subscriber("cache{{shard}}.logs.{level}")
+async def handler(body: str, level: str = Path()):
+    ...
+```
+{% endraw %}
+
+This subscribes to the topic `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.
+
 ## Concurrent processing
 
 There are two possible modes of concurrent message processing:
 
-* With `auto_commit=False` and `max_workers` > 1, a handler processes all messages concurrently in a at-most-once semantic.
-* With `auto_commit=True` and `max_workers` > 1, processing is concurrent between topic partitions and sequential within a partition to ensure reliable at-least-once processing. Maximum concurrency is achieved when total number of workers across all application instances running workers in the same consumer group is equal to the number of partitions in the topic. Increasing worker count beyond that will result in idle workers as not more than one consumer from a consumer group can be consuming from the same partition.
+* With `AckPolicy.ACK_FIRST` and `max_workers` > 1, a handler processes all messages concurrently in an at-most-once semantic.
+* With any other `AckPolicy` and `max_workers` > 1, processing is concurrent between topic partitions and sequential within a partition to ensure reliable at-least-once processing. This mode requires a single plain topic: combining it with `pattern=` or `partitions=` raises a `SetupError` when the subscriber is declared. Maximum concurrency is achieved when the total number of workers across all application instances running workers in the same consumer group is equal to the number of partitions in the topic. Increasing worker count beyond that will result in idle workers as not more than one consumer from a consumer group can be consuming from the same partition.

@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -76,4 +77,18 @@ async def test_pydantic_model_redis() -> None:
 
     async with TestRedisBroker(broker) as br:
         await br.publish({"name": "John", "user_id": 1}, "test-channel")
+        handle.mock.assert_called_once_with({"name": "John", "user_id": 1})
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_pydantic_model_mqtt() -> None:
+    from docs.docs_src.getting_started.subscription.mqtt.pydantic_model import (
+        broker,
+        handle,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker) as br:
+        await br.publish({"name": "John", "user_id": 1}, "test-topic")
         handle.mock.assert_called_once_with({"name": "John", "user_id": 1})

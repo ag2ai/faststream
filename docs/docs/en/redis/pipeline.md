@@ -25,7 +25,7 @@ You can pass the `pipeline` parameter to the `publish` method to delay the execu
 The `pipeline` object is injected by the `Pipeline` annotation:
 
 ```python
-from faststream.redis.annotations import Pipeline
+from faststream.redis import Pipeline
 ```
 
 `Pipeline` is a **Redis** pipeline object (`redis.asyncio.client.Pipeline`), which is wrapped in a FastStream dependency and will be automatically available in any subscriber.
@@ -38,6 +38,9 @@ When using `#!python broker.publish_batch()` in combination with the `pipeline` 
 
 - Pipelining is supported for all **Redis** queue types, including channels, lists, and streams.
 - You can combine multiple queue types in a single pipeline.
+
+!!! warning "Redis Cluster"
+    Pipeline is **not supported** in Redis Cluster. If you are using `RedisClusterBroker`, the `pipeline` parameter is not available. Consider using `publish_batch()` with individual requests instead.
 
 ## Benefits
 

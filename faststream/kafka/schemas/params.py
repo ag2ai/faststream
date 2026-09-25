@@ -17,7 +17,6 @@ class AdminClientConnectionParams(TypedDict, total=False):
         retry_backoff_ms : The backoff time in milliseconds for retrying failed requests.
         metadata_max_age_ms : The maximum age of metadata in milliseconds.
         security_protocol : The security protocol to use for the connection. Must be one of "SSL" or "PLAINTEXT".
-        api_version : The API version to use for the connection.
         connections_max_idle_ms : The maximum idle time in milliseconds before closing a connection.
         ssl_context : Pre-configured SSLContext for wrapping socket connections.
         sasl_mechanism : The SASL mechanism to use for authentication. Must be one of "PLAIN", "GSSAPI", "SCRAM-SHA-256", "SCRAM-SHA-512", or "OAUTHBEARER".
@@ -38,7 +37,6 @@ class AdminClientConnectionParams(TypedDict, total=False):
         "SSL",
         "PLAINTEXT",
     ]
-    api_version: str
     connections_max_idle_ms: int
     sasl_mechanism: Literal[
         "PLAIN",
@@ -62,6 +60,8 @@ class ConsumerConnectionParams(TypedDict, total=False):
         bootstrap_servers : Required. The bootstrap servers to connect to.
         loop : Optional. The event loop to use for asynchronous operations.
         client_id : The client ID to use for the connection.
+        client_rack : Rack identifier for this client, used for rack-aware fetching from the closest replica.
+        group_instance_id : Name of the group instance ID used for static membership (KIP-345).
         request_timeout_ms : The timeout for network requests in milliseconds.
         retry_backoff_ms : The backoff time in milliseconds for retrying failed requests.
         metadata_max_age_ms : The maximum age of metadata in milliseconds.
@@ -78,8 +78,10 @@ class ConsumerConnectionParams(TypedDict, total=False):
     """
 
     bootstrap_servers: str | list[str]
+    group_instance_id: str | None
     loop: AbstractEventLoop | None
     client_id: str
+    client_rack: str
     request_timeout_ms: int
     retry_backoff_ms: int
     metadata_max_age_ms: int

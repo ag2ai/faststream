@@ -1,6 +1,6 @@
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock
 
 import anyio
@@ -8,9 +8,11 @@ from nats.aio.msg import Msg
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.testing.broker import TestBroker
+from faststream._internal.parser import DefaultCodec
+from faststream._internal.testing.broker import EnterType, TestBroker
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import SubscriberNotFound
-from faststream.message import encode_message, gen_cor_id
+from faststream.message import gen_cor_id
 from faststream.nats.broker import NatsBroker
 from faststream.nats.parser import NatsParser
 from faststream.nats.publisher.producer import NatsFastProducer
@@ -21,6 +23,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.configs.broker import ConfigComposition
+    from faststream._internal.parser import CodecProto
     from faststream.nats.configs import NatsBrokerConfig
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.response import NatsPublishCommand
@@ -47,39 +50,77 @@ def change_producer(
     config.broker_config.js_producer = old_js_producer
 
 
-class TestNatsBroker(TestBroker[NatsBroker]):
+class TestNatsBroker(
+    TestBroker[NatsBroker, EnterType],
+    broker=NatsBroker,
+):
     """A class to test NATS brokers."""
 
-    @staticmethod
+    @overload
+    def __init__(
+        self: "TestNatsBroker[NatsBroker]",
+        broker: NatsBroker,
+        /,
+        *,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "TestNatsBroker[tuple[NatsBroker, ...]]",
+        *brokers: NatsBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *brokers: NatsBroker,
+        with_real: bool = False,
+        connect_only: bool | None = None,
+    ) -> None:
+        super().__init__(
+            *brokers,
+            with_real=with_real,
+            connect_only=connect_only,
+        )
+
     def create_publisher_fake_subscriber(
+        self,
         broker: NatsBroker,
         publisher: "LogicPublisher",
     ) -> tuple["LogicSubscriber[Any]", bool]:
         publisher_stream = publisher.stream.name if publisher.stream else None
 
         sub: LogicSubscriber[Any] | None = None
-        for handler in broker.subscribers:
+        for handler in (s for b in self.brokers for s in b.subscribers):
             handler = cast("LogicSubscriber[Any]", handler)
-            if _is_handler_matches(handler, publisher.subject, publisher_stream):
+            if _is_handler_matches(handler, publisher.subject.template, publisher_stream):
                 sub = handler
                 break
 
         if sub is None:
             is_real = False
-            sub = broker.subscriber(publisher.subject, persistent=False)
+            sub = broker.subscriber(
+                publisher.subject.template,
+                persistent=False,
+                stream=publisher_stream,
+            )
         else:
             is_real = True
 
         return sub, is_real
 
     @contextmanager
-    def _patch_producer(self, broker: NatsBroker) -> Iterator[None]:
-        fake_producer = FakeProducer(broker)
+    def _patch_producer(self, broker: NatsBroker) -> Generator[None, None, None]:
+        fake_producer = FakeProducer(broker, self.brokers)
 
         with ExitStack() as es:
             es.enter_context(change_producer(broker.config, fake_producer))
             yield
 
+    @override
     async def _fake_connect(
         self,
         broker: NatsBroker,
@@ -96,26 +137,40 @@ class TestNatsBroker(TestBroker[NatsBroker]):
 
 
 class FakeProducer(NatsFastProducer):
-    def __init__(self, broker: NatsBroker) -> None:
+    def __init__(
+        self,
+        broker: NatsBroker,
+        brokers: Sequence[NatsBroker],
+    ) -> None:
         self.broker = broker
+        self.brokers = brokers
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
+        self.codec = broker.config.broker_codec or DefaultCodec()
+
+    @property
+    def subscribers(self) -> Iterable["LogicSubscriber[Any]"]:
+        return (
+            cast("LogicSubscriber[Any]", s) for b in self.brokers for s in b.subscribers
+        )
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             subject=cmd.destination,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             reply_to=cmd.reply_to,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
-            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
+            self.subscribers,
             cmd.destination,
             cmd.stream,
         ):
@@ -130,16 +185,18 @@ class FakeProducer(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "PatchedMessage":
-        incoming = build_message(
+        incoming = await build_message(
             message=cmd.body,
             subject=cmd.destination,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
         for handler in _find_handler(
-            cast("list[LogicSubscriber[Any]]", self.broker.subscribers),
+            self.subscribers,
             cmd.destination,
             cmd.stream,
         ):
@@ -163,12 +220,14 @@ class FakeProducer(NatsFastProducer):
     ) -> "PatchedMessage":
         result = await handler.process_message(msg)
 
-        return build_message(
+        return await build_message(
             subject=subject,
             message=result.body,
             headers=result.headers,
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
+            codec=self.codec,
+            id_generator=self.broker.config.id_generator,
         )
 
 
@@ -200,7 +259,7 @@ def _is_handler_matches(
         if stream != handler_stream.name:
             return False
 
-    if is_subject_match_wildcard(subject, handler.clear_subject):
+    if is_subject_match_wildcard(subject, handler.subject.broker_address):
         return True
 
     for filter_subject in handler.filter_subjects or ():
@@ -210,7 +269,7 @@ def _is_handler_matches(
     return False
 
 
-def build_message(
+async def build_message(
     message: "SendableMessage",
     subject: str,
     *,
@@ -218,8 +277,12 @@ def build_message(
     correlation_id: str | None = None,
     headers: dict[str, str] | None = None,
     serializer: Optional["SerializerProto"] = None,
+    codec: Optional["CodecProto"] = None,
+    id_generator: IdGenerator = gen_cor_id,
 ) -> "PatchedMessage":
-    msg, content_type = encode_message(message, serializer=serializer)
+    if codec is None:
+        codec = DefaultCodec()
+    msg, content_type = await codec.encode(message, serializer=serializer)
     return PatchedMessage(
         _client=None,  # type: ignore[arg-type]
         subject=subject,
@@ -227,7 +290,7 @@ def build_message(
         data=msg,
         headers={
             "content-type": content_type or "",
-            "correlation_id": correlation_id or gen_cor_id(),
+            "correlation_id": correlation_id or id_generator(),
             **(headers or {}),
         },
     )

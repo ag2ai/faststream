@@ -10,7 +10,7 @@ search:
 
 # Redis Streams
 
-[Redis Streams](https://redis.io/docs/data-types/streams/){.external-link target="_blank"} are a data structure introduced in **Redis 5.0** that offer a reliable and highly scalable way to handle streams of data. They are similar to logging systems like **Apache Kafka**, where data is stored in a log structure and can be consumed by multiple clients. **Streams** provide a sequence of ordered messages, and they are designed to handle a high volume of data by allowing partitioning and multiple consumers.
+[Redis Streams](https://redis.io/docs/latest/develop/data-types/streams/){.external-link target="_blank"} are a data structure introduced in **Redis 5.0** that offer a reliable and highly scalable way to handle streams of data. They are similar to logging systems like **Apache Kafka**, where data is stored in a log structure and can be consumed by multiple clients. **Streams** provide a sequence of ordered messages, and they are designed to handle a high volume of data by allowing partitioning and multiple consumers.
 
 A **Redis Stream** is a collection of entries, each having an ID (which includes a timestamp) and a set of key-value pairs representing the message data. Clients can add to a stream by generating a new entry and can read from a stream to consume its messages.
 
@@ -19,3 +19,6 @@ A **Redis Stream** is a collection of entries, each having an ID (which includes
 - Persistence: Data in the stream are persisted and can be replayed by new consumers.
 - Consumer Groups: Allow concurrent consumption and acknowledgment of data entries by multiple consumers, facilitating partitioned processing.
 - Range Queries: Clients can query streams for data within a specific range of IDs.
+
+!!! tip "Redis Cluster"
+    In Redis Cluster, stream keys (with consumer groups) reside on a single node determined by the key's hash slot. `RedisClusterBroker` handles routing transparently — all stream operations (`xadd`, `xreadgroup`, `xautoclaim`, `xack`, etc.) are directed to the correct node automatically. See the [Cluster docs](../cluster.md){.internal-link}.

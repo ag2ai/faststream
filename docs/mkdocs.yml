@@ -1,11 +1,11 @@
 site_name: FastStream
 # description to improve website indexing
-site_description: FastStream Python messaging framework documentation
+site_description: Asynchronous Python framework for event-driven services — a thin client for Kafka, RabbitMQ, NATS, Redis and MQTT with AsyncAPI docs and in-memory testing.
 site_url: https://faststream.ag2.ai/
 site_author: AG2AI Inc.
-copyright: '&copy; 2025 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
+copyright: '&copy; 2026 <a href="https://ag2.ai/" target="_blank" rel="noopener">AG2AI Inc.</a>'
 
-docs_dir: docs
+docs_dir: docs/en
 
 watch:
   - docs
@@ -15,11 +15,15 @@ watch:
 
 repo_name: ag2ai/faststream
 repo_url: https://github.com/ag2ai/faststream
-edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs
+edit_uri: https://github.com/ag2ai/faststream/tree/main/docs/docs/en
 
 exclude_docs: |
-  navigation_template.txt
   SUMMARY.md
+
+# `just docs-check` builds with --strict, so a broken link or anchor fails the PR
+validation:
+  anchors: warn
+  unrecognized_links: warn
 
 theme:
   name: material
@@ -65,26 +69,28 @@ extra_css:
   - stylesheets/extra.css
 
 extra_javascript:
-  - javascripts/extra.js
-  - javascripts/gurubase-widget.js
-  - javascripts/theme-switch.js
+  - javascripts/context7-widget.js
 
 plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   # - meta                         # (insiders) use .meta.yml files
+  - privacy:                     # self-host Google Fonts: no render-blocking third-party CSS
+      assets_include:
+        - fonts.googleapis.com/*
+        - fonts.gstatic.com/*
+      links: false
   - glightbox:                   # image zoom
       manual: true
   - macros:                      # Jinja templates
       include_dir: includes
-      include_yaml:
-        - people: ../docs/data/people.yml
+      on_error_fail: true
   - mkdocstrings:                # Generate References
       default_handler: python
       handlers:
         python:
-          # import:
-          # - https://docs.python.org/3/objects.inv
+          import:
+          - https://docs.python.org/3/objects.inv
           options:
             preload_modules:
             - httpx
@@ -103,32 +109,23 @@ plugins:
             signature_crossrefs: true
             show_symbol_type_heading: true
             show_symbol_type_toc: true
-            # show_docstring_attributes: false
-            # show_signature_annotations: true
-            # load_external_modules: true
-  - i18n:
-      docs_structure: folder
-      reconfigure_material: true
-      reconfigure_search: true
-      languages:
-        - locale: en
-          default: true
-          name: en - English
-          build: true
-  # - git-revision-date-localized: # show page edition date
-  #     enabled: !ENV [CI, false]
-  #     type: timeago
+            show_docstring_attributes: false
+            show_signature_annotations: true
+            load_external_modules: true
+  - git-revision-date-localized: # show page edition date
+      enabled: !ENV [CI, false]
+      type: timeago
   - literate-nav:                # .md importable navigation
       nav_file: SUMMARY.md
-  # - minify:
-  #     minify_html: true
-  #     minify_js: true
-  #     minify_css: true
-  #     htmlmin_opts:
-  #       remove_comments: true
-  #     cache_safe: true
-  #     css_files:
-  #       - stylesheets/extra.css
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+      cache_safe: true
+      css_files:
+        - stylesheets/extra.css
   - mike:                        # versioning
       alias_type: copy
       redirect_template: templates/redirect.html
@@ -140,6 +137,7 @@ hooks:
 markdown_extensions:
   - toc:
       permalink: "#"             # replace TOC block symbol
+      permalink_title: Anchor link to this section for reference
       toc_depth: 3
   - mdx_include:
       base_path: .
@@ -148,32 +146,40 @@ markdown_extensions:
   - admonition                   # !!! note blocks support
   - pymdownx.details             # admonition collapsible
   - pymdownx.superfences         # highlight code syntax
-  - pymdownx.highlight:
-      anchor_linenums: true      # allows link to codeline
+  - pymdownx.highlight
   - pymdownx.inlinehilite        # inline code highlighting `#!python <code>`
   - pymdownx.tabbed:
       alternate_style: true      # create tabs group
   - attr_list                    # specify html attrs in markdown
   - md_in_html                   # render md wrapped to html tags
-  # - pymdownx.emoji:              # render material icons
-  #     emoji_index: !!python/name:material.extensions.emoji.twemoji
-  #     emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.emoji:              # render material icons
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra:
+  # landing page <title>; inner pages stay "<page> - FastStream"
+  site_tagline: Python framework for event-driven services
+  # nav sections whose name joins the page <title>: see `broker_qualifier`
+  title_sections: [Kafka, RabbitMQ, MQTT, NATS, Redis]
+
   analytics:
     provider: google
     property: G-HDTMP5FFHP
   social_image: https://opengraph.githubassets.com/1671805243.560327/ag2ai/faststream
   social:
-    # Discord link should be first
-    - icon: fontawesome/brands/discord
-      link: https://discord.gg/qFm6aSqq59
+    # Discussions link should be first
+    - icon: octicons/comment-discussion-24
+      link: https://github.com/ag2ai/faststream/discussions
+      name: FastStream discussions on GitHub
     - icon: fontawesome/brands/github-alt
       link: https://github.com/ag2ai/faststream
+      name: FastStream source code on GitHub
     - icon: fontawesome/brands/twitter
       link: https://x.com/ag2oss
+      name: AG2AI on X
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/company/ag2ai/
+      name: AG2AI on LinkedIn
 
   version:
     provider: mike

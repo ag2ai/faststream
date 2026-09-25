@@ -12,7 +12,7 @@ search:
 
 At this stage, **FastStream** serializes an incoming message from the broker's framework into a general format called **StreamMessage**. During this stage, the message body remains in the form of raw bytes.
 
-**StreamMessage** is a general representation of a message within **FastStream**. It contains all the information required for message processing within **FastStreams**.  It is even used to represent message batches, so the primary reason to customize it is to redefine the metadata associated with **FastStream** messages.
+**StreamMessage** is a general representation of a message within **FastStream**. It contains all the information required for message processing within **FastStream**. It is even used to represent message batches, so the primary reason to customize it is to redefine the metadata associated with **FastStream** messages.
 
 For example, you can specify your own header with the `message_id` semantic. This allows you to inform **FastStream** about this custom header through parser customization.
 
@@ -62,6 +62,15 @@ To create a custom message parser, you should write a regular Python function (s
     from faststream.redis.message import PubSubMessage
 
     def parser(msg: PubSubMessage) -> RedisMessage:
+        ...
+    ```
+
+=== "MQTT"
+    ```python
+    from aiomqtt import Message
+    from faststream.mqtt import MQTTMessage
+
+    def parser(msg: Message) -> MQTTMessage:
         ...
     ```
 
@@ -131,6 +140,19 @@ Alternatively, you can reuse the original parser function with the following sig
         return await original_parser(msg)
     ```
 
+=== "MQTT"
+    ```python
+    from typing import Callable, Awaitable
+    from aiomqtt import Message
+    from faststream.mqtt import MQTTMessage
+
+    async def parser(
+        msg: Message,
+        original_parser: Callable[[Message], Awaitable[MQTTMessage]],
+    ) -> MQTTMessage:
+        return await original_parser(msg)
+    ```
+
 The argument naming doesn't matter; the parser will always be placed as the second argument.
 
 !!! note
@@ -166,4 +188,9 @@ As an example, let's redefine `message_id` to a custom header:
 === "Redis"
     ```python linenums="1" hl_lines="8-14 17 28"
     {!> docs_src/getting_started/serialization/parser_redis.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="8-14 17 28"
+    {!> docs_src/getting_started/serialization/parser_mqtt.py !}
     ```

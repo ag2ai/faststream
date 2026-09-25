@@ -1,9 +1,10 @@
 import warnings
-from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.confluent.schemas import Topic
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
 
 def create_subscriber(
-    *topics: str,
+    *topics: Union[str, "Topic"],
     partitions: Sequence["TopicPartition"],
     polling_interval: float,
     batch: bool,
@@ -29,10 +30,8 @@ def create_subscriber(
     # Kafka information
     group_id: str | None,
     connection_data: dict[str, Any],
-    auto_commit: bool,
     # Subscriber args
     ack_policy: "AckPolicy",
-    no_ack: bool,
     max_workers: int,
     no_reply: bool,
     config: "KafkaBrokerConfig",
@@ -41,18 +40,19 @@ def create_subscriber(
     description_: str | None,
     include_in_schema: bool,
 ) -> BatchSubscriber | ConcurrentDefaultSubscriber | DefaultSubscriber:
+    declared_topics = [Topic.validate(t) for t in topics]
+
     _validate_input_for_misconfigure(
-        *topics,
+        *declared_topics,
         group_id=group_id,
         partitions=partitions,
         ack_policy=ack_policy,
-        no_ack=no_ack,
-        auto_commit=auto_commit,
         max_workers=max_workers,
+        batch=batch,
     )
 
     subscriber_config = KafkaSubscriberConfig(
-        topics=topics,
+        topics=declared_topics,
         partitions=partitions,
         polling_interval=polling_interval,
         group_id=group_id,
@@ -60,18 +60,14 @@ def create_subscriber(
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
-        # deprecated options to remove in 0.7.0
-        _auto_commit=auto_commit,
-        _no_ack=no_ack,
     )
-
     calls = CallsCollection[Any]()
 
     specification = KafkaSubscriberSpecification(
         _outer_config=config,
         calls=calls,
         specification_config=KafkaSubscriberSpecificationConfig(
-            topics=topics,
+            topics=declared_topics,
             partitions=partitions,
             title_=title_,
             description_=description_,
@@ -99,44 +95,30 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
-    *topics: str,
+    *topics: "Topic",
     ack_policy: "AckPolicy",
-    auto_commit: bool,
-    no_ack: bool,
     max_workers: int,
+    batch: bool,
     group_id: str | None,
-    partitions: Iterable["TopicPartition"],
+    partitions: Sequence["TopicPartition"],
 ) -> None:
-    if auto_commit is not EMPTY:
+    if batch and max_workers > 1:
         warnings.warn(
-            "`auto_commit` option was deprecated in prior to `ack_policy=AckPolicy.ACK_FIRST`. Scheduled to remove in 0.7.0",
-            category=DeprecationWarning,
+            "The `max_workers` option is ignored by a batch subscriber.",
+            RuntimeWarning,
             stacklevel=4,
         )
 
-        if ack_policy is not EMPTY:
-            msg = "You can't use deprecated `auto_commit` and `ack_policy` simultaneously. Please, use `ack_policy` only."
-            raise SetupError(msg)
-
-        ack_policy = AckPolicy.ACK_FIRST if auto_commit else AckPolicy.REJECT_ON_ERROR
-
-    if no_ack is not EMPTY:
+    effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy
+    if effective_ack is AckPolicy.REJECT_ON_ERROR:
         warnings.warn(
-            "`no_ack` option was deprecated in prior to `ack_policy=AckPolicy.MANUAL`. Scheduled to remove in 0.7.0",
-            category=DeprecationWarning,
+            "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
+            "Consider using ACK for clarity.",
+            UserWarning,
             stacklevel=4,
         )
 
-        if ack_policy is not EMPTY:
-            msg = "You can't use deprecated `no_ack` and `ack_policy` simultaneously. Please, use `ack_policy` only."
-            raise SetupError(msg)
-
-        ack_policy = AckPolicy.MANUAL if no_ack else EMPTY
-
-    if ack_policy is EMPTY:
-        ack_policy = AckPolicy.ACK_FIRST
-
-    if AckPolicy.ACK_FIRST is not AckPolicy.ACK_FIRST and max_workers > 1:
+    if effective_ack is not AckPolicy.ACK_FIRST and max_workers > 1:
         msg = "Max workers not work with manual commit mode."
         raise SetupError(msg)
 
@@ -148,6 +130,20 @@ def _validate_input_for_misconfigure(
         msg = "You can't provide both `topics` and `partitions`."
         raise SetupError(msg)
 
-    if not group_id and ack_policy is not AckPolicy.ACK_FIRST:
+    if not group_id and effective_ack is not AckPolicy.ACK_FIRST:
         msg = "You must use `group_id` with manual commit mode."
         raise SetupError(msg)
+
+    declared: dict[str, Topic] = {}
+    for topic in topics:
+        # One name declared twice with different settings is a contradiction
+        # only the caller can resolve, so name both and keep the last one.
+        if (previous := declared.get(topic.name)) is not None and previous != topic:
+            warnings.warn(
+                f"Topic {topic.name!r} is declared with conflicting settings: "
+                f"{previous!r} and {topic!r}. The last one wins.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
+
+        declared[topic.name] = topic

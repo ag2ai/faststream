@@ -1,9 +1,10 @@
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Callable, Coroutine
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
 from nats.errors import ConnectionClosedError, TimeoutError
+from nats.js.errors import ServiceUnavailableError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
@@ -31,6 +32,8 @@ class PullStreamSubscriber(
     TasksMixin,
     StreamSubscriber,
 ):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PullSubscription"]
 
     def __init__(
@@ -61,7 +64,7 @@ class PullStreamSubscriber(
             return
 
         self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             config=self.config,
             **self.extra_options,
         )
@@ -69,14 +72,14 @@ class PullStreamSubscriber(
 
     async def _consume_pull(
         self,
-        cb: Callable[["Msg"], Awaitable["SendableMessage"]],
+        cb: Callable[["Msg"], Coroutine[Any, Any, "SendableMessage"]],
     ) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription
 
         while self.running:  # pragma: no branch
             messages = []
-            with suppress(TimeoutError, ConnectionClosedError):
+            with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
                 messages = await self.subscription.fetch(
                     batch=self.pull_sub.batch_size,
                     timeout=self.pull_sub.timeout,
@@ -85,10 +88,12 @@ class PullStreamSubscriber(
             if messages:
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
-                        tg.start_soon(cb, msg)
+                        _ = tg.start_soon(cb, msg)
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
+    __slots__ = ()
+
     @override
     async def _create_subscription(self) -> None:
         """Create NATS subscription and start consume task."""
@@ -98,7 +103,7 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
         self.start_consume_task()
 
         self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             config=self.config,
             **self.extra_options,
         )
@@ -110,6 +115,8 @@ class BatchPullStreamSubscriber(
     DefaultSubscriber[list["Msg"]],
 ):
     """Batch-message consumer class."""
+
+    __slots__ = ()
 
     subscription: Optional["JetStreamContext.PullSubscription"]
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
@@ -143,7 +150,7 @@ class BatchPullStreamSubscriber(
 
         if not self._fetch_sub:
             fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **self.extra_options,
             )
@@ -158,7 +165,8 @@ class BatchPullStreamSubscriber(
         except TimeoutError:
             return None
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
             "NatsMessage",
@@ -167,30 +175,31 @@ class BatchPullStreamSubscriber(
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             ),
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
 
         if not self._fetch_sub:
             fetch_sub = self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **self.extra_options,
             )
         else:
             fetch_sub = self._fetch_sub
 
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             raw_message = await fetch_sub.fetch(batch=1)
-
-            context = self._outer_config.fd_config.context
 
             yield cast(
                 "NatsMessage",
@@ -199,8 +208,8 @@ class BatchPullStreamSubscriber(
                     middlewares=(
                         m(raw_message, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
             )
 
@@ -211,7 +220,7 @@ class BatchPullStreamSubscriber(
             return
 
         self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             config=self.config,
             **self.extra_options,
         )
@@ -222,7 +231,7 @@ class BatchPullStreamSubscriber(
         assert self.subscription, "You should call `create_subscription` at first."
 
         while self.running:  # pragma: no branch
-            with suppress(TimeoutError, ConnectionClosedError):
+            with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
                 messages = await self.subscription.fetch(
                     batch=self.pull_sub.batch_size,
                     timeout=self.pull_sub.timeout,

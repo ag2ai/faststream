@@ -18,22 +18,17 @@ async def test_aiokafka_path() -> None:
     async def h(
         name: str = Path(),
         id_: int = Path("id"),
-    ) -> int:
-        assert name == "john"
-        assert id_ == 1
-        return 1
+    ) -> dict[str, str | int]:
+        return {"name": name, "id": id_}
 
     async with TestKafkaBroker(broker) as br:
-        assert (
-            await (
-                await br.request(
-                    "",
-                    "in.john.1",
-                    timeout=1.0,
-                )
-            ).decode()
-            == 1
-        )
+        assert await (
+            await br.request(
+                "",
+                "in.john.1",
+                timeout=1.0,
+            )
+        ).decode() == {"name": "john", "id": 1}
 
 
 @pytest.mark.asyncio()
@@ -47,22 +42,17 @@ async def test_nats_path() -> None:
     async def h(
         name: str = Path(),
         id_: int = Path("id"),
-    ) -> int:
-        assert name == "john"
-        assert id_ == 1
-        return 1
+    ) -> dict[str, str | int]:
+        return {"name": name, "id": id_}
 
     async with TestNatsBroker(broker) as br:
-        assert (
-            await (
-                await br.request(
-                    "",
-                    "in.john.1",
-                    timeout=1.0,
-                )
-            ).decode()
-            == 1
-        )
+        assert await (
+            await br.request(
+                "",
+                "in.john.1",
+                timeout=1.0,
+            )
+        ).decode() == {"name": "john", "id": 1}
 
 
 @pytest.mark.connected()
@@ -72,9 +62,8 @@ async def test_nats_path() -> None:
 async def test_nats_kv_path(
     queue: str,
     mock: MagicMock,
+    event: asyncio.Event,
 ) -> None:
-    event = asyncio.Event()
-
     from faststream.nats import NatsBroker
 
     broker = NatsBroker()
@@ -116,22 +105,17 @@ async def test_nats_batch_path() -> None:
     async def h(
         name: str = Path(),
         id_: int = Path("id"),
-    ) -> int:
-        assert name == "john"
-        assert id_ == 1
-        return 1
+    ) -> dict[str, str | int]:
+        return {"name": name, "id": id_}
 
     async with TestNatsBroker(broker) as br:
-        assert (
-            await (
-                await br.request(
-                    "",
-                    "in.john.1",
-                    timeout=1.0,
-                )
-            ).decode()
-            == 1
-        )
+        assert await (
+            await br.request(
+                "",
+                "in.john.1",
+                timeout=1.0,
+            )
+        ).decode() == {"name": "john", "id": 1}
 
 
 @pytest.mark.asyncio()
@@ -145,22 +129,17 @@ async def test_redis_path() -> None:
     async def h(
         name: str = Path(),
         id_: int = Path("id"),
-    ) -> int:
-        assert name == "john"
-        assert id_ == 1
-        return 1
+    ) -> dict[str, str | int]:
+        return {"name": name, "id": id_}
 
     async with TestRedisBroker(broker) as br:
-        assert (
-            await (
-                await br.request(
-                    "",
-                    "in.john.1",
-                    timeout=1.0,
-                )
-            ).decode()
-            == 1
-        )
+        assert await (
+            await br.request(
+                "",
+                "in.john.1",
+                timeout=1.0,
+            )
+        ).decode() == {"name": "john", "id": 1}
 
 
 @pytest.mark.asyncio()
@@ -189,20 +168,15 @@ async def test_rabbit_path() -> None:
     async def h(
         name: str = Path(),
         id_: int = Path("id"),
-    ) -> int:
-        assert name == "john"
-        assert id_ == 1
-        return 1
+    ) -> dict[str, str | int]:
+        return {"name": name, "id": id_}
 
     async with TestRabbitBroker(broker) as br:
-        assert (
-            await (
-                await br.request(
-                    "",
-                    "in.john.1",
-                    "test",
-                    timeout=1.0,
-                )
-            ).decode()
-            == 1
-        )
+        assert await (
+            await br.request(
+                "",
+                "in.john.1",
+                "test",
+                timeout=1.0,
+            )
+        ).decode() == {"name": "john", "id": 1}

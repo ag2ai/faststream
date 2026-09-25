@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -57,3 +58,13 @@ async def test_lifespan_nats() -> None:
     )
 
     await _test_lifespan_n()
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_lifespan_mqtt() -> None:
+    from docs.docs_src.getting_started.lifespan.mqtt.testing import (
+        test_lifespan as _test_lifespan_m,
+    )
+
+    await _test_lifespan_m()

@@ -299,6 +299,13 @@ ConfluentConfig = TypedDict(
 
 
 class ConfluentFastConfig:
+    __slots__ = (
+        "config",
+        "raw_admin_config",
+        "raw_consumer_config",
+        "raw_producer_config",
+    )
+
     def __init__(
         self,
         *,
@@ -362,15 +369,10 @@ class ConfluentFastConfig:
 
     @property
     def consumer_config(self) -> dict[str, Any]:
-        consumer_config = _to_confluent(
+        return _to_confluent(
             {_ConsumerConfig[k]: v for k, v in self.raw_consumer_config.items()}
             | self.config,
         )
-
-        if "group.id" not in consumer_config:
-            consumer_config["group.id"] = "faststream-consumer-group"
-
-        return consumer_config
 
     @property
     def producer_config(self) -> dict[str, Any]:

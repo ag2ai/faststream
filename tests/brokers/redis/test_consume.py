@@ -1,8 +1,12 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from dirty_equals import IsPartialDict
+from pydantic import BaseModel
 from redis.asyncio import Redis
+from redis.exceptions import ResponseError
 
 from faststream import AckPolicy
 from faststream.redis import (
@@ -23,23 +27,20 @@ from .basic import RedisTestcaseConfig
 @pytest.mark.asyncio()
 class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consume_native(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
-            result = await br._connection.publish(queue, "hello")
+            client = await br.connect()
+            result = await client.publish(queue, "hello")
             await asyncio.wait(
                 (asyncio.create_task(event.wait()),),
                 timeout=3,
@@ -48,16 +49,11 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
         mock.assert_called_once_with(b"hello")
 
-    async def test_pattern_with_path(
-        self,
-        mock: MagicMock,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_pattern_with_path(self, mock: MagicMock, event: asyncio.Event) -> None:
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber("test.{name}")
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -75,15 +71,12 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
         mock.assert_called_once_with("hello")
 
     async def test_pattern_without_path(
-        self,
-        mock: MagicMock,
+        self, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(PubSub("test.*", pattern=True))
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -102,17 +95,12 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_concurrent_consume_channel(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event, event2: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-        event2 = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(channel=PubSub(queue), max_workers=2)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             mock()
             if event.is_set():
                 event2.set()
@@ -144,16 +132,12 @@ class TestConsume(RedisTestcaseConfig, BrokerRealConsumeTestcase):
 @pytest.mark.asyncio()
 class TestConsumeList(RedisTestcaseConfig):
     async def test_consume_list(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(list=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -171,25 +155,22 @@ class TestConsumeList(RedisTestcaseConfig):
         mock.assert_called_once_with("hello")
 
     async def test_consume_list_native(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(list=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            client = await br.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(br._connection.rpush(queue, "hello")),
+                    asyncio.create_task(client.rpush(queue, "hello")),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -199,18 +180,14 @@ class TestConsumeList(RedisTestcaseConfig):
 
     @pytest.mark.slow()
     async def test_consume_list_batch_with_one(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
             list=ListSub(queue, batch=True, polling_interval=0.01),
         )
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -229,18 +206,14 @@ class TestConsumeList(RedisTestcaseConfig):
 
     @pytest.mark.slow()
     async def test_consume_list_batch_headers(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
             list=ListSub(queue, batch=True, polling_interval=0.01),
         )
-        def subscriber(m, msg: RedisMessage) -> None:
+        def subscriber(m: Any, msg: RedisMessage) -> None:
             check = all(
                 (
                     msg.headers,
@@ -274,12 +247,12 @@ class TestConsumeList(RedisTestcaseConfig):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        msgs_queue = asyncio.Queue(maxsize=1)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
         @consume_broker.subscriber(
             list=ListSub(queue, batch=True, polling_interval=0.01),
         )
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(consume_broker) as br:
@@ -301,15 +274,13 @@ class TestConsumeList(RedisTestcaseConfig):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        from pydantic import BaseModel
-
         class Data(BaseModel):
             m: str
 
-            def __hash__(self):
+            def __hash__(self) -> Any:
                 return hash(self.m)
 
-        msgs_queue = asyncio.Queue(maxsize=1)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
         @consume_broker.subscriber(
             list=ListSub(queue, batch=True, polling_interval=0.01),
@@ -336,18 +307,19 @@ class TestConsumeList(RedisTestcaseConfig):
     ) -> None:
         consume_broker = self.get_broker()
 
-        msgs_queue = asyncio.Queue(maxsize=1)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
         @consume_broker.subscriber(
             list=ListSub(queue, batch=True, polling_interval=0.01),
         )
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
-            await br._connection.rpush(queue, 1, "hi")
+            client = await br.connect()
+            await client.rpush(queue, 1, "hi")
 
             result, _ = await asyncio.wait(
                 (asyncio.create_task(msgs_queue.get()),),
@@ -404,14 +376,13 @@ class TestConsumeList(RedisTestcaseConfig):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-        event2 = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(list=ListSub(queue), max_workers=2)
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             mock()
             if event.is_set():
                 event2.set()
@@ -449,7 +420,7 @@ class TestConsumeList(RedisTestcaseConfig):
         async with self.patch_broker(broker) as br:
             await br.start()
 
-            async def publish_test_message():
+            async def publish_test_message() -> None:
                 for msg in expected_messages:
                     await br.publish(msg, list=queue)
 
@@ -470,18 +441,76 @@ class TestConsumeList(RedisTestcaseConfig):
 @pytest.mark.redis()
 @pytest.mark.asyncio()
 class TestConsumeStream(RedisTestcaseConfig):
+    async def test_consume_group_creates_stream_by_default(self, queue: str) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue),
+        )
+        async def handler(msg: RedisMessage) -> None: ...
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            client = await br.connect()
+            assert await client.exists(queue)
+
+    async def test_consume_group_with_no_ack_skips_pel(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, no_ack=True),
+        )
+        async def handler(msg: Any) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+            await br.publish({"data": "hello"}, stream=queue)
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+            client = await br.connect()
+            # XREADGROUP NOACK delivers the entry without ever putting it in the PEL
+            assert await client.xpending(queue, "group") == IsPartialDict(  # type: ignore[no-untyped-call]
+                pending=0,
+            )
+
+        mock.assert_called_once_with({"data": "hello"})
+
+    async def test_consume_group_without_declare_requires_stream(
+        self, queue: str
+    ) -> None:
+        consume_broker = self.get_broker()
+
+        @consume_broker.subscriber(
+            stream=StreamSub(
+                queue,
+                group="group",
+                consumer=queue,
+                declare=False,
+            ),
+        )
+        async def handler(msg: RedisMessage) -> None: ...
+
+        async with self.patch_broker(consume_broker) as br:
+            with pytest.raises(ResponseError, match="key to exist"):
+                await br.start()
+            client = await br.connect()
+            assert not await client.exists(queue)
+
     @pytest.mark.slow()
     async def test_consume_stream(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(stream=StreamSub(queue, polling_interval=10))
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -508,7 +537,7 @@ class TestConsumeStream(RedisTestcaseConfig):
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(stream=StreamSub(queue, polling_interval=100000))
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -526,26 +555,23 @@ class TestConsumeStream(RedisTestcaseConfig):
 
     @pytest.mark.slow()
     async def test_consume_stream_native(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(stream=StreamSub(queue, polling_interval=10))
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            client = await br.connect()
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._connection.xadd(queue, {"message": "hello"}),
+                        client.xadd(queue, {"message": "hello"}),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -557,18 +583,14 @@ class TestConsumeStream(RedisTestcaseConfig):
     @pytest.mark.slow()
     @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_stream_batch(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, polling_interval=10, batch=True),
         )
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -587,18 +609,14 @@ class TestConsumeStream(RedisTestcaseConfig):
 
     @pytest.mark.slow()
     async def test_consume_stream_batch_headers(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, polling_interval=10, batch=True),
         )
-        def subscriber(m, msg: RedisMessage) -> None:
+        def subscriber(m: Any, msg: RedisMessage) -> None:
             check = all(
                 (
                     msg.headers,
@@ -632,12 +650,10 @@ class TestConsumeStream(RedisTestcaseConfig):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
-        from pydantic import BaseModel
-
         class Data(BaseModel):
             m: str
 
-        msgs_queue = asyncio.Queue(maxsize=1)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, polling_interval=10, batch=True),
@@ -659,28 +675,25 @@ class TestConsumeStream(RedisTestcaseConfig):
 
     @pytest.mark.slow()
     async def test_consume_stream_batch_native(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(
             stream=StreamSub(queue, polling_interval=10, batch=True),
         )
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            client = await br.connect()
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        br._connection.xadd(queue, {"message": "hello"}),
+                        client.xadd(queue, {"message": "hello"}),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -695,12 +708,14 @@ class TestConsumeStream(RedisTestcaseConfig):
     ) -> None:
         consume_broker = self.get_broker()
 
-        @consume_broker.subscriber(
+        subscriber = consume_broker.subscriber(
             stream=StreamSub(queue, group="group", consumer=queue),
         )
+
+        @subscriber
         async def handler(msg: RedisMessage) -> None: ...
 
-        assert next(iter(consume_broker.subscribers)).last_id == ">"
+        assert subscriber.last_id == ">"
 
     async def test_consume_group_with_last_id(
         self,
@@ -708,19 +723,65 @@ class TestConsumeStream(RedisTestcaseConfig):
     ) -> None:
         consume_broker = self.get_broker()
 
+        subscriber = consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
+        )
+
+        @subscriber
+        async def handler(msg: RedisMessage) -> None: ...
+
+        assert subscriber.last_id == "0"
+
+    async def test_consume_group_from_beginning(
+        self,
+        queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
+    ) -> None:
+        consume_broker = self.get_broker()
+
         @consume_broker.subscriber(
             stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
         )
-        async def handler(msg: RedisMessage) -> None: ...
+        async def handler(msg: Any) -> None:
+            mock(msg)
+            event.set()
 
-        assert next(iter(consume_broker.subscribers)).last_id == "0"
+        async with self.patch_broker(consume_broker) as br:
+            await br.publish({"data": "before-group"}, stream=queue)
+            await br.start()
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-    async def test_consume_nack(
+        mock.assert_called_once_with({"data": "before-group"})
+
+    async def test_consume_existing_group_from_last_id(
         self,
         queue: str,
+        event: asyncio.Event,
+        mock: MagicMock,
     ) -> None:
-        event = asyncio.Event()
+        consume_broker = self.get_broker()
 
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue, last_id="0"),
+        )
+        async def handler(msg: Any) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.publish({"data": "pending"}, stream=queue)
+            client = br._connection
+            assert client is not None
+            await client.xgroup_create(queue, "group", id="0")
+            await client.xreadgroup("group", queue, {queue: ">"})
+
+            await br.start()
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        mock.assert_called_once_with({"data": "pending"})
+
+    async def test_consume_nack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -746,12 +807,7 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         assert event.is_set()
 
-    async def test_consume_ack(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_consume_ack(self, queue: str, event: asyncio.Event) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
         @consume_broker.subscriber(
@@ -805,7 +861,8 @@ class TestConsumeStream(RedisTestcaseConfig):
 
                 m.mock.assert_called_once()
 
-            queue_len = await br._connection.xlen(queue)
+            client = await br.connect()
+            queue_len = await client.xlen(queue)
             assert queue_len == 0, (
                 f"Redis stream must be empty here, found {queue_len} messages"
             )
@@ -813,6 +870,7 @@ class TestConsumeStream(RedisTestcaseConfig):
     async def test_consume_and_delete_nacked(
         self,
         queue: str,
+        mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker(apply_types=True)
@@ -822,7 +880,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: RedisStreamMessage) -> None:
-            assert not msg.committed
+            mock(committed=msg.committed)
             await msg.delete(consume_broker._connection)
             event.set()
 
@@ -840,7 +898,9 @@ class TestConsumeStream(RedisTestcaseConfig):
 
                 m.mock.assert_called_once()
 
-            queue_len = await br._connection.xlen(queue)
+            mock.assert_called_once_with(committed=None)
+            client = await br.connect()
+            queue_len = await client.xlen(queue)
             assert queue_len == 0, (
                 f"Redis stream must be empty here, found {queue_len} messages"
             )
@@ -895,10 +955,9 @@ class TestConsumeStream(RedisTestcaseConfig):
         self,
         queue: str,
         mock: MagicMock,
+        event: asyncio.Event,
+        event2: asyncio.Event,
     ) -> None:
-        event = asyncio.Event()
-        event2 = asyncio.Event()
-
         consume_broker = self.get_broker()
 
         @consume_broker.subscriber(stream=StreamSub(queue), max_workers=2)
@@ -965,3 +1024,100 @@ class TestConsumeStream(RedisTestcaseConfig):
 
             calls = [call(msg) for msg in expected_messages]
             mock.assert_has_calls(calls=calls)
+
+    async def test_get_one_group_cursor_advances(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(
+            stream=StreamSub(queue, group="test_group", consumer="test_consumer")
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await br.publish("first", stream=queue)
+            await br.publish("second", stream=queue)
+
+            msg1 = await subscriber.get_one(timeout=3)
+            msg2 = await subscriber.get_one(timeout=3)
+
+            assert msg1 is not None
+            assert msg2 is not None
+            assert await msg1.decode() == "first"
+            assert await msg2.decode() == "second"
+
+    async def test_iterator_group_cursor_advances(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(
+            stream=StreamSub(queue, group="test_group", consumer="test_consumer")
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            await br.publish("first", stream=queue)
+            await br.publish("second", stream=queue)
+
+            results = []
+            async for msg in subscriber:
+                results.append(await msg.decode())
+                if len(results) >= 2:
+                    break
+
+            assert results == ["first", "second"]
+
+    @pytest.mark.slow()
+    async def test_consume_stream_group_deleted(
+        self,
+        queue: str,
+        mock: MagicMock,
+        event: asyncio.Event,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Subscriber stops the app when the consumer group is deleted (NOGROUP)."""
+        # The global conftest disables the task supervisor; this test is about
+        # not entering its restart loop, so turn it back on.
+        monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")
+
+        consume_broker = self.get_broker(apply_types=True)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="test_group", consumer="consumer1"),
+        )
+        async def handler(msg: RedisMessage) -> None:
+            mock(msg)
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            fake_app = MagicMock()
+            br.context.set_global("app", fake_app)
+
+            await br.start()
+
+            # Publish a message so the subscriber reads and starts consuming
+            await br.publish("hello", stream=queue)
+            await asyncio.wait_for(event.wait(), timeout=3)
+            assert mock.call_count >= 1
+
+            client = await br.connect()
+            # Delete the stream — this removes the consumer group too
+            await client.delete(queue)
+
+            # Give the subscriber time to try reading and hit NOGROUP
+            await asyncio.sleep(0.5)
+
+            # Publish another message — subscriber should NOT receive it
+            # because it already stopped due to NOGROUP
+            event.clear()
+            await br.publish("world", stream=queue)
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(event.wait(), timeout=1)
+
+            # Stopped instead of restarting in a hot loop, and asked the app to exit
+            assert not br.subscribers[0].running
+            fake_app.exit.assert_called_once()

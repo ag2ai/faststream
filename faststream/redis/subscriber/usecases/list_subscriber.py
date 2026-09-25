@@ -35,6 +35,11 @@ Offset: TypeAlias = bytes
 
 
 class _ListHandlerMixin(LogicSubscriber):
+    __slots__ = (
+        "_list_sub",
+        "_read_lock",
+    )
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -72,9 +77,6 @@ class _ListHandlerMixin(LogicSubscriber):
 
     @override
     async def start(self) -> None:
-        if self.tasks:
-            return
-
         await super().start(self._client)
 
     @override
@@ -111,20 +113,21 @@ class _ListHandlerMixin(LogicSubscriber):
             channel=self.list_sub.name,
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
             msg=redis_incoming_msg,
             middlewares=(
                 m(redis_incoming_msg, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
@@ -132,6 +135,9 @@ class _ListHandlerMixin(LogicSubscriber):
         timeout = 5
         sleep_interval = timeout / 10
         raw_message = None
+
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
             with anyio.move_on_after(timeout):
@@ -149,21 +155,21 @@ class _ListHandlerMixin(LogicSubscriber):
                 channel=self.list_sub.name,
             )
 
-            context = self._outer_config.fd_config.context
-
             msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
                 msg=redis_incoming_msg,
                 middlewares=(
                     m(redis_incoming_msg, context=context)
                     for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg
 
 
 class ListSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -195,6 +201,8 @@ class ListSubscriber(_ListHandlerMixin):
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -230,6 +238,8 @@ class ListConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     ListSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

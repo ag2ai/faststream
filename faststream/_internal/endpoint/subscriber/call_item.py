@@ -2,7 +2,6 @@ from collections import UserList
 from collections.abc import Iterable, Reversible, Sequence
 from functools import partial
 from inspect import unwrap
-from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -34,16 +33,24 @@ class HandlerItem(Generic[MsgType]):
     """A class representing handler overloaded item."""
 
     __slots__ = (
+        "decoder",
         "dependant",
         "dependencies",
         "filter",
         "handler",
         "item_decoder",
-        "item_middlewares",
         "item_parser",
+        "parser",
     )
 
     dependant: Any | None
+    # What the handler declared, kept as declared so that composing them again
+    # from an unchanged declaration produces an unchanged result.
+    item_parser: Optional["CustomCallable"]
+    item_decoder: Optional["CustomCallable"]
+    # What the last composition made of them.
+    parser: Optional["AsyncCallable"]
+    decoder: Optional["AsyncCallable"]
 
     def __init__(
         self,
@@ -52,14 +59,14 @@ class HandlerItem(Generic[MsgType]):
         filter: "AsyncFilter[Any]",
         item_parser: Optional["CustomCallable"],
         item_decoder: Optional["CustomCallable"],
-        item_middlewares: Sequence["SubscriberMiddleware[StreamMessage[MsgType]]"],
-        dependencies: Iterable["Dependant"],
+        dependencies: Sequence["Dependant"],
     ) -> None:
         self.handler = handler
         self.filter = filter
         self.item_parser = item_parser
         self.item_decoder = item_decoder
-        self.item_middlewares = item_middlewares
+        self.parser = None
+        self.decoder = None
         self.dependencies = dependencies
         self.dependant = None
 
@@ -74,18 +81,17 @@ class HandlerItem(Generic[MsgType]):
         parser: "AsyncCallable",
         decoder: "AsyncCallable",
         config: "FastDependsConfig",
-        broker_dependencies: Iterable["Dependant"],
+        broker_dependencies: Sequence["Dependant"],
         _call_decorators: Reversible["Decorator"],
     ) -> None:
-        if self.dependant is None:
-            self.item_parser = parser
-            self.item_decoder = decoder
+        self.parser = parser
+        self.decoder = decoder
 
-            self.dependant = self.handler.set_wrapped(
-                dependencies=(*broker_dependencies, *self.dependencies),
-                _call_decorators=_call_decorators,
-                config=config,
-            )
+        self.dependant = self.handler.set_wrapped(
+            dependencies=(*broker_dependencies, *self.dependencies),
+            _call_decorators=_call_decorators,
+            config=config,
+        )
 
     @property
     def name(self) -> str:
@@ -93,7 +99,7 @@ class HandlerItem(Generic[MsgType]):
         if self.handler is None:
             return ""
 
-        caller = unwrap(self.handler._original_call)
+        caller = unwrap(self.handler._composed_call)
         return getattr(caller, "__name__", str(caller))
 
     @property
@@ -102,7 +108,7 @@ class HandlerItem(Generic[MsgType]):
         if self.handler is None:
             return None
 
-        caller = unwrap(self.handler._original_call)
+        caller = unwrap(self.handler._composed_call)
         return getattr(caller, "__doc__", None)
 
     async def is_suitable(
@@ -111,9 +117,7 @@ class HandlerItem(Generic[MsgType]):
         cache: dict[Any, Any],
     ) -> Optional["StreamMessage[MsgType]"]:
         """Check is message suite for current filter."""
-        if not (parser := cast("AsyncCallable | None", self.item_parser)) or not (
-            decoder := cast("AsyncCallable | None", self.item_decoder)
-        ):
+        if not (parser := self.parser) or not (decoder := self.decoder):
             error_msg = "You should setup `HandlerItem` at first."
             raise SetupError(error_msg)
 
@@ -139,7 +143,7 @@ class HandlerItem(Generic[MsgType]):
         """Execute wrapped handler with consume middlewares."""
         call: AsyncFuncAny = self.handler.call_wrapped
 
-        for middleware in chain(self.item_middlewares[::-1], _extra_middlewares):
+        for middleware in _extra_middlewares:
             call = partial(middleware, call)
 
         try:

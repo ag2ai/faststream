@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -105,5 +106,25 @@ async def test_cast_redis() -> None:
         handle.mock.assert_called_once_with("Hi!")
 
         await br.publish("Hi!", "test-channel2")
+
+        handle_int.mock.assert_called_once_with("Hi!")
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_cast_mqtt() -> None:
+    from docs.docs_src.getting_started.context.mqtt.cast import (
+        broker,
+        handle,
+        handle_int,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker) as br:
+        await br.publish("Hi!", "test-topic")
+
+        handle.mock.assert_called_once_with("Hi!")
+
+        await br.publish("Hi!", "test-topic2")
 
         handle_int.mock.assert_called_once_with("Hi!")

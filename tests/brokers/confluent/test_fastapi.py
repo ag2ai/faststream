@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -17,18 +18,14 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
     broker_router_class = KafkaRouter
 
     async def test_batch_real(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @router.subscriber(*args, **kwargs)
-        async def hello(msg: list[str]):
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -52,18 +49,14 @@ class TestRouterLocal(ConfluentMemoryTestcaseConfig, FastAPILocalTestcase):
     broker_router_class = KafkaRouter
 
     async def test_batch_testclient(
-        self,
-        mock: MagicMock,
-        queue: str,
+        self, mock: MagicMock, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @router.subscriber(*args, **kwargs)
-        async def hello(msg: list[str]):
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 

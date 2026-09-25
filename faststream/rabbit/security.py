@@ -1,12 +1,45 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any, Optional
+
+from typing_extensions import override
 
 from faststream.security import BaseSecurity, SASLPlaintext
+
+if TYPE_CHECKING:
+    from ssl import SSLContext
+
+
+class RabbitExternalAuth(BaseSecurity):
+    """RabbitMQ SASL EXTERNAL authentication using a client TLS certificate."""
+
+    __slots__ = ()
+
+    def __init__(
+        self,
+        ssl_context: Optional["SSLContext"] = None,
+        use_ssl: bool = True,
+    ) -> None:
+        super().__init__(
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+        )
+
+    @override
+    def get_requirement(self) -> list[dict[str, Any]]:
+        """Get the security requirements for X.509 authentication."""
+        return [{"rabbitmq-external": []}]
+
+    @override
+    def get_schema(self) -> dict[str, dict[str, str]]:
+        """Get the security schema for X.509 authentication."""
+        return {"rabbitmq-external": {"type": "X509"}}
 
 
 def parse_security(security: BaseSecurity | None) -> dict[str, Any]:
     """Convert security object to connection arguments."""
     if security is None:
         return {}
+    if isinstance(security, RabbitExternalAuth):
+        return _parse_external_auth(security)
     if isinstance(security, SASLPlaintext):
         return _parse_sasl_plaintext(security)
     if isinstance(security, BaseSecurity):
@@ -28,4 +61,12 @@ def _parse_sasl_plaintext(security: SASLPlaintext) -> dict[str, Any]:
         "ssl_context": security.ssl_context,
         "login": security.username,
         "password": security.password,
+    }
+
+
+def _parse_external_auth(security: RabbitExternalAuth) -> dict[str, Any]:
+    return {
+        "ssl": security.use_ssl,
+        "ssl_context": security.ssl_context,
+        "auth": "EXTERNAL",
     }

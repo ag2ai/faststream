@@ -7,9 +7,18 @@ from typing import cast
 
 
 def is_contains_context_name(scip_name: str, name: str) -> bool:
-    stack = traceback.extract_stack()[-3]
-    tree = _read_source_ast(stack.filename)
-    node = cast("ast.With | ast.AsyncWith", _find_ast_node(tree, stack.lineno))
+    stack = traceback.extract_stack()
+    # Walk out past this frame and the ``TestBroker.__init__`` chain (the
+    # abstract base plus the concrete subclass override) to the user frame
+    # that opened the ``with`` block, regardless of how many ``__init__``
+    # frames sit in between.
+    idx = len(stack) - 2
+    while idx > 0 and stack[idx].name == "__init__":
+        idx -= 1
+    frame = stack[idx]
+
+    tree = _read_source_ast(frame.filename)
+    node = cast("ast.With | ast.AsyncWith", _find_ast_node(tree, frame.lineno))
     context_calls = _get_withitem_calls(node)
 
     try:

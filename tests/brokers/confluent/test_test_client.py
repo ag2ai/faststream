@@ -1,12 +1,14 @@
 import asyncio
-from unittest.mock import AsyncMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from faststream import AckPolicy, BaseMiddleware
+from faststream import AckPolicy, BaseMiddleware, Context
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
+from faststream.exceptions import SetupError
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 from tests.tools import spy_decorator
 
@@ -16,17 +18,35 @@ from .basic import ConfluentMemoryTestcaseConfig
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
+    async def test_publish_none_tombstone(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> None:
+            mock(msg.raw_message.value())
+
+        async with self.patch_broker(broker) as br:
+            await br.publish(None, queue, key=b"tombstone-key")
+
+        mock.assert_called_once_with(None)
+
     async def test_message_nack_seek(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
-        @broker.subscriber(
-            queue,
-            group_id=f"{queue}-consume",
-            auto_offset_reset="earliest",
-            ack_policy=AckPolicy.REJECT_ON_ERROR,
-        )
-        async def m(msg: KafkaMessage) -> None:
-            await msg.nack()
+        with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+
+            @broker.subscriber(
+                queue,
+                group_id=f"{queue}-consume",
+                auto_offset_reset="earliest",
+                ack_policy=AckPolicy.REJECT_ON_ERROR,
+            )
+            async def m(msg: KafkaMessage) -> None:
+                await msg.nack()
 
         async with self.patch_broker(broker) as br:
             with patch.object(
@@ -39,15 +59,13 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
                 mocked.mock.assert_called_once()
 
     @pytest.mark.connected()
-    async def test_with_real_testclient(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
-        def subscriber(m) -> None:
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker, with_real=True) as br:
@@ -65,11 +83,11 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -84,11 +102,11 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -106,7 +124,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -120,12 +138,27 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
             await br.publish_batch("hello", topic=queue)
             m.mock.assert_called_once_with(["hello"])
+
+    async def test_batch_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue, batch=True)
+        async def m(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch({"n": 1}, {"n": 2}, topic=queue)
+
+            await m.assert_called_once_with([{"n": 1}, {"n": 2}])
+
+            # A batch has one header set per message, so there is no single answer
+            with pytest.raises(SetupError, match="received a batch"):
+                await m.assert_called_once_with(headers={"key": "value"})
 
     async def test_batch_publisher_mock(self, queue: str) -> None:
         broker = self.get_broker()
@@ -134,7 +167,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -142,8 +175,44 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             m.mock.assert_called_once_with("hello")
             publisher.mock.assert_called_once_with([1, 2, 3])
 
+    @pytest.mark.parametrize(
+        "returned",
+        (pytest.param(None, id="None"), pytest.param([], id="Empty Sequence")),
+    )
+    async def test_batch_publisher_empty_result_matches_default_publisher(
+        self,
+        queue: str,
+        returned: Any,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3056.
+
+        An empty result publishes one empty message, exactly as a non-batch
+        publisher does.
+        """
+        broker = self.get_broker()
+
+        batch_publisher = broker.publisher(queue + "1", batch=True)
+        default_publisher = broker.publisher(queue + "2")
+
+        @batch_publisher
+        @broker.subscriber(queue)
+        async def batched(msg: Any) -> Any:
+            return returned
+
+        @default_publisher
+        @broker.subscriber(queue + "3")
+        async def single(msg: Any) -> None:
+            return None
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue)
+            await br.publish("hello", queue + "3")
+
+            default_publisher.mock.assert_called_once_with(b"")
+            batch_publisher.mock.assert_called_once_with([b""])
+
     async def test_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -153,10 +222,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(msg) -> None: ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(msg) -> None: ...
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("", queue)
@@ -166,7 +235,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -177,13 +246,13 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
-        async def h1(msg) -> None: ...
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def h1(msg: Any) -> None: ...
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
-        @broker.subscriber(*args2, **kwargs2)
-        async def h2(msg) -> None: ...
+        @broker.subscriber(*args2, **kwargs2)  # type: ignore[untyped-decorator]
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
@@ -197,10 +266,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, group_id="group2")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -213,10 +282,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, group_id="group1")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -231,10 +300,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, batch=True, group_id="group2")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -247,10 +316,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()

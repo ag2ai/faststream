@@ -9,7 +9,7 @@ from faststream._internal.broker.router import (
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 from faststream.redis.configs.broker import RedisRouterConfig
-from faststream.redis.message import BaseMessage
+from faststream.redis.message import UnifyRedisDict
 
 from .registrator import RedisRegistrator
 
@@ -17,12 +17,12 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
+    from faststream.redis.parser import MessageFormat
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
 
 
@@ -34,17 +34,18 @@ class RedisPublisher(ArgsContainer):
 
     def __init__(
         self,
-        channel: str | None = None,
+        channel: Union[str, "PubSub"] | None = None,
         *,
-        list: str | None = None,
-        stream: str | None = None,
+        list: Union[str, "ListSub"] | None = None,
+        stream: Union[str, "StreamSub"] | None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
-        middlewares: Sequence["PublisherMiddleware"] = (),
         title: str | None = None,
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
+        persistent: bool = True,
+        message_format: type["MessageFormat"] | None = None,
     ) -> None:
         """Initialize the RedisPublisher.
 
@@ -59,8 +60,6 @@ class RedisPublisher(ArgsContainer):
                 Message headers to store metainformation. Can be overridden by `publish.headers` if specified.
             reply_to:
                 Reply message destination PubSub object name.
-            middlewares:
-                Publisher middlewares to wrap outgoing messages.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -70,6 +69,8 @@ class RedisPublisher(ArgsContainer):
             include_in_schema:
                 Whetever to include operation in AsyncAPI schema or not.
 
+            persistent: Whether to make the publisher persistent or not.
+            message_format: Which format to use when parsing messages.
         """
         super().__init__(
             channel=channel,
@@ -77,11 +78,12 @@ class RedisPublisher(ArgsContainer):
             stream=stream,
             headers=headers,
             reply_to=reply_to,
-            middlewares=middlewares,
             title=title,
             description=description,
             schema=schema,
             include_in_schema=include_in_schema,
+            persistent=persistent,
+            message_format=message_format,
         )
 
 
@@ -97,17 +99,18 @@ class RedisRoute(SubscriberRoute):
         publishers: Iterable["RedisPublisher"] = (),
         list: Union[str, "ListSub"] | None = None,
         stream: Union[str, "StreamSub"] | None = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Sequence["SubscriberMiddleware[Any]"] = (),
-        no_ack: bool = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
+        persistent: bool = True,
+        codec: Optional["CodecProto"] = None,
+        message_format: type["MessageFormat"] | None = None,
     ) -> None:
         """Initialize the RedisRoute.
 
@@ -128,10 +131,6 @@ class RedisRoute(SubscriberRoute):
                 Parser to map original **aio_pika.IncomingMessage** Msg to FastStream one.
             decoder:
                 Function to decode FastStream msg bytes body to python objects.
-            middlewares:
-                Subscriber middlewares to wrap incoming message processing. (Deprecated)
-            no_ack:
-                Whether to disable **FastStream** auto acknowledgement logic or not. (Deprecated)
             ack_policy:
                 Acknowledgement policy of the handler.
             no_reply:
@@ -144,6 +143,9 @@ class RedisRoute(SubscriberRoute):
                 Whetever to include operation in AsyncAPI schema or not.
             max_workers:
                 Number of workers to process messages concurrently.
+            persistent: Whether to make the subscriber persistent or not.
+            codec: Custom codec object.
+            message_format: Which format to use when parsing messages.
         """
         super().__init__(
             call,
@@ -155,19 +157,20 @@ class RedisRoute(SubscriberRoute):
             max_workers=max_workers,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             ack_policy=ack_policy,
-            no_ack=no_ack,
             no_reply=no_reply,
             title=title,
             description=description,
             include_in_schema=include_in_schema,
+            persistent=persistent,
+            codec=codec,
+            message_format=message_format,
         )
 
 
 class RedisRouter(
     RedisRegistrator,
-    BrokerRouter[BaseMessage],
+    BrokerRouter[UnifyRedisDict, RedisRouterConfig],
 ):
     """Includable to RedisBroker router."""
 
@@ -176,12 +179,13 @@ class RedisRouter(
         prefix: str = "",
         handlers: Iterable[RedisRoute] = (),
         *,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RedisRegistrator] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
+        ack_policy: "AckPolicy" = EMPTY,
     ) -> None:
         """Initialize the RedisRouter.
 
@@ -202,11 +206,15 @@ class RedisRouter(
                 Function to decode FastStream msg bytes body to python objects.
             include_in_schema:
                 Whetever to include operation in AsyncAPI schema or not.
+            ack_policy:
+                Default acknowledgement policy for all subscribers in this router.
+                Can be overridden at the subscriber level.
         """
         super().__init__(
             handlers=handlers,
             config=RedisRouterConfig(
                 prefix=prefix,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 broker_middlewares=middlewares,
                 broker_parser=parser,

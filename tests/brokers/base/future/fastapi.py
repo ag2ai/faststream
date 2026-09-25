@@ -11,9 +11,8 @@ class Data(BaseModel): ...
 
 
 class FastapiTestCase(DefaultFastAPITestcase):
-    async def test_forward_ref(self, queue: str):
-        # see https://github.com/ag2ai/faststream/issues/2077 for context
-
+    async def test_forward_ref(self, queue: str) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2077."""
         router = self.router_class()
 
         args, kwargs = self.get_subscriber_params(queue)

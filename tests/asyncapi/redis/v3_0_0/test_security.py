@@ -71,7 +71,7 @@ def test_plaintext_security_schema() -> None:
             "development": {
                 "protocol": "redis",
                 "protocolVersion": "custom",
-                "security": [{"user-password": []}],
+                "security": [{"$ref": "#/components/securitySchemes/user-password"}],
                 "host": "localhost:6379",
                 "pathname": "/",
             },
@@ -107,7 +107,7 @@ def test_plaintext_security_schema_without_ssl() -> None:
             "development": {
                 "protocol": "redis",
                 "protocolVersion": "custom",
-                "security": [{"user-password": []}],
+                "security": [{"$ref": "#/components/securitySchemes/user-password"}],
                 "host": "localhost:6379",
                 "pathname": "/",
             },

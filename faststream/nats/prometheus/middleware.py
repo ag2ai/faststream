@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
 
 from nats.aio.msg import Msg
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class NatsPrometheusMiddleware(
-    PrometheusMiddleware[NatsPublishCommand, Msg | Sequence[Msg]],
+    PrometheusMiddleware[Msg | Sequence[Msg], NatsPublishCommand],
 ):
     def __init__(
         self,
@@ -22,6 +22,7 @@ class NatsPrometheusMiddleware(
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Sequence[float] | None = None,
+        custom_labels: dict[str, str | Callable[[Any], str]] | None = None,
     ) -> None:
         super().__init__(
             settings_provider_factory=settings_provider_factory,  # type: ignore[arg-type]
@@ -29,4 +30,5 @@ class NatsPrometheusMiddleware(
             app_name=app_name,
             metrics_prefix=metrics_prefix,
             received_messages_size_buckets=received_messages_size_buckets,
+            custom_labels=custom_labels,
         )

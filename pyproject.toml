@@ -1,26 +1,31 @@
 [build-system]
-requires = ["uv_build>=0.8.4,<0.9.0"]
+requires = ["uv_build>=0.9.2,<0.10.0"]
 build-backend = "uv_build"
 
 [project]
 name = "faststream"
-description = "FastStream: the simplest way to work with a messaging queues"
+description = "A thin, typed Python client for Kafka, RabbitMQ, NATS, Redis and MQTT — with AsyncAPI docs and in-memory testing."
 readme = "README.md"
 authors = [
     { name = "AG2AI", email = "support@ag2.ai" },
-    { name = "Nikita Pastukhov", email = "nikita@pastukhov-dev.com" },
+    { name = "Nikita Pastukhov", email = "nikita@pastukhov-dev.ru" },
 ]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+
+requires-python = ">=3.10"
+version = "0.7.7"
 
 keywords = [
     "rabbitmq",
     "kafka",
-    "framework",
     "nats",
     "redis",
+    "mqtt",
+    "asyncapi",
+    "framework",
     "message brokers",
 ]
-
-requires-python = ">=3.10"
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -52,68 +57,72 @@ classifiers = [
     "Framework :: Pydantic :: 2",
 ]
 
-version = "0.6.0rc4"
-
 dependencies = [
-    "fast-depends[pydantic]>=3.0.0rc1,<4.0.0",
-    "typing-extensions>=4.8.0",
-    "anyio>=4.0,<5",
+    "fast-depends[pydantic]>=3.0.9",
+    "typing-extensions>=4.12.0",
+    "anyio>=4.14.2,<5",
 ]
 
 [project.optional-dependencies]
-rabbit = ["aio-pika>=9,<10"]
+rabbit = ["aio-pika>=9,<11"]
 
-kafka = ["aiokafka>=0.9,<0.13"]
+kafka = ["aiokafka>=0.9,<0.15"]
 
 confluent = [
     "confluent-kafka>=2,!=2.8.1,<3; python_version < '3.13'",
     "confluent-kafka>=2.6,!=2.8.1,<3; python_version >= '3.13'",
 ]
 
-nats = ["nats-py>=2.7.0,<=3.0.0"]
+nats = ["nats-py>=2.14.0,<=3.0.0"]
 
-redis = ["redis>=5.0.0,<7.0.0"]
+redis = ["redis>=5.0.0,<9.0.0"]
 
-otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
+mqtt = ["zmqtt>=0.2.0,<0.3.0"]
 
 cli = [
-    "typer>=0.9,!=0.12,<=0.19.2",
+    "typer>=0.9,!=0.12,<=0.27.1",
     "watchfiles>=0.15.0,<1.2.0"
 ]
+
+otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
 
 prometheus = ["prometheus-client>=0.20.0,<0.30.0"]
 
 [dependency-groups]
-optionals = ["faststream[rabbit,kafka,confluent,nats,redis,otel,cli,prometheus]"]
+optionals = ["faststream[rabbit,kafka,confluent,nats,redis,mqtt,otel,cli,prometheus]"]
 
 docs = [
-    "mkdocs-material==9.6.21",
-    "mkdocs-static-i18n==1.3.0",
+    "mkdocs-material==9.7.7",
     "mdx-include==1.4.2",
-    "mkdocstrings[python]==0.30.1",
+    "mkdocstrings[python]==1.0.2",
+    "griffe==1.15.0",
     "mkdocs-literate-nav==0.6.2",
-    "mkdocs-git-revision-date-localized-plugin==1.4.7",
+    "mkdocs-git-revision-date-localized-plugin==1.5.1",
     "mike==2.1.3",                                      # versioning
     "mkdocs-minify-plugin==0.8.0",
-    "mkdocs-macros-plugin==1.4.0",                      # includes with variables
-    "mkdocs-glightbox==0.5.1",                          # img zoom
+    "mkdocs-macros-plugin==1.5.0",                      # includes with variables
+    "mkdocs-glightbox==0.5.2",                          # img zoom
     "pillow",                                           # required for mkdocs-glightbox
     "cairosvg",                                         # required for mkdocs-glightbox
     "httpx==0.28.1",                                    # using in CI
 ]
 
 lint = [
-    "ruff==0.13.3",
-    "bandit==1.8.6",
-    "semgrep==1.139.0",
+    "ruff==0.14.14",
+    "bandit==1.9.3",
     "codespell==2.4.1",
-    "zizmor==1.14.2",
-    "mypy==1.18.2",
-    # mypy extensions
+    "zizmor==1.22.0",
+    "import-linter==2.15",
+    "actionlint-py==1.7.12.24",
+    "shellcheck-py==0.11.0.1",                          # actionlint runs it over `run:` scripts
+    "slotscheck==0.21.0",
+    "mypy==1.19.1",
+    "pyright==1.1.407",
+    "pyrefly==1.3.1",
+    # type checkers extensions
     "types-Deprecated",
     "types-PyYAML",
     "types-setuptools",
-    "types-ujson",
     "types-redis",
     "types-Pygments",
     "types-docutils",
@@ -121,27 +130,30 @@ lint = [
 ]
 
 test-core = [
-    "dirty-equals==0.10.0",
+    "dirty-equals==0.11",
     "httpx==0.28.1",
-    "pytest==8.4.2",
-    "pytest-asyncio==1.2.0",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.3.0",
     "pytest-rerunfailures>=15.1",
     "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.8.0",
     "pytest-cov>=6.2.1",
     "covdefaults>=2.3.0",
+    "freezegun>=1.5.5",
+    "syrupy==6.0.0",
 ]
 
 testing = [
     {include-group = "test-core"},
-    "fastapi==0.118.0",
+    "fastapi==0.140.0",
     "pydantic-settings>=2.0.0,<3.0.0",
     "PyYAML==6.0.3",
     "email-validator==2.3.0",
     "msgspec",
-    "uvicorn>=0.34.3; python_version >= '3.9'",
-    "uvicorn==0.33.0; python_version < '3.9'",
-    "psutil==7.1.0",
+    "nkeys",
+    "uvicorn>=0.34.3",
+    "uvloop>=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
+    "psutil==7.2.2",
     "prometheus-client>=0.20.0,<0.30.0",
     "opentelemetry-sdk>=1.24.0,<2.0.0",
 ]
@@ -151,8 +163,10 @@ dev = [
     {include-group = "lint"},
     {include-group = "testing"},
     {include-group = "docs"},
-    "pre-commit==4.3.0",
+    "pre-commit==4.5.1",
     "detect-secrets==1.5.0",
+    "pytest-codspeed>=4.3.0",
+    "setuptools>=80.9.0",
 ]
 
 [project.urls]
@@ -160,7 +174,7 @@ Homepage = "https://faststream.ag2.ai/latest/"
 Documentation = "https://faststream.ag2.ai/latest/getting-started/"
 Tracker = "https://github.com/ag2ai/FastStream/issues"
 Source = "https://github.com/ag2ai/FastStream"
-Discord = "https://discord.gg/qFm6aSqq59"
+Discussions = "https://github.com/ag2ai/faststream/discussions"
 
 [project.scripts]
 faststream = "faststream.__main__:cli"
@@ -170,7 +184,7 @@ module-root = "."
 module-name = "faststream"
 
 [tool.mypy]
-files = ["faststream", "tests/mypy"]
+files = ["faststream", "tests", "docs/docs_src"]
 strict = true
 python_version = "3.10"
 strict_bytes = true
@@ -190,10 +204,88 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = false
 
+enable_error_code = [
+    "exhaustive-match",
+    "ignore-without-code",
+    "possibly-undefined",
+    "redundant-expr",
+    "truthy-bool",
+    "truthy-iterable",
+    "unused-awaitable",
+]
+
+[[tool.mypy.overrides]]
+# Cross-broker testcases hold the broker as `Any`: each broker spells
+# `subscriber()` differently, so its decorator cannot be typed there.
+module = [
+    "tests.asgi.testcase",
+    "tests.asyncapi.base.*",
+    "tests.integrations.msgspec.test_serialization",
+    "tests.opentelemetry.basic",
+    "tests.prometheus.basic",
+    "tests.brokers.base.*",
+    "tests.brokers.redis.stream_claim",
+]
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+# AsyncAPI tests declare handlers only for their signature: the body never runs.
+module = ["tests.asyncapi.*"]
+disable_error_code = ["empty-body"]
+
+[[tool.mypy.overrides]]
+# Snippets are embedded in the docs: handlers stay as short as a reader writes them.
+module = ["docs.docs_src.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+disallow_untyped_calls = false
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
+# `secret == "1"` under an `int` annotation is the point: without `cast` nothing converts.
+module = ["docs.docs_src.getting_started.context.*.cast"]
+disable_error_code = ["comparison-overlap"]
+
+[[tool.mypy.overrides]]
+# Page fragments: `tracer_provider` is built by the code block shown above them.
+module = ["docs.docs_src.getting_started.opentelemetry.*"]
+disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+# The pydantic v1 spelling, shown beside the v2 one.
+module = ["docs.docs_src.getting_started.config.settings_base_1"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# tornado is not installed, so its `RequestHandler` is `Any`.
+module = ["docs.docs_src.integrations.http_frameworks_integrations.tornado"]
+disallow_subclassing_any = false
+
+[tool.pyright]
+# Public API surface only: `tests/mypy` exercises the documented API the way a
+# user does. Pyright still follows imports into `faststream/`, so breakage in
+# the framework surfaces here — but internal annotations are not policed.
+include = ["tests/mypy"]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
+
+[tool.pyrefly]
+# Same scope as pyright, for the same reason: the documented API has to type
+# check for a user of any checker, internal annotations are mypy's job.
+project-includes = ["tests/mypy"]
+python-version = "3.10"
+# the include is explicit; a checkout under an ignored path (a worktree) matches nothing otherwise
+use-ignore-files = false
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 timeout = 30
+# Per phase, so a `flaky` rerun gets its own timer: pytest-timeout cancels a
+# whole-item one on the first failure, and rerunfailures retries inside it.
+timeout_func_only = true
 addopts = "--strict-markers --strict-config -q -m 'not slow'"
+xfail_strict = true
 testpaths = ["tests"]
 markers = [
     "rabbit",
@@ -201,9 +293,13 @@ markers = [
     "confluent",
     "nats",
     "redis",
+    "redis_cluster",
+    "redis_sentinel",
+    "mqtt",
     "slow",
     "connected",
     "all",
+    "benchmark",
 ]
 asyncio_default_fixture_loop_scope = "function"
 
@@ -262,5 +358,200 @@ omit = [
 ]
 fail_under = 20
 
+[tool.importlinter]
+root_package = "faststream"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+id = "brokers-independent"
+name = "Broker packages do not import each other"
+type = "independence"
+modules = [
+    "faststream.kafka",
+    "faststream.confluent",
+    "faststream.rabbit",
+    "faststream.nats",
+    "faststream.redis",
+    "faststream.mqtt",
+]
+# The AMQP bindings read RabbitQueue / RabbitExchange for annotations only,
+# under TYPE_CHECKING; nothing of RabbitMQ is imported at runtime.
+ignore_imports = [
+    "faststream.specification.schema.bindings.amqp -> faststream.rabbit.schemas",
+]
+
+[[tool.importlinter.contracts]]
+id = "core-broker-agnostic"
+name = "The core does not import a broker package"
+type = "forbidden"
+source_modules = [
+    "faststream._internal",
+    "faststream.asgi",
+    "faststream.message",
+    "faststream.middlewares",
+    "faststream.opentelemetry",
+    "faststream.params",
+    "faststream.prometheus",
+    "faststream.response",
+    "faststream.specification",
+    "faststream.annotations",
+    "faststream.app",
+    "faststream.cli",
+    "faststream.context",
+    "faststream.exceptions",
+    "faststream.security",
+    "faststream.types",
+]
+forbidden_modules = [
+    "faststream.kafka",
+    "faststream.confluent",
+    "faststream.rabbit",
+    "faststream.nats",
+    "faststream.redis",
+    "faststream.mqtt",
+]
+ignore_imports = [
+    "faststream.specification.schema.bindings.amqp -> faststream.rabbit.schemas",
+]
+
+[[tool.importlinter.contracts]]
+id = "kafka-driver"
+name = "Only faststream.kafka imports aiokafka"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["aiokafka"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.kafka -> aiokafka",
+    "faststream.kafka.** -> aiokafka",
+]
+
+[[tool.importlinter.contracts]]
+id = "confluent-driver"
+name = "Only faststream.confluent imports confluent_kafka"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["confluent_kafka"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.confluent -> confluent_kafka",
+    "faststream.confluent.** -> confluent_kafka",
+]
+
+[[tool.importlinter.contracts]]
+id = "rabbit-driver"
+name = "Only faststream.rabbit imports aio_pika, aiormq, pamqp"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["aio_pika", "aiormq", "pamqp"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.rabbit -> aio_pika",
+    "faststream.rabbit.** -> aio_pika",
+    "faststream.rabbit -> aiormq",
+    "faststream.rabbit.** -> aiormq",
+    "faststream.rabbit -> pamqp",
+    "faststream.rabbit.** -> pamqp",
+]
+
+[[tool.importlinter.contracts]]
+id = "nats-driver"
+name = "Only faststream.nats imports nats"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["nats"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.nats -> nats",
+    "faststream.nats.** -> nats",
+]
+
+[[tool.importlinter.contracts]]
+id = "redis-driver"
+name = "Only faststream.redis imports redis"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["redis"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.redis -> redis",
+    "faststream.redis.** -> redis",
+]
+
+[[tool.importlinter.contracts]]
+id = "mqtt-driver"
+name = "Only faststream.mqtt imports zmqtt"
+type = "forbidden"
+source_modules = ["faststream"]
+forbidden_modules = ["zmqtt"]
+allow_indirect_imports = true
+unmatched_ignore_imports_alerting = "none"
+ignore_imports = [
+    "faststream.mqtt -> zmqtt",
+    "faststream.mqtt.** -> zmqtt",
+]
+
 [tool.bandit]
 skips = ["B101"]
+
+[tool.slotscheck]
+# A module that fails to import is an error, not a silently skipped one.
+strict-imports = true
+require-superclass = true
+require-subclass = true
+# Every other class in the package is slotted (#3201). These are not, each for a reason
+# a `__slots__` line would not fix. The pattern is verbose, so `#` carries the reasons.
+exclude-classes = '''
+  ^faststream\.specification\.(asyncapi\.v[0-9_]+\.schema|base|schema\.bindings\.http)
+      # pydantic models: the fields live in BaseModel's own `__dict__` slot and the
+      # AsyncAPI ones accept extra keys, so declaring `__slots__` would save nothing
+| ^faststream\._internal\.configs\.(broker:BrokerConfig|endpoint:EndpointConfig|specification:SpecificationConfig)$
+      # the config dataclass roots, and with them every broker config below. Python
+      # 3.10 re-emits inherited fields into a `slots=True` subclass, doubling the
+      # storage it is meant to save; safe again once 3.10 support is dropped
+| ^faststream\._internal\.application:Application$
+      # the user's application object, one per process; our CLI tests patch `app.run`
+| ^faststream\._internal\.broker\.broker:BrokerUsecase$
+      # one broker per process, and what suites mock: `patch.object(broker, "start")`
+| ^faststream\._internal\.configs\.broker:ConfigComposition$
+      # a `__getattr__` proxy: reads forward to the inner config, writes land here
+| ^faststream\._internal\.endpoint\.subscriber\.mixins:ConcurrentMixin$
+      # mixed into each broker's slotted subscriber; two slotted bases conflict
+| ^faststream\.(kafka|confluent)\.message:FakeConsumer$
+      # the FAKE_CONSUMER singleton, whose methods tests patch on the instance
+| ^faststream\.nats\.broker\.registrator:NatsRegistrator$
+      # NatsRouter mixes it with BrokerRouter, a slotted sibling under Registrator
+| ^faststream\.nats\.subscriber\.usecases\.basic:LogicSubscriber$
+      # ConcurrentCoreSubscriber mixes TasksMixin in beside it; the lay-outs conflict
+| ^faststream\.rabbit\.configs\.base:RabbitConfig$
+      # mixed into two slotted dataclass configs; the lay-outs conflict
+| ^faststream\._internal\.(broker\.(pub_base|registrator)|context|testing)[.:]
+      # public objects user code constructs, receives or holds (messages, responses,
+      # routers, test clients, context, ASGI, specification schema): slotting them is a
+      # breaking change, so they are slotted in the 1.0 follow-up, which removes this
+      # entry and the ones below it
+| ^faststream\.asgi\.
+| ^faststream\.(message\.message|response\.response|params\.no_cast):
+| ^faststream\.specification\.schema\.
+| ^faststream\.(kafka|confluent|mqtt|nats|rabbit|redis)\.(broker\.router|testing):
+| ^faststream\.(kafka|confluent|mqtt|nats|rabbit|redis)\.(opentelemetry|prometheus)\.middleware:\w+Middleware$
+| ^faststream\.middlewares\.acknowledgement\.middleware:AcknowledgementMiddleware$
+| ^faststream\.(confluent\.configs\.broker:ConsumerBuilder|nats\.schemas\.schedule:Schedule|rabbit\.schemas\.channel:Channel)$
+'''
+
+[tool.typos.default.extend-identifiers]
+# Contributor handles in the generated release notes. Names, not misspellings.
+WellFREEzZ = "WellFREEzZ"
+RinZ27 = "RinZ27"
+Peopl3s = "Peopl3s"
+
+[tool.typos.default.extend-words]
+# ruff's flake8-copyright rule prefix, not a shortening of "copy".
+CPY = "CPY"
+# Eclipse Mosquitto, the MQTT broker, not the insect.
+Mosquitto = "Mosquitto"

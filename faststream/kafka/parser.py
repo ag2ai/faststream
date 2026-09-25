@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
+from faststream._internal.utils.path import match_path
 from faststream.kafka.message import (
     FAKE_CONSUMER,
     ConsumerProtocol,
@@ -19,6 +20,12 @@ if TYPE_CHECKING:
 
 class AioKafkaParser:
     """A class to parse Kafka messages."""
+
+    __slots__ = (
+        "_consumer",
+        "msg_class",
+        "regex",
+    )
 
     def __init__(
         self,
@@ -48,25 +55,22 @@ class AioKafkaParser:
             message_id=f"{message.offset}-{message.timestamp}",
             correlation_id=headers.get("correlation_id"),
             raw_message=message,
-            path=self.get_path(message.topic),
+            path=match_path(self.regex, message.topic),
             consumer=getattr(message, "consumer", self._consumer),
         )
 
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: "StreamMessage[ConsumerRecord]",
     ) -> "DecodedMessage":
         """Decodes a message."""
         return decode_message(msg)
 
-    def get_path(self, topic: str) -> dict[str, str]:
-        if self.regex and (match := self.regex.match(topic)):
-            return match.groupdict()
-        return {}
-
 
 class AioKafkaBatchParser(AioKafkaParser):
-    async def parse_message(
+    __slots__ = ()
+
+    async def parse_batch(
         self,
         message: tuple["ConsumerRecord", ...],
     ) -> "StreamMessage[tuple[ConsumerRecord, ...]]":
@@ -92,11 +96,11 @@ class AioKafkaBatchParser(AioKafkaParser):
             message_id=f"{first.offset}-{last.offset}-{first.timestamp}",
             correlation_id=headers.get("correlation_id"),
             raw_message=message,
-            path=self.get_path(first.topic),
+            path=match_path(self.regex, first.topic),
             consumer=self._consumer,
         )
 
-    async def decode_message(
+    async def decode_batch(
         self,
         msg: "StreamMessage[tuple[ConsumerRecord, ...]]",
     ) -> "DecodedMessage":

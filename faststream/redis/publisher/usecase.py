@@ -8,11 +8,8 @@ from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
-from faststream.message import gen_cor_id
 from faststream.redis.response import RedisPublishCommand
 from faststream.response.publish_type import PublishType
-
-from .producer import RedisFastProducer
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Pipeline
@@ -28,6 +25,13 @@ if TYPE_CHECKING:
 
 class LogicPublisher(PublisherUsecase):
     """A class to represent a Redis publisher."""
+
+    __slots__ = (
+        "config",
+        "headers",
+        "producer",
+        "reply_to",
+    )
 
     def __init__(
         self,
@@ -47,8 +51,7 @@ class LogicPublisher(PublisherUsecase):
         await super().start()
 
         broker_producer = self.config._outer_config.producer
-
-        self.producer = RedisFastProducer(
+        self.producer = broker_producer._build_child(
             connection=self.config._outer_config.connection,
             parser=broker_producer._parser.custom_func,
             decoder=broker_producer._decoder.custom_func,
@@ -62,6 +65,8 @@ class LogicPublisher(PublisherUsecase):
 
 
 class ChannelPublisher(LogicPublisher):
+    __slots__ = ("_channel",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -101,7 +106,7 @@ class ChannelPublisher(LogicPublisher):
             channel=channel or self.channel.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             pipeline=pipeline,
             _publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
@@ -148,7 +153,7 @@ class ChannelPublisher(LogicPublisher):
             message,
             channel=channel or self.channel.name,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             timeout=timeout,
             _publish_type=PublishType.REQUEST,
             message_format=self.config.message_format,
@@ -162,6 +167,8 @@ class ChannelPublisher(LogicPublisher):
 
 
 class ListPublisher(LogicPublisher):
+    __slots__ = ("_list",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -201,7 +208,7 @@ class ListPublisher(LogicPublisher):
             list=list or self.list.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             pipeline=pipeline,
             _publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
@@ -249,7 +256,7 @@ class ListPublisher(LogicPublisher):
             message,
             list=list or self.list.name,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             timeout=timeout,
             _publish_type=PublishType.REQUEST,
             message_format=self.config.message_format,
@@ -263,11 +270,13 @@ class ListPublisher(LogicPublisher):
 
 
 class ListBatchPublisher(ListPublisher):
+    __slots__ = ()
+
     @override
-    async def publish(  # type: ignore[override]
+    async def publish(
         self,
         *messages: "SendableMessage",
-        list: str,
+        list: str | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
@@ -278,7 +287,7 @@ class ListBatchPublisher(ListPublisher):
             list=list or self.list.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             pipeline=pipeline,
             _publish_type=PublishType.PUBLISH,
             message_format=self.config.message_format,
@@ -303,6 +312,11 @@ class ListBatchPublisher(ListPublisher):
             cmd, batch=True, message_format=self.config.message_format
         )
 
+        if not cmd.batch_bodies:
+            # Match the non-batch publisher: an empty result is one empty message,
+            # not a batch of zero, which no broker can express (see issue #3056).
+            cmd.batch_bodies = (b"",)
+
         cmd.set_destination(list=self.list.name)
 
         cmd.add_headers(self.headers, override=False)
@@ -316,6 +330,8 @@ class ListBatchPublisher(ListPublisher):
 
 
 class StreamPublisher(LogicPublisher):
+    __slots__ = ("_stream",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -355,7 +371,7 @@ class StreamPublisher(LogicPublisher):
             stream=stream or self.stream.name,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             maxlen=maxlen or self.stream.maxlen,
             pipeline=pipeline,
             _publish_type=PublishType.PUBLISH,
@@ -406,7 +422,7 @@ class StreamPublisher(LogicPublisher):
             message,
             stream=stream or self.stream.name,
             headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             maxlen=maxlen or self.stream.maxlen,
             timeout=timeout,
             _publish_type=PublishType.REQUEST,

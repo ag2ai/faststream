@@ -10,6 +10,8 @@ from .config import KafkaPublisherSpecificationConfig
 class KafkaPublisherSpecification(
     PublisherSpecification[KafkaBrokerConfig, KafkaPublisherSpecificationConfig],
 ):
+    __slots__ = ()
+
     @property
     def topic(self) -> str:
         return f"{self._outer_config.prefix}{self.config.topic}"
@@ -26,6 +28,7 @@ class KafkaPublisherSpecification(
 
         return {
             self.name: PublisherSpec(
+                address=self.topic,
                 description=self.config.description_,
                 operation=Operation(
                     message=Message(

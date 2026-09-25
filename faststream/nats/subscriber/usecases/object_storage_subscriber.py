@@ -37,6 +37,8 @@ class ObjStoreWatchSubscriber(
     TasksMixin,
     LogicSubscriber[ObjectInfo],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
     _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
 
@@ -64,7 +66,7 @@ class ObjStoreWatchSubscriber(
 
         if not self._fetch_sub:
             self.bucket = await self._outer_config.os_declarer.create_object_store(
-                bucket=self.subject,
+                bucket=self.subject.template,
                 declare=self.obj_watch.declare,
             )
 
@@ -87,27 +89,28 @@ class ObjStoreWatchSubscriber(
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
             "NatsObjMessage",
             await process_msg(
                 msg=msg,
                 middlewares=(m(msg, context=context) for m in self._broker_middlewares),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             ),
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsObjMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
 
         if not self._fetch_sub:
             self.bucket = await self._outer_config.os_declarer.create_object_store(
-                bucket=self.subject,
+                bucket=self.subject.template,
                 declare=self.obj_watch.declare,
             )
 
@@ -124,6 +127,10 @@ class ObjStoreWatchSubscriber(
 
         timeout = 5
         sleep_interval = timeout / 10
+
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
         while True:
             msg = None
             with anyio.move_on_after(timeout):
@@ -135,8 +142,6 @@ class ObjStoreWatchSubscriber(
             if msg is None:
                 continue
 
-            context = self._outer_config.fd_config.context
-
             yield cast(
                 "NatsObjMessage",
                 await process_msg(
@@ -144,8 +149,8 @@ class ObjStoreWatchSubscriber(
                     middlewares=(
                         m(msg, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
             )
 
@@ -155,7 +160,7 @@ class ObjStoreWatchSubscriber(
             return
 
         self.bucket = await self._outer_config.os_declarer.create_object_store(
-            bucket=self.subject,
+            bucket=self.subject.template,
             declare=self.obj_watch.declare,
         )
 
@@ -171,7 +176,7 @@ class ObjStoreWatchSubscriber(
 
         self.subscription = UnsubscribeAdapter["ObjectStore.ObjectWatcher"](obj_watch)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         while self.running:
             with suppress(TimeoutError):
@@ -184,6 +189,7 @@ class ObjStoreWatchSubscriber(
                     with context.scope(OBJECT_STORAGE_CONTEXT_KEY, self.bucket):
                         await self.consume(message)
 
+    @override
     def _make_response_publisher(
         self,
         message: "StreamMessage[ObjectInfo]",
@@ -206,5 +212,5 @@ class ObjStoreWatchSubscriber(
         """
         return self.build_log_context(
             message=message,
-            subject=self.subject,
+            subject=self.subject.template,
         )

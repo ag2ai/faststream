@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Configure FastStream application and access logging: the broker access_logger, custom
+  formatters and structured logs carrying message context.
 search:
   boost: 10
 ---
@@ -12,7 +15,7 @@ search:
 
 ## Logging Requests
 
-To log requests, it is strongly recommended to use the `access_logger` of your broker, as it is available from the [Context](../getting-started/context.md#existing-fields){.internal-link} of your application.
+To log requests, it is strongly recommended to use the `logger` of your broker (the `faststream.Logger` annotation), as it is available from the [Context](../context.md#existing-fields){.internal-link} of your application.
 
 ```python
 from faststream import Logger
@@ -53,7 +56,7 @@ app = FastStream(broker, logger=None)  # Disables application logs
 !!! warning
     Be careful: the `logger` that you get from the context will also have the value `None` if you turn off broker logging.
 
-If you don't want to lose access to the `logger' inside your context but want to disable the default logs of **FastStream**, you can lower the level of logs that the broker publishes itself.
+If you don't want to lose access to the `logger` inside your context but want to disable the default logs of **FastStream**, you can lower the level of logs that the broker publishes itself.
 
 ```python
 import logging
@@ -70,22 +73,22 @@ If you use **FastStream CLI**, you have the option to use a file to configure yo
 === "JSON"
 
     ```console
-    faststream run serve:app --log-file config.json
+    faststream run serve:app --log-config config.json
     ```
 
 === "TOML"
 
     ```console
-    faststream run serve:app --log-file config.toml
+    faststream run serve:app --log-config config.toml
     ```
 
 === "YAML"
 
     ```console
-    faststream run serve:app --log-file config.yaml
+    faststream run serve:app --log-config config.yaml
     ```
 
-Faststream supported few file formats to logging configure. See examples below:
+**FastStream** supports a few file formats for logging configuration. See the examples below:
 
 === "JSON"
 
@@ -177,7 +180,7 @@ app = FastStream(broker, logger=logger)
 ```
 
 !!! note
-    Doing this, you doesn't change the **CLI** logs behavior (*multiprocessing* and *hot reload* logs).  This was done to keep your log storage clear of unnecessary stuff.
+    Doing this, you don't change the **CLI** logs behavior (*multiprocessing* and *hot reload* logs).  This was done to keep your log storage clear of unnecessary stuff.
 
     This logger will be used only for `FastStream` and `StreamBroker` service messages and will be passed to your function through the **Context**.
 
@@ -247,12 +250,13 @@ We created a logger that prints messages to the console in a user-friendly forma
 
 To integrate this logger with our **FastStream** application, we just need to access it through context information and pass it to our objects:
 
-```python linenums="1" hl_lines="8 16-19 32"
+```python linenums="1" hl_lines="9 17-20 33"
 import logging
 
 import structlog
 
-from faststream import FastStream, ContextRepo
+from faststream import FastStream
+from faststream.context import ContextRepo
 from faststream.kafka import KafkaBroker
 
 context = ContextRepo()
@@ -285,7 +289,7 @@ app = FastStream(
 )
 ```
 
-And the job is done! Now you have a perfectly structured logs using **Structlog**.
+And the job is done! Now you have perfectly structured logs using **Structlog**.
 
 ```{.shell .no-copy}
 TIMESTAMP [info     ] FastStream app starting...     extra={}

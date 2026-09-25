@@ -1,17 +1,16 @@
 from collections.abc import Callable, Generator, Iterable
 from functools import partial
-from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
 )
-from unittest.mock import MagicMock
 
 from faststream._internal.endpoint.call_wrapper import (
     HandlerCallWrapper,
 )
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.testing.calls import CallAssertions, CallRecorder
 from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
@@ -32,8 +31,15 @@ if TYPE_CHECKING:
     from .specification import PublisherSpecification
 
 
-class PublisherUsecase(Endpoint, PublisherProto):
+class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
     """A base class for publishers in an asynchronous API."""
+
+    __slots__ = (
+        "_fake_handler",
+        "_recorder",
+        "is_test",
+        "specification",
+    )
 
     def __init__(
         self,
@@ -43,10 +49,10 @@ class PublisherUsecase(Endpoint, PublisherProto):
         super().__init__(config._outer_config)
 
         self.specification = specification
-        self.middlewares = config.middlewares
 
         self._fake_handler = False
-        self.mock = MagicMock()
+        self._recorder = CallRecorder(specification.name, self._outer_config)
+        self.is_test = False
 
     async def start(self) -> None:
         pass
@@ -54,17 +60,24 @@ class PublisherUsecase(Endpoint, PublisherProto):
     def set_test(
         self,
         *,
-        mock: MagicMock,
+        recorder: CallRecorder | None = None,
         with_fake: bool,
     ) -> None:
-        """Turn publisher to testing mode."""
-        self.mock = mock
+        """Turn publisher to testing mode, sharing `recorder` when one is given."""
+        self.is_test = True
+        if recorder is None:
+            self._recorder.reset()
+        else:
+            self._recorder = recorder
         self._fake_handler = with_fake
 
     def reset_test(self) -> None:
         """Turn off publisher's testing mode."""
+        self.is_test = False
+        self._recorder.reset()
+        # A shared recorder goes back to the handler it belongs to
+        self._recorder = CallRecorder(self.specification.name, self._outer_config)
         self._fake_handler = False
-        self.mock.reset_mock()
 
     def __call__(
         self,
@@ -73,7 +86,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
         """Decorate user's function by current publisher."""
         handler = super().__call__(func)
         handler._publishers.append(self)
-        self.specification.add_call(handler._original_call)
+        self.specification.add_call(handler._declared_call)
         return handler
 
     async def _basic_publish(
@@ -112,7 +125,7 @@ class PublisherUsecase(Endpoint, PublisherProto):
 
         published_msg = await request(cmd)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         response_msg: Any = await process_msg(
             msg=published_msg,
@@ -130,17 +143,15 @@ class PublisherUsecase(Endpoint, PublisherProto):
         self,
         extra_middlewares: Iterable["PublisherMiddleware"] = (),
     ) -> Generator["PublisherMiddleware", None, None]:
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
-        yield from chain(
-            self.middlewares[::-1],
-            (
-                extra_middlewares
-                or (
-                    m(None, context=context).publish_scope
-                    for m in reversed(self._outer_config.broker_middlewares)
-                )
-            ),
+        # a subscriber passes a generator, which is truthy even when empty
+        yield from (
+            tuple(extra_middlewares)
+            or (
+                m(None, context=context).publish_scope
+                for m in reversed(self._outer_config.broker_middlewares)
+            )
         )
 
     def schema(self) -> dict[str, "PublisherSpec"]:

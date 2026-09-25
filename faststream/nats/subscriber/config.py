@@ -17,6 +17,9 @@ if TYPE_CHECKING:
 class NatsSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     subject: str
     queue: str | None
+    # A JetStream consumer may address a stream through `filter_subjects` instead of `subject`,
+    # so the specification layer needs them to render a meaningful address.
+    filter_subjects: list[str] = field(default_factory=list)
 
 
 @dataclass(kw_only=True)
@@ -27,18 +30,11 @@ class NatsSubscriberConfig(SubscriberUsecaseConfig):
     sub_config: "ConsumerConfig"
     extra_options: dict[str, Any] | None = field(default_factory=dict)
 
-    _ack_first: bool = field(default_factory=lambda: EMPTY, repr=False)
-    _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)
-
     @property
     def ack_policy(self) -> AckPolicy:
-        if self._no_ack is not EMPTY and self._no_ack:
-            return AckPolicy.MANUAL
-
-        if self._ack_first is not EMPTY and self._ack_first:
-            return AckPolicy.ACK_FIRST
-
         if self._ack_policy is EMPTY:
+            if self._outer_config.ack_policy is not EMPTY:
+                return self._outer_config.ack_policy
             return AckPolicy.REJECT_ON_ERROR
 
         return self._ack_policy

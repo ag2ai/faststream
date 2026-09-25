@@ -1,21 +1,30 @@
+from typing import TYPE_CHECKING
+
+from typer.core import TyperOption
+
 from faststream.exceptions import StartupValidationError
+
+# type checkers see one click, or `TyperOption` stops matching the union of both
+if TYPE_CHECKING:
+    from typer._click import exceptions as click_exceptions
+else:
+    try:
+        from typer._click import exceptions as click_exceptions
+    except ImportError:  # pragma: no cover - Typer < 0.26
+        from click import exceptions as click_exceptions
+
+try:
+    from typer.rich_utils import rich_format_error
+except ImportError:  # typer-slim ships without rich
+
+    def rich_format_error(self: click_exceptions.ClickException) -> None:
+        self.show()
 
 
 def draw_startup_errors(startup_exc: StartupValidationError) -> None:
-    from click.exceptions import BadParameter, MissingParameter
-    from typer.core import TyperOption
-
-    def draw_error(click_exc: BadParameter) -> None:
-        try:
-            from typer import rich_utils
-
-            rich_utils.rich_format_error(click_exc)
-        except ImportError:
-            click_exc.show()
-
     for field in startup_exc.invalid_fields:
-        draw_error(
-            BadParameter(
+        rich_format_error(
+            click_exceptions.BadParameter(
                 message=(
                     "extra option in your application "
                     "`lifespan/on_startup` hook has a wrong type."
@@ -25,8 +34,8 @@ def draw_startup_errors(startup_exc: StartupValidationError) -> None:
         )
 
     if startup_exc.missed_fields:
-        draw_error(
-            MissingParameter(
+        rich_format_error(
+            click_exceptions.MissingParameter(
                 message=(
                     "You registered extra options in your application "
                     "`lifespan/on_startup` hook, but does not set in CLI."

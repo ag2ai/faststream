@@ -3,6 +3,7 @@ from collections.abc import Callable, Coroutine
 from typing import TYPE_CHECKING, Any, Generic
 
 import anyio
+from typing_extensions import override
 
 from faststream._internal.types import MsgType
 
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class TasksMixin(SubscriberUsecase[Any]):
+    __slots__ = ("tasks",)
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.tasks: list[asyncio.Task[Any]] = []
@@ -23,14 +26,21 @@ class TasksMixin(SubscriberUsecase[Any]):
         func: Callable[..., Coroutine[Any, Any, Any]],
         func_args: tuple[Any, ...] | None = None,
         func_kwargs: dict[str, Any] | None = None,
-    ) -> asyncio.Task[Any]:
+        *,
+        restart_on_failure: bool = True,
+    ) -> None:
         args = func_args or ()
         kwargs = func_kwargs or {}
         task = asyncio.create_task(func(*args, **kwargs))
-        callback = TaskCallbackSupervisor(func, func_args, func_kwargs, self)
+        callback = TaskCallbackSupervisor(
+            func,
+            func_args,
+            func_kwargs,
+            self,
+            restart_on_failure=restart_on_failure,
+        )
         task.add_done_callback(callback)
         self.tasks.append(task)
-        return task
 
     async def stop(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
@@ -44,6 +54,12 @@ class TasksMixin(SubscriberUsecase[Any]):
 
 
 class ConcurrentMixin(TasksMixin, Generic[MsgType]):
+    """Unslotted on purpose.
+
+    Every `Concurrent<X>Subscriber` mixes this into a broker's own slotted
+    subscriber, and two slotted bases under one `SubscriberUsecase` conflict.
+    """
+
     send_stream: "MemoryObjectSendStream[MsgType]"
     receive_stream: "MemoryObjectReceiveStream[MsgType]"
 
@@ -54,13 +70,26 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         **kwargs: Any,
     ) -> None:
         self.max_workers = max_workers
-
-        self.send_stream, self.receive_stream = anyio.create_memory_object_stream(
-            max_buffer_size=max_workers,
-        )
         self.limiter = anyio.Semaphore(max_workers)
+        # Closed until `start`, so a subscriber that is only declared holds nothing open
+        self.send_stream, self.receive_stream = _closed_queue()
 
         super().__init__(*args, **kwargs)
+
+    @override
+    async def start(self) -> None:
+        # Opened before `super().start()`: a broker can hand over a message before it returns
+        self.send_stream, self.receive_stream = anyio.create_memory_object_stream(
+            max_buffer_size=self.max_workers,
+        )
+        await super().start()
+
+    @override
+    async def stop(self) -> None:
+        await super().stop()
+
+        self.send_stream.close()
+        self.receive_stream.close()
 
     def start_consume_task(self) -> None:
         self.add_task(self._serve_consume_queue)
@@ -74,7 +103,7 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         """
         async with anyio.create_task_group() as tg:
             async for msg in self.receive_stream:
-                tg.start_soon(self._consume_msg, msg)
+                _ = tg.start_soon(self._consume_msg, msg)
 
     async def _consume_msg(self, msg: "MsgType") -> None:
         """Proxy method to call `self.consume` with semaphore block."""
@@ -85,3 +114,12 @@ class ConcurrentMixin(TasksMixin, Generic[MsgType]):
         """Proxy method to put msg into in-memory queue with semaphore block."""
         async with self.limiter:
             await self.send_stream.send(msg)
+
+
+def _closed_queue() -> tuple[
+    "MemoryObjectSendStream[Any]", "MemoryObjectReceiveStream[Any]"
+]:
+    send_stream, receive_stream = anyio.create_memory_object_stream[Any]()
+    send_stream.close()
+    receive_stream.close()
+    return send_stream, receive_stream

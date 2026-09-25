@@ -2,8 +2,9 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union, overload
 
+from fast_depends.exceptions import ValidationError as FDValidationError
+
 from faststream import apply_types
-from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di.config import FastDependsConfig
 from faststream._internal.utils.functions import to_async
 
@@ -18,8 +19,6 @@ if TYPE_CHECKING:
 
 
 class HttpHandler:
-    _context_repo: ContextRepo
-
     def __init__(
         self,
         func: "UserApp",
@@ -57,6 +56,14 @@ class HttpHandler:
             ):
                 try:
                     response = await self.func(scope)
+                except FDValidationError:
+                    if self.logger is not None:
+                        message = "Validation error"
+                        self.logger.log(logging.ERROR, message, exc_info=True)
+                    response = AsgiResponse(
+                        body=b"Validation error",
+                        status_code=422,
+                    )
                 except Exception:
                     if self.logger is not None:
                         self.logger.log(
@@ -107,7 +114,7 @@ def get(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> "ASGIApp": ...
+) -> "GetHandler": ...
 
 
 @overload
@@ -118,7 +125,7 @@ def get(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> Callable[["UserApp"], "ASGIApp"]: ...
+) -> Callable[["UserApp"], "GetHandler"]: ...
 
 
 def get(
@@ -128,8 +135,8 @@ def get(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
-    def decorator(inner_func: "UserApp") -> "ASGIApp":
+) -> Union[Callable[["UserApp"], "GetHandler"], "GetHandler"]:
+    def decorator(inner_func: "UserApp") -> "GetHandler":
         return GetHandler(
             inner_func,
             include_in_schema=include_in_schema,
@@ -172,7 +179,7 @@ def post(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> "ASGIApp": ...
+) -> "PostHandler": ...
 
 
 @overload
@@ -183,7 +190,7 @@ def post(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> Callable[["UserApp"], "ASGIApp"]: ...
+) -> Callable[["UserApp"], "PostHandler"]: ...
 
 
 def post(
@@ -193,8 +200,8 @@ def post(
     description: str | None = None,
     tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
     unique_id: str | None = None,
-) -> Union[Callable[["UserApp"], "ASGIApp"], "ASGIApp"]:
-    def decorator(inner_func: "UserApp") -> "ASGIApp":
+) -> Union[Callable[["UserApp"], "PostHandler"], "PostHandler"]:
+    def decorator(inner_func: "UserApp") -> "PostHandler":
         return PostHandler(
             inner_func,
             include_in_schema=include_in_schema,

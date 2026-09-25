@@ -4,11 +4,19 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, TypedDict, Union, over
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.proto import NameRequired
-from faststream._internal.utils.path import compile_path
+from faststream._internal.utils.path import Address, AddressSyntax
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from aio_pika.abc import TimeoutType
+
+
+RABBIT_ADDRESS_SYNTAX = AddressSyntax(
+    replace_symbol="*",
+    patch_regex=lambda x: x.replace(r"\#", ".+"),
+)
 
 
 class QueueType(str, Enum):
@@ -34,12 +42,11 @@ class RabbitQueue(NameRequired):
         "arguments",
         "auto_delete",
         "bind_arguments",
+        "declare",
         "durable",
         "exclusive",
-        "name",
-        "path_regex",
         "robust",
-        "routing_key",
+        "routing_address",
         "timeout",
     )
 
@@ -54,28 +61,62 @@ class RabbitQueue(NameRequired):
 
         return f"{self.__class__.__name__}({self.name}{body})"
 
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, RabbitQueue):
+            return NotImplemented
+
+        return (
+            self.name == value.name
+            and self.durable == value.durable
+            and self.exclusive == value.exclusive
+            and self.auto_delete == value.auto_delete
+            and (self.arguments or {}) == (value.arguments or {})
+        )
+
     def __hash__(self) -> int:
         """Supports hash to store real objects in declarer."""
-        return sum(
+
+        def _hash_dict(d: Any) -> Any:
+            if isinstance(d, dict):
+                return frozenset((k, _hash_dict(v)) for k, v in d.items())
+            return d
+
+        return hash(
             (
-                hash(self.name),
-                int(self.durable),
-                int(self.exclusive),
-                int(self.auto_delete),
+                self.name,
+                self.durable,
+                self.exclusive,
+                self.auto_delete,
+                _hash_dict(self.arguments or {}),
             ),
         )
 
+    @property
+    def routing_key(self) -> str:
+        """The routing key as it reaches RabbitMQ."""
+        return self.routing_address.broker_address
+
+    @property
+    def path_regex(self) -> Optional["Pattern[str]"]:
+        return self.routing_address.regex
+
     def routing(self) -> str:
-        """Return real routing_key of object."""
-        return self.routing_key or self.name
+        """Return the Broker address of object."""
+        return self.routing_address.broker_address or self.name
+
+    def routing_template(self) -> str:
+        """Return the Address template of object."""
+        if self.routing_address:
+            return self.routing_address.template
+        return self.name
 
     def add_prefix(self, prefix: str) -> "RabbitQueue":
         new_q: RabbitQueue = deepcopy(self)
 
         new_q.name = f"{prefix}{new_q.name}"
 
-        if new_q.routing_key:
-            new_q.routing_key = f"{prefix}{new_q.routing_key}"
+        if new_q.routing_address:
+            new_q.routing_address = new_q.routing_address.add_prefix(prefix)
 
         return new_q
 
@@ -164,12 +205,6 @@ class RabbitQueue(NameRequired):
         :param bind_arguments: Queue-exchange binding options.
         :param routing_key: Explicit binding routing key. Uses name if not present.
         """
-        re, routing_key = compile_path(
-            routing_key,
-            replace_symbol="*",
-            patch_regex=lambda x: x.replace(r"\#", ".+"),
-        )
-
         if queue_type is QueueType.QUORUM or queue_type is QueueType.STREAM:
             if durable is EMPTY:
                 durable = True
@@ -177,15 +212,14 @@ class RabbitQueue(NameRequired):
                 error_msg = "Quorum and Stream queues must be durable"
                 raise SetupError(error_msg)
         elif durable is EMPTY:
-            durable = False
+            durable = True
 
         super().__init__(name)
 
-        self.path_regex = re
         self.durable = durable
         self.exclusive = exclusive
         self.bind_arguments = bind_arguments
-        self.routing_key = routing_key
+        self.routing_address = Address(routing_key, RABBIT_ADDRESS_SYNTAX)
         self.robust = robust
         self.auto_delete = auto_delete
         self.arguments = {"x-queue-type": queue_type.value, **(arguments or {})}

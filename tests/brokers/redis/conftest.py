@@ -1,22 +1,10 @@
-from dataclasses import dataclass
+from typing import Any
 
 import pytest
 
-from faststream.redis import RedisRouter
-
-
-@dataclass
-class Settings:
-    url: str = "redis://localhost:6379"
-    host: str = "localhost"
-    port: int = 6379
+from .settings import Settings
 
 
 @pytest.fixture(scope="session")
-def settings():
+def settings() -> Any:
     return Settings()
-
-
-@pytest.fixture()
-def router():
-    return RedisRouter()

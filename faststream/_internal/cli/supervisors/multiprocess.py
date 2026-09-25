@@ -2,7 +2,10 @@ import signal
 from typing import TYPE_CHECKING
 
 from faststream._internal.cli.supervisors.basereload import BaseReload
+from faststream._internal.cli.supervisors.utils import stop_process
 from faststream._internal.logger import logger
+
+SIGKILL: int | None = getattr(signal, "SIGKILL", None)
 
 if TYPE_CHECKING:
     from multiprocessing.context import SpawnProcess
@@ -12,6 +15,11 @@ if TYPE_CHECKING:
 
 class Multiprocess(BaseReload):
     """A class to represent a multiprocess."""
+
+    __slots__ = (
+        "processes",
+        "workers",
+    )
 
     def __init__(
         self,
@@ -35,9 +43,8 @@ class Multiprocess(BaseReload):
 
     def shutdown(self) -> None:
         for worker_id, process in enumerate(self.processes):
-            process.terminate()
             logger.info("Stopping child process %s [%s]", worker_id, process.pid)
-            process.join()
+            stop_process(process)
 
         logger.info("Stopping parent process [%s]", self.pid)
 
@@ -50,7 +57,11 @@ class Multiprocess(BaseReload):
                 continue
 
             log_msg = "Worker %s (pid:%s) exited with code %s."
-            if process.exitcode and abs(process.exitcode) == signal.SIGKILL:
+            if (
+                SIGKILL is not None
+                and process.exitcode
+                and abs(process.exitcode) == SIGKILL
+            ):
                 log_msg += " Perhaps out of memory?"
             logger.error(log_msg, worker_id, process.pid, process.exitcode)
 

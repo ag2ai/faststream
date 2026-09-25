@@ -1,0 +1,100 @@
+from typing import TYPE_CHECKING, Union
+
+from typing_extensions import override
+from zmqtt import QoS
+
+from faststream.response.publish_type import PublishType
+from faststream.response.response import PublishCommand, Response
+
+if TYPE_CHECKING:
+    from faststream._internal.basic_types import SendableMessage
+
+
+class MQTTResponse(Response):
+    def __init__(
+        self,
+        body: "SendableMessage",
+        *,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        qos: QoS = QoS.AT_MOST_ONCE,
+        retain: bool = False,
+    ) -> None:
+        super().__init__(body=body, headers=headers, correlation_id=correlation_id)
+        self.qos = qos
+        self.retain = retain
+
+    @override
+    def as_publish_command(self) -> "MQTTPublishCommand":
+        return MQTTPublishCommand(
+            message=self.body,
+            headers=self.headers,
+            correlation_id=self.correlation_id,
+            _publish_type=PublishType.PUBLISH,
+            topic="",
+            qos=self.qos,
+            retain=self.retain,
+        )
+
+
+class MQTTPublishCommand(PublishCommand):
+    def __init__(
+        self,
+        message: "SendableMessage",
+        *,
+        topic: str = "",
+        correlation_id: str | None = None,
+        headers: dict[str, str] | None = None,
+        reply_to: str = "",
+        qos: QoS = QoS.AT_MOST_ONCE,
+        retain: bool = False,
+        message_expiry_interval: int | None = None,
+        timeout: float | None = 30.0,
+        _publish_type: PublishType,
+    ) -> None:
+        super().__init__(
+            body=message,
+            destination=topic,
+            correlation_id=correlation_id,
+            headers=headers,
+            reply_to=reply_to,
+            _publish_type=_publish_type,
+        )
+        self.qos = qos
+        self.retain = retain
+        self.message_expiry_interval = message_expiry_interval
+        self.timeout = timeout
+
+    @classmethod
+    def from_cmd(
+        cls,
+        cmd: Union["PublishCommand", "MQTTPublishCommand"],
+    ) -> "MQTTPublishCommand":
+        if isinstance(cmd, MQTTPublishCommand):
+            return cmd
+
+        return cls(
+            message=cmd.body,
+            topic=cmd.destination,
+            correlation_id=cmd.correlation_id,
+            headers=cmd.headers,
+            reply_to=cmd.reply_to,
+            timeout=getattr(cmd, "timeout", None),
+            _publish_type=cmd.publish_type,
+        )
+
+    def __repr__(self) -> str:
+        body = [
+            f"body='{self.body}'",
+            f"topic='{self.destination}'",
+            f"qos={self.qos}",
+        ]
+        if self.retain:
+            body.append("retain=True")
+        if self.reply_to:
+            body.append(f"reply_to='{self.reply_to}'")
+        body.extend((
+            f"headers={self.headers}",
+            f"correlation_id='{self.correlation_id}'",
+        ))
+        return f"{self.__class__.__name__}({', '.join(body)})"

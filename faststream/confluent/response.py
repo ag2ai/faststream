@@ -1,15 +1,35 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
 
+from faststream._internal.kafka import (
+    extract_per_message_keys_and_bodies,
+    key_for_index,
+    realign_keys,
+)
 from faststream.response.publish_type import PublishType
-from faststream.response.response import BatchPublishCommand, PublishCommand, Response
+from faststream.response.response import (
+    BatchPublishCommand,
+    PublishCommand,
+    Response,
+)
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
+    from faststream.confluent.types import KafkaSendableMessage
 
 
 class KafkaResponse(Response):
+    """Kafka-specific response object for outgoing messages.
+
+    Can be used in two ways:
+    1. As a return value from handler to send a response message
+    2. Directly in publish_batch() to set per-message attributes (key, headers, etc.)
+
+    For publish operations, consider using the more semantic alias `KafkaPublishMessage`.
+    """
+
     def __init__(
         self,
         body: "SendableMessage",
@@ -17,7 +37,7 @@ class KafkaResponse(Response):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         timestamp_ms: int | None = None,
-        key: bytes | str | None = None,
+        key: bytes | Any | None = None,
     ) -> None:
         super().__init__(
             body=body,
@@ -27,6 +47,11 @@ class KafkaResponse(Response):
 
         self.timestamp_ms = timestamp_ms
         self.key = key
+
+    @override
+    def get_publish_key(self) -> bytes | Any | None:
+        """Return the Kafka message key for publishing."""
+        return self.key
 
     @override
     def as_publish_command(self) -> "KafkaPublishCommand":
@@ -45,12 +70,12 @@ class KafkaResponse(Response):
 class KafkaPublishCommand(BatchPublishCommand):
     def __init__(
         self,
-        message: "SendableMessage",
+        message: "KafkaSendableMessage",
         /,
-        *messages: "SendableMessage",
+        *messages: "KafkaSendableMessage",
         topic: str,
         _publish_type: PublishType,
-        key: bytes | str | None = None,
+        key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
         headers: dict[str, str] | None = None,
@@ -77,6 +102,12 @@ class KafkaPublishCommand(BatchPublishCommand):
         # request option
         self.timeout = timeout
 
+        # per-message keys support
+        keys, normalized = extract_per_message_keys_and_bodies(self.batch_bodies)
+        if normalized is not None:
+            self.batch_bodies = normalized
+        self._per_message_keys = keys
+
     @classmethod
     def from_cmd(
         cls,
@@ -100,6 +131,9 @@ class KafkaPublishCommand(BatchPublishCommand):
             _publish_type=cmd.publish_type,
         )
 
+    def key_for(self, index: int) -> Any | None:
+        return key_for_index(self._per_message_keys, self.key, index)
+
     def headers_to_publish(self) -> dict[str, str]:
         headers = {}
 
@@ -110,3 +144,28 @@ class KafkaPublishCommand(BatchPublishCommand):
             headers["reply_to"] = self.reply_to
 
         return headers | self.headers
+
+    @BatchPublishCommand.batch_bodies.setter  # type: ignore[attr-defined, untyped-decorator]
+    def batch_bodies(self, value: Sequence["Any"]) -> None:
+        if len(value) == 0:
+            self.body = None
+            self.extra_bodies = ()
+        else:
+            self._align_keys(value)
+            self.body = value[0]
+            self.extra_bodies = tuple(value[1:])
+
+    def _align_keys(self, value: Sequence["Any"]) -> None:
+        """Align the per-message keys with the batch_bodies."""
+        if not hasattr(self, "_per_message_keys"):
+            return
+        if len(self._per_message_keys) == 0:
+            return
+        self._per_message_keys = realign_keys(
+            self._per_message_keys, self.batch_bodies, value
+        )
+
+
+# Semantic alias for publish operations
+# More intuitive name when using in publish_batch() rather than as handler return value
+KafkaPublishMessage = KafkaResponse

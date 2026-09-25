@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Install FastStream and write your first asynchronous Python consumer and publisher for
+  Kafka, RabbitMQ, NATS, Redis or MQTT in a few lines.
 search:
   boost: 10
 hide:
@@ -68,7 +71,7 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        docker run -d --rm -p 5672:5672 --name test-mq rabbitmq:alpine
+        docker run -d --rm -p 5672:5672 --name test-mq rabbitmq:3.13-alpine
         ```
 
 
@@ -91,13 +94,24 @@ Install using `pip`:
     !!! tip
         To start a new project, we need a test broker container
         ```bash
-        docker run -d --rm -p 6379:6379 --name test-mq redis
+        docker run -d --rm -p 6379:6379 --name test-mq redis:8-alpine
+        ```
+
+=== "MQTT"
+    ```console
+    pip install "faststream[mqtt]"
+    ```
+
+    !!! tip
+        To start a new project, we need a test broker container
+        ```bash
+        docker run -d --rm -p 1883:1883 -e ANONYMOUS_LOGIN=true --name test-mq apache/activemq-artemis:latest-alpine
         ```
 
 ## Basic Usage
 
 !!! note
-    Before continuing with the next steps, make sure you install *Fastream* CLI.
+    Before continuing with the next steps, make sure you install *FastStream* CLI.
     ```shell
     pip install "faststream[cli]"
     ```
@@ -127,6 +141,11 @@ To create a basic application, add the following code to a new file (e.g. `serve
 === "Redis"
     ```python linenums="1" title="serve.py"
     {!> docs_src/getting_started/index/base_redis.py!}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" title="serve.py"
+    {!> docs_src/getting_started/index/base_mqtt.py!}
     ```
 
 
@@ -174,6 +193,11 @@ Also, you can run the `FastStream` application manually, as a regular async func
 === "Redis"
     ```python linenums="1"
     {!> docs_src/getting_started/manual_run/redis_base_run.py!}
+    ```
+
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/getting_started/manual_run/mqtt_base_run.py!}
     ```
 
 ### Other tools integrations

@@ -1,3 +1,9 @@
+---
+description: >-
+  Control when FastStream acknowledges, rejects or requeues a message with the ack_policy
+  parameter and the AckPolicy enum.
+---
+
 # Acknowledgment
 
 Due to the possibility of unexpected errors during message processing, FastStream provides an `ack_policy` parameter that allows users to control how messages are handled. This parameter determines when and how messages should be acknowledged or rejected based on the result of the message processing.
@@ -12,12 +18,13 @@ Due to the possibility of unexpected errors during message processing, FastStrea
 
 - [**Kafka**](../kafka/index.md){.internal-link}
 - [**RabbitMQ**](../rabbit/index.md){.internal-link}
+- [**MQTT**](../mqtt/index.md){.internal-link}
 - [**NATS JetStream**](../nats/jetstream/index.md){.internal-link}
 - [**Redis Streams**](../redis/streams/index.md){.internal-link}
 
 ### Usage
 
-You must specify the `ack_policy` parameter when creating a subscriber:
+You can specify the `ack_policy` parameter when creating a subscriber (it is optional; each broker has its own default, see [below](#broker-level-default){.internal-link}):
 
 ```python linenums="1" hl_lines="9"
 from faststream import FastStream, Logger, AckPolicy
@@ -43,10 +50,36 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 | `ACK_FIRST`       | Acknowledge immediately upon receipt, before processing begins.                                                                         | Message is acknowledged early;<br/>may be lost if processing fails.              | Acknowledged despite error;<br/>message not re-delivered. | Kafka commits offset;<br/>NATS, Redis, and RabbitMQ acknowledge immediately. |
 | `ACK`             | Acknowledge only after processing completes, regardless of success.                                                                     | Ack after success.                                          | Ack sent anyway;<br/>message not redelivered.             | Kafka: offset commit; others: explicit ack.                              |
 | `REJECT_ON_ERROR` | Reject message if an unhandled exception occurs, permanently discarding it;<br/>otherwise, ack.                                             | Ack after success. | Message discarded; no retry.                          | RabbitMQ/NATS drops message. Kafka commits offset.                       |
-| `NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis Streams and RabbitMQ redelivers; Kafka commits as fallback.        |
+| `NACK_ON_ERROR`   | Nack on error to allow message redelivery, ack after success otherwise.                                                                 | Ack after success.                                                           | Redeliver; attempt to resend message.                 | Redis Streams and RabbitMQ redeliver; Kafka seeks the partition back to the message offset and reads it again.        |
 | `MANUAL`      | No automatic acknowledgement. User must manually handle the completion via message methods<ul><li> `#!python msg.ack()`</li><li>`#!python msg.nack()`<li>`#!python msg.reject()`</li></ul> | | | |
 
 ---
+
+## Broker-Level Default
+
+By default, `ack_policy` is set per subscriber. If most of your subscribers share the same policy, you can set a broker-level default to avoid repetition:
+
+```python linenums="1" hl_lines="4 8 13"
+from faststream import FastStream, AckPolicy
+from faststream.nats import NatsBroker
+
+broker = NatsBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+app = FastStream(broker)
+
+# Inherits NACK_ON_ERROR from broker
+@broker.subscriber("test")
+async def process_order(msg: str) -> None:
+    ...
+
+# Overrides to MANUAL for this subscriber
+@broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
+async def handle_event(msg: str) -> None:
+    await msg.ack()
+```
+
+The resolution order is: **subscriber-level > broker-level > built-in default**.
+
+If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broker-level value applies. If neither is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `ACK` for MQTT, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis Streams consumer groups; Redis list, channel, and group-less stream subscribers are always `MANUAL`).
 
 ### When to Use
 
@@ -64,7 +97,7 @@ Each `AckPolicy` variant includes behavior examples for both successful processi
 
 ```python linenums="1" hl_lines="7 10"
 from faststream import FastStream, AckPolicy, Logger
-from faststream.rabbitmq import RabbitBroker
+from faststream.rabbit import RabbitBroker
 
 broker = RabbitBroker()
 app = FastStream(broker)
@@ -87,7 +120,7 @@ app = FastStream(broker)
 @broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
 async def handle_event(msg: str) -> None:
     try:
-        # do_smth(msg)
+        do_smth(msg)
     except Exception:
         await msg.nack()  # or msg.reject()
     else:
@@ -103,6 +136,7 @@ However, not all brokers support our semantics. Here is a brief overview of **Fa
 | Broker | `ACK` | `NACK` | `REJECT` |
 | ------ | ----- | ------ | -------- |
 | [RabbitMQ](https://www.rabbitmq.com/docs/confirms#acknowledgement-modes){.external-link target="_blank"} | Protocol ack            | Protocol nack | Protocol reject |
+| [MQTT](../mqtt/ack.md){.internal-link} | PUBACK / PUBREC (QoS 1/2) | Same as protocol ack | Same as protocol ack |
 | [NATS JetStream](https://docs.nats.io/using-nats/developer/develop_jetstream#acknowledging-messages){.external-link target="_blank"} | Protocol ack            | Protocol nak  | Protocol term   |
 | [Redis Streams](https://redis.io/docs/latest/commands/xack/){.external-link target="_blank"} | Xack call               | Do nothing    | Do nothing      |
-| Kafka | Commits offset          | Do nothing    | Do nothing      |
+| Kafka | Commits offset          | Seek offset and read message again    | Commits offset (same as `ACK`)      |

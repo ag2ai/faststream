@@ -1,13 +1,8 @@
-from dataclasses import dataclass
-
 import pytest
 
 from faststream.nats import JStream, NatsRouter
 
-
-@dataclass
-class Settings:
-    url: str = "nats://localhost:4222"
+from .settings import Settings
 
 
 @pytest.fixture(scope="session")

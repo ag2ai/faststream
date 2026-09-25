@@ -18,7 +18,7 @@ from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
-from faststream.confluent.schemas import TopicPartition
+from faststream.confluent.schemas import Topic, TopicPartition
 
 if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
@@ -34,6 +34,15 @@ if TYPE_CHECKING:
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
+
+    __slots__ = (
+        "__connection_data",
+        "_partitions",
+        "_topics",
+        "consumer",
+        "group_id",
+        "polling_interval",
+    )
 
     _outer_config: "KafkaBrokerConfig"
 
@@ -65,8 +74,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         return self._outer_config.client_id
 
     @property
-    def topics(self) -> list[str]:
-        return [f"{self._outer_config.prefix}{t}" for t in self._topics]
+    def topics(self) -> list[Topic]:
+        return [t.add_prefix(self._outer_config.prefix) for t in self._topics]
 
     @property
     def partitions(self) -> list[TopicPartition]:
@@ -76,7 +85,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     async def start(self) -> None:
         """Start the consumer."""
         await super().start()
-
         self.consumer = consumer = self._outer_config.builder(
             *self.topics,
             partitions=self.partitions,
@@ -112,23 +120,28 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         raw_message = await self.consumer.getone(timeout=timeout)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
+
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         return await process_msg(  # type: ignore[return-value]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["KafkaMessage"]:
         assert self.consumer, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
+
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         timeout = 5.0
         while True:
@@ -137,8 +150,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             if raw_message is None:
                 continue
 
-            context = self._outer_config.fd_config.context
-
             yield cast(
                 "KafkaMessage",
                 await process_msg(
@@ -146,8 +157,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                     middlewares=(
                         m(raw_message, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
             )
 
@@ -198,8 +209,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
     @property
     def topic_names(self) -> list[str]:
-        topics = self.topics or (f"{p.topic}-{p.partition}" for p in self.partitions)
-        return [f"{self._outer_config.prefix}{t}" for t in topics]
+        if topics := self.topics:
+            return [t.name for t in topics]
+
+        return [f"{p.topic}-{p.partition}" for p in self.partitions]
 
     @staticmethod
     def build_log_context(
@@ -215,6 +228,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber[Message]):
+    __slots__ = ("parser",)
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
@@ -237,7 +252,7 @@ class DefaultSubscriber(LogicSubscriber[Message]):
         if message is None:
             topic = ",".join(self.topic_names)
         else:
-            topic = message.raw_message.topic() or ",".join(self.topics)
+            topic = message.raw_message.topic() or ",".join(self.topic_names)
 
         return self.build_log_context(
             message=message,
@@ -247,6 +262,8 @@ class DefaultSubscriber(LogicSubscriber[Message]):
 
 
 class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
@@ -256,6 +273,11 @@ class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber)
 
 
 class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
+    __slots__ = (
+        "max_records",
+        "parser",
+    )
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
@@ -264,8 +286,8 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         max_records: int | None,
     ) -> None:
         self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
-        config.decoder = self.parser.decode_message_batch
-        config.parser = self.parser.parse_message_batch
+        config.decoder = self.parser.decode_batch
+        config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
 
         self.max_records = max_records

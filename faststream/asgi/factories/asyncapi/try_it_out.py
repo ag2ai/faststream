@@ -1,0 +1,192 @@
+from collections.abc import Callable, Iterable, Sequence
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, TypedDict, Union, cast
+
+from faststream.asgi.annotations import Request
+from faststream.asgi.handlers import PostHandler, post
+from faststream.asgi.response import AsgiResponse, JSONResponse
+from faststream.exceptions import SubscriberNotFound
+
+if TYPE_CHECKING:
+    from faststream._internal.broker import BrokerUsecase
+    from faststream._internal.testing.broker import TestBroker
+    from faststream.specification.schema import Tag, TagDict
+
+
+class TryItOutOptions(TypedDict, total=False):
+    sendToRealBroker: bool
+    timestamp: str
+
+
+class TryItOutMessage(TypedDict, total=False):
+    """Wrapper sent by asyncapi-try-it-plugin.
+
+    The plugin always wraps the user's payload inside a nested ``message``
+    field together with operation metadata::
+
+        {
+            "operation_id": "...",
+            "operation_type": "...",
+            "message": <actual_user_payload>
+        }
+    """
+
+    operation_id: str
+    operation_type: str
+    message: Any
+
+
+class TryItOutForm(TypedDict):
+    channelName: str
+    message: TryItOutMessage
+    options: TryItOutOptions
+
+
+class TryItOutProcessor:
+    """Dispatch try-it-out requests by the exact AsyncAPI channel when possible."""
+
+    def __init__(self, *brokers: "BrokerUsecase[Any, Any, Any]") -> None:
+        self._entries: list[
+            tuple[BrokerUsecase[Any, Any, Any], type[TestBroker[Any, Any]]]
+        ] = []
+        # `unittest.mock` comes with the test brokers: keep it out of `import faststream`
+        from faststream._internal.testing.broker import find_test_broker  # noqa: PLC0415
+
+        for broker in brokers:
+            test_broker_cls = find_test_broker(broker)
+            if test_broker_cls is None:
+                msg = f"TestBroker not available for {broker}. Please, inspect your dependencies."
+                raise ValueError(msg)
+            self._entries.append((broker, test_broker_cls))
+
+        if not self._entries:
+            msg = "TryItOutProcessor requires at least one broker."
+            raise ValueError(msg)
+
+    async def process(self, body: TryItOutForm) -> AsgiResponse:
+        """Process parsed body: validate, dry-run or publish. Returns response."""
+        channel = body.get("channelName", "")
+        destination, *_ = channel.split(":")
+
+        if not destination:
+            return JSONResponse({"details": "Missing channelName"}, 400)
+
+        if len(self._entries) == 1:
+            broker, test_broker_cls = self._entries[0]
+        else:
+            entry = next(
+                (e for e in self._entries if channel in _iter_broker_channels(e[0])),
+                None,
+            )
+
+            if entry is None:
+                entry = next(
+                    (
+                        e
+                        for e in self._entries
+                        if destination in _iter_broker_destinations(e[0])
+                    ),
+                    None,
+                )
+
+            if entry is None:
+                return JSONResponse(
+                    {"details": f"{destination} destination not found."}, 404
+                )
+
+            broker, test_broker_cls = entry
+        payload: Any = body.get("message", {}).get("message")
+        use_real_broker = body.get("options", {}).get("sendToRealBroker", False)
+
+        try:
+            if use_real_broker:
+                await broker.publish(payload, destination)
+                return JSONResponse("ok", 200)
+
+            same_type_brokers = (
+                broker,
+                *(
+                    b
+                    for b, cls in self._entries
+                    if cls is test_broker_cls and b is not broker
+                ),
+            )
+            # ``test_broker_cls`` is typed as the abstract ``TestBroker`` base, whose
+            # overloaded ``__init__`` would make mypy try to instantiate the abstract
+            # class. At runtime it is always a concrete subclass; the enter result is
+            # unused here, so call it through a plain factory type.
+            test_broker_factory = cast(
+                "Callable[..., TestBroker[Any, Any]]", test_broker_cls
+            )
+            async with test_broker_factory(*same_type_brokers):
+                data = await broker.request(payload, destination, timeout=30)
+                decoded = None
+                with suppress(Exception):
+                    decoded = await data.decode()
+                return JSONResponse(
+                    decoded if decoded is not None and decoded != b"" else "ok", 200
+                )
+
+        except SubscriberNotFound:
+            return JSONResponse({"details": f"{destination} destination not found."}, 404)
+
+        except Exception as e:
+            return JSONResponse({"details": repr(e)}, 500)
+
+
+def make_try_it_out_handler(
+    brokers: Iterable["BrokerUsecase[Any, Any, Any]"],
+    description: str | None = None,
+    tags: Sequence[Union["Tag", "TagDict", dict[str, Any]]] | None = None,
+    unique_id: str | None = None,
+    include_in_schema: bool = False,
+) -> "PostHandler":
+    """POST handler for asyncapi-try-it-plugin (first owner of the channel wins)."""
+    processor = TryItOutProcessor(*brokers)
+
+    @post(
+        description=description,
+        tags=tags,
+        unique_id=unique_id,
+        include_in_schema=include_in_schema,
+    )
+    async def try_it_out(request: Request) -> AsgiResponse:
+        try:
+            body: TryItOutForm = await request.json()
+
+        except Exception as e:
+            return JSONResponse({"details": f"Invalid JSON: {e}"}, 400)
+
+        return await processor.process(body)
+
+    return try_it_out
+
+
+def _iter_broker_destinations(broker: "BrokerUsecase[Any, Any, Any]") -> set[str]:
+    """Destinations declared on the broker (``schema()`` key before ``:``)."""
+    destinations: set[str] = set()
+
+    for sub in broker.subscribers:
+        with suppress(Exception):
+            destinations.update(key.split(":", 1)[0] for key in sub.schema())
+
+    for pub in broker.publishers:
+        with suppress(Exception):
+            destinations.update(key.split(":", 1)[0] for key in pub.schema())
+
+    return destinations
+
+
+def _iter_broker_channels(broker: "BrokerUsecase[Any, Any, Any]") -> set[str]:
+    """Full AsyncAPI channel keys declared on the broker."""
+    channels: set[str] = set()
+
+    for sub in broker.subscribers:
+        with suppress(Exception):
+            channels.update(sub.schema())
+
+    for pub in broker.publishers:
+        with suppress(Exception):
+            channels.update(pub.schema())
+
+    return channels

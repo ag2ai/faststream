@@ -5,9 +5,11 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from fast_depends import Provider, dependency_provider
 from fast_depends.core import CallModel, build_call_model
+from fast_depends.pydantic import PydanticSerializer
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
+from faststream._internal.context.composition import ContextRepoComposition
 from faststream._internal.utils import apply_types, to_async
 
 if TYPE_CHECKING:
@@ -19,14 +21,14 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class BuiltDependant:
     original_call: Callable[..., Any]
     wrapped_call: Callable[..., Any]
     dependent: "CallModel"
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class FastDependsConfig:
     use_fastdepends: bool = True
 
@@ -42,8 +44,6 @@ class FastDependsConfig:
     @property
     def _serializer(self) -> Optional["SerializerProto"]:
         if self.serializer is EMPTY:
-            from fast_depends.pydantic import PydanticSerializer
-
             return PydanticSerializer(use_fastdepends_errors=False)
 
         return self.serializer
@@ -55,7 +55,7 @@ class FastDependsConfig:
             use_fastdepends=use_fd,
             provider=value.provider,
             serializer=self.serializer or value.serializer,
-            context=self.context,
+            context=ContextRepoComposition(value.context, self.context),
             call_decorators=(*value.call_decorators, *self.call_decorators),
             get_dependent=self.get_dependent or value.get_dependent,
         )

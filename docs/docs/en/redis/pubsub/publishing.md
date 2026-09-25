@@ -12,6 +12,9 @@ search:
 
 The **FastStream** `RedisBroker` supports all standard [publishing use cases](../../getting-started/publishing/index.md){.internal-link} similar to the `KafkaBroker`, allowing you to publish messages to Redis channels with ease.
 
+!!! tip "Redis Cluster"
+    With `RedisClusterBroker`, Pub/Sub works via a synchronous `RedisCluster` client. See the [Cluster docs](../cluster.md){.internal-link}.
+
 Below you will find guidance on how to utilize the `RedisBroker` for publishing messages, including creating publisher objects and using decorators for streamlined publishing workflows.
 
 ## Basic Redis Channel Publishing

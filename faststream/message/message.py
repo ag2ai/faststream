@@ -8,6 +8,8 @@ from typing import (
 )
 from uuid import uuid4
 
+from typing_extensions import Self
+
 from .source_type import SourceType
 
 if TYPE_CHECKING:
@@ -15,6 +17,8 @@ if TYPE_CHECKING:
 
 # prevent circular imports
 MsgType = TypeVar("MsgType")
+
+_NOT_CACHED = object()
 
 
 class AckStatus(str, Enum):
@@ -68,6 +72,13 @@ class StreamMessage(Generic[MsgType]):
     def clear_cache(self) -> None:
         self.__decoded_caches.clear()
 
+    def __copy__(self) -> Self:
+        message = self.__class__.__new__(self.__class__)
+        message.__dict__.update(self.__dict__)
+        # A copy answers for its own body, so it must not share the decode cache
+        message.__decoded_caches = {}
+        return message
+
     def __repr__(self) -> str:
         inner = ", ".join(
             filter(
@@ -96,7 +107,9 @@ class StreamMessage(Generic[MsgType]):
         """
         assert self.__decoder, "You should call `set_decoder()` method first."
 
-        if (result := self.__decoded_caches.get(self.__decoder)) is None:
+        if (
+            result := self.__decoded_caches.get(self.__decoder, _NOT_CACHED)
+        ) is _NOT_CACHED:
             result = self.__decoded_caches[self.__decoder] = await self.__decoder(self)
 
         return result

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol
 from faststream._internal._compat import dump_json, json_loads
 from faststream._internal.basic_types import DecodedMessage
 from faststream._internal.constants import EMPTY, ContentTypes
+from faststream._internal.utils.path import match_path
 from faststream.message import decode_message, gen_cor_id
 from faststream.redis.message import (
     RedisBatchListMessage,
@@ -24,6 +25,8 @@ if TYPE_CHECKING:
 
 
 class ParserConfig(Protocol):
+    __slots__ = ()
+
     @property
     def message_format(self) -> type["MessageFormat"]: ...
 
@@ -34,6 +37,11 @@ class SimpleParserConfig:
 
 
 class SimpleParser:
+    __slots__ = (
+        "config",
+        "pattern",
+    )
+
     msg_class: type["StreamMessage[Any]"]
 
     def __init__(
@@ -55,7 +63,11 @@ class SimpleParser:
         return self.msg_class(
             raw_message=message,
             body=data,
-            path=self.get_path(message),
+            # Only pattern-subscribed messages have "pattern" set;
+            # guard here before calling match_path.
+            path=match_path(self.pattern, message["channel"])
+            if message.get("pattern")
+            else {},
             headers=headers,
             batch_headers=batch_headers,
             reply_to=headers.get("reply_to", ""),
@@ -70,17 +82,7 @@ class SimpleParser:
     ) -> tuple[bytes, dict[str, Any], list[dict[str, Any]]]:
         return (*self.config.message_format.parse(message["data"]), [])
 
-    def get_path(self, message: Mapping[str, Any]) -> dict[str, Any]:
-        if (
-            (path_re := self.pattern)
-            and message.get("pattern")
-            and (match := path_re.match(message["channel"]))
-        ):
-            return match.groupdict()
-
-        return {}
-
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: "StreamMessage[Any]",
     ) -> DecodedMessage:
@@ -88,14 +90,20 @@ class SimpleParser:
 
 
 class RedisPubSubParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisChannelMessage
 
 
 class RedisListParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisListMessage
 
 
 class RedisBatchListParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisBatchListMessage
 
     def _parse_data(
@@ -123,6 +131,8 @@ class RedisBatchListParser(SimpleParser):
 
 
 class RedisStreamParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisStreamMessage
 
     def _parse_data(
@@ -137,6 +147,8 @@ class RedisStreamParser(SimpleParser):
 
 
 class RedisBatchStreamParser(SimpleParser):
+    __slots__ = ()
+
     msg_class = RedisBatchStreamMessage
 
     def _parse_data(

@@ -1,5 +1,6 @@
 import ssl
 from copy import deepcopy
+from typing import Any
 
 import pytest
 
@@ -14,7 +15,7 @@ from faststream.security import (
 )
 from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
-basic_schema = {
+basic_schema: dict[str, Any] = {
     "asyncapi": "2.6.0",
     "channels": {
         "test_1:TestTopic": {
@@ -193,7 +194,7 @@ def test_oauthbearer_security_schema() -> None:
         {"oauthbearer": []},
     ]
     sasl_oauthbearer_security_schema["components"]["securitySchemes"] = {
-        "oauthbearer": {"type": "oauth2", "$ref": ""},
+        "oauthbearer": {"type": "oauth2"},
     }
 
     assert schema == sasl_oauthbearer_security_schema

@@ -1,17 +1,30 @@
 import warnings
 from abc import abstractmethod
-from collections.abc import AsyncGenerator, Generator, Iterator
-from contextlib import AbstractContextManager, asynccontextmanager, contextmanager
+from collections.abc import AsyncGenerator, Generator
+from contextlib import (
+    AsyncExitStack,
+    asynccontextmanager,
+    contextmanager,
+)
 from functools import partial
-from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Optional,
+    Protocol,
+    TypeVar,
+    cast,
+)
 from unittest import mock
 from unittest.mock import MagicMock
+
+from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.logger.logger_proxy import RealLoggerObject
 from faststream._internal.testing.app import TestApp
 from faststream._internal.testing.ast import is_contains_context_name
-from faststream._internal.utils.functions import FakeContext
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -19,7 +32,11 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
 
 
-Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any])
+Broker = TypeVar("Broker", bound=BrokerUsecase[Any, Any, Any])
+
+# ``__aenter__`` return type. Each concrete ``TestBroker`` subclass binds it to a
+# single broker or a ``tuple`` of brokers via its overloaded ``__init__``.
+EnterType = TypeVar313("EnterType", default=Any)
 
 
 class _ProducerContains(Protocol):
@@ -36,20 +53,29 @@ def change_producer(
     config.producer = old_producer
 
 
-class TestBroker(Generic[Broker]):
+class TestBroker(Generic[Broker, EnterType]):
     """A class to represent a test broker."""
 
     # This is set so pytest ignores this class
     __test__ = False
 
+    def __init_subclass__(
+        cls,
+        broker: type[BrokerUsecase[Any, Any, Any]] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init_subclass__(**kwargs)
+        if broker is not None:
+            _TEST_BROKERS[broker] = cls
+
     def __init__(
         self,
-        broker: Broker,
+        *brokers: Broker,
         with_real: bool = False,
         connect_only: bool | None = None,
     ) -> None:
         self.with_real = with_real
-        self.broker = broker
+        self.brokers = brokers
 
         if connect_only is None:
             try:
@@ -72,9 +98,12 @@ class TestBroker(Generic[Broker]):
         self.connect_only = connect_only
         self._fake_subscribers: list[SubscriberUsecase[Any]] = []
 
-    async def __aenter__(self) -> Broker:
+    async def __aenter__(self) -> EnterType:
         self._ctx = self._create_ctx()
-        return await self._ctx.__aenter__()
+        brokers = await self._ctx.__aenter__()
+        if len(brokers) == 1:
+            return cast("EnterType", brokers[0])
+        return cast("EnterType", brokers)
 
     async def __aexit__(
         self,
@@ -85,42 +114,51 @@ class TestBroker(Generic[Broker]):
         await self._ctx.__aexit__(exc_type, exc_val, exc_tb)
 
     @asynccontextmanager
-    async def _create_ctx(self) -> AsyncGenerator[Broker, None]:
-        if self.with_real:
-            self._fake_start(self.broker)
-            context: AbstractContextManager[Any, Any] = FakeContext()
-        else:
-            context = self._patch_broker(self.broker)
+    async def _create_ctx(self) -> AsyncGenerator[list[Broker], None]:
+        async with AsyncExitStack() as stack:
+            saved_running = {}
+            started_brokers = []
 
-        with context:
-            async with self.broker:
-                try:
-                    if not self.connect_only:
-                        await self.broker.start()
-                    yield self.broker
-                finally:
-                    self._fake_close(self.broker)
+            for broker in self.brokers:
+                if self.with_real:
+                    self._fake_start(broker)
+                else:
+                    stack.enter_context(self._patch_broker(broker))
 
-    @contextmanager
-    def _patch_producer(self, broker: Broker) -> Iterator[None]:
-        raise NotImplementedError
+                await stack.enter_async_context(broker)
 
-    @contextmanager
-    def _patch_logger(self, broker: Broker) -> Iterator[None]:
-        broker._setup_logger()
+                for sub in broker.subscribers:
+                    saved_running[sub] = sub.running
 
-        logger_state = broker.config.logger
+                started_brokers.append(
+                    await stack.enter_async_context(self._do_start(broker))
+                )
 
-        old_log_object, logger_state.logger = (
-            logger_state.logger,
-            RealLoggerObject(MagicMock()),
-        )
+            yield started_brokers
 
+            for sub, was_running in saved_running.items():
+                sub.running = was_running
+
+    @asynccontextmanager
+    async def _do_start(self, broker: Broker) -> AsyncGenerator[Broker, None]:
         try:
-            yield
+            if not self.connect_only:
+                await broker.start()
+
+            yield broker
 
         finally:
-            logger_state.logger = old_log_object
+            if self.with_real:
+                # The real `broker.start()` started the fakes, and `_fake_close` hides
+                # them from `broker.stop()` (see #3046): stop them here or they leak.
+                for sub in self._fake_subscribers:
+                    await sub.stop()
+
+            self._fake_close(broker)
+
+    @contextmanager
+    def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
+        raise NotImplementedError
 
     @contextmanager
     def _patch_broker(self, broker: Broker) -> Generator[None, None, None]:
@@ -139,17 +177,13 @@ class TestBroker(Generic[Broker]):
                 broker,
                 "stop",
             ),
-            mock.patch.object(  # TODO: remove it in 0.7
-                broker,
-                "close",
-            ),
             mock.patch.object(
                 broker,
                 "_connection",
                 new=None,
             ),
             self._patch_producer(broker),
-            self._patch_logger(broker),
+            _patch_logger(broker),
             mock.patch.object(
                 broker,
                 "ping",
@@ -175,18 +209,16 @@ class TestBroker(Generic[Broker]):
                     pass
 
             if is_real:
-                mock = MagicMock()
-                publisher.set_test(mock=mock, with_fake=False)
+                # A real subscriber keeps its own record; the publisher gets a copy
+                publisher.set_test(with_fake=False)
                 for h in sub.calls:
                     h.handler.set_test()
-                    assert h.handler.mock
-                    h.handler.mock.side_effect = mock
+                    h.handler._recorder.mirror_to(publisher._recorder)
 
             else:
                 handler = sub.calls[0].handler
                 handler.set_test()
-                assert handler.mock
-                publisher.set_test(mock=handler.mock, with_fake=True)
+                publisher.set_test(recorder=handler._recorder, with_fake=True)
 
         patch_broker_calls(broker)
 
@@ -201,8 +233,12 @@ class TestBroker(Generic[Broker]):
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         for p in broker.publishers:
-            if getattr(p, "_fake_handler", None):
-                p.reset_test()
+            p.reset_test()
+
+        # Fakes are registered with `persistent=False`, so the broker holds them weakly
+        # and they outlive us until the next collection (see issue #2990).
+        for sub in self._fake_subscribers:
+            broker._subscribers.discard(sub)
 
         self._fake_subscribers.clear()
 
@@ -211,9 +247,9 @@ class TestBroker(Generic[Broker]):
             for call in sub.calls:
                 call.handler.reset_test()
 
-    @staticmethod
     @abstractmethod
     def create_publisher_fake_subscriber(
+        self,
         broker: Broker,
         publisher: Any,
     ) -> tuple["SubscriberUsecase[Any]", bool]:
@@ -224,10 +260,44 @@ class TestBroker(Generic[Broker]):
         raise NotImplementedError
 
 
-def patch_broker_calls(broker: "BrokerUsecase[Any, Any]") -> None:
+def find_test_broker(
+    broker: BrokerUsecase[Any, Any, Any],
+) -> type[TestBroker[Any, Any]] | None:
+    """Return the TestBroker registered for the broker's class, if any."""
+    # the closest class wins: a broker subclass may register a TestBroker of its own
+    for broker_cls in type(broker).__mro__:
+        if test_broker_cls := _TEST_BROKERS.get(broker_cls):
+            return test_broker_cls
+    return None
+
+
+def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
     """Patch broker calls."""
     for sub in broker.subscribers:
         sub._build_fastdepends_model()
 
         for h in sub.calls:
             h.handler.set_test()
+
+
+@contextmanager
+def _patch_logger(
+    broker: "BrokerUsecase[Any, Any, Any]",
+) -> Generator[None, None, None]:
+    broker._setup_logger()
+
+    logger_state = broker.config.logger
+
+    old_log_object, logger_state.logger = (
+        logger_state.logger,
+        RealLoggerObject(MagicMock()),
+    )
+
+    try:
+        yield
+
+    finally:
+        logger_state.logger = old_log_object
+
+
+_TEST_BROKERS: dict[type[BrokerUsecase[Any, Any, Any]], type[TestBroker[Any, Any]]] = {}

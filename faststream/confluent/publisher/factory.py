@@ -1,15 +1,15 @@
-from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
-from faststream.exceptions import SetupError
+from faststream.confluent.schemas import Topic
 
 from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
 from .specification import KafkaPublisherSpecification
 from .usecase import BatchPublisher, DefaultPublisher
 
 if TYPE_CHECKING:
-    from faststream._internal.types import PublisherMiddleware
+    from collections.abc import Awaitable, Callable
+
     from faststream.confluent.configs import KafkaBrokerConfig
 
 
@@ -18,33 +18,34 @@ def create_publisher(
     autoflush: bool,
     batch: bool,
     key: bytes | str | None,
-    topic: str,
+    topic: Union[str, "Topic"],
     partition: int | None,
     headers: dict[str, str] | None,
     reply_to: str,
     # Publisher args
     config: "KafkaBrokerConfig",
-    middlewares: Sequence["PublisherMiddleware"],
     # Specification args
     schema_: Any | None,
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
 ) -> BatchPublisher | DefaultPublisher:
+    # Publishers never declare topics, so only the name is meaningful here.
+    topic_name = Topic.validate(topic).name
+
     publisher_config = KafkaPublisherConfig(
         key=key,
-        topic=topic,
+        topic=topic_name,
         partition=partition,
         headers=headers,
         reply_to=reply_to,
         _outer_config=config,
-        middlewares=middlewares,
     )
 
     specification = KafkaPublisherSpecification(
         _outer_config=config,
         specification_config=KafkaPublisherSpecificationConfig(
-            topic=topic,
+            topic=topic_name,
             schema_=schema_,
             title_=title_,
             description_=description_,
@@ -54,10 +55,6 @@ def create_publisher(
 
     publisher: BatchPublisher | DefaultPublisher
     if batch:
-        if key:
-            msg = "You can't setup `key` with batch publisher"
-            raise SetupError(msg)
-
         publisher = BatchPublisher(publisher_config, specification)
         publish_method = "_basic_publish_batch"
 

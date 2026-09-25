@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Consume events with the broker-agnostic subscriber decorator — the same Python syntax for
+  Kafka topics, RabbitMQ queues, NATS subjects and Redis channels.
 search:
   boost: 10
 ---
@@ -70,6 +73,17 @@ The basic syntax is the same for all brokers:
         ...
     ```
 
+=== "MQTT"
+    ```python
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883)
+
+    @broker.subscriber("test")  # topic name
+    async def handle_msg(msg_body):
+        ...
+    ```
+
 !!! tip
     If you want to use Message Broker specific features, please visit the corresponding broker documentation section.
     In the **Tutorial** section, the general features are described.
@@ -131,13 +145,24 @@ Also, synchronous functions are supported as well:
         ...
     ```
 
+=== "MQTT"
+    ```python
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883)
+
+    @broker.subscriber("test")  # topic name
+    def handle_msg(msg_body):
+        ...
+    ```
+
 !!! note "Technical details"
 
     Such functions run in a ThreadPool using `#!python anyio.to_thread.run_sync()`, so they don't block the event loop.
 
 ## Message Body Serialization
 
-Generally, **FastStream** uses your function type annotation to serialize incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).
+Generally, **FastStream** uses your function type annotation to serialize the incoming message body with [**Pydantic**](https://docs.pydantic.dev){.external-link target="_blank"}. This is similar to how [**FastAPI**](https://fastapi.tiangolo.com){.external-link target="_blank"} works (if you are familiar with it).
 
 ```python hl_lines="3"
 @broker.subscriber("test")
@@ -147,11 +172,11 @@ async def handle_str(
     ...
 ```
 
-You can also access some extra features through the function arguments, such as [Depends](../dependencies/index.md){.internal-link} and [Context](../context/existed.md){.internal-link} if required.
+You can also access some extra features through the function arguments, such as [Depends](../dependencies/index.md){.internal-link} and [Context](../context.md#existing-fields){.internal-link} if required.
 
-However, you can easily disable **Pydantic** validation by creating a broker with the following option `#!python Broker(apply_types=False)`
+However, you can easily disable **Pydantic** validation by creating a broker with the following option: `#!python Broker(apply_types=False)`.
 
-This way **FastStream** still consumes `#!python json.loads` result, but without pydantic validation and casting.
+This way **FastStream** still consumes the `#!python json.loads` result, but without pydantic validation and casting.
 
 === "AIOKafka"
     ```python hl_lines="3"
@@ -202,6 +227,17 @@ This way **FastStream** still consumes `#!python json.loads` result, but without
     from faststream.redis import RedisBroker
 
     broker = RedisBroker(apply_types=False)
+
+    @broker.subscriber("test")
+    async def handle_msg(msg_body: str):  # just an annotation, has no real effect
+        ...
+    ```
+
+=== "MQTT"
+    ```python hl_lines="3"
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker("localhost", port=1883, apply_types=False)
 
     @broker.subscriber("test")
     async def handle_msg(msg_body: str):  # just an annotation, has no real effect

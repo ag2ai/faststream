@@ -2,7 +2,6 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.kafka.fastapi import KafkaRouter
 from faststream.kafka.testing import TestKafkaBroker
 from faststream.security import SASLPlaintext
@@ -19,16 +18,16 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
     router_class = KafkaRouter
     broker_wrapper = staticmethod(TestKafkaBroker)
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))
 
 
 @pytest.mark.kafka()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))
 
 
 @pytest.mark.kafka()
@@ -42,7 +41,7 @@ def test_fastapi_security_schema() -> None:
     assert schema["servers"]["development"] == {
         "protocol": "kafka",
         "protocolVersion": "auto",
-        "security": [{"user-password": []}],
+        "security": [{"$ref": "#/components/securitySchemes/user-password"}],
         "host": "localhost:9092",
         "pathname": "",
     }

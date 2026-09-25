@@ -12,6 +12,11 @@ if TYPE_CHECKING:
 class RedisFakePublisher(FakePublisher):
     """Publisher Interface implementation to use as RPC or REPLY TO answer publisher."""
 
+    __slots__ = (
+        "channel",
+        "message_format",
+    )
+
     def __init__(
         self,
         producer: "ProducerProto[RedisPublishCommand]",
@@ -28,5 +33,5 @@ class RedisFakePublisher(FakePublisher):
     ) -> "RedisPublishCommand":
         cmd = super().patch_command(cmd)
         real_cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.message_format)
-        real_cmd.destination = self.channel
+        real_cmd.set_destination(channel=self.channel)
         return real_cmd

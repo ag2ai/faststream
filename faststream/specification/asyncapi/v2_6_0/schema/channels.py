@@ -41,20 +41,22 @@ class Channel(BaseModel):
             extra = "allow"
 
     @classmethod
-    def from_sub(cls, subscriber: SubscriberSpec) -> Self:
+    def from_sub(
+        cls, subscriber: SubscriberSpec, servers: list[str] | None = None
+    ) -> Self:
         return cls(
             description=subscriber.description,
-            servers=None,
+            servers=servers,
             bindings=ChannelBinding.from_sub(subscriber.bindings),
             subscribe=None,
             publish=Operation.from_sub(subscriber.operation),
         )
 
     @classmethod
-    def from_pub(cls, publisher: PublisherSpec) -> Self:
+    def from_pub(cls, publisher: PublisherSpec, servers: list[str] | None = None) -> Self:
         return cls(
             description=publisher.description,
-            servers=None,
+            servers=servers,
             bindings=ChannelBinding.from_pub(publisher.bindings),
             subscribe=Operation.from_pub(publisher.operation),
             publish=None,

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional
 from nats.js.api import DiscardPolicy, StreamConfig
 
 from faststream._internal.proto import NameRequired
-from faststream._internal.utils.path import compile_path
+from faststream._internal.utils.path import Address, AddressSyntax
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -25,7 +25,7 @@ class JStream(NameRequired):
     __slots__ = (
         "config",
         "declare",
-        "name",
+        "subjects",
     )
 
     def __init__(
@@ -56,6 +56,7 @@ class JStream(NameRequired):
         republish: Optional["RePublish"] = None,
         allow_direct: bool | None = None,
         mirror_direct: bool | None = None,
+        allow_msg_schedules: bool | None = None,
         declare: bool = True,
     ) -> None:
         """Initialized JSrream.
@@ -128,6 +129,8 @@ class JStream(NameRequired):
                 Should direct requests be allowed. Note: you can get stale data.
             mirror_direct:
                 Should direct mirror requests be allowed
+            allow_msg_schedules:
+                Should allow message schedules.
             declare:
                 Whether to create stream automatically or just connect to it.
         """
@@ -162,6 +165,7 @@ class JStream(NameRequired):
             republish=republish,
             allow_direct=allow_direct,
             mirror_direct=mirror_direct,
+            allow_msg_schedules=allow_msg_schedules,
             subjects=[],  # use subjects from builder in declaration
         )
 
@@ -190,6 +194,12 @@ class SubjectsCollection(UserList[str]):
         self.data = new_subjects
 
 
+NATS_ADDRESS_SYNTAX = AddressSyntax(
+    replace_symbol="*",
+    patch_regex=lambda x: x.replace(".>", "..+"),
+)
+
+
 def is_subject_match_wildcard(subject: str, pattern: str) -> bool:
     subject_parts = subject.split(".")
     pattern_parts = pattern.split(".")
@@ -214,8 +224,5 @@ def is_subject_match_wildcard(subject: str, pattern: str) -> bool:
 
 def compile_nats_wildcard(pattern: str) -> tuple[Optional["Pattern[str]"], str]:
     """Compile `logs.{user}.>` to regex and `logs.*.>` subject."""
-    return compile_path(
-        pattern,
-        replace_symbol="*",
-        patch_regex=lambda x: x.replace(".>", "..+"),
-    )
+    address = Address(pattern, NATS_ADDRESS_SYNTAX)
+    return address.regex, address.broker_address

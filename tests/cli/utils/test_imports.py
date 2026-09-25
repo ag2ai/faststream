@@ -51,6 +51,23 @@ def test_import_from_string_import_wrong() -> None:
         import_from_string("tests:test_object")
 
 
+def test_import_from_string_reraises_nested_module_not_found(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module_name = "nested_import_error_app"
+    (tmp_path / f"{module_name}.py").write_text(
+        "import missing_module\napp = object()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    with pytest.raises(ModuleNotFoundError, match="missing_module") as exc_info:
+        import_from_string(f"{module_name}:app")
+
+    assert exc_info.value.name == "missing_module"
+
+
 @pytest.mark.parametrize(
     ("test_input", "exp_module"),
     (

@@ -43,7 +43,7 @@ async def third_handler(msg: str):
 
 **OpenTelemetry** tracing support in **FastStream** adheres to the [semantic conventions for messaging systems](https://opentelemetry.io/docs/specs/semconv/messaging/){.external-link target="_blank"}.
 
-To enable tracing your broker:
+To enable tracing for your broker:
 
 1. Install `FastStream` with the `opentelemetry-sdk`:
 
@@ -88,6 +88,14 @@ To enable tracing your broker:
 === "Redis"
     ```python linenums="1" hl_lines="3 7"
     {!> docs_src/getting_started/opentelemetry/redis_telemetry.py!}
+    ```
+
+=== "MQTT"
+    !!! warning
+        OpenTelemetry middleware is supported only for **MQTT 5**. It is not compatible with MQTT 3.1.1, as that protocol version does not support user properties required for trace context propagation.
+
+    ```python linenums="1" hl_lines="3 7"
+    {!> docs_src/getting_started/opentelemetry/mqtt_telemetry.py!}
     ```
 
 ## Exporting

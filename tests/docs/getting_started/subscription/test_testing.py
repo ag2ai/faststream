@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -127,3 +128,27 @@ async def test_validate_redis() -> None:
     )
 
     await test_validation_error_red()
+
+
+@pytest.mark.connected()
+@pytest.mark.asyncio()
+@pytest.mark.mqtt()
+@require_mqtt
+async def test_handle_mqtt() -> None:
+    from docs.docs_src.getting_started.subscription.mqtt.testing import (
+        test_handle as test_handle_m,
+    )
+
+    await test_handle_m()
+
+
+@pytest.mark.connected()
+@pytest.mark.asyncio()
+@pytest.mark.mqtt()
+@require_mqtt
+async def test_validate_mqtt() -> None:
+    from docs.docs_src.getting_started.subscription.mqtt.testing import (
+        test_validation_error as test_validation_error_m,
+    )
+
+    await test_validation_error_m()

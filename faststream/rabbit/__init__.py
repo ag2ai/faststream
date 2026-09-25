@@ -1,4 +1,13 @@
+from importlib.util import find_spec
+from typing import TYPE_CHECKING, TypeAlias
+
+from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
+
+if TYPE_CHECKING:
+    from aio_pika import IncomingMessage
+
+RabbitParserType: TypeAlias = ParserProto["IncomingMessage"]
 
 try:
     from .annotations import RabbitMessage
@@ -11,10 +20,12 @@ try:
         RabbitExchange,
         RabbitQueue,
     )
+    from .security import RabbitExternalAuth
     from .testing import TestRabbitBroker
 
 except ImportError as e:
-    if "'aio_pika'" not in e.msg:
+    # the package is installed: the failure is its own, not a missing extra
+    if find_spec("aio_pika") is not None:
         raise
 
     from faststream.exceptions import INSTALL_FASTSTREAM_RABBIT
@@ -27,7 +38,9 @@ __all__ = (
     "QueueType",
     "RabbitBroker",
     "RabbitExchange",
+    "RabbitExternalAuth",
     "RabbitMessage",
+    "RabbitParserType",
     "RabbitPublishCommand",
     "RabbitPublisher",
     "RabbitQueue",

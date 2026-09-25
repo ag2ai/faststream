@@ -2,12 +2,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from faststream.message import encode_message
+from faststream._internal.parser import DefaultCodec
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
 
 
 class MessageFormat(ABC):
@@ -27,7 +28,7 @@ class MessageFormat(ABC):
         self.headers = headers or {}
 
     @classmethod
-    def build(
+    async def build(
         cls,
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
@@ -35,8 +36,10 @@ class MessageFormat(ABC):
         headers: dict[str, Any] | None,
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
     ) -> "MessageFormat":
-        payload, content_type = encode_message(message, serializer=serializer)
+        codec_instance = codec or DefaultCodec()
+        payload, content_type = await codec_instance.encode(message, serializer)  # type: ignore[arg-type]
 
         headers_to_send = {
             "correlation_id": correlation_id,
@@ -58,7 +61,7 @@ class MessageFormat(ABC):
 
     @classmethod
     @abstractmethod
-    def encode(
+    async def encode(
         cls,
         *,
         message: Union[Sequence["SendableMessage"], "SendableMessage"],
@@ -66,6 +69,7 @@ class MessageFormat(ABC):
         headers: dict[str, Any] | None,
         correlation_id: str,
         serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
     ) -> bytes:
         raise NotImplementedError
 

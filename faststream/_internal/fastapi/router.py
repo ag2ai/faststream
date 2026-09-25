@@ -2,7 +2,7 @@ import json
 import warnings
 from abc import abstractmethod
 from collections.abc import (
-    AsyncIterator,
+    AsyncGenerator,
     Awaitable,
     Callable,
     Iterable,
@@ -25,8 +25,10 @@ from fastapi.datastructures import Default
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, APIRouter
 from fastapi.utils import generate_unique_id
+from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from starlette.routing import BaseRoute, _DefaultLifespan
+from starlette.routing import BaseRoute, _DefaultLifespan  # noqa: PLC2701
+from typing_extensions import override
 
 from faststream._internal.application import StartAbleApplication
 from faststream._internal.broker import BrokerRouter
@@ -37,7 +39,8 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream._internal.utils.functions import fake_context, to_async
+from faststream._internal.utils.functions import to_async
+from faststream.asgi.factories.asyncapi.try_it_out import TryItOutProcessor
 from faststream.middlewares import BaseMiddleware
 from faststream.specification.asyncapi.site import get_asyncapi_html
 
@@ -65,6 +68,8 @@ if TYPE_CHECKING:
 
 
 class _BackgroundMiddleware(BaseMiddleware):
+    __slots__ = ()
+
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None = None,
@@ -85,8 +90,8 @@ class _BackgroundMiddleware(BaseMiddleware):
 class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
     """A class to route streams."""
 
-    broker_class: type["BrokerUsecase[MsgType, Any]"]
-    broker: "BrokerUsecase[MsgType, Any]"
+    broker_class: type["BrokerUsecase[MsgType, Any, Any]"]
+    broker: "BrokerUsecase[MsgType, Any, Any]"
     docs_router: APIRouter | None
     _after_startup_hooks: list[Callable[[Any], Awaitable[Mapping[str, Any] | None]]]
     _on_shutdown_hooks: list[Callable[[Any], Awaitable[None]]]
@@ -185,6 +190,11 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
         self._lifespan_started = False
 
+    @property
+    @override
+    def context(self) -> ContextRepo:
+        return self.broker.context
+
     def _subscriber_compatibility_wrapper(
         self,
         dependencies: Iterable["params.Depends"] = (),
@@ -271,7 +281,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         @asynccontextmanager
         async def start_broker_lifespan(
             app: "FastAPI",
-        ) -> AsyncIterator[Mapping[str, Any] | None]:
+        ) -> AsyncGenerator[Mapping[str, Any] | None, None]:
             """Starts the lifespan of a broker."""
             self.fastapi_config.set_application(app)
 
@@ -386,11 +396,13 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
 
         def download_app_json_schema() -> Response:
             return Response(
-                content=json.dumps(
+                # `json_dumps` may be orjson, which takes no `indent`:
+                # the downloaded schema stays readable
+                content=json.dumps(  # noqa: TID251
                     self.schema.to_specification().to_jsonable(),
                     indent=2,
                 ),
-                headers={"Content-Type": "application/octet-stream"},
+                headers={"Content-Type": "application/json"},
             )
 
         def download_app_yaml_schema() -> Response:
@@ -423,6 +435,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
                     schemas=schemas,
                     errors=errors,
                     expand_message_examples=expandMessageExamples,
+                    try_it_out_path=f"{schema_url}/try",
                 ),
             )
 
@@ -436,11 +449,43 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
         docs_router.get(schema_url)(serve_asyncapi_schema)
         docs_router.get(f"{schema_url}.json")(download_app_json_schema)
         docs_router.get(f"{schema_url}.yaml")(download_app_yaml_schema)
+
+        # The AsyncAPI docs page renders an interactive "try it out" plugin
+        # that POSTs to ``{schema_url}/try``. Register that endpoint so the
+        # FastAPI plugin can publish messages to the broker, mirroring the
+        # standalone AsgiFastStream behaviour (see issue #2869).
+        try:
+            try_processor = TryItOutProcessor(self.broker)
+        except ValueError:
+            # Broker has no associated TestBroker (e.g. a custom broker):
+            # serve the docs without the interactive "try it out" endpoint.
+            try_processor = None
+
+        if try_processor is not None:
+
+            async def try_asyncapi_schema(request: Request) -> Response:
+                """Publish a message coming from the AsyncAPI try-it-out plugin."""
+                try:
+                    body = await request.json()
+                except Exception as e:
+                    return JSONResponse({"details": f"Invalid JSON: {e}"}, 400)
+
+                result = await try_processor.process(body)
+                return Response(
+                    content=result.body,
+                    status_code=result.status_code,
+                    media_type="application/json",
+                )
+
+            docs_router.post(f"{schema_url}/try", include_in_schema=False)(
+                try_asyncapi_schema,
+            )
+
         return docs_router
 
     def include_router(  # type: ignore[override]
         self,
-        router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType]"],
+        router: Union["StreamRouter[MsgType]", "BrokerRouter[MsgType, Any]"],
         *,
         prefix: str = "",
         tags: list[str | Enum] | None = None,
@@ -465,20 +510,12 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
             self.broker.include_router(router)
             return
 
-        if isinstance(router, StreamRouter):  # pragma: no branch
-            router.lifespan_context = fake_context
-            self.broker.include_router(router.broker)
-            router.fastapi_config = self.fastapi_config
-
-        super().include_router(
-            router=router,
-            prefix=prefix,
-            tags=tags,
-            dependencies=dependencies,
-            default_response_class=default_response_class,
-            responses=responses,
-            callbacks=callbacks,
-            deprecated=deprecated,
-            include_in_schema=include_in_schema,
-            generate_unique_id_function=generate_unique_id_function,
+        msg = (
+            "Including a StreamRouter into another StreamRouter is not supported "
+            "and may cause subtle context issues (e.g. message dependencies "
+            "returning EmptyPlaceholder). "
+            "Use a regular broker router (e.g. KafkaRouter, RabbitRouter, etc.) "
+            "for grouping subscribers and include that into the StreamRouter instead. "
+            "See: https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/#multiple-routers"
         )
+        raise TypeError(msg)

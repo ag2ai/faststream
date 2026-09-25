@@ -43,6 +43,8 @@ SendableTable: TypeAlias = dict[str, "BaseSendableMessage"]
 class StandardDataclass(Protocol):
     """Protocol to check type is dataclass."""
 
+    __slots__ = ()
+
     __dataclass_fields__: ClassVar[dict[str, Any]]
 
 
@@ -71,11 +73,11 @@ except ImportError:
     HAS_MSGSPEC = False
 
 if HAS_PYDANTIC and HAS_MSGSPEC:
-    SendableMessage: TypeAlias = Struct | BaseModel | BaseSendableMessage
+    SendableMessage: TypeAlias = Struct | BaseModel | BaseSendableMessage  # type: ignore[possibly-undefined]
 elif HAS_PYDANTIC:
-    SendableMessage: TypeAlias = BaseModel | BaseSendableMessage  # type: ignore[no-redef,misc]
+    SendableMessage: TypeAlias = BaseModel | BaseSendableMessage  # type: ignore[no-redef,misc,possibly-undefined]
 elif HAS_MSGSPEC:
-    SendableMessage: TypeAlias = Struct | BaseSendableMessage  # type: ignore[no-redef,misc]
+    SendableMessage: TypeAlias = Struct | BaseSendableMessage  # type: ignore[no-redef,misc,possibly-undefined]
 else:
     SendableMessage: TypeAlias = BaseSendableMessage  # type: ignore[no-redef,misc]
 
@@ -87,6 +89,8 @@ Lifespan: TypeAlias = Callable[..., AbstractAsyncContextManager[None]]
 
 
 class LoggerProto(Protocol):
+    __slots__ = ()
+
     def log(
         self,
         level: int,

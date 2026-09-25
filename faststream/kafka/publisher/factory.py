@@ -1,18 +1,16 @@
-from collections.abc import Awaitable, Callable, Sequence
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
 )
 
-from faststream.exceptions import SetupError
-
 from .config import KafkaPublisherConfig, KafkaPublisherSpecificationConfig
 from .specification import KafkaPublisherSpecification
 from .usecase import BatchPublisher, DefaultPublisher
 
 if TYPE_CHECKING:
-    from faststream._internal.types import PublisherMiddleware
+    from collections.abc import Awaitable, Callable
+
     from faststream.kafka.configs import KafkaBrokerConfig
 
 
@@ -27,7 +25,6 @@ def create_publisher(
     reply_to: str,
     # Publisher args
     config: "KafkaBrokerConfig",
-    middlewares: Sequence["PublisherMiddleware"],
     # Specification args
     schema_: Any | None,
     title_: str | None,
@@ -40,7 +37,6 @@ def create_publisher(
         partition=partition,
         headers=headers,
         reply_to=reply_to,
-        middlewares=middlewares,
         _outer_config=config,
     )
 
@@ -56,10 +52,6 @@ def create_publisher(
     )
 
     if batch:
-        if key:
-            msg = "You can't setup `key` with batch publisher"
-            raise SetupError(msg)
-
         publisher: BatchPublisher | DefaultPublisher = BatchPublisher(
             publisher_config,
             specification,

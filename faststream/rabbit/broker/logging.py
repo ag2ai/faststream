@@ -10,6 +10,11 @@ if TYPE_CHECKING:
 
 
 class RabbitParamsStorage(DefaultLoggerStorage):
+    __slots__ = (
+        "_max_exchange_len",
+        "_max_queue_len",
+    )
+
     def __init__(self) -> None:
         super().__init__()
 

@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from concurrent.futures import Executor
 from contextlib import asynccontextmanager
 from functools import partial, wraps
@@ -64,11 +64,13 @@ def to_async(
 
 
 @asynccontextmanager
-async def fake_context(*args: Any, **kwargs: Any) -> AsyncIterator[None]:
+async def fake_context(*args: Any, **kwargs: Any) -> AsyncGenerator[None, None]:
     yield None
 
 
 class FakeContext:
+    __slots__ = ()
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 

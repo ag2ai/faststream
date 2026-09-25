@@ -33,6 +33,16 @@ def event() -> asyncio.Event:
     return asyncio.Event()
 
 
+@pytest.fixture()
+def event2() -> asyncio.Event:
+    return asyncio.Event()
+
+
+@pytest.fixture()
+def event3() -> asyncio.Event:
+    return asyncio.Event()
+
+
 @pytest.fixture(scope="session")
 def runner() -> CliRunner:
     return CliRunner()
@@ -40,6 +50,14 @@ def runner() -> CliRunner:
 
 @pytest.fixture()
 def mock() -> Generator[MagicMock, Any, None]:
+    """Should be generator to share mock between tests."""
+    m = MagicMock()
+    yield m
+    m.reset_mock()
+
+
+@pytest.fixture()
+def mock2() -> Generator[MagicMock, Any, None]:
     """Should be generator to share mock between tests."""
     m = MagicMock()
     yield m
@@ -69,11 +87,6 @@ def kafka_basic_project() -> str:
     return "docs.docs_src.kafka.basic.basic:app"
 
 
-@pytest.fixture()
-def kafka_ascynapi_project() -> str:
-    return "docs.docs_src.kafka.basic.basic:asyncapi"
-
-
 @pytest.fixture(autouse=True)
-def disable_supervisor(monkeypatch):
+def disable_supervisor(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FASTSTREAM_SUPERVISOR_DISABLED", "1")

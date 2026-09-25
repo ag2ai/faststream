@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -62,3 +63,14 @@ async def test_handle_redis() -> None:
     )
 
     await test_handle_rd()
+
+
+@pytest.mark.asyncio()
+@pytest.mark.mqtt()
+@require_mqtt
+async def test_handle_mqtt() -> None:
+    from docs.docs_src.getting_started.subscription.mqtt.full_testing import (
+        test_handle as test_handle_m,
+    )
+
+    await test_handle_m()

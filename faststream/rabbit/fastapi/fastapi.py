@@ -2,7 +2,6 @@ import logging
 from collections.abc import Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Optional,
     Union,
@@ -15,12 +14,14 @@ from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
-from typing_extensions import deprecated, override
+from typing_extensions import override
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.fastapi.router import StreamRouter
+from faststream._internal.types import IdGenerator
+from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.rabbit.broker.broker import RabbitBroker as RB
 from faststream.rabbit.schemas import RabbitExchange, RabbitQueue
@@ -40,8 +41,6 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.rabbit.publisher import RabbitPublisher
     from faststream.rabbit.schemas import Channel
@@ -72,6 +71,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
         default_channel: Optional["Channel"] = None,
         app_id: str | None = SERVICE_NAME,
         graceful_timeout: float | None = 15.0,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
@@ -93,18 +93,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
         default_response_class: type["Response"] = Default(JSONResponse),
         responses: dict[int | str, dict[str, Any]] | None = None,
         callbacks: list[BaseRoute] | None = None,
-        routes: Annotated[
-            list[BaseRoute] | None,
-            deprecated(
-                """
-                You normally wouldn't use this parameter with FastAPI, it is inherited
-                from Starlette and supported for compatibility.
-
-                In FastAPI, you normally would use the *path operation methods*,
-                like `router.get()`, `router.post()`, etc.
-                """,
-            ),
-        ] = None,
+        routes: list[BaseRoute] | None = None,
         redirect_slashes: bool = True,
         default: Optional["ASGIApp"] = None,
         dependency_overrides_provider: Any | None = None,
@@ -145,6 +134,9 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
                 Application name to mark outgoing messages by.
             graceful_timeout:
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            id_generator:
+                Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
+                Defaults to `gen_cor_id` (uuid4-based).
             decoder:
                 Custom decoder object.
             parser:
@@ -294,6 +286,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
             reconnect_interval=reconnect_interval,
             app_id=app_id,
             graceful_timeout=graceful_timeout,
+            id_generator=id_generator,
             decoder=decoder,
             parser=parser,
             default_channel=default_channel,
@@ -342,20 +335,6 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -381,9 +360,7 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
                 dependencies=dependencies,
                 parser=parser,
                 decoder=decoder,
-                middlewares=middlewares,
                 ack_policy=ack_policy,
-                no_ack=no_ack,
                 no_reply=no_reply,
                 title=title,
                 description=description,
@@ -412,14 +389,6 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
         persist: bool = False,
         reply_to: str | None = None,
         priority: int | None = None,
-        # specific
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
@@ -443,7 +412,6 @@ class RabbitRouter(StreamRouter[IncomingMessage]):
             persist=persist,
             reply_to=reply_to,
             priority=priority,
-            middlewares=middlewares,
             title=title,
             description=description,
             schema=schema,

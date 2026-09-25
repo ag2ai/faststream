@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 
 class PushStreamSubscriber(StreamSubscriber):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PushSubscription"]
 
     @override
@@ -21,7 +23,7 @@ class PushStreamSubscriber(StreamSubscriber):
             return
 
         self.subscription = await self.jetstream.subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             queue=self.queue,
             cb=self.consume,
             config=self.config,
@@ -30,6 +32,8 @@ class PushStreamSubscriber(StreamSubscriber):
 
 
 class ConcurrentPushStreamSubscriber(ConcurrentMixin[Msg], StreamSubscriber):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PushSubscription"]
 
     @override
@@ -41,7 +45,7 @@ class ConcurrentPushStreamSubscriber(ConcurrentMixin[Msg], StreamSubscriber):
         self.start_consume_task()
 
         self.subscription = await self.jetstream.subscribe(
-            subject=self.clear_subject,
+            subject=self.subject.broker_address,
             queue=self.queue,
             cb=self._put_msg,
             config=self.config,

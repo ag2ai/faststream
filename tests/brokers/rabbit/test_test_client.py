@@ -1,7 +1,10 @@
 import asyncio
+import datetime as dt
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+from freezegun import freeze_time
 
 from faststream import BaseMiddleware
 from faststream.exceptions import SubscriberNotFound
@@ -16,22 +19,22 @@ from faststream.rabbit.testing import FakeProducer, _is_handler_matches, apply_p
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 
 from .basic import RabbitMemoryTestcaseConfig
+from .test_publish import TestPublishWithExchange as PublishWithExchangeCase
+
+_frozen_time = dt.datetime(2026, 2, 10, 12, 0, 0, tzinfo=dt.timezone.utc)
 
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
-class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
+class TestTestclient(
+    PublishWithExchangeCase, RabbitMemoryTestcaseConfig, BrokerTestclientTestcase
+):
     @pytest.mark.connected()
-    async def test_with_real_testclient(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_with_real_testclient(self, queue: str, event: asyncio.Event) -> None:
         broker = self.get_broker()
 
         @broker.subscriber(queue)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker, with_real=True) as br:
@@ -47,7 +50,6 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     async def test_direct_not_found(
         self,
-        queue: str,
     ) -> None:
         broker = self.get_broker()
 
@@ -75,28 +77,27 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
         self,
         queue: str,
         exchange: RabbitExchange,
+        event: asyncio.Event,
+        event2: asyncio.Event,
+        event3: asyncio.Event,
     ) -> None:
         broker = self.get_broker(apply_types=True)
-
-        consume = asyncio.Event()
-        consume2 = asyncio.Event()
-        consume3 = asyncio.Event()
 
         @broker.subscriber(queue=queue, exchange=exchange)
         async def handler(msg: RabbitMessage) -> None:
             await msg.raw_message.ack()
-            consume.set()
+            event.set()
 
         @broker.subscriber(queue=queue + "1", exchange=exchange)
         async def handler2(msg: RabbitMessage) -> None:
             await msg.raw_message.nack()
-            consume2.set()
+            event2.set()
             raise ValueError
 
         @broker.subscriber(queue=queue + "2", exchange=exchange)
         async def handler3(msg: RabbitMessage) -> None:
             await msg.raw_message.reject()
-            consume3.set()
+            event3.set()
             raise ValueError
 
         async with self.patch_broker(broker) as br:
@@ -111,19 +112,19 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
                     asyncio.create_task(
                         br.publish("hello", queue=queue + "2", exchange=exchange),
                     ),
-                    asyncio.create_task(consume.wait()),
-                    asyncio.create_task(consume2.wait()),
-                    asyncio.create_task(consume3.wait()),
+                    asyncio.create_task(event.wait()),
+                    asyncio.create_task(event2.wait()),
+                    asyncio.create_task(event3.wait()),
                 ),
                 timeout=3,
             )
 
-        assert consume.is_set()
-        assert consume2.is_set()
-        assert consume3.is_set()
+        assert event.is_set()
+        assert event2.is_set()
+        assert event3.is_set()
 
     async def test_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -133,10 +134,10 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(msg) -> None: ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(msg) -> None: ...
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("", queue)
@@ -146,7 +147,7 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -156,10 +157,10 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(msg) -> None: ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(msg) -> None: ...
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
@@ -184,7 +185,37 @@ class TestTestclient(RabbitMemoryTestcaseConfig, BrokerTestclientTestcase):
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("expiration", "expected"),
+        (
+            pytest.param(None, None, id="none"),
+            pytest.param(1, 1, id="int"),
+            pytest.param(1.5, 1.5, id="float"),
+            pytest.param(dt.timedelta(seconds=1.1), 1.1, id="timedelta"),
+            pytest.param(_frozen_time, 0, id="datetime"),
+        ),
+    )
+    @freeze_time(_frozen_time)
+    async def test_publish_expiration_propagated(
+        self, expiration: Any, expected: Any, queue: str, mock: MagicMock
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
 
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def m(msg: RabbitMessage) -> None:
+            mock(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue, expiration=expiration)
+            msg = mock.call_args[0][0]
+            assert msg.raw_message.expiration == expected
+
+
+@pytest.mark.rabbit()
 @pytest.mark.parametrize(
     ("pattern", "current", "result"),
     (
@@ -218,7 +249,7 @@ exch_direct = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.DIR
 exch_fanout = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.FANOUT)
 exch_topic = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.TOPIC)
 exch_headers = RabbitExchange("exchange", auto_delete=True, type=ExchangeType.HEADERS)
-reqular_queue = RabbitQueue("test-reqular-queue", auto_delete=True)
+regular_queue = RabbitQueue("test-regular-queue", auto_delete=True)
 
 routing_key_queue = RabbitQueue(
     "test-routing-key-queue",
@@ -255,15 +286,15 @@ broker = RabbitBroker()
     ),
     (
         pytest.param(
-            reqular_queue,
+            regular_queue,
             exch_direct,
-            reqular_queue.routing(),
+            regular_queue.routing(),
             {},
             True,
             id="direct match",
         ),
         pytest.param(
-            reqular_queue,
+            regular_queue,
             exch_direct,
             "wrong key",
             {},
@@ -271,7 +302,7 @@ broker = RabbitBroker()
             id="direct mismatch",
         ),
         pytest.param(
-            reqular_queue,
+            regular_queue,
             exch_fanout,
             "",
             {},

@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 
 class StreamSubscriber(DefaultSubscriber["Msg"]):
+    __slots__ = ()
+
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
 
     def __init__(
@@ -74,7 +76,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 extra_options["inbox_prefix"] = inbox_prefix
 
             self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **extra_options,
             )
@@ -89,20 +91,21 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         except (TimeoutError, ConnectionClosedError):
             return None
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
@@ -118,10 +121,13 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 extra_options["inbox_prefix"] = inbox_prefix
 
             self._fetch_sub = await self.jetstream.pull_subscribe(
-                subject=self.clear_subject,
+                subject=self.subject.broker_address,
                 config=self.config,
                 **extra_options,
             )
+
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
             raw_message = (
@@ -131,14 +137,12 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 )
             )[0]
 
-            context = self._outer_config.fd_config.context
-
             msg: NatsMessage = await process_msg(  # type: ignore[assignment]
                 msg=raw_message,
                 middlewares=(
                     m(raw_message, context=context) for m in self._broker_middlewares
                 ),
-                parser=self._parser,
-                decoder=self._decoder,
+                parser=async_parser,
+                decoder=async_decoder,
             )
             yield msg

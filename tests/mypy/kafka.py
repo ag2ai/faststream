@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import prometheus_client
 from typing_extensions import assert_type
@@ -9,9 +10,11 @@ from faststream.kafka import (
     ConsumerRecord,
     KafkaBroker,
     KafkaMessage,
+    KafkaPublishMessage,
     KafkaRoute,
     KafkaRouter,
     RecordMetadata,
+    TestKafkaBroker,
 )
 from faststream.kafka.fastapi import KafkaRouter as FastAPIRouter
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
@@ -23,6 +26,18 @@ from faststream.kafka.subscriber.usecase import (
     ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
+
+
+async def check_multiple_test_brokers() -> None:
+    async with TestKafkaBroker(KafkaBroker()) as br1:
+        await br1.publish(None, "test")
+
+    async with TestKafkaBroker(
+        KafkaBroker(),
+        KafkaBroker(),
+    ) as (br1, br2):
+        await br1.publish(None, "test")
+        await br2.publish(None, "test")
 
 
 def sync_decoder(msg: KafkaMessage) -> DecodedMessage:
@@ -45,17 +60,17 @@ KafkaBroker(decoder=async_decoder)
 KafkaBroker(decoder=custom_decoder)
 
 
-def sync_parser(msg: ConsumerRecord) -> KafkaMessage:
+def sync_parser(msg: ConsumerRecord[Any, Any]) -> KafkaMessage:
     return ""  # type: ignore[return-value]
 
 
-async def async_parser(msg: ConsumerRecord) -> KafkaMessage:
+async def async_parser(msg: ConsumerRecord[Any, Any]) -> KafkaMessage:
     return ""  # type: ignore[return-value]
 
 
 async def custom_parser(
-    msg: ConsumerRecord,
-    original: Callable[[ConsumerRecord], Awaitable[KafkaMessage]],
+    msg: ConsumerRecord[Any, Any],
+    original: Callable[[ConsumerRecord[Any, Any]], Awaitable[KafkaMessage]],
 ) -> KafkaMessage:
     return await original(msg)
 
@@ -357,6 +372,19 @@ async def check_publisher_publish_batch_result_type() -> None:
     assert_type(publish_confirm_bool, RecordMetadata | asyncio.Future[RecordMetadata])
 
 
+async def check_publish_batch_per_message_attributes() -> None:
+    broker = KafkaBroker()
+
+    await broker.publish_batch(
+        KafkaPublishMessage("user:1", key=b"user1"),
+        "user:2",
+        topic="test",
+    )
+
+    publisher = broker.publisher("test", batch=True)
+    await publisher.publish(KafkaPublishMessage("user:1", key=b"user1"), "user:2")
+
+
 async def check_request_response_type() -> None:
     broker = KafkaBroker()
 
@@ -417,3 +445,5 @@ KafkaBroker().include_routers(KafkaRouter())
 KafkaRouter(routers=[KafkaRouter()])
 KafkaRouter().include_router(KafkaRouter())
 KafkaRouter().include_routers(KafkaRouter())
+
+FastAPIRouter().include_router(KafkaRouter())

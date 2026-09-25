@@ -4,13 +4,13 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import anyio
 from confluent_kafka import Consumer, KafkaError, KafkaException, Message, Producer
 
 from faststream._internal.utils.functions import call_or_await, run_in_executor
-from faststream.confluent.schemas import TopicPartition
+from faststream.confluent.schemas import Topic, TopicPartition
 from faststream.exceptions import SetupError
 
 from . import config as config_module
@@ -31,8 +31,35 @@ if TYPE_CHECKING:
         on_delivery: NotRequired[Callable[..., None]]
 
 
+class _LazyLoggerProxy(logging.Logger):
+    """A logger proxy that lazily delegates to LoggerState.
+
+    confluent-kafka requires a logger at construction time, but LoggerState
+    may not be initialized yet (it is set up after ``_connect()``).  This
+    proxy silently drops log records until the underlying LoggerState is
+    ready, then forwards them to the real logger.
+    """
+
+    def __init__(self, logger_state: "LoggerState") -> None:
+        super().__init__("faststream.confluent._proxy", logging.NOTSET)
+        self._logger_state = logger_state
+
+    def handle(self, record: logging.LogRecord) -> None:
+        real_logger = self._logger_state.logger.logger
+        if real_logger is not None and hasattr(real_logger, "handle"):
+            real_logger.handle(record)
+
+
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
+
+    __slots__ = (
+        "__running",
+        "_poll_task",
+        "config",
+        "logger_state",
+        "producer",
+    )
 
     def __init__(
         self,
@@ -45,7 +72,7 @@ class AsyncConfluentProducer:
         self.config = config.producer_config
         self.producer = Producer(
             self.config,
-            logger=self.logger_state.logger.logger,
+            logger=_LazyLoggerProxy(logger),
         )
 
         self.__running = True
@@ -105,13 +132,37 @@ class AsyncConfluentProducer:
         kwargs["on_delivery"] = ack_callback
 
         # should be sync to prevent segfault
-        self.producer.produce(topic, **kwargs)
+        # confluent stub expects bytes|None for value/key; we accept str and encode
+        produce_value: bytes | None = (
+            kwargs["value"]
+            if isinstance(kwargs["value"], (bytes, type(None)))
+            else kwargs["value"].encode()
+        )
+        produce_key: bytes | None = (
+            kwargs["key"]
+            if isinstance(kwargs["key"], (bytes, type(None)))
+            else kwargs["key"].encode()
+        )
+        produce_headers: (
+            dict[str, str | bytes | None] | list[tuple[str, str | bytes | None]] | None
+        ) = cast("Any", kwargs["headers"]) if kwargs.get("headers") is not None else None
+        produce_kwargs: dict[str, Any] = {
+            "value": produce_value,
+            "key": produce_key,
+            "headers": produce_headers,
+            "on_delivery": kwargs["on_delivery"],
+        }
+        if kwargs.get("partition") is not None:
+            produce_kwargs["partition"] = kwargs["partition"]
+        if kwargs.get("timestamp") is not None:
+            produce_kwargs["timestamp"] = kwargs["timestamp"]
+        self.producer.produce(topic, **produce_kwargs)
 
         if no_confirm:
             return result_future
         return await result_future
 
-    def create_batch(self) -> "BatchBuilder":
+    def create_batch(self) -> "BatchBuilder":  # noqa: PLR6301
         """Creates a batch for sending multiple messages."""
         return BatchBuilder()
 
@@ -126,7 +177,7 @@ class AsyncConfluentProducer:
         """Sends a batch of messages to a Kafka topic."""
         async with anyio.create_task_group() as tg:
             for msg in batch._builder:
-                tg.start_soon(
+                _ = tg.start_soon(
                     self.send,
                     topic,
                     msg["value"],
@@ -160,9 +211,22 @@ class AsyncConfluentProducer:
 class AsyncConfluentConsumer:
     """An asynchronous Python Kafka client for consuming messages using the "confluent-kafka" package."""
 
+    __slots__ = (
+        "_on_assign",
+        "_on_lost",
+        "_on_revoke",
+        "_thread_pool",
+        "admin_client",
+        "config",
+        "consumer",
+        "logger_state",
+        "partitions",
+        "topics",
+    )
+
     def __init__(
         self,
-        *topics: str,
+        *topics: "Topic",
         config: config_module.ConfluentFastConfig,
         logger: "LoggerState",
         admin_service: "AdminService",
@@ -191,9 +255,17 @@ class AsyncConfluentConsumer:
         connections_max_idle_ms: int = 540000,
         isolation_level: str = "read_uncommitted",
         allow_auto_create_topics: bool = True,
+        # rebalance callbacks
+        on_assign: Callable[..., None] | None = None,
+        on_revoke: Callable[..., None] | None = None,
+        on_lost: Callable[..., None] | None = None,
     ) -> None:
         self.admin_client = admin_service
         self.logger_state = logger
+
+        self._on_assign = on_assign
+        self._on_revoke = on_revoke
+        self._on_lost = on_lost
 
         self.topics = list(topics)
         self.partitions = partitions
@@ -211,7 +283,7 @@ class AsyncConfluentConsumer:
             "topic.metadata.refresh.interval.ms": 1000,
             "bootstrap.servers": bootstrap_servers,
             "client.id": client_id,
-            "group.id": group_id,
+            "group.id": group_id or "faststream-consumer-group",
             "group.instance.id": group_instance_id,
             "fetch.wait.max.ms": fetch_max_wait_ms,
             "fetch.max.bytes": fetch_max_bytes,
@@ -233,15 +305,22 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         self.config = config_from_params
-        self.consumer = Consumer(self.config, logger=self.logger_state.logger.logger)
+        self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
 
         # A pool with single thread is used in order to execute the commands of the consumer sequentially:
         # https://github.com/ag2ai/faststream/issues/1904#issuecomment-2506990895
         self._thread_pool = ThreadPoolExecutor(max_workers=1)
 
     @property
-    def topics_to_create(self) -> list[str]:
-        return list({*self.topics, *(p.topic for p in self.partitions)})
+    def topics_to_create(self) -> list["Topic"]:
+        # Conflicting duplicates are reported by `create_subscriber`, the only
+        # public way to get here, so collapsing to the last one is enough.
+        topics: dict[str, Topic] = {t.name: t for t in self.topics}
+
+        for p in self.partitions:
+            topics.setdefault(p.topic, Topic(p.topic, declare=p.declare))
+
+        return [t for t in topics.values() if t.declare]
 
     async def start(self) -> None:
         """Starts the Kafka consumer and subscribes to the specified topics."""
@@ -266,10 +345,17 @@ class AsyncConfluentConsumer:
             )
 
         if self.topics:
+            subscribe_kwargs: dict[str, Any] = {"topics": [t.name for t in self.topics]}
+            if self._on_assign is not None:
+                subscribe_kwargs["on_assign"] = self._on_assign
+            if self._on_revoke is not None:
+                subscribe_kwargs["on_revoke"] = self._on_revoke
+            if self._on_lost is not None:
+                subscribe_kwargs["on_lost"] = self._on_lost
             await run_in_executor(
                 self._thread_pool,
                 self.consumer.subscribe,
-                topics=self.topics,
+                **subscribe_kwargs,
             )
 
         elif self.partitions:
@@ -287,8 +373,7 @@ class AsyncConfluentConsumer:
         """Commits the offsets of all messages returned by the last poll operation."""
         await run_in_executor(
             self._thread_pool,
-            self.consumer.commit,
-            asynchronous=asynchronous,
+            lambda: self.consumer.commit(asynchronous=asynchronous),  # type: ignore[call-overload]
         )
 
     async def stop(self) -> None:
@@ -334,9 +419,13 @@ class AsyncConfluentConsumer:
         """Consumes a batch of messages from Kafka and groups them by topic and partition."""
         raw_messages: list[Message | None] = await run_in_executor(
             self._thread_pool,
-            self.consumer.consume,
-            num_messages=max_records or 10,
-            timeout=timeout,
+            cast(
+                "Callable[..., list[Message | None]]",
+                lambda: self.consumer.consume(
+                    num_messages=max_records or 10,
+                    timeout=timeout,
+                ),
+            ),
         )
         return tuple(x for x in map(check_msg_error, raw_messages) if x is not None)
 
@@ -365,6 +454,8 @@ def check_msg_error(msg: Message | None) -> Message | None:
 class BatchBuilder:
     """A helper class to build a batch of messages to send to Kafka."""
 
+    __slots__ = ("_builder",)
+
     def __init__(self) -> None:
         """Initializes a new BatchBuilder instance."""
         self._builder: list[dict[str, Any]] = []
@@ -380,7 +471,7 @@ class BatchBuilder:
         """Appends a message to the batch with optional timestamp, key, value, and headers."""
         if key is None and value is None:
             raise KafkaException(
-                KafkaError(40, reason="Both key and value can't be None"),
+                KafkaError(40, "Both key and value can't be None"),
             )
 
         self._builder.append(

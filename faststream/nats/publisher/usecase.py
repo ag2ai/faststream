@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
-from faststream.message import gen_cor_id
+from faststream._internal.utils.path import Address
 from faststream.nats.response import NatsPublishCommand
-from faststream.nats.schemas.js_stream import compile_nats_wildcard
+from faststream.nats.schemas.js_stream import NATS_ADDRESS_SYNTAX
 from faststream.response.publish_type import PublishType
 
 if TYPE_CHECKING:
@@ -25,6 +25,14 @@ if TYPE_CHECKING:
 class LogicPublisher(PublisherUsecase):
     """A class to represent a NATS publisher."""
 
+    __slots__ = (
+        "_subject",
+        "headers",
+        "reply_to",
+        "stream",
+        "timeout",
+    )
+
     _outer_config: "NatsBrokerConfig"
 
     def __init__(
@@ -42,14 +50,11 @@ class LogicPublisher(PublisherUsecase):
         self.reply_to = config.reply_to
 
     @property
-    def clear_subject(self) -> str:
-        """Compile `test.{name}` to `test.*` subject."""
-        _, path = compile_nats_wildcard(self.subject)
-        return path
-
-    @property
-    def subject(self) -> str:
-        return f"{self._outer_config.prefix}{self._subject}"
+    def subject(self) -> "Address":
+        """The subject this Publisher was declared with, and its Broker address."""
+        return Address(self._subject, NATS_ADDRESS_SYNTAX).add_prefix(
+            self._outer_config.prefix,
+        )
 
     @overload
     async def publish(
@@ -114,10 +119,10 @@ class LogicPublisher(PublisherUsecase):
         """
         cmd = NatsPublishCommand(
             message,
-            subject=subject or self.subject,
+            subject=subject or self.subject.template,
             headers=self.headers | (headers or {}),
             reply_to=reply_to or self.reply_to,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
             timeout=timeout or self.timeout,
             _publish_type=PublishType.PUBLISH,
@@ -152,7 +157,7 @@ class LogicPublisher(PublisherUsecase):
         """This method should be called in subscriber flow only."""
         cmd = NatsPublishCommand.from_cmd(cmd)
 
-        cmd.destination = self.subject
+        cmd.destination = self.subject.template
         cmd.add_headers(self.headers, override=False)
         cmd.reply_to = cmd.reply_to or self.reply_to
 
@@ -195,8 +200,6 @@ class LogicPublisher(PublisherUsecase):
             headers:
                 Message headers to store metainformation.
                 **content-type** and **correlation_id** will be set automatically by framework anyway.
-            reply_to:
-                NATS subject name to send response.
             correlation_id:
                 Manual message **correlation_id** setter.
                 **correlation_id** is a useful option to trace messages.
@@ -210,10 +213,10 @@ class LogicPublisher(PublisherUsecase):
         """
         cmd = NatsPublishCommand(
             message=message,
-            subject=subject or self.subject,
+            subject=subject or self.subject.template,
             headers=self.headers | (headers or {}),
             timeout=timeout or self.timeout,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
             stream=stream or getattr(self.stream, "name", None),
             _publish_type=PublishType.REQUEST,
         )

@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Run FastStream applications from the command line: hot reload while you develop, multiple
+  worker processes in production and environment options.
 search:
   boost: 10
 ---
@@ -14,9 +17,9 @@ search:
 The **FastStream CLI** is a built-in tool designed to streamline your development workflow.
 
 !!! quote ""
-    Thanks to [*typer*](https://typer.tiangolo.com/){.external-link target="_blank"}, [*watchfiles*](https://watchfiles.helpmanual.io/){.external-link target="_blank"} and [*uvicorn*](https://www.uvicorn.org/){.external-link target="_blank"}. Their work is the basis of this tool.
+    Thanks to [*typer*](https://typer.tiangolo.com/){.external-link target="_blank"}, [*watchfiles*](https://watchfiles.helpmanual.io/){.external-link target="_blank"} and [*uvicorn*](https://uvicorn.dev/){.external-link target="_blank"}. Their work is the basis of this tool.
 
-##Installation:
+## Installation
 
 To use the **FastStream CLI**, install the required dependencies:
 
@@ -26,7 +29,7 @@ pip install 'faststream[cli]'
 
 ## AsyncAPI Schema
 
-Generate your AsyncAPI document as a `.json` or `.yaml` file from your code, or host it directly as a styled HTML page. Learn more about [hosting options](../asyncapi/hosting){.internal-link}
+Generate your AsyncAPI document as a `.json` or `.yaml` file from your code, or host it directly as a styled HTML page. Learn more about [hosting options](asyncapi/hosting.md){.internal-link}
 
 ## Publishing messages
 
@@ -38,18 +41,18 @@ faststream publish main:app '{"name": "John"}' --subject 'my-subject'
 
 ## Running the Project
 
-The primary command to launch a **FastStream** application `faststream run`.
+The primary command to launch a **FastStream** application is `faststream run`.
 This command supports a variety of options to customize your application runtime:
 
-* [Scaling](.#scaling){.internal-link}
-* [ASGI Support](.#asgi-support){.internal-link}
-* [Extra options](.#extra-options){.internal-link}
-* [Environment Management](.#environment-management){.internal-link}
-* [Logging Configuration](.#logging-configuration){.internal-link}
+* [Scaling](#scaling){.internal-link}
+* [ASGI Support](#asgi-support){.internal-link}
+* [Extra options](#extra-options){.internal-link}
+* [Environment Management](#environment-management){.internal-link}
+* [Logging Configuration](#logging-configuration){.internal-link}
 
 ### Scaling
 
-**FastStream** allows you to scale application right from the command line by running you application in multiple instances.
+**FastStream** allows you to scale your application right from the command line by running your application in multiple instances.
 Just set the `--workers` option to scale your application:
 
 
@@ -70,10 +73,22 @@ Worker 2 started
 ```
 { data-search-exclude }
 
+Without `--workers`, the application runs in a single process, and `#!python worker_id` is `#!python None`:
+
+```shell
+faststream run main:app
+```
+
+```{ .console .no-copy }
+2025-08-20 17:35:03,932 INFO     - FastStream app starting...
+Started in a single process
+```
+{ data-search-exclude }
+
 
 ### ASGI Support
 
-Running your app as ASGI. For details, see [*ASGI Support*](../asgi){.internal-link}
+Running your app as ASGI. For details, see [*ASGI Support*](asgi.md){.internal-link}
 
 ### Hot Reload
 
@@ -84,15 +99,15 @@ Extends reload option to also watch and reload on additional files (e.g., templa
 faststream run main:app --reload
 ```
 
-By default **FastStream** watches for `.py` file changes, but you can specify an extra file extensions to watch by (your config files as an example)
+By default **FastStream** watches for `.py` file changes, but you can specify extra file extensions to watch (your config files as an example)
 
 ```shell
-faststream run main:app --reload  --reload-ext .yml --realod-ext .yaml
+faststream run main:app --reload  --reload-ext .yml --reload-ext .yaml
 ```
 
 ### Extra options
 
-**FastStream** support extra startup arguments:
+**FastStream** supports extra startup arguments:
 
 {! includes/en/extra-options.md !}
 
@@ -128,4 +143,37 @@ All passed values can be of type `#!python bool`, `#!python str` or `#!python li
 
 ### Logging Configuration
 
-You can pass any custom flags for logging configuration, it's `--log-level` or `--log-config` for detailed logging configuration. See [here](../observability/logging#logging-levels){.internal-link}
+You can pass custom flags for logging configuration: `--log-level` or `--log-config` for detailed logging configuration. See [here](observability/logging.md#logging-levels){.internal-link}
+
+### Event Loop
+
+**FastStream** is built on [anyio](https://github.com/agronholm/anyio) and supports using any event loop implementation (for example, [asyncio](https://docs.python.org/3/library/asyncio-eventloop.html),  [uvloop](https://github.com/MagicStack/uvloop), [winloop](https://github.com/Vizonex/Winloop), and [rloop](https://github.com/gi0baro/rloop)). By default, the **FastStream CLI** uses uvloop (on Unix) if it is installed, with a fallback to asyncio.
+
+You can set the event loop factory explicitly via the `--loop` option in the CLI:
+
+```shell
+faststream run main:app --loop=uvloop:new_event_loop
+```
+
+Alternatively, you can specify the event loop implementation using the `FASTSTREAM_LOOP` environment variable. For example:
+
+```shell
+FASTSTREAM_LOOP=uvloop:new_event_loop faststream run main:app
+```
+
+This lets you control the event loop used by **FastStream** either via command-line flags or by setting an environment variable, according to your deployment or development needs.
+
+### Rich Output Mode
+
+**FastStream** CLI uses [Typer](https://typer.tiangolo.com/){.external-link target="_blank"} rich formatting for its help and error messages. You can control this behavior with the `FASTSTREAM_CLI_RICH_MODE` environment variable:
+
+```shell
+# available values: rich, markdown, or none
+FASTSTREAM_CLI_RICH_MODE=none faststream run main:app
+```
+
+- `rich` *(default)* – use Typer's rich markup styling.
+- `markdown` – render CLI output using markdown-compatible formatting.
+- `none` – disable rich formatting and use plain-text output.
+
+This is useful when working in terminals that do not support ANSI styling or when copying CLI output into plain-text environments.

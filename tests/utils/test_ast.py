@@ -1,19 +1,22 @@
+from typing import Any
+
 import pytest
+from typing_extensions import Self
 
 from faststream._internal.testing.ast import is_contains_context_name
 
 
 class Context:
-    def __enter__(self) -> "Context":
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         pass
 
-    async def __aenter__(self) -> "Context":
+    async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, *args: Any) -> None:
         pass
 
 
@@ -25,6 +28,16 @@ class A(Context):
 class B(Context):
     def __init__(self) -> None:
         pass
+
+
+class SubA(A):
+    """Mirrors a concrete ``TestBroker`` subclass that delegates to ``super``.
+
+    The extra ``__init__`` frame must not break context-name detection.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
 
 
 def test_base() -> None:
@@ -70,6 +83,22 @@ def test_base_invalid() -> None:
 
 def test_nested_invalid() -> None:
     with B(), A() as a:
+        assert not a.contains
+
+
+def test_subclass_init_chain() -> None:
+    with SubA() as a, B():
+        assert a.contains
+
+
+@pytest.mark.asyncio()
+async def test_subclass_init_chain_async() -> None:
+    async with SubA() as a, B():
+        assert a.contains
+
+
+def test_subclass_init_chain_invalid() -> None:
+    with B(), SubA() as a:
         assert not a.contains
 
 

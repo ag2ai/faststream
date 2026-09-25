@@ -4,11 +4,23 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Use FastStream brokers inside a FastAPI application. The plugin now ships separately as the
+  faststream_fastapi package.
 search:
   boost: 10
 ---
 
 # **FastAPI** Plugin
+
+!!! warning "Plugin deprecated"
+    The integration has been moved to the
+    **[faststream_fastapi](https://github.com/faststream-community/faststream_fastapi)**
+    package and will be removed in 1.0.0 version.
+
+    ```bash
+    pip install faststream_fastapi
+    ```
 
 ## Handling messages
 
@@ -22,7 +34,7 @@ Just import a **StreamRouter** you need and declare the message handler in the s
 
     Note that the code below uses `fastapi.Depends`, not `faststream.Depends`.
 
-    Also, instead original `faststream.Context` you should use `faststream.[broker].fastapi.Context` (the same with [already created annotations](../../context/existed.md#annotated-aliases){.internal-link})
+    Also, instead of the original `faststream.Context`, you should use `faststream.[broker].fastapi.Context` (the same with [already created annotations](../../context.md#annotated-aliases){.internal-link})
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="4 6 14-18 24-25"
@@ -49,14 +61,19 @@ Just import a **StreamRouter** you need and declare the message handler in the s
     {!> docs_src/integrations/fastapi/redis/base.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="4 6 14-18 24-25"
+    {!> docs_src/integrations/fastapi/mqtt/base.py !}
+    ```
+
 
 !!! warning
-    If you are using **fastapi < 0.112.2** version, you should setup lifespan manually `#!python FastAPI(lifespan=router.lifespan_context)`
+    If you are using **fastapi < 0.112.2** version, you should set up the lifespan manually `#!python FastAPI(lifespan=router.lifespan_context)`
 
 When processing a message from a broker, the entire message body is placed simultaneously in both the `body` and `path` request parameters. You can access them in any way convenient for you. The message header is placed in `headers`.
 
 Also, this router can be fully used as an `HttpRouter` (of which it is the inheritor). So, you can
-use it to declare any `get`, `post`, `put` and other HTTP methods. For example, this is done at [**line 20**](#__codelineno-0-20).
+use it to declare any `get`, `post`, `put` and other HTTP methods. For example, this is done at **line 20**.
 
 !!! warning
     If your **ASGI** server does not support installing **state** inside **lifespan**, you can disable this behavior as follows:
@@ -111,6 +128,14 @@ The recommended way to access the broker is through the Context feature:
     async def handler(broker: RedisBroker): ...
     ```
 
+=== "MQTT"
+    ``` python
+    from faststream.mqtt.fastapi import MQTTBroker
+
+    @router.get("/")
+    async def handler(broker: MQTTBroker): ...
+    ```
+
 However, there are a few alternative methods you can use if you prefer.
 
 Inside each router, there is a broker. You can easily access it if you need to send a message to MQ:
@@ -140,6 +165,11 @@ Inside each router, there is a broker. You can easily access it if you need to s
     {!> docs_src/integrations/fastapi/redis/send.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="12"
+    {!> docs_src/integrations/fastapi/mqtt/send.py !}
+    ```
+
 
 Also, you can use the following `Depends` to access the broker if you want to use it at different parts of your program:
 
@@ -166,6 +196,11 @@ Also, you can use the following `Depends` to access the broker if you want to us
 === "Redis"
     ```python linenums="1" hl_lines="11-12 16-17"
     {!> docs_src/integrations/fastapi/redis/depends.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="11-12 16-17"
+    {!> docs_src/integrations/fastapi/mqtt/depends.py !}
     ```
 
 Or you can access the broker from a **FastAPI** application state (if you don't disable it with `#!python setup_state=False`):
@@ -205,6 +240,11 @@ The `FastStream` application has the `#!python @after_startup` hook, which allow
 === "Redis"
     ```python linenums="1" hl_lines="13-15"
     {!> docs_src/integrations/fastapi/redis/startup.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="13-15"
+    {!> docs_src/integrations/fastapi/mqtt/startup.py !}
     ```
 
 ## Documentation
@@ -271,6 +311,18 @@ When using **FastStream** as a router for **FastAPI**, the framework automatical
     )
     ```
 
+=== "MQTT"
+
+    ```python
+    from faststream.mqtt.fastapi import MQTTRouter
+
+    router = MQTTRouter(
+        ...,
+        schema_url="/asyncapi",
+        include_in_schema=True,
+    )
+    ```
+
 This way, you will have three routes to interact with your application's **AsyncAPI** schema:
 
 * `/asyncapi` - the same as the [CLI created page](../../../getting-started/asyncapi/hosting.md){.internal-link}
@@ -306,11 +358,16 @@ To test your **FastAPI StreamRouter**, you can still use it with the *TestClient
     {!> docs_src/integrations/fastapi/redis/test.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="3 5 13-16"
+    {!> docs_src/integrations/fastapi/mqtt/test.py !}
+    ```
+
 ## Multiple Routers
 
-Using **FastStream** as a **FastAPI** plugin you are still able to separate messages processing logic between different routers (like with a regular `HTTPRouter`). But it can be confusing - **StreamRouter** patches a **FastAPI** object lifespan.
+Using **FastStream** as a **FastAPI** plugin you are still able to separate message processing logic between different routers (like with a regular `HTTPRouter`). But it can be confusing - **StreamRouter** patches a **FastAPI** object lifespan.
 
-Fortunately, you can use regular **FastStream** routers and include them to the **FastAPI** integration one like in the regular broker object. Also, it can be useful to reuse your endpoints between **FastAPI** integration and regular **FastStream** app.
+Fortunately, you can use regular **FastStream** routers and include them in the **FastAPI** integration one like in the regular broker object. Also, it can be useful to reuse your endpoints between **FastAPI** integration and regular **FastStream** app.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="2-3 6 12-14 16"
@@ -335,4 +392,9 @@ Fortunately, you can use regular **FastStream** routers and include them to the 
 === "Redis"
     ```python linenums="1" hl_lines="2-3 6 12-14 16"
     {!> docs_src/integrations/fastapi/redis/router.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="2-3 6 12-14 16"
+    {!> docs_src/integrations/fastapi/mqtt/router.py !}
     ```

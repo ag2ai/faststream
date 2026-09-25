@@ -15,20 +15,16 @@ from .basic import BatchNatsPrometheusSettings, NatsPrometheusSettings
 
 
 @pytest.fixture()
-def stream(queue):
+def stream(queue: str) -> Any:
     return JStream(queue)
 
 
 @pytest.mark.connected()
 @pytest.mark.nats()
 class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(
-        self,
-        queue: str,
-        stream: JStream,
+    async def test_metrics(  # type: ignore[override]
+        self, queue: str, stream: JStream, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 
@@ -41,8 +37,8 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
         )
         message = None
 
-        @broker.subscriber(*args, **kwargs)
-        async def handler(m=Context("message")):
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(m: Any = Context("message")) -> None:
             event.set()
 
             nonlocal message
@@ -61,6 +57,7 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
             registry=registry,
             message=message,
             exception_class=None,
+            custom_labels={},
         )
 
 
@@ -68,7 +65,6 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
 @pytest.mark.nats()
 class TestPrometheus(
     NatsPrometheusSettings,
-    LocalPrometheusTestcase,
     LocalRPCPrometheusTestcase,
 ): ...
 

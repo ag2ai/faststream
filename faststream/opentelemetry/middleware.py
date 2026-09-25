@@ -1,8 +1,9 @@
 import time
 from collections import defaultdict
 from collections.abc import Callable
+from contextlib import ExitStack
 from copy import copy
-from typing import TYPE_CHECKING, Any, Generic, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from opentelemetry import baggage, context, metrics, trace
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
@@ -12,7 +13,7 @@ from opentelemetry.trace import Link, Span
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from faststream._internal.middlewares import BaseMiddleware
-from faststream._internal.types import PublishCommandType
+from faststream._internal.types import BrokerMiddleware, PublishCommandType
 from faststream.opentelemetry.baggage import Baggage
 from faststream.opentelemetry.consts import (
     ERROR_TYPE,
@@ -25,7 +26,6 @@ from faststream.opentelemetry.consts import (
 )
 
 if TYPE_CHECKING:
-    from contextvars import Token
     from types import TracebackType
 
     from opentelemetry.metrics import Meter, MeterProvider
@@ -42,7 +42,7 @@ _BAGGAGE_PROPAGATOR = W3CBaggagePropagator()
 _TRACE_PROPAGATOR = TraceContextTextMapPropagator()
 
 
-class TelemetryMiddleware(Generic[PublishCommandType]):
+class TelemetryMiddleware(BrokerMiddleware[Any, PublishCommandType]):
     __slots__ = (
         "_meter",
         "_metrics",
@@ -156,6 +156,16 @@ class _MetricsContainer:
 
 
 class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
+    # `__settings_provider` is name-mangled here exactly as the attribute is.
+    __slots__ = (
+        "__settings_provider",
+        "_current_span",
+        "_metrics",
+        "_origin_context",
+        "_scope_tokens_stack",
+        "_tracer",
+    )
+
     def __init__(
         self,
         msg: Any | None,
@@ -175,7 +185,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         self._metrics = metrics_container
         self._current_span: Span | None = None
         self._origin_context: Context | None = None
-        self._scope_tokens: list[tuple[str, Token[Any]]] = []
+        self._scope_tokens_stack = ExitStack()
         self.__settings_provider = settings_provider_factory(msg)
 
     async def publish_scope(
@@ -250,8 +260,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
             duration = time.perf_counter() - start_time
             self._metrics.observe_publish(metrics_attributes, duration, msg_count)
 
-        for key, token in self._scope_tokens:
-            self.context.reset_local(key, token)
+        self._scope_tokens_stack.close()
 
         return result
 
@@ -304,15 +313,9 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
                 )
                 self._current_span = span
 
-                self._scope_tokens.append((
-                    "span",
-                    self.context.set_local("span", span),
-                ))
-                self._scope_tokens.append(
-                    (
-                        "baggage",
-                        self.context.set_local("baggage", Baggage.from_msg(msg)),
-                    ),
+                self._scope_tokens_stack.enter_context(self.context.scope("span", span))
+                self._scope_tokens_stack.enter_context(
+                    self.context.scope("baggage", Baggage.from_msg(msg))
                 )
 
                 new_context = trace.set_span_in_context(span, current_context)

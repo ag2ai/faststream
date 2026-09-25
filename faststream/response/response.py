@@ -28,6 +28,17 @@ class Response:
             _publish_type=PublishType.PUBLISH,
         )
 
+    def get_publish_key(self) -> Any | None:  # noqa: PLR6301
+        """Get the key for publishing this message.
+
+        Override this method in subclasses to provide broker-specific keys.
+        Default implementation returns None (no key).
+
+        Returns:
+            The key for publishing, or None if this Response type doesn't use keys.
+        """
+        return None
+
 
 class PublishCommand(Response):
     def __init__(

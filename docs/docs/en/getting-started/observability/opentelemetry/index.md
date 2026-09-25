@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Instrument FastStream with OpenTelemetry: distributed traces and metrics that follow a
+  message from publisher to subscriber across services.
 search:
   boost: 10
 ---
@@ -66,13 +69,21 @@ To use **OpenTelemetry** in **FastStream**, you just need to:
     {!> docs_src/getting_started/opentelemetry/redis_telemetry.py!}
     ```
 
+=== "MQTT"
+    !!! warning
+        OpenTelemetry middleware is supported only for **MQTT 5**. It is not compatible with MQTT 3.1.1, as that protocol version does not support user properties required for trace context propagation.
+
+    ```python linenums="1" hl_lines="3 7"
+    {!> docs_src/getting_started/opentelemetry/mqtt_telemetry.py!}
+    ```
+
 In the following documentation sections, you can find detailed information about all **OpenTelemetry** features available in **FastStream**.
 
 ## OpenTelemetry FastStream Example
 
 You can also take a look at a pre-configured project and use it as a reference for your services and infrastructure.
 
-To see how to set up, visualize, and configure tracing for **FastStream** services, checkout the [example project](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"}.
+To see how to set up, visualize, and configure tracing for **FastStream** services, check out the [example project](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"}.
 
 The example includes:
 

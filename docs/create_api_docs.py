@@ -29,15 +29,16 @@ MD_API_META = "---\n" + API_META + "\n---\n\n"
 
 
 PUBLIC_API_FILES = [
-    "faststream/opentelemetry/__init__.py",
-    "faststream/asgi/__init__.py",
-    "faststream/asyncapi/__init__.py",
     "faststream/__init__.py",
     "faststream/nats/__init__.py",
     "faststream/rabbit/__init__.py",
     "faststream/confluent/__init__.py",
     "faststream/kafka/__init__.py",
     "faststream/redis/__init__.py",
+    "faststream/asgi/__init__.py",
+    "faststream/prometheus/__init__.py",
+    "faststream/opentelemetry/__init__.py",
+    "faststream/specification/__init__.py",
 ]
 
 
@@ -339,13 +340,23 @@ def render_navigation(api: str, public_api: str) -> None:
     )
 
     summary = "\n".join(filter(bool, (x.rstrip() for x in summary.split("\n"))))
-    (DOCS_DIR / "SUMMARY.md").write_text(summary)
+    (DOCS_CONTENT_DIR / "SUMMARY.md").write_text(summary)
 
 
 def create_api_docs() -> None:
     remove_api_dir()
     api, public_api = _generate_api_docs_for_module()
     render_navigation(api=api, public_api=public_api)
+
+
+def on_page_context(context: Any, page: Any, **kwargs: Any) -> Any:
+    """Point every `public_api/` page's canonical link at its `api/` twin."""
+    # `public_api/` is a symlink to `api/`, so each symbol page is built twice;
+    # one canonical keeps search engines from indexing both copies
+    if page.url.startswith("public_api/") and page.canonical_url:
+        page.canonical_url = page.canonical_url.replace("/public_api/", "/api/", 1)
+
+    return context
 
 
 if __name__ == "__main__":

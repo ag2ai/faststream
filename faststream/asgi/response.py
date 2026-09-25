@@ -1,5 +1,7 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from faststream._internal._compat import json_dumps
 
 if TYPE_CHECKING:
     from .types import Receive, Scope, Send
@@ -42,6 +44,21 @@ class AsgiResponse:
                 "body": self.body,
             },
         )
+
+
+def JSONResponse(  # noqa: N802
+    data: Any,
+    status_code: int = 200,
+    headers: Mapping[str, str] | None = None,
+) -> AsgiResponse:
+    if not isinstance(data, bytes):
+        data = json_dumps(data)
+
+    return AsgiResponse(
+        data,
+        status_code,
+        {"Content-Type": "application/json", **(headers or {})},
+    )
 
 
 def _get_response_headers(

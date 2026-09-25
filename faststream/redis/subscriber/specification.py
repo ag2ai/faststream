@@ -18,11 +18,14 @@ if TYPE_CHECKING:
 class RedisSubscriberSpecification(
     SubscriberSpecification[RedisBrokerConfig, RedisSubscriberSpecificationConfig],
 ):
+    __slots__ = ()
+
     def get_schema(self) -> dict[str, SubscriberSpec]:
         payloads = self.get_payloads()
 
         return {
             self.name: SubscriberSpec(
+                address=self.address,
                 description=self.description,
                 operation=Operation(
                     message=Message(
@@ -38,11 +41,21 @@ class RedisSubscriberSpecification(
         }
 
     @property
+    def channel_labels(self) -> list[str]:
+        return [self.address]
+
+    @property
+    def address(self) -> str:
+        raise NotImplementedError
+
+    @property
     def channel_binding(self) -> redis.ChannelBinding:
         raise NotImplementedError
 
 
 class ChannelSubscriberSpecification(RedisSubscriberSpecification):
+    __slots__ = ("channel",)
+
     def __init__(
         self,
         _outer_config: "RedisBrokerConfig",
@@ -54,25 +67,22 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
         self.channel = channel
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{self.channel_name}:{self.call_name}"
-
-    @property
-    def channel_name(self) -> str:
-        return f"{self._outer_config.prefix}{self.channel.name}"
+    def address(self) -> str:
+        # Through `PubSub`, the way the usecase does it: a prefix decorates the
+        # declaration, so a `{{` of its own comes off with the rest.
+        return self.channel.add_prefix(self._outer_config.prefix).address.template
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
         return redis.ChannelBinding(
-            channel=self.channel_name,
+            channel=self.address,
             method="psubscribe" if self.channel.pattern else "subscribe",
         )
 
 
 class ListSubscriberSpecification(RedisSubscriberSpecification):
+    __slots__ = ("list_sub",)
+
     def __init__(
         self,
         _outer_config: "RedisBrokerConfig",
@@ -84,25 +94,20 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
         self.list_sub = list_sub
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{self.list_name}:{self.call_name}"
-
-    @property
-    def list_name(self) -> str:
+    def address(self) -> str:
         return f"{self._outer_config.prefix}{self.list_sub.name}"
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
         return redis.ChannelBinding(
-            channel=self.list_name,
+            channel=self.address,
             method="lpop",
         )
 
 
 class StreamSubscriberSpecification(RedisSubscriberSpecification):
+    __slots__ = ("stream_sub",)
+
     def __init__(
         self,
         _outer_config: "RedisBrokerConfig",
@@ -114,20 +119,13 @@ class StreamSubscriberSpecification(RedisSubscriberSpecification):
         self.stream_sub = stream_sub
 
     @property
-    def name(self) -> str:
-        if self.config.title_:
-            return self.config.title_
-
-        return f"{self.stream_name}:{self.call_name}"
-
-    @property
-    def stream_name(self) -> str:
+    def address(self) -> str:
         return f"{self._outer_config.prefix}{self.stream_sub.name}"
 
     @property
     def channel_binding(self) -> "redis.ChannelBinding":
         return redis.ChannelBinding(
-            channel=self.stream_name,
+            channel=self.address,
             group_name=self.stream_sub.group,
             consumer_name=self.stream_sub.consumer,
             method="xreadgroup" if self.stream_sub.group else "xread",

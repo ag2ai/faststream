@@ -23,7 +23,7 @@ Additionally, this object can be used as a decorator. The order of Subscriber an
 
     :material-checkbox-marked:{.checked_mark} **Testing support** - This method has full [`Testing`](./test.md) support.
 
-    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :material-checkbox-marked:{.checked_mark} **Reusable** - This method is reusable.
 
@@ -54,6 +54,11 @@ Additionally, this object can be used as a decorator. The order of Subscriber an
     {!> docs_src/getting_started/publishing/redis/object.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="7 9"
+    {!> docs_src/getting_started/publishing/mqtt/object.py !}
+    ```
+
 `#!python @publisher` properly sets the same `correlation_id` as the incoming message. This way, you get the same `correlation_id` for the entire message pipeline across all services, allowing you to collect a trace.
 
 ## Message Broadcasting
@@ -71,4 +76,4 @@ async def handle(msg) -> str:
 This way, you will send a copy of your return to all output topics.
 
 !!! note
-    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers as well.
+    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers.

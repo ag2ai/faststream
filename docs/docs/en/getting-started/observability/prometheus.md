@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Collect Prometheus metrics for FastStream publishers and subscribers with the built-in
+  middleware and expose them over the ASGI endpoint.
 search:
   boost: 10
 ---
@@ -18,7 +21,7 @@ and performance of systems and applications.
 
 ### FastStream Metrics
 
-To add a metrics to your broker, you need to:
+To add metrics to your broker, you need to:
 
 1. Install `FastStream` with `prometheus-client`
 
@@ -51,6 +54,11 @@ To add a metrics to your broker, you need to:
 === "Redis"
     ```python linenums="1" hl_lines="6 10"
     {!> docs_src/getting_started/prometheus/redis.py!}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="6 10"
+    {!> docs_src/getting_started/prometheus/mqtt.py!}
     ```
 
 ### Exposing the `/metrics` endpoint
@@ -88,6 +96,11 @@ passing in the registry that was passed to `PrometheusMiddleware`.
     {!> docs_src/getting_started/prometheus/redis_asgi.py!}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="6 10 13 16"
+    {!> docs_src/getting_started/prometheus/mqtt_asgi.py!}
+    ```
+
 ---
 
 ### Exported metrics
@@ -115,12 +128,18 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | **published_messages_duration_seconds**          | **Histogram** | {{ published_messages_duration_seconds_description }}          | `app_name`, `broker`, `destination`                   |
 | **published_messages_exceptions_total**          | **Counter**   | {{ published_messages_exceptions_total_description }}          | `app_name`, `broker`, `destination`, `exception_type` |
 
+!!! warning
+    When using `no_confirm=True` in Kafka publishers, publishing exceptions are not tracked by built-in Prometheus metrics. This is because with `no_confirm=True`, FastStream does not wait for the delivery confirmation from Kafka, so any errors that happen after sending the message (e.g. network issues, broker rejections) are not caught by the KafkaPrometheusMiddleware. The middleware only captures errors that occur during a call to `publish` with `no_confirm=False` (by default).
+
+    To ensure accurate observability, use `no_confirm=False` when publishing messages, or implement custom error tracking using future callbacks.
+
+
 ### Labels
 
 | Label                             | Description                                                     | Values                                            |
 |-----------------------------------|-----------------------------------------------------------------|---------------------------------------------------|
 | app_name                          | The name of the application, which the user can specify himself | `faststream` by default                           |
-| broker                            | Broker name                                                     | `kafka`, `rabbit`, `nats`, `redis`                |
+| broker                            | Broker name                                                     | `kafka`, `rabbitmq`, `nats`, `redis`, `mqtt`      |
 | handler                           | Where the message came from                                     |                                                   |
 | status (while receiving)          | Message processing status                                       | `acked`, `nacked`, `rejected`, `skipped`, `error` |
 | exception_type (while receiving)  | Exception type when processing message                          |                                                   |
@@ -195,10 +214,10 @@ You can import the [**Grafana dashboard**](https://grafana.com/grafana/dashboard
 
 Enter the dashboard **URL** `https://grafana.com/grafana/dashboards/22130-faststream-metrics/` (or just the **ID**, `22130`), and click on **Load**.
 
-![HTML-page](../../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
 `Import dashboard`
 
 An [example](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"} application with configured **metrics**, **Prometheus** and **Grafana**.
 
-![HTML-page](../../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
 `Grafana dashboard`

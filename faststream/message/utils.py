@@ -1,3 +1,4 @@
+import contextlib
 import json
 from collections.abc import Sequence
 from contextlib import suppress
@@ -26,12 +27,16 @@ def decode_message(message: "StreamMessage[Any]") -> "DecodedMessage":
     m: DecodedMessage = body
 
     if content_type := getattr(message, "content_type", False):
-        content_type = ContentTypes(cast("str", content_type))
+        with contextlib.suppress(ValueError):
+            content_type = ContentTypes(cast("str", content_type))
 
         if content_type is ContentTypes.TEXT:
             m = body.decode()
 
-        elif content_type is ContentTypes.JSON:
+        elif content_type is ContentTypes.JSON or (
+            isinstance(content_type, str)
+            and content_type.startswith(ContentTypes.JSON.value)
+        ):
             m = json_loads(body)
 
     else:

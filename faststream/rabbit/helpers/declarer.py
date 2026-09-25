@@ -1,9 +1,6 @@
 from typing import TYPE_CHECKING, Optional, Protocol, cast
 
-import aio_pika
-
 from faststream._internal.constants import EMPTY
-from faststream.rabbit.schemas import Channel, RabbitQueue
 
 if TYPE_CHECKING:
     import aio_pika
@@ -15,6 +12,8 @@ if TYPE_CHECKING:
 
 class RabbitDeclarer(Protocol):
     """An utility class to declare RabbitMQ queues and exchanges."""
+
+    __slots__ = ()
 
     def disconnect(self) -> None: ...
 
@@ -40,6 +39,8 @@ class RabbitDeclarer(Protocol):
 
 
 class FakeRabbitDeclarer(RabbitDeclarer):
+    __slots__ = ()
+
     def disconnect(self) -> None:
         raise NotImplementedError
 
@@ -63,7 +64,7 @@ class FakeRabbitDeclarer(RabbitDeclarer):
 
 
 class RabbitDeclarerImpl(RabbitDeclarer):
-    __slots__ = ("__channel_manager", "__exchanges", "__queues")
+    __slots__ = ("__channel_manager", "_exchanges", "_queues")
 
     def __init__(self, channel_manager: "ChannelManager") -> None:
         self.__channel_manager = channel_manager

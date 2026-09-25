@@ -2,24 +2,33 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from faststream._internal.configs import BrokerConfig
+from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
+    from redis.asyncio.client import Redis
+    from redis.asyncio.cluster import RedisCluster
+
     from faststream.redis.parser import MessageFormat
-    from faststream.redis.publisher.producer import RedisFastProducer
+    from faststream.redis.publisher.producer import (
+        RedisClusterFastProducer,
+        RedisFastProducer,
+    )
 
     from .state import ConnectionState
 
 
 @dataclass(kw_only=True)
 class RedisBrokerConfig(BrokerConfig):
-    producer: "RedisFastProducer"
-    connection: "ConnectionState"
+    producer: "RedisFastProducer | RedisClusterFastProducer"
+    connection: "ConnectionState[Redis[bytes]] | ConnectionState[RedisCluster[bytes]]"
 
     message_format: type["MessageFormat"]
 
     async def connect(self) -> None:
-        self.producer.connect(self.fd_config._serializer)
+        self.producer.connect(
+            self.fd_config._serializer, codec=self.broker_codec or DefaultCodec()
+        )
         await self.connection.connect()
 
     async def disconnect(self) -> None:

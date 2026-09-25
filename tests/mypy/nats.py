@@ -5,7 +5,14 @@ from nats.aio.msg import Msg
 from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
-from faststream.nats import NatsBroker, NatsMessage, NatsRoute, NatsRouter, PubAck
+from faststream.nats import (
+    NatsBroker,
+    NatsMessage,
+    NatsRoute,
+    NatsRouter,
+    PubAck,
+    TestNatsBroker,
+)
 from faststream.nats.fastapi import NatsRouter as FastAPIRouter
 from faststream.nats.message import NatsKvMessage, NatsObjMessage
 from faststream.nats.opentelemetry import NatsTelemetryMiddleware
@@ -23,6 +30,18 @@ from faststream.nats.subscriber.usecases import (
     PullStreamSubscriber,
     PushStreamSubscriber,
 )
+
+
+async def check_multiple_test_brokers() -> None:
+    async with TestNatsBroker(NatsBroker()) as br1:
+        await br1.publish(None, "test")
+
+    async with TestNatsBroker(
+        NatsBroker(),
+        NatsBroker(),
+    ) as (br1, br2):
+        await br1.publish(None, "test")
+        await br2.publish(None, "test")
 
 
 def sync_decoder(msg: NatsMessage) -> DecodedMessage:
@@ -433,6 +452,10 @@ async def check_object_store_watch_subscriber_message_type(
         assert_type(msg, NatsObjMessage)
 
 
+def fake_bool() -> bool:
+    return True
+
+
 def check_subscriber_instance_type(
     broker: NatsBroker | FastAPIRouter | NatsRouter,
 ) -> None:
@@ -447,7 +470,17 @@ def check_subscriber_instance_type(
         stream="stream",
         pull_sub=PullSub(batch=True),
     )
-    assert_type(sub3, BatchPullStreamSubscriber | PullStreamSubscriber)
+    assert_type(sub3, BatchPullStreamSubscriber)
+
+    sub3_plain = broker.subscriber("test", stream="stream", pull_sub=PullSub())
+    assert_type(sub3_plain, PullStreamSubscriber)
+
+    sub3_unknown = broker.subscriber(
+        "test",
+        stream="stream",
+        pull_sub=PullSub(batch=fake_bool()),
+    )
+    assert_type(sub3_unknown, BatchPullStreamSubscriber | PullStreamSubscriber)
 
     sub4 = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=2)
     assert_type(sub4, ConcurrentPullStreamSubscriber)
@@ -482,3 +515,9 @@ NatsBroker().include_routers(NatsRouter())
 NatsRouter(routers=[NatsRouter()])
 NatsRouter().include_router(NatsRouter())
 NatsRouter().include_routers(NatsRouter())
+
+FastAPIRouter().include_router(NatsRouter())
+
+
+@NatsBroker().subscriber("test", stream="stream", pull_sub=PullSub(batch=True))
+async def handle_pull_batch() -> None: ...

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,7 +23,6 @@ class TestRouter(RedisTestcaseConfig, RouterTestcase):
 
 
 @pytest.mark.redis()
-@pytest.mark.connected()
 class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
     route_class = RedisRoute
     publisher_class = RedisPublisher
@@ -108,7 +108,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
     ) -> None:
         pub_broker = self.get_broker()
 
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         r = RedisRouter(prefix="test_", handlers=(RedisRoute(response, channel=queue),))
@@ -131,7 +131,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
     async def test_delayed_list_handlers(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
 
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         r = RedisRouter(prefix="test_", handlers=(RedisRoute(response, list=queue),))
@@ -148,7 +148,6 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
                 ),
                 timeout=3,
             )
-
             assert event.is_set()
 
     async def test_delayed_stream_handlers(
@@ -156,7 +155,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, RouterLocalTestcase):
     ) -> None:
         pub_broker = self.get_broker()
 
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         r = RedisRouter(prefix="test_", handlers=(RedisRoute(response, stream=queue),))

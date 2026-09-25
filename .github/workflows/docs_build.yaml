@@ -13,20 +13,16 @@ jobs:
   deploy_docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:  # zizmor: ignore[artipacked]
           fetch-depth: 0
           token: ${{ secrets.AUTOMERGE_TOKEN }}
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: 3.x
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          key: ${{ github.ref }}
-          path: .cache
+          python-version: 3.12
       - name: Install dependencies
         run: |
           set -ux
@@ -34,44 +30,54 @@ jobs:
           uv pip uninstall --system email-validator # This is to fix broken link in docs
 
       - name: Install Just
-        uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3.0.0
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: 1.42.4
 
       - name: Build API Reference
         run: just docs-build-api
 
-      - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> $GITHUB_ENV
-      - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> $GITHUB_ENV
-      - run: echo $VERSION
-      - run: echo $IS_RC
+      - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> "$GITHUB_ENV"
+      - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> "$GITHUB_ENV"
+      - run: echo "$VERSION"
+      - run: echo "$IS_RC"
 
       - name: Configure Git user
         run: |
           git config --local user.email "faststream-actions[bot]@users.noreply.github.com"
           git config --local user.name "faststream-actions[bot]"
 
+      # `git checkout gh-pages` below replaces the working tree, so the script
+      # and the files it copies have to be taken out of it first.
+      - name: Stage the SEO script
+        run: cp -r docs/create_seo_files.py docs/site_root "$RUNNER_TEMP/"
+
       - name: Build docs
         run: |
+          cd docs
           if [ "$IS_RC" == "False" ]; then
-            cd docs
-            mike deploy -F mkdocs.yml --update-aliases $VERSION latest
+            mike deploy -F mkdocs.yml --update-aliases "$VERSION" latest
             mike set-default --allow-empty -F mkdocs.yml latest
-
-            # Doc commits are large, keep only the last one
-            git checkout gh-pages
-            git reset --soft HEAD~3
           else
-            cd docs
-            mike deploy -F mkdocs.yml --update-aliases $VERSION
-
-            # Doc commits are large, keep only the last one
-            git checkout gh-pages
-            git reset --soft HEAD~2
+            mike deploy -F mkdocs.yml --update-aliases "$VERSION"
           fi
 
+          # Doc commits are large, keep only the last one. Reset to the root
+          # rather than `HEAD~N`: a hand-pushed commit would shift the count.
+          git checkout gh-pages
+          git reset --soft "$(git rev-list --max-parents=0 HEAD)"
+
+      # `git checkout gh-pages` leaves behind everything the build had ignored —
+      # `docs/site/`, the generated API markdown, `__pycache__`. On `gh-pages`
+      # there is no `.gitignore` to keep them out of the commit.
+      - name: Drop the build artifacts left over from the source checkout
+        run: git clean -fdx
+
+      - name: Add robots.txt, root sitemap.xml and archive markers
+        run: python3 "$RUNNER_TEMP/create_seo_files.py" . "$RUNNER_TEMP/site_root"
+
       - name: Commit
-        uses: stefanzweifel/git-auto-commit-action@778341af668090896ca464160c2def5d1d1a3eb0 # v6.0.1
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         with:
           branch: gh-pages
           push_options: "--force"  # force push to stay with clear gh-pages branch history

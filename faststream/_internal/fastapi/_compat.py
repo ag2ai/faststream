@@ -16,6 +16,8 @@ _FASTAPI_MAJOR, _FASTAPI_MINOR = int(major), int(minor)
 
 FASTAPI_V2 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR > 100
 FASTAPI_V106 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR >= 106
+FASTAPI_V121 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR >= 121
+FASTAPI_V128 = _FASTAPI_MAJOR > 0 or _FASTAPI_MINOR >= 128
 
 try:
     _FASTAPI_PATCH = int(patch)
@@ -42,15 +44,21 @@ __all__ = (
 )
 
 
-@dataclass
+@dataclass(slots=True)
 class SolvedDependency:
     values: dict[str, Any]
     errors: list[Any]
     background_tasks: BackgroundTasks | None
 
 
-if FASTAPI_V2:
-    from fastapi._compat import _normalize_errors
+if FASTAPI_V128:
+    from fastapi.exceptions import RequestValidationError
+
+    def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
+        raise RequestValidationError(errors, body=body)
+
+elif FASTAPI_V2:
+    from fastapi._compat import _normalize_errors  # type: ignore[attr-defined]
     from fastapi.exceptions import RequestValidationError
 
     def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
@@ -83,7 +91,7 @@ if FASTAPI_v102_3:
     ) -> SolvedDependency:
         solved_result = await solve_dependencies(
             request=request,
-            body=request._body,  # type: ignore[arg-type]
+            body=request._body,  # pyright: ignore[reportArgumentType]
             dependant=dependant,
             dependency_overrides_provider=dependency_overrides_provider,
             **extra,  # type: ignore[arg-type]
@@ -114,7 +122,7 @@ else:
     ) -> SolvedDependency:
         solved_result = await solve_dependencies(
             request=request,
-            body=request._body,  # type: ignore[arg-type]
+            body=request._body,  # pyright: ignore[reportArgumentType]
             dependant=dependant,
             dependency_overrides_provider=dependency_overrides_provider,
             **kwargs,

@@ -2,11 +2,13 @@ import logging
 from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     Optional,
     Union,
     cast,
 )
+from urllib.parse import urlparse
 
 import anyio
 import nats
@@ -22,6 +24,7 @@ from nats.aio.client import (
     DEFAULT_PING_INTERVAL,
     DEFAULT_RECONNECT_TIME_WAIT,
     Client,
+    ReconnectToServerHandler,
 )
 from nats.aio.msg import Msg
 from nats.errors import Error
@@ -33,16 +36,28 @@ from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
+from faststream._internal.types import IdGenerator
+from faststream.exceptions import SetupError
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 from faststream.nats.configs import NatsBrokerConfig
 from faststream.nats.publisher.producer import (
     NatsFastProducerImpl,
     NatsJSFastProducer,
 )
 from faststream.nats.response import NatsPublishCommand
-from faststream.nats.security import parse_security
+from faststream.nats.security import (
+    NatsCredentials,
+    NatsJWT,
+    NatsNKey,
+    NatsSecurity,
+    NatsToken,
+    parse_security,
+    warn_deprecated_security_args,
+)
 from faststream.nats.subscriber.usecases.basic import LogicSubscriber
 from faststream.response.publish_type import PublishType
+from faststream.security import BaseSecurity
 from faststream.specification.schema import BrokerSpec
 
 from .logging import make_nats_logger_state
@@ -66,12 +81,12 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
-    from faststream.nats.schemas import PubAck
-    from faststream.security import BaseSecurity
+    from faststream.nats.schemas import PubAck, Schedule
     from faststream.specification.schema.extra import Tag, TagDict
 
     class NatsInitKwargs(TypedDict, total=False):
@@ -136,13 +151,17 @@ if TYPE_CHECKING:
                 Max size of the pending buffer for publishing commands.
             flush_timeout:
                 Max duration to wait for a forced flush to occur
+            ws_connection_headers:
+                WebSockets connection headers.
+            reconnect_to_server_handler:
+                Reconnect to server handler.
         """
 
-        error_cb: "ErrorCallback" | None
-        disconnected_cb: "Callback" | None
+        error_cb: "ErrorCallback | None"
+        disconnected_cb: "Callback | None"
         closed_cb: Callback | None
-        discovered_server_cb: "Callback" | None
-        reconnected_cb: "Callback" | None
+        discovered_server_cb: "Callback | None"
+        reconnected_cb: "Callback | None"
         name: str | None
         pedantic: bool
         verbose: bool
@@ -156,21 +175,166 @@ if TYPE_CHECKING:
         flusher_queue_size: int
         no_echo: bool
         tls_hostname: str | None
+        tls_handshake_first: bool
         token: str | None
         drain_timeout: int
-        signature_cb: "SignatureCallback" | None
-        user_jwt_cb: "JWTCallback" | None
-        user_credentials: "Credentials" | None
+        signature_cb: "SignatureCallback | None"
+        user_jwt_cb: "JWTCallback | None"
+        user_credentials: "Credentials | None"
         nkeys_seed: str | None
         nkeys_seed_str: str | None
         inbox_prefix: str | bytes
         pending_size: int
         flush_timeout: float | None
+        ws_connection_headers: dict[str, list[str]] | None
+        reconnect_to_server_handler: ReconnectToServerHandler | None
+
+
+# Server-sent `-ERR` reasons that will never succeed on retry, so the
+# initial connection attempt should fail fast instead of being silently
+# retried like a transient error until `max_reconnect_attempts` is hit.
+UNRECOVERABLE_CONNECT_ERRORS = (
+    "authorization violation",
+    "authorization timeout",
+    "invalid client protocol",
+    "maximum payload violation",
+    "invalid subject",
+    "stale connection",
+    "maximum connections exceeded",
+    "parser error",
+    "secure connection - tls required",
+)
+
+
+def _validate_deprecated_security(
+    deprecated_arguments: Sequence[str],
+) -> None:
+    signature_callback_supplied = "signature_cb" in deprecated_arguments
+    jwt_callback_supplied = "user_jwt_cb" in deprecated_arguments
+    if signature_callback_supplied != jwt_callback_supplied:
+        msg = "`user_jwt_cb` and `signature_cb` must be provided together."
+        raise SetupError(msg)
+
+    authentication_mechanisms = [
+        name
+        for name in (
+            "token",
+            "user_credentials",
+            "nkeys_seed",
+            "nkeys_seed_str",
+        )
+        if name in deprecated_arguments
+    ]
+    if signature_callback_supplied:
+        authentication_mechanisms.append("JWT callbacks")
+
+    if len(authentication_mechanisms) > 1:
+        mechanisms = ", ".join(authentication_mechanisms)
+        msg = (
+            "Only one deprecated NATS authentication mechanism can be "
+            f"used at a time, but got: {mechanisms}."
+        )
+        raise SetupError(msg)
+
+
+def _adapt_deprecated_security(
+    security: BaseSecurity | None,
+    *,
+    tls_hostname: str | None,
+    token: str | None,
+    signature_cb: Optional["SignatureCallback"],
+    user_jwt_cb: Optional["JWTCallback"],
+    user_credentials: Optional["Credentials"],
+    nkeys_seed: str | None,
+    nkeys_seed_str: str | None,
+) -> BaseSecurity | None:
+    deprecated_arguments = tuple(
+        name
+        for name, value in (
+            ("tls_hostname", tls_hostname),
+            ("token", token),
+            ("user_credentials", user_credentials),
+            ("nkeys_seed", nkeys_seed),
+            ("nkeys_seed_str", nkeys_seed_str),
+            ("signature_cb", signature_cb),
+            ("user_jwt_cb", user_jwt_cb),
+        )
+        if value is not EMPTY and value is not None
+    )
+
+    if deprecated_arguments:
+        warn_deprecated_security_args(*deprecated_arguments)
+
+    _validate_deprecated_security(deprecated_arguments)
+
+    if security is not None:
+        use_ssl = security.use_ssl
+        ssl_context = security.ssl_context
+    else:
+        use_ssl = False
+        ssl_context = None
+
+    if isinstance(security, NatsSecurity):
+        resolved_tls_hostname = security.tls_hostname
+        tls_handshake_first = security.tls_handshake_first
+    else:
+        resolved_tls_hostname = None
+        tls_handshake_first = False
+    if tls_hostname is not EMPTY and tls_hostname is not None:
+        resolved_tls_hostname = tls_hostname
+
+    if token is not EMPTY and token is not None:
+        return NatsToken(
+            token,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if user_credentials is not EMPTY and user_credentials is not None:
+        return NatsCredentials(
+            user_credentials,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if nkeys_seed is not EMPTY and nkeys_seed is not None:
+        return NatsNKey.from_file(
+            nkeys_seed,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if nkeys_seed_str is not EMPTY and nkeys_seed_str is not None:
+        return NatsNKey.from_seed(
+            nkeys_seed_str,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    if (
+        user_jwt_cb is not EMPTY
+        and user_jwt_cb is not None
+        and signature_cb is not EMPTY
+        and signature_cb is not None
+    ):
+        return NatsJWT(
+            user_jwt_cb,
+            signature_cb,
+            ssl_context=ssl_context,
+            use_ssl=use_ssl,
+            tls_hostname=resolved_tls_hostname,
+            tls_handshake_first=tls_handshake_first,
+        )
+    return security
 
 
 class NatsBroker(
     NatsRegistrator,
-    BrokerUsecase[Msg, Client],
+    BrokerUsecase[Msg, Client, NatsBrokerConfig],
 ):
     """A class to represent a NATS broker."""
 
@@ -197,22 +361,69 @@ class NatsBroker(
         dont_randomize: bool = False,
         flusher_queue_size: int = DEFAULT_MAX_FLUSHER_QUEUE_SIZE,
         no_echo: bool = False,
-        tls_hostname: str | None = None,
-        token: str | None = None,
+        tls_hostname: Annotated[
+            str | None,
+            deprecated(
+                "Use `security=NatsSecurity(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
+        ] = EMPTY,
+        token: Annotated[
+            str | None,
+            deprecated(
+                "Use `security=NatsToken(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
+        ] = EMPTY,
         drain_timeout: int = DEFAULT_DRAIN_TIMEOUT,
-        signature_cb: Optional["SignatureCallback"] = None,
-        user_jwt_cb: Optional["JWTCallback"] = None,
-        user_credentials: Optional["Credentials"] = None,
-        nkeys_seed: str | None = None,
-        nkeys_seed_str: str | None = None,
+        signature_cb: Annotated[
+            Optional["SignatureCallback"],
+            deprecated(
+                "Use `security=NatsJWT(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
+        ] = EMPTY,
+        user_jwt_cb: Annotated[
+            Optional["JWTCallback"],
+            deprecated(
+                "Use `security=NatsJWT(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
+        ] = EMPTY,
+        user_credentials: Annotated[
+            Optional["Credentials"],
+            deprecated(
+                "Use `security=NatsCredentials(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
+        ] = EMPTY,
+        nkeys_seed: Annotated[
+            str | None,
+            deprecated(
+                "Use `security=NatsNKey.from_file(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
+        ] = EMPTY,
+        nkeys_seed_str: Annotated[
+            str | None,
+            deprecated(
+                "Use `security=NatsNKey.from_seed(...)` instead. "
+                "This argument will be removed in 1.0.0."
+            ),
+        ] = EMPTY,
         inbox_prefix: str | bytes = DEFAULT_INBOX_PREFIX,
         pending_size: int = DEFAULT_PENDING_SIZE,
         flush_timeout: float | None = None,
+        ws_connection_headers: dict[str, list[str]] | None = None,
+        reconnect_to_server_handler: ReconnectToServerHandler | None = None,
         js_options: Union["JsInitOptions", dict[str, Any], None] = None,
-        graceful_timeout: float | None = None,
+        graceful_timeout: float | None = 15.0,
+        ack_policy: AckPolicy = EMPTY,
+        id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
+        codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[NatsRegistrator] = (),
         security: Optional["BaseSecurity"] = None,
@@ -290,13 +501,24 @@ class NatsBroker(
             pending_size:
                 Max size of the pending buffer for publishing commands.
             flush_timeout:
-                Max duration to wait for a forced flush to occur
+                Max duration to wait for a forced flush to occur.
+            ws_connection_headers:
+                WebSockets connection headers.
+            reconnect_to_server_handler:
+                Reconnect to server handler.
             js_options:
                 JetStream initialization options.
             graceful_timeout:
                 Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
+            ack_policy:
+                Default acknowledgement policy for all subscribers. Individual subscribers can override.
+            id_generator:
+                Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
+                Defaults to `gen_cor_id` (uuid4-based).
             decoder:
-                Custom decoder object
+                Custom decoder object.
+            codec:
+                Custom codec object.
             parser:
                 Custom parser object.
             dependencies:
@@ -330,9 +552,37 @@ class NatsBroker(
             context:
                 Context for FastDepends.
         """
-        secure_kwargs = parse_security(security)
-
         servers = [servers] if isinstance(servers, str) else list(servers)
+
+        security = _adapt_deprecated_security(
+            security,
+            tls_hostname=tls_hostname,
+            token=token,
+            signature_cb=signature_cb,
+            user_jwt_cb=user_jwt_cb,
+            user_credentials=user_credentials,
+            nkeys_seed=nkeys_seed,
+            nkeys_seed_str=nkeys_seed_str,
+        )
+
+        if (
+            security is not None
+            and type(security)
+            not in {
+                BaseSecurity,
+                NatsSecurity,
+            }
+            and any(
+                urlparse(url if "://" in url else f"//{url}").username is not None
+                for url in servers
+            )
+        ):
+            msg = "URL credentials conflict with `security`."
+            raise SetupError(msg)
+
+        secure_kwargs = parse_security(security)
+        if tls_hostname is not EMPTY and tls_hostname is not None:
+            secure_kwargs["tls_hostname"] = tls_hostname
 
         if specification_url is not None:
             if isinstance(specification_url, str):
@@ -371,12 +621,8 @@ class NatsBroker(
             max_outstanding_pings=max_outstanding_pings,
             dont_randomize=dont_randomize,
             flusher_queue_size=flusher_queue_size,
+            ws_connection_headers=ws_connection_headers,
             # security
-            tls_hostname=tls_hostname,
-            token=token,
-            user_credentials=user_credentials,
-            nkeys_seed=nkeys_seed,
-            nkeys_seed_str=nkeys_seed_str,
             **secure_kwargs,
             # callbacks
             error_cb=self._log_connection_broken(error_cb),
@@ -384,8 +630,7 @@ class NatsBroker(
             disconnected_cb=disconnected_cb,
             closed_cb=closed_cb,
             discovered_server_cb=discovered_server_cb,
-            signature_cb=signature_cb,
-            user_jwt_cb=user_jwt_cb,
+            reconnect_to_server_handler=reconnect_to_server_handler,
             # Basic args
             routers=routers,
             config=NatsBrokerConfig(
@@ -396,6 +641,7 @@ class NatsBroker(
                 broker_middlewares=middlewares,
                 broker_parser=parser,
                 broker_decoder=decoder,
+                broker_codec=codec,
                 logger=make_nats_logger_state(
                     logger=logger,
                     log_level=log_level,
@@ -409,6 +655,8 @@ class NatsBroker(
                 # subscriber args
                 broker_dependencies=dependencies,
                 graceful_timeout=graceful_timeout,
+                ack_policy=ack_policy,
+                id_generator=id_generator,
                 extra_context={
                     "broker": self,
                 },
@@ -441,21 +689,6 @@ class NatsBroker(
             self._connection = None
 
         self.config.disconnect()
-
-    @deprecated(
-        "Deprecated in **FastStream 0.5.44**. "
-        "Please, use `stop` method instead. "
-        "Method `close` will be removed in **FastStream 0.7.0**.",
-        category=DeprecationWarning,
-        stacklevel=1,
-    )
-    async def close(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        await self.stop(exc_type, exc_val, exc_tb)
 
     async def start(self) -> None:
         """Connect broker to NATS cluster and startup all subscribers."""
@@ -523,6 +756,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: None = None,
         timeout: float | None = None,
+        schedule: Optional["Schedule"] = None,
     ) -> None: ...
 
     @overload
@@ -535,6 +769,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        schedule: Optional["Schedule"] = None,
     ) -> "PubAck": ...
 
     @override
@@ -547,6 +782,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        schedule: Optional["Schedule"] = None,
     ) -> Optional["PubAck"]:
         """Publish message directly.
 
@@ -574,6 +810,8 @@ class NatsBroker(
                 Can be omitted without any effect if you doesn't want PubAck frame.
             timeout:
                 Timeout to send message to NATS.
+            schedule:
+                Schedule to publish message at a specific time.
 
         Returns:
             `None` if you publishes a regular message.
@@ -581,13 +819,14 @@ class NatsBroker(
         """
         cmd = NatsPublishCommand(
             message=message,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             subject=subject,
             headers=headers,
             reply_to=reply_to,
             stream=stream,
             timeout=timeout or 0.5,
             _publish_type=PublishType.PUBLISH,
+            schedule=schedule,
         )
 
         result: PubAck | None
@@ -621,8 +860,6 @@ class NatsBroker(
             headers:
                 Message headers to store metainformation.
                 **content-type** and **correlation_id** will be set automatically by framework anyway.
-            reply_to:
-                NATS subject name to send response.
             correlation_id:
                 Manual message **correlation_id** setter.
                 **correlation_id** is a useful option to trace messages.
@@ -636,7 +873,7 @@ class NatsBroker(
         """
         cmd = NatsPublishCommand(
             message=message,
-            correlation_id=correlation_id or gen_cor_id(),
+            correlation_id=correlation_id or self.config.id_generator(),
             subject=subject,
             headers=headers,
             timeout=timeout,
@@ -715,6 +952,11 @@ class NatsBroker(
         async def wrapper(err: Exception) -> None:
             if error_cb is not None:
                 await error_cb(err)
+
+            if isinstance(err, Error):
+                reason = str(err).removeprefix("nats: ").strip("'").lower()
+                if reason in UNRECOVERABLE_CONNECT_ERRORS:
+                    raise err
 
             if isinstance(err, Error) and self.config.connection_state:
                 self.config.logger.log(

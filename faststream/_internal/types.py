@@ -73,6 +73,8 @@ WrappedHandlerCall: TypeAlias = (
 class BrokerMiddleware(Protocol[AnyMsg_contra, PublishCommandType]):
     """Middleware builder interface."""
 
+    __slots__ = ()
+
     def __call__(
         self,
         msg: AnyMsg_contra | None,
@@ -91,8 +93,13 @@ SubscriberMiddleware: TypeAlias = Callable[
 class PublisherMiddleware(Protocol[PublishCommandType]):
     """Publisher middleware interface."""
 
+    __slots__ = ()
+
     def __call__(
         self,
         call_next: Callable[[PublishCommandType], Awaitable[Any]],
         cmd: PublishCommandType,
     ) -> Any: ...
+
+
+IdGenerator: TypeAlias = Callable[[], str]

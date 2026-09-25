@@ -26,42 +26,36 @@ jobs:
   test-basic:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 7
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-        pydantic-version: ["pydantic-v1", "pydantic-v2"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Dependencies
         run: |
           uv pip install --system --group optionals --group testing .
-      - name: Install Pydantic v1
-        if: matrix.pydantic-version == 'pydantic-v1'
-        run: uv pip install --system "pydantic>=1.10.0,<2.0.0"
-      - name: Install Pydantic v2
-        if: matrix.pydantic-version == 'pydantic-v2'
-        run: uv pip install --system --prerelease=disallow "pydantic>=2.0.0,<3.0.0"
       - name: Test
         run: >
           pytest --cov --cov-report=
           -vv -m "(slow and not connected) or not connected"
       - name: Rename coverage file
-        run: mkdir coverage && mv .coverage coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
+        run: mkdir coverage && mv .coverage coverage/.coverage.${{ runner.os }}-py${{ matrix.python-version }}
       - name: Store coverage files
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: .coverage.${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.pydantic-version }}
+          name: .coverage.${{ runner.os }}-py${{ matrix.python-version }}
           path: coverage
           if-no-files-found: error
           include-hidden-files: true
@@ -69,15 +63,16 @@ jobs:
   test-macos-latest:
     if: github.event.pull_request.draft == false
     runs-on: macos-latest
+    timeout-minutes: 7
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -90,7 +85,7 @@ jobs:
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.macos-latest
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: .coverage.macos-latest
           path: coverage
@@ -100,15 +95,16 @@ jobs:
   test-windows-latest:
     if: github.event.pull_request.draft == false
     runs-on: windows-latest
+    timeout-minutes: 7
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -121,7 +117,7 @@ jobs:
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.windows-latest
       - name: Store coverage files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: .coverage.windows-latest
           path: coverage
@@ -131,15 +127,16 @@ jobs:
   test-kafka-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -156,6 +153,7 @@ jobs:
       - test-basic
       - test-kafka-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       kafka:
         image: confluentinc/cp-kafka:8.0.0
@@ -174,14 +172,14 @@ jobs:
           KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
           CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -194,7 +192,7 @@ jobs:
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.kafka-py
       - name: Store coverage files
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: .coverage.kafka-py
           path: coverage
@@ -204,15 +202,16 @@ jobs:
   test-confluent-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -229,6 +228,7 @@ jobs:
       - test-basic
       - test-confluent-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       kafka:
         image: confluentinc/cp-kafka:8.0.0
@@ -247,14 +247,14 @@ jobs:
           KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
           CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -267,7 +267,7 @@ jobs:
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.confluent-py
       - name: Store coverage files
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: .coverage.confluent-py
           path: coverage
@@ -277,15 +277,16 @@ jobs:
   test-rabbit-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -302,20 +303,21 @@ jobs:
       - test-basic
       - test-rabbit-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       rabbitmq:
-        image: rabbitmq:alpine
+        image: rabbitmq:3.13-alpine
         ports:
           - 5672:5672
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -328,7 +330,7 @@ jobs:
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.rabbit-py
       - name: Store coverage files
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: .coverage.rabbit-py
           path: coverage
@@ -338,15 +340,16 @@ jobs:
   test-nats-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -363,20 +366,27 @@ jobs:
       - test-basic
       - test-nats-smoke
     runs-on: ubuntu-latest
-    services:
-      nats:
-        image: diementros/nats:js
-        ports:
-          - 4222:4222
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Start NATS with JetStream
+        run: |
+          docker run -d \
+            --name nats \
+            -p 4222:4222 \
+            nats:2.12.1 -js
+
+          # Wait for NATS to be ready
+          timeout 30 bash -c 'until docker logs nats 2>&1 | grep -q "Server is ready"; do sleep 0.5; done'
+          echo "NATS is ready!"
+          docker logs nats
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -389,9 +399,74 @@ jobs:
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.nats-py
       - name: Store coverage files
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: .coverage.nats-py
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
+
+  test-mqtt-smoke:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest -n auto
+          -vv -m "mqtt and not connected"
+
+  test-mqtt-real:
+    if: github.event.pull_request.draft == false
+    needs:
+      - test-basic
+      - test-mqtt-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      artemis:
+        image: apache/activemq-artemis:latest-alpine
+        ports:
+          - 1883:1883
+        env:
+          ANONYMOUS_LOGIN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest --cov --cov-report=
+          -vv -m "(slow and mqtt and connected) or (mqtt and connected)"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.mqtt-py
+      - name: Store coverage files
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: .coverage.mqtt-py
           path: coverage
           if-no-files-found: error
           include-hidden-files: true
@@ -399,15 +474,16 @@ jobs:
   test-redis-smoke:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -421,23 +497,24 @@ jobs:
   test-redis-real:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs:
       - test-basic
       - test-redis-smoke
     services:
-      nats:
-        image: redis:alpine
+      redis:
+        image: redis:8-alpine
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
       - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Install Dependencies
@@ -450,9 +527,83 @@ jobs:
       - name: Rename coverage file
         run: mkdir coverage && mv .coverage coverage/.coverage.redis-py
       - name: Store coverage files
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: .coverage.redis-py
+          path: coverage
+          if-no-files-found: error
+          include-hidden-files: true
+
+  test-redis-cluster-smoke:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest -n auto
+          -vv -m "redis_cluster and not connected"
+
+  test-redis-cluster-real:
+    if: github.event.pull_request.draft == false
+    needs:
+      - test-basic
+      - test-redis-cluster-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Start Redis Cluster
+        run: |
+          docker run -d --name redis-cluster --network host redis:8-alpine \
+            sh -c "
+              redis-server --port 7001 --cluster-enabled yes --cluster-config-file n1.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+              redis-server --port 7002 --cluster-enabled yes --cluster-config-file n2.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+              redis-server --port 7003 --cluster-enabled yes --cluster-config-file n3.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+              for p in 7001 7002 7003; do
+                until redis-cli -p \$p ping 2>/dev/null; do sleep 0.5; done
+              done &&
+              echo yes | redis-cli --cluster create 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 --cluster-replicas 0 &&
+              echo 'Redis Cluster ready' &&
+              tail -f /dev/null
+            "
+          timeout 30 bash -c 'until docker logs redis-cluster 2>&1 | grep -q "Redis Cluster ready"; do sleep 1; done'
+          echo "Redis Cluster is ready!"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      - name: Test
+        run: >
+          pytest --cov --cov-report=
+          -vv -m "(slow and redis_cluster and connected) or (redis_cluster and connected)"
+      - name: Rename coverage file
+        run: mkdir coverage && mv .coverage coverage/.coverage.redis-cluster-py
+      - name: Store coverage files
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: .coverage.redis-cluster-py
           path: coverage
           if-no-files-found: error
           include-hidden-files: true
@@ -468,41 +619,134 @@ jobs:
       - test-rabbit-real
       - test-nats-real
       - test-redis-real
+      - test-redis-cluster-real
+      - test-mqtt-real
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+          # diff-cover compares against the base branch
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "latest"
-      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Get coverage files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: .coverage*
           path: coverage
           merge-multiple: true
 
       - run: |
-          uv pip install --system coverage[toml] covdefaults
+          uv pip install --system coverage[toml] covdefaults diff-cover==10.5.1
 
       - run: ls -la coverage
       - run: coverage combine coverage
       - run: coverage report
       - run: coverage html --show-contexts --title "FastStream coverage for ${{ github.sha }}"
+      - run: coverage xml
+
+      # The total hides a PR that ships untested: 90% of the lines it changes
+      # in faststream/ have to run under some job of the matrix.
+      - name: Require the changed lines of faststream/ to be covered
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: >
+          diff-cover coverage.xml
+          --compare-branch "origin/$BASE_REF"
+          --include 'faststream/**'
+          --fail-under 90
+          --format markdown:diff-cover.md
+      - name: Show the diff coverage in the job summary
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          if [ -f diff-cover.md ]; then cat diff-cover.md >> "$GITHUB_STEP_SUMMARY"; fi
 
       - name: Store coverage html
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-html
           path: htmlcov
 
+  unused-fixtures:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "latest"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install Dependencies
+        run: |
+          uv pip install --system --group optionals --group testing .
+      # collection covers connected tests too, so no broker is needed
+      - name: Fail on fixtures no test requests
+        run: python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
+      - name: Fail on marks that drop a test from the job meant to run it
+        run: python -m pytest --collect-only -q -m "" -p tests.misplaced_marks
+
   # https://github.com/marketplace/actions/alls-green#why
+  docs:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # git-revision-date-localized reads every page's history under CI
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install Dependencies
+        run: uv pip install --system --group optionals --group docs .
+      - name: Build the guides strictly and check the built site
+        working-directory: docs
+        run: python docs.py check
+
+      # `docs` is a part of the `check` gate, and a third-party site going down
+      # is no reason to hold a merge: only a PR that edits the pages pays for
+      # their links. The nightly run checks them all the same.
+      - name: See whether the PR touches the pages
+        id: pages
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git diff --quiet "origin/$BASE_REF...HEAD" -- docs/docs/en README.md lychee.toml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check the external links of the guides and the README
+        if: github.event_name == 'schedule' || steps.pages.outputs.changed == 'true'
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --config lychee.toml 'docs/docs/en/**/*.md' README.md
+          fail: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   check: # This job does nothing and is only used for the branch protection
     # from: https://github.com/re-actors/alls-green
     # Important: For this to work properly, it is a must to have the job always
@@ -514,13 +758,15 @@ jobs:
 
     needs:
       - coverage-combine
+      - docs
       - test-macos-latest
       - test-windows-latest
+      - unused-fixtures
 
     runs-on: ubuntu-latest
 
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}

@@ -10,8 +10,11 @@ import anyio
 from typing_extensions import Unpack, override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
+from faststream._internal.types import IdGenerator
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
+from faststream.message import gen_cor_id
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.response import RabbitPublishCommand
 from faststream.rabbit.schemas import RABBIT_REPLY, RabbitExchange
@@ -25,6 +28,7 @@ if TYPE_CHECKING:
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncCallable,
         CustomCallable,
@@ -36,6 +40,8 @@ if TYPE_CHECKING:
 
 
 class LockState(Protocol):
+    __slots__ = ()
+
     @property
     def lock(self) -> "anyio.Lock": ...
 
@@ -57,7 +63,13 @@ class RealLock:
 
 
 class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
-    def connect(self, serializer: Optional["SerializerProto"] = None) -> None: ...
+    __slots__ = ()
+
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None: ...
 
     def disconnect(self) -> None: ...
 
@@ -77,10 +89,16 @@ class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
 
 
 class FakeAioPikaFastProducer(AioPikaFastProducer):
+    __slots__ = ()
+
     def __bool__(self) -> bool:
         return False
 
-    def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:
@@ -101,6 +119,16 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
 class AioPikaFastProducerImpl(AioPikaFastProducer):
     """A class for fast producing messages using aio-pika."""
 
+    __slots__ = (
+        "__lock",
+        "_decoder",
+        "_parser",
+        "codec",
+        "declarer",
+        "id_generator",
+        "serializer",
+    )
+
     _decoder: "AsyncCallable"
     _parser: "AsyncCallable"
 
@@ -110,22 +138,30 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         declarer: "RabbitDeclarer",
         parser: Optional["CustomCallable"],
         decoder: Optional["CustomCallable"],
+        id_generator: IdGenerator = gen_cor_id,
     ) -> None:
         self.declarer = declarer
+        self.id_generator = id_generator
 
         self.__lock: LockState = LockUnset()
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         default_parser = AioPikaParser()
         self._parser = ParserComposition(parser, default_parser.parse_message)
         self._decoder = ParserComposition(decoder, default_parser.decode_message)
 
-    def connect(self, serializer: Optional["SerializerProto"] = None) -> None:
+    def connect(
+        self,
+        serializer: Optional["SerializerProto"] = None,
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         """Lock initialization.
 
         Should be called in async context due `anyio.Lock` object can't be created outside event loop.
         """
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__lock = RealLock()
 
     def disconnect(self) -> None:
@@ -177,8 +213,12 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         timeout: "TimeoutType" = None,
         **message_options: Unpack["MessageOptions"],
     ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
-        message = AioPikaParser.encode_message(
-            message=message, serializer=self.serializer, **message_options
+        message = await AioPikaParser.encode_message(
+            message=message,
+            serializer=self.serializer,
+            codec=self.codec,
+            id_generator=self.id_generator,
+            **message_options,
         )
 
         exchange_obj = await self.declarer.declare_exchange(
@@ -198,28 +238,44 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
 class _RPCCallback:
     """A class provides an RPC lock."""
 
+    __slots__ = (
+        "consumer_tag",
+        "lock",
+        "queue",
+        "receive_response_stream",
+        "send_response_stream",
+    )
+
     def __init__(self, lock: "anyio.Lock", callback_queue: "RobustQueue") -> None:
         self.lock = lock
         self.queue = callback_queue
 
     async def __aenter__(self) -> "MemoryObjectReceiveStream[IncomingMessage]":
-        send_response_stream: MemoryObjectSendStream[AbstractIncomingMessage]
-        receive_response_stream: MemoryObjectReceiveStream[AbstractIncomingMessage]
+        self.send_response_stream: MemoryObjectSendStream[AbstractIncomingMessage]
+        self.receive_response_stream: MemoryObjectReceiveStream[AbstractIncomingMessage]
 
-        (
-            send_response_stream,
-            receive_response_stream,
-        ) = anyio.create_memory_object_stream(max_buffer_size=1)
         await self.lock.acquire()
 
-        self.consumer_tag = await self.queue.consume(
-            callback=send_response_stream.send,
-            no_ack=True,
-        )
+        (
+            self.send_response_stream,
+            self.receive_response_stream,
+        ) = anyio.create_memory_object_stream(max_buffer_size=1)
+
+        try:
+            self.consumer_tag = await self.queue.consume(
+                callback=self.send_response_stream.send,
+                no_ack=True,
+            )
+
+        except BaseException:
+            # `__aexit__` does not run when entering fails
+            self._close_streams()
+            self.lock.release()
+            raise
 
         return cast(
             "MemoryObjectReceiveStream[IncomingMessage]",
-            receive_response_stream,
+            self.receive_response_stream,
         )
 
     async def __aexit__(
@@ -229,4 +285,12 @@ class _RPCCallback:
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         self.lock.release()
-        await self.queue.cancel(self.consumer_tag)
+
+        try:
+            await self.queue.cancel(self.consumer_tag)
+        finally:
+            self._close_streams()
+
+    def _close_streams(self) -> None:
+        self.send_response_stream.close()
+        self.receive_response_stream.close()

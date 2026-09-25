@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class SubscriberState(Protocol):
+    __slots__ = ()
+
     @property
     def client(self) -> "Client": ...
 
@@ -22,6 +24,8 @@ class SubscriberState(Protocol):
 
 
 class EmptySubscriberState(SubscriberState):
+    __slots__ = ()
+
     @property
     def client(self) -> "Client":
         msg = "Connection is not available yet. Please, setup the subscriber first."
@@ -38,7 +42,7 @@ class EmptySubscriberState(SubscriberState):
         raise IncorrectState(msg)
 
     @kv_declarer.setter
-    def kv_declarer(self, v: "KVBucketDeclarer") -> None:
+    def kv_declarer(self, v: "KVBucketDeclarer") -> None:  # noqa: PLR6301
         msg = "Connection is not available yet. Please, setup the subscriber first."
         raise IncorrectState(msg)
 
@@ -48,12 +52,18 @@ class EmptySubscriberState(SubscriberState):
         raise IncorrectState(msg)
 
     @os_declarer.setter
-    def os_declarer(self, v: "OSBucketDeclarer") -> None:
+    def os_declarer(self, v: "OSBucketDeclarer") -> None:  # noqa: PLR6301
         msg = "Connection is not available yet. Please, setup the subscriber first."
         raise IncorrectState(msg)
 
 
 class ConnectedSubscriberState(SubscriberState):
+    __slots__ = (
+        "_parent_state",
+        "kv_declarer",
+        "os_declarer",
+    )
+
     def __init__(
         self,
         *,

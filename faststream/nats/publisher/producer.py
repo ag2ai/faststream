@@ -4,12 +4,14 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import anyio
 import nats
+from nats.aio.client import NO_RESPONDERS_STATUS
+from nats.js.api import Header
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.message import encode_message
 from faststream.nats.helpers.state import (
     ConnectedState,
     ConnectionState,
@@ -24,6 +26,7 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         AsyncCallable,
         CustomCallable,
@@ -32,10 +35,13 @@ if TYPE_CHECKING:
 
 
 class NatsFastProducer(ProducerProto[NatsPublishCommand]):
+    __slots__ = ()
+
     def connect(
         self,
         connection: Any,
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None: ...
 
     def disconnect(self) -> None: ...
@@ -46,6 +52,7 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
     @abstractmethod
     async def request(self, cmd: "NatsPublishCommand") -> "Msg": ...
 
+    @override
     async def publish_batch(self, cmd: "NatsPublishCommand") -> None:
         msg = "NATS doesn't support publishing in batches."
         raise FeatureNotSupportedException(msg)
@@ -53,6 +60,14 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
 
 class NatsFastProducerImpl(NatsFastProducer):
     """A class to represent a NATS producer."""
+
+    __slots__ = (
+        "__state",
+        "_decoder",
+        "_parser",
+        "codec",
+        "serializer",
+    )
 
     _decoder: "AsyncCallable"
     _parser: "AsyncCallable"
@@ -63,6 +78,7 @@ class NatsFastProducerImpl(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -74,8 +90,10 @@ class NatsFastProducerImpl(NatsFastProducer):
         self,
         connection: "Client",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__state = ConnectedState(connection)
 
     def disconnect(self) -> None:
@@ -83,7 +101,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -99,7 +117,7 @@ class NatsFastProducerImpl(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -117,6 +135,14 @@ class NatsFastProducerImpl(NatsFastProducer):
 class NatsJSFastProducer(NatsFastProducer):
     """A class to represent a NATS JetStream producer."""
 
+    __slots__ = (
+        "__state",
+        "_decoder",
+        "_parser",
+        "codec",
+        "serializer",
+    )
+
     _decoder: "AsyncCallable"
     _parser: "AsyncCallable"
 
@@ -127,6 +153,7 @@ class NatsJSFastProducer(NatsFastProducer):
         decoder: Optional["CustomCallable"],
     ) -> None:
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         default = NatsParser(pattern="", is_ack_disabled=True)
         self._parser = ParserComposition(parser, default.parse_message)
@@ -138,8 +165,10 @@ class NatsJSFastProducer(NatsFastProducer):
         self,
         connection: "JetStreamContext",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
         self.__state = ConnectedState(connection)
 
     def disconnect(self) -> None:
@@ -147,7 +176,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> "PubAck":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -164,7 +193,7 @@ class NatsJSFastProducer(NatsFastProducer):
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
-        payload, content_type = encode_message(cmd.body, self.serializer)
+        payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         reply_to = self.__state.connection._nc.new_inbox()
         future: asyncio.Future[Msg] = asyncio.Future()
@@ -193,11 +222,7 @@ class NatsJSFastProducer(NatsFastProducer):
             msg = await future
 
             if (  # pragma: no cover
-                msg.headers
-                and (
-                    msg.headers.get(nats.js.api.Header.STATUS)
-                    == nats.aio.client.NO_RESPONDERS_STATUS
-                )
+                msg.headers and (msg.headers.get(Header.STATUS) == NO_RESPONDERS_STATUS)
             ):
                 raise nats.errors.NoRespondersError
 
@@ -205,7 +230,14 @@ class NatsJSFastProducer(NatsFastProducer):
 
 
 class FakeNatsFastProducer(NatsFastProducer):
-    def connect(self, connection: Any, serializer: Optional["SerializerProto"]) -> None:
+    __slots__ = ()
+
+    def connect(
+        self,
+        connection: Any,
+        serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
+    ) -> None:
         raise NotImplementedError
 
     def disconnect(self) -> None:

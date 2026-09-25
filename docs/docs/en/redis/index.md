@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  FastStream Redis support: Pub/Sub channels, Streams with consumer groups and List queues
+  behind one asynchronous Python broker API.
 search:
   boost: 10
 ---
@@ -22,15 +25,15 @@ search:
 
 #### 1. Pub/Sub
 
-[**Redis Pub/Sub**](https://redis.io/docs/interact/pubsub/){.external-link target="_blank"} implements the Publish/Subscribe messaging paradigm where senders (publishers) are not programmed to send their messages to specific receivers (subscribers). Instead, published messages are characterized into channels, without knowledge of what (if any) subscribers there may be.
+[**Redis Pub/Sub**](https://redis.io/docs/latest/develop/pubsub/){.external-link target="_blank"} implements the Publish/Subscribe messaging paradigm where senders (publishers) are not programmed to send their messages to specific receivers (subscribers). Instead, published messages are characterized into channels, without knowledge of what (if any) subscribers there may be.
 
 #### 2. List
 
-In contrast, [**Redis List**](https://redis.io/docs/data-types/lists/#common-use-cases-for-lists){.external-link target="_blank"} capitalizes on a straightforward list data structure. Messages, pushed by producers, form a first-in, first-out (FIFO) queue. Consumers, in turn, retrieve messages from this ordered list, providing a simplified mechanism for sequential message processing.
+In contrast, [**Redis List**](https://redis.io/docs/latest/develop/data-types/lists/#common-use-cases-for-lists){.external-link target="_blank"} capitalizes on a straightforward list data structure. Messages, pushed by producers, form a first-in, first-out (FIFO) queue. Consumers, in turn, retrieve messages from this ordered list, providing a simplified mechanism for sequential message processing.
 
 #### 3. Streams
 
-[**Redis Streams**](https://redis.io/docs/data-types/streams/){.external-link target="_blank"} introduce a more advanced concept, embracing an append-only log-like structure. Messages, organized as entries, allow for nuanced features like consumer groups, enabling parallel processing, and acknowledgment for precise message handling. Streams excel in scenarios demanding scalability, persistence, and ordered message processing.
+[**Redis Streams**](https://redis.io/docs/latest/develop/data-types/streams/){.external-link target="_blank"} introduce a more advanced concept, embracing an append-only log-like structure. Messages, organized as entries, allow for nuanced features like consumer groups, enabling parallel processing, and acknowledgment for precise message handling. Streams excel in scenarios demanding scalability, persistence, and ordered message processing.
 
 Ultimately, the choice between **Pub/Sub**, **List**, or **Streams** hinges on the specific needs of the application. Redis Pub/Sub suits real-time communication, List offers simplicity in ordered processing, while Streams cater to complex, scalable, and ordered message handling, each providing tailored solutions based on distinct use case requirements.
 
@@ -39,6 +42,9 @@ Ultimately, the choice between **Pub/Sub**, **List**, or **Streams** hinges on t
 ### FastStream RedisBroker
 
 The **FastStream** `RedisBroker` is a key component of the **FastStream** framework that enables seamless integration with **Redis**. With the `RedisBroker`, developers can easily connect to **Redis** instances, publish messages to **Redis** channels, and subscribe to **Redis** channels within their **FastStream** applications.
+
+!!! tip "Redis Cluster Support"
+    For multi-node **Redis Cluster** deployments FastStream provides `RedisClusterBroker`. It is a drop-in replacement with the same API and supports List, Stream, Pub/Sub, and XAUTOCLAIM. See the [Cluster documentation](./cluster.md){.internal-link} for details.
 
 ### Establishing a Connection
 
@@ -58,4 +64,4 @@ Here's a simplified code example demonstrating how to establish a connection to 
 
 This minimal example illustrates how **FastStream** simplifies the process of connecting to **Redis** and performing basic message processing from the *in-channel* to the *out-channel*. Depending on your specific use case and requirements, you can further customize your **Redis** integration with **FastStream** to build efficient and responsive applications.
 
-For more advanced configuration options and detailed usage instructions, please refer to the **FastStream Redis** documentation and the [official Redis documentation](https://redis.io/documentation){.external-link target="_blank"}.
+For more advanced configuration options and detailed usage instructions, please refer to the **FastStream Redis** documentation and the [official Redis documentation](https://redis.io/docs/latest/){.external-link target="_blank"}.

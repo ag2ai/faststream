@@ -11,10 +11,12 @@ if TYPE_CHECKING:
 
 
 class AsyncAPI(SpecificationFactory):
+    """Unslotted, following `SpecificationFactory`: one of these exists per app."""
+
     def __init__(
         self,
-        broker: Optional["BrokerUsecase[Any, Any]"] = None,
         /,
+        *brokers: "BrokerUsecase[Any, Any, Any]",
         title: str = "FastStream",
         version: str = "0.1.0",
         description: str | None = None,
@@ -37,15 +39,15 @@ class AsyncAPI(SpecificationFactory):
         self.identifier = identifier
         self.schema_version = schema_version
 
-        self.brokers: list[BrokerUsecase[Any, Any]] = []
-        if broker:
-            self.add_broker(broker)
+        self.brokers: list[BrokerUsecase[Any, Any, Any]] = []
+        for br in brokers:
+            self.add_broker(br)
 
         self.http_handlers: list[tuple[str, HttpHandler]] = []
 
     def add_broker(
         self,
-        broker: "BrokerUsecase[Any, Any]",
+        broker: "BrokerUsecase[Any, Any, Any]",
         /,
     ) -> "SpecificationFactory":
         if broker not in self.brokers:
@@ -65,7 +67,7 @@ class AsyncAPI(SpecificationFactory):
             from .v3_0_0 import get_app_schema as schema_3_0
 
             return schema_3_0(
-                self.brokers[0],
+                *self.brokers,
                 title=self.title,
                 app_version=self.version,
                 schema_version=self.schema_version,
@@ -83,7 +85,7 @@ class AsyncAPI(SpecificationFactory):
             from .v2_6_0 import get_app_schema as schema_2_6
 
             return schema_2_6(
-                self.brokers[0],
+                *self.brokers,
                 title=self.title,
                 app_version=self.version,
                 schema_version=self.schema_version,

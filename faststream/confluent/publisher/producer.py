@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING, Any, Optional
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.exceptions import FeatureNotSupportedException
-from faststream.message import encode_message
 
 from .state import EmptyProducerState, ProducerState, RealProducer
 
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from confluent_kafka import Message
     from fast_depends.library.serializer import SerializerProto
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
     from faststream.confluent.helpers.client import AsyncConfluentProducer
 
@@ -25,19 +26,22 @@ if TYPE_CHECKING:
 class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     """A class to represent Kafka producer."""
 
+    __slots__ = ()
+
     def connect(
         self,
         producer: "AsyncConfluentProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None: ...
 
     def __bool__(self) -> bool:
         return False
 
-    async def disconnect(self) -> None:
+    async def disconnect(self) -> None:  # noqa: PLR6301
         return None
 
-    async def flush(self) -> None:
+    async def flush(self) -> None:  # noqa: PLR6301
         return None
 
     @abstractmethod
@@ -62,10 +66,13 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
 
 
 class FakeConfluentFastProducer(AsyncConfluentFastProducer):
+    __slots__ = ()
+
     def connect(
         self,
         producer: "AsyncConfluentProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         raise NotImplementedError
 
@@ -93,6 +100,14 @@ class FakeConfluentFastProducer(AsyncConfluentFastProducer):
 class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     """A class to represent Kafka producer."""
 
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "_producer",
+        "codec",
+        "serializer",
+    )
+
     def __init__(
         self,
         parser: Optional["CustomCallable"],
@@ -100,6 +115,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     ) -> None:
         self._producer: ProducerState = EmptyProducerState()
         self.serializer: SerializerProto | None = None
+        self.codec: CodecProto = DefaultCodec()
 
         # NOTE: register default parser to be compatible with request
         default = AsyncConfluentParser()
@@ -110,9 +126,11 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         self,
         producer: "AsyncConfluentProducer",
         serializer: Optional["SerializerProto"],
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         self._producer = RealProducer(producer)
         self.serializer = serializer
+        self.codec = codec or DefaultCodec()
 
     async def disconnect(self) -> None:
         await self._producer.stop()
@@ -133,7 +151,10 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        message, content_type = encode_message(cmd.body, serializer=self.serializer)
+        if cmd.body is None:
+            message, content_type = None, None
+        else:
+            message, content_type = await self.codec.encode(cmd.body, self.serializer)
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -157,9 +178,16 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
-        for msg in cmd.batch_bodies:
-            message, content_type = encode_message(msg, serializer=self.serializer)
+        if isinstance(self.codec, BatchCodecProto):
+            encoded_batch = await self.codec.encode_batch(
+                cmd.batch_bodies, self.serializer
+            )
+        else:
+            encoded_batch = [
+                await self.codec.encode(msg, self.serializer) for msg in cmd.batch_bodies
+            ]
 
+        for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:
                 final_headers = {
                     "content-type": content_type,
@@ -169,7 +197,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
                 final_headers = headers_to_send.copy()
 
             batch.append(
-                key=None,
+                key=cmd.key_for(message_position),
                 value=message,
                 timestamp=cmd.timestamp_ms,
                 headers=[(i, j.encode()) for i, j in final_headers.items()],

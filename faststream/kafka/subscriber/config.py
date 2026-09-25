@@ -11,14 +11,16 @@ from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from aiokafka import TopicPartition
     from aiokafka.abc import ConsumerRebalanceListener
+
+    from faststream.kafka.schemas import TopicPartition
 
 
 @dataclass(kw_only=True)
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     topics: Sequence[str] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
+    pattern: str | None = None
 
 
 @dataclass(kw_only=True)
@@ -32,33 +34,22 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     pattern: str | None = None
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
-    _auto_commit: bool = field(default_factory=lambda: EMPTY, repr=False)
-    _no_ack: bool = field(default_factory=lambda: EMPTY, repr=False)
-
     def __post_init__(self) -> None:
-        if self.ack_first:
-            self.connection_args["enable_auto_commit"] = True
+        self.connection_args["enable_auto_commit"] = self.ack_first
 
     @property
     def ack_first(self) -> bool:
-        return self.__ack_policy is AckPolicy.ACK_FIRST
+        return self.ack_policy is AckPolicy.ACK_FIRST
+
+    @property
+    def auto_ack_disabled(self) -> bool:
+        return self.ack_policy in {AckPolicy.MANUAL, AckPolicy.ACK_FIRST}
 
     @property
     def ack_policy(self) -> AckPolicy:
-        if (policy := self.__ack_policy) is AckPolicy.ACK_FIRST:
-            return AckPolicy.MANUAL
-
-        return policy
-
-    @property
-    def __ack_policy(self) -> AckPolicy:
-        if self._auto_commit is not EMPTY and self._auto_commit:
-            return AckPolicy.ACK_FIRST
-
-        if self._no_ack is not EMPTY and self._no_ack:
-            return AckPolicy.MANUAL
-
         if self._ack_policy is EMPTY:
+            if self._outer_config.ack_policy is not EMPTY:
+                return self._outer_config.ack_policy
             return AckPolicy.ACK_FIRST
 
         return self._ack_policy

@@ -43,9 +43,14 @@ Just use `pydantic.Field` as a function default argument:
     {!> docs_src/getting_started/subscription/redis/pydantic_fields.py !}
     ```
 
+=== "MQTT"
+    ```python linenums="1" hl_lines="12-17"
+    {!> docs_src/getting_started/subscription/mqtt/pydantic_fields.py !}
+    ```
+
 
 !!! tip
-    Also you can use `typing.Annotated` (python 3.9+) or `typing_extensions.Annotated` to declare your handler fields
+    Also, you can use `typing.Annotated` to declare your handler fields
 
     ```python
     {!> docs_src/getting_started/subscription/kafka/pydantic_annotated_fields.py [ln:14.5,15.5,16.5,17.5,18.5,19.5,20.5,21.5] !}
@@ -78,4 +83,9 @@ To make your message schema reusable between different subscribers and publisher
 === "Redis"
     ```python linenums="1" hl_lines="1 10 21"
     {!> docs_src/getting_started/subscription/redis/pydantic_model.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="1 10 21"
+    {!> docs_src/getting_started/subscription/mqtt/pydantic_model.py !}
     ```

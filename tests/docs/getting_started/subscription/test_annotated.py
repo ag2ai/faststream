@@ -3,21 +3,22 @@ from typing import Any, TypeAlias
 import pytest
 from pydantic import ValidationError
 
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.endpoint.subscriber import SubscriberUsecase
+from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream._internal.testing.broker import TestBroker
+from faststream.exceptions import SetupError
 from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
 
 Setup: TypeAlias = tuple[
-    BrokerUsecase[Any, Any],
-    SubscriberUsecase[Any],
-    type[TestBroker],
+    Any,
+    HandlerCallWrapper[..., Any],
+    type[TestBroker[Any]],
 ]
 
 
@@ -30,7 +31,9 @@ class BaseCase:
             await br.publish({"name": "John", "user_id": 1}, "test")
             handle.mock.assert_called_once_with({"name": "John", "user_id": 1})
 
-        assert not handle.mock.called  # mock is reset
+        # The mock leaves with the test broker
+        with pytest.raises(SetupError):
+            handle.mock.assert_not_called()
 
     async def test_validation_error(self, setup: Setup) -> None:
         broker, handle, test_class = setup
@@ -105,3 +108,16 @@ class TestRedis(BaseCase):
         from faststream.redis import TestRedisBroker
 
         return (broker, handle, TestRedisBroker)
+
+
+@require_mqtt
+class TestMQTT(BaseCase):
+    @pytest.fixture(scope="class")
+    def setup(self) -> Setup:
+        from docs.docs_src.getting_started.subscription.mqtt.pydantic_annotated_fields import (
+            broker,
+            handle,
+        )
+        from faststream.mqtt import TestMQTTBroker
+
+        return (broker, handle, TestMQTTBroker)

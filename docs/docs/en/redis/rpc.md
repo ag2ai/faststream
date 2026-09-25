@@ -19,7 +19,7 @@ search:
 
 In a traditional publish/subscribe setup, the publishing party sends messages without expecting any direct response from the subscribers. However, with RPC, the publisher sends a message and waits for a response from the subscriber, which can then be used for subsequent operations or processing.
 
-**FastStream** allows you to define RPC-style communication channels, lists, or streams by using the `RedisBroker`'s publishing function with the `rpc` flag set to `True`.
+**FastStream** allows you to perform RPC-style communication over channels, lists, or streams by using the `RedisBroker`'s `request()` method instead of `publish()`.
 
 ## Implementing Redis RPC in FastStream
 
@@ -77,9 +77,9 @@ async def handle(msg):
 When the client sends a request like this:
 
 ```python  linenums="1" hl_lines="3"
-from faststream.redis import RedisMessage
+from faststream.redis import RedisChannelMessage
 
-msg: RedisMessage = await broker.request(
+msg: RedisChannelMessage = await broker.request(
     "Hello, Redis!",
     channel="test-channel",
 )
@@ -117,9 +117,9 @@ async def handle(msg):
 When the client sends a request:
 
 ```python linenums="1" hl_lines="7-9"
-from faststream.redis import RedisMessage
+from faststream.redis import RedisChannelMessage
 
-msg: RedisMessage = await broker.request(
+msg: RedisChannelMessage = await broker.request(
     "Hello, Redis!",
     channel="test-channel",
 )
@@ -132,7 +132,7 @@ assert msg.correlation_id == "some-correlation-id"
 
 For Redis-specific use cases, you can use the `RedisResponse` class instead of the generic `Response` class.
 
-The `RedisResponse` class extends `Response` and adds support for specifying a `maxlen` parameter, which is useful when publishing responses to a Redis stream to limit the stream's length. This option could be helpful with Reply-To feature, when reply-to destination is a Redis stream.
+The `RedisResponse` class extends `Response` and adds support for specifying a `maxlen` parameter, which is useful when publishing responses to a Redis stream to limit the stream's length. This option could be helpful with the Reply-To feature, when the reply-to destination is a Redis stream.
 
 Below is an example of how to use the RedisResponse class in an RPC subscriber.
 

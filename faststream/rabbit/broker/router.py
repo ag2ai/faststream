@@ -1,8 +1,7 @@
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from aio_pika import IncomingMessage
-from typing_extensions import deprecated
 
 from faststream._internal.broker.router import (
     ArgsContainer,
@@ -19,13 +18,13 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
-        PublisherMiddleware,
-        SubscriberMiddleware,
     )
     from faststream.rabbit.schemas import (
+        Channel,
         RabbitExchange,
         RabbitQueue,
     )
@@ -50,14 +49,6 @@ class RabbitPublisher(ArgsContainer):
         persist: bool = False,
         reply_to: str | None = None,
         priority: int | None = None,
-        # basic args
-        middlewares: Annotated[
-            Sequence["PublisherMiddleware"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
         # AsyncAPI args
         title: str | None = None,
         description: str | None = None,
@@ -70,6 +61,7 @@ class RabbitPublisher(ArgsContainer):
         expiration: Optional["DateType"] = None,
         message_type: str | None = None,
         user_id: str | None = None,
+        persistent: bool = True,
     ) -> None:
         """Initialized RabbitPublisher.
 
@@ -98,8 +90,6 @@ class RabbitPublisher(ArgsContainer):
                 Reply message routing key to send with (always sending to default exchange).
             priority:
                 The message priority (0 by default).
-            middlewares:
-                Publisher middlewares to wrap outgoing messages.
             title:
                 AsyncAPI publisher object title.
             description:
@@ -120,6 +110,7 @@ class RabbitPublisher(ArgsContainer):
                 Application-specific message type, e.g. **orders.created**.
             user_id:
                 Publisher connection User ID, validated if set.
+            persistent: Whether to make the publisher persistent or not.
         """
         super().__init__(
             queue=queue,
@@ -137,13 +128,12 @@ class RabbitPublisher(ArgsContainer):
             expiration=expiration,
             message_type=message_type,
             user_id=user_id,
-            # basic args
-            middlewares=middlewares,
             # AsyncAPI args
             title=title,
             description=description,
             schema=schema,
             include_in_schema=include_in_schema,
+            persistent=persistent,
         )
 
 
@@ -163,29 +153,18 @@ class RabbitRoute(SubscriberRoute):
         publishers: Iterable[RabbitPublisher] = (),
         consume_args: dict[str, Any] | None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        middlewares: Annotated[
-            Sequence["SubscriberMiddleware[Any]"],
-            deprecated(
-                "This option was deprecated in 0.6.0. Use router-level middlewares instead."
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = (),
-        no_ack: Annotated[
-            bool,
-            deprecated(
-                "This option was deprecated in 0.6.0 to prior to **ack_policy=AckPolicy.MANUAL**. "
-                "Scheduled to remove in 0.7.0",
-            ),
-        ] = EMPTY,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
+        persistent: bool = True,
+        codec: Optional["CodecProto"] = None,
+        channel: Optional["Channel"] = None,
     ) -> None:
         """Initialized RabbitRoute.
 
@@ -210,11 +189,6 @@ class RabbitRoute(SubscriberRoute):
                 Parser to map original **IncomingMessage** Msg to FastStream one.
             decoder:
                 Function to decode FastStream msg bytes body to python objects.
-            middlewares:
-                Subscriber middlewares to wrap incoming message processing.
-            no_ack:
-                Whether to disable **FastStream** auto acknowledgement logic or not.
-                Scheduled to remove in 0.7.0
             ack_policy:
                 Acknowledgment policy for the subscriber (by default `MANUAL`).
             no_reply:
@@ -226,6 +200,9 @@ class RabbitRoute(SubscriberRoute):
                 Uses decorated docstring as default.
             include_in_schema:
                 Whetever to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the subscriber persistent or not.
+            codec: Custom codec object.
+            channel: Channel to use for consuming messages.
         """
         super().__init__(
             call,
@@ -236,17 +213,18 @@ class RabbitRoute(SubscriberRoute):
             dependencies=dependencies,
             parser=parser,
             decoder=decoder,
-            middlewares=middlewares,
             ack_policy=ack_policy,
-            no_ack=no_ack,
             no_reply=no_reply,
             title=title,
             description=description,
             include_in_schema=include_in_schema,
+            persistent=persistent,
+            codec=codec,
+            channel=channel,
         )
 
 
-class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage]):
+class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBrokerConfig]):
     """Includable to RabbitBroker router."""
 
     def __init__(
@@ -254,12 +232,13 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage]):
         prefix: str = "",
         handlers: Iterable[RabbitRoute] = (),
         *,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RabbitRegistrator] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
+        ack_policy: "AckPolicy" = EMPTY,
     ) -> None:
         """Initialized RabbitRouter.
 
@@ -279,12 +258,16 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage]):
             decoder:
                 Function to decode FastStream msg bytes body to python objects. Defaults to None.
             include_in_schema:
-                Whetever to include operation in AsyncAPI schema or not. Defaults to None.
+                Whetever to include operation in AsyncAPI schema or not.
+            ack_policy:
+                Default acknowledgement policy for all subscribers in this router.
+                Can be overridden at the subscriber level. Defaults to None.
         """
         super().__init__(
             handlers=handlers,
             config=RabbitBrokerConfig(
                 broker_middlewares=middlewares,
+                ack_policy=ack_policy,
                 broker_dependencies=dependencies,
                 broker_parser=parser,
                 broker_decoder=decoder,

@@ -39,15 +39,15 @@ class FakeConsumer:
 FAKE_CONSUMER = FakeConsumer()
 
 
-class KafkaRawMessage(ConsumerRecord):  # type: ignore[misc]
+class KafkaRawMessage(ConsumerRecord[Any, Any]):  # type: ignore[misc]
     consumer: AIOKafkaConsumer
 
 
 class KafkaMessage(
     StreamMessage[
         Union[
-            "ConsumerRecord",
-            tuple["ConsumerRecord", ...],
+            "ConsumerRecord[Any, Any]",
+            tuple["ConsumerRecord[Any, Any]", ...],
         ]
     ],
 ):
@@ -68,13 +68,14 @@ class KafkaAckableMessage(KafkaMessage):
         self.committed = None
 
     async def ack(self) -> None:
-        """Acknowledge the Kafka message."""
         if not self.committed:
             await self.consumer.commit()
         await super().ack()
 
+    async def reject(self) -> None:
+        await self.ack()
+
     async def nack(self) -> None:
-        """Reject the Kafka message."""
         if not self.committed:
             raw_message = (
                 self.raw_message[0]

@@ -14,6 +14,9 @@ search:
 
 **Redis Pub/Sub** is the default subscriber type in **FastStream**, so you can simply create a regular `#!python @broker.subscriber("channel_name")` with a channel name and it creates a subscriber using **Redis Pub/Sub**.
 
+!!! tip "Redis Cluster"
+    With `RedisClusterBroker`, channel subscribers use a synchronous `RedisCluster` client under the hood. See the [Cluster docs](../cluster.md){.internal-link}.
+
 In this example, we will build a FastStream application that listens to messages from the Redis channel named `#!python "test"`.
 
 The complete application code is presented below:
@@ -91,3 +94,19 @@ You can also use the **Redis Pub/Sub** pattern feature to encode some data direc
 ```python linenums="1" hl_lines="1 8 12"
 {! docs_src/redis/pub_sub/pattern_data.py !}
 ```
+
+### Literal braces
+{% raw %}
+
+If your channel name legitimately contains `{` or `}` characters, escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
+
+```python
+channel = PubSub("cache{{shard}}.logs.{level}")
+
+@broker.subscriber(channel)
+async def handler(body: str, level: str = Path()):
+    ...
+```
+{% endraw %}
+
+This subscribes to the channel `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.

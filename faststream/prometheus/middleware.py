@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Generic
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.middlewares import BaseMiddleware
-from faststream._internal.types import AnyMsg, PublishCommandType
+from faststream._internal.types import AnyMsg, BrokerMiddleware, PublishCommandType
 from faststream.exceptions import IgnoredException
 from faststream.message import SourceType
 from faststream.prometheus.consts import (
@@ -25,8 +25,14 @@ if TYPE_CHECKING:
     from faststream.message.message import StreamMessage
 
 
-class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
-    __slots__ = ("_metrics_container", "_metrics_manager", "_settings_provider_factory")
+class PrometheusMiddleware(BrokerMiddleware[AnyMsg, PublishCommandType]):
+    __slots__ = (
+        "_dynamic_labels",
+        "_metrics_container",
+        "_metrics_manager",
+        "_settings_provider_factory",
+        "_static_labels",
+    )
 
     def __init__(
         self,
@@ -39,6 +45,7 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
         app_name: str = EMPTY,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Sequence[float] | None = None,
+        custom_labels: dict[str, str | Callable[[Any], str]] | None = None,
     ) -> None:
         if app_name is EMPTY:
             app_name = metrics_prefix
@@ -48,11 +55,20 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
             registry,
             metrics_prefix=metrics_prefix,
             received_messages_size_buckets=received_messages_size_buckets,
+            custom_label_names=tuple((custom_labels or {}).keys()),
         )
         self._metrics_manager = MetricsManager(
             self._metrics_container,
             app_name=app_name,
         )
+        self._static_labels = {}
+        self._dynamic_labels = {}
+
+        for k, v in (custom_labels or {}).items():
+            if callable(v):
+                self._dynamic_labels[k] = v
+            else:
+                self._static_labels[k] = v
 
     def __call__(
         self,
@@ -66,6 +82,8 @@ class PrometheusMiddleware(Generic[PublishCommandType, AnyMsg]):
             metrics_manager=self._metrics_manager,
             settings_provider_factory=self._settings_provider_factory,
             context=context,
+            custom_labels=self._static_labels
+            | {k: v(msg) for k, v in self._dynamic_labels.items()},
         )
 
 
@@ -73,6 +91,8 @@ class BasePrometheusMiddleware(
     BaseMiddleware[PublishCommandType, AnyMsg],
     Generic[PublishCommandType, AnyMsg],
 ):
+    __slots__ = ("_custom_labels", "_metrics_manager", "_settings_provider")
+
     def __init__(
         self,
         msg: AnyMsg | None,
@@ -84,9 +104,11 @@ class BasePrometheusMiddleware(
         ],
         metrics_manager: MetricsManager,
         context: "ContextRepo",
+        custom_labels: dict[str, str],
     ) -> None:
         self._metrics_manager = metrics_manager
         self._settings_provider = settings_provider_factory(msg)
+        self._custom_labels = custom_labels
         super().__init__(msg, context=context)
 
     async def consume_scope(
@@ -105,25 +127,28 @@ class BasePrometheusMiddleware(
             amount=consume_attrs["messages_count"],
             broker=messaging_system,
             handler=destination_name,
+            **self._custom_labels,
         )
 
         self._metrics_manager.observe_received_messages_size(
             size=consume_attrs["message_size"],
             broker=messaging_system,
             handler=destination_name,
+            **self._custom_labels,
         )
 
         self._metrics_manager.add_received_message_in_process(
             amount=consume_attrs["messages_count"],
             broker=messaging_system,
             handler=destination_name,
+            **self._custom_labels,
         )
 
         err: Exception | None = None
         start_time = time.perf_counter()
 
         try:
-            result = await call_next(await self.on_consume(msg))
+            result = await call_next(msg)
 
         except Exception as e:
             err = e
@@ -133,6 +158,7 @@ class BasePrometheusMiddleware(
                     exception_type=type(err).__name__,
                     broker=messaging_system,
                     handler=destination_name,
+                    **self._custom_labels,
                 )
             raise
 
@@ -142,12 +168,14 @@ class BasePrometheusMiddleware(
                 duration=duration,
                 broker=messaging_system,
                 handler=destination_name,
+                **self._custom_labels,
             )
 
             self._metrics_manager.remove_received_message_in_process(
                 amount=consume_attrs["messages_count"],
                 broker=messaging_system,
                 handler=destination_name,
+                **self._custom_labels,
             )
 
             status = ProcessingStatus.acked
@@ -164,6 +192,7 @@ class BasePrometheusMiddleware(
                 status=status,
                 broker=messaging_system,
                 handler=destination_name,
+                **self._custom_labels,
             )
 
         return result
@@ -193,6 +222,7 @@ class BasePrometheusMiddleware(
                 exception_type=type(err).__name__,
                 broker=messaging_system,
                 destination=destination_name,
+                **self._custom_labels,
             )
             raise
 
@@ -203,6 +233,7 @@ class BasePrometheusMiddleware(
                 duration=duration,
                 broker=messaging_system,
                 destination=destination_name,
+                **self._custom_labels,
             )
 
             status = PublishingStatus.error if err else PublishingStatus.success
@@ -212,6 +243,7 @@ class BasePrometheusMiddleware(
                 status=status,
                 broker=messaging_system,
                 destination=destination_name,
+                **self._custom_labels,
             )
 
         return result

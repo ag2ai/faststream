@@ -40,7 +40,7 @@ To publish messages to a Redis Stream, you implement a function that processes t
     {!> docs_src/redis/stream/pub.py [ln:17-20] !}
     ```
 
-    By decorating a function with `#!python @broker.publisher(...)`, we tell FastStream to publish the function's returned data to the designated `#!python "output stream"`. The defined function also serves as a subscriber to the `#!python "input-stream"`, thereby setting up a straightforward data pipeline within Redis streams.
+    By decorating a function with `#!python @broker.publisher(...)`, we tell FastStream to publish the function's returned data to the designated `#!python "output-stream"`. The defined function also serves as a subscriber to the `#!python "input-stream"`, thereby setting up a straightforward data pipeline within Redis streams.
 
 Here's the complete example that showcases the use of decorators for both subscribing and publishing to Redis streams:
 

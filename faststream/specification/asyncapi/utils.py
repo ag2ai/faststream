@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import quote
 
 
 def to_camelcase(*names: str) -> str:
@@ -46,6 +47,15 @@ def resolve_payloads(
 
 def clear_key(key: str) -> str:
     return key.replace("/", ".")
+
+
+def ref(*parts: str) -> dict[str, str]:
+    return {"$ref": "#/" + "/".join(_encode_json_pointer_part(p) for p in parts)}
+
+
+def _encode_json_pointer_part(part: str) -> str:
+    pointer_part = part.replace("~", "~0").replace("/", "~1")
+    return quote(pointer_part, safe="~:._-")
 
 
 def move_pydantic_refs(

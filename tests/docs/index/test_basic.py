@@ -4,6 +4,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -81,6 +82,22 @@ async def test_index_redis_base() -> None:
 
     async with TestRedisBroker(broker) as br:
         await br.publish({"user": "John", "user_id": 1}, "in-channel")
+
+        handle_msg.mock.assert_called_once_with({"user": "John", "user_id": 1})
+
+        list(br.publishers)[0].mock.assert_called_once_with(  # noqa: RUF015
+            "User: 1 - John registered",
+        )
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_index_mqtt_base() -> None:
+    from docs.docs_src.index.mqtt.basic import broker, handle_msg
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker) as br:
+        await br.publish({"user": "John", "user_id": 1}, "in-topic")
 
         handle_msg.mock.assert_called_once_with({"user": "John", "user_id": 1})
 

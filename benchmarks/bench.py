@@ -3,7 +3,7 @@ import csv
 import platform
 import sys
 import time
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -20,8 +20,13 @@ class TestCase(Protocol):
     broker_type: str
     comment: str
 
+    def setup_method(self) -> None: ...
+
     @asynccontextmanager
-    async def start(self) -> AsyncIterator[float]: ...
+    def start(self) -> AsyncGenerator[float, None]: ...
+
+    @asynccontextmanager
+    def test_consume_message(self) -> AsyncGenerator[None, None]: ...
 
 
 @dataclass
@@ -57,9 +62,11 @@ async def main(case: TestCase, measure_time: int) -> MeasureResult:
 
 
 if __name__ == "__main__":
-    from rabbit_cases.basic import RabbitTestCase
+    from rabbit_cases.test_aiopika import TestRabbitCase
 
-    case: TestCase = RabbitTestCase()
+    case: TestCase = TestRabbitCase()
+
+    case.setup_method()
 
     bench_file = Path(__file__).resolve().parent / "benches.csv"
 

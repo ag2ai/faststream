@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from faststream._internal.middlewares import BaseMiddleware
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class CriticalLogMiddleware:
+    __slots__ = ("logger",)
+
     def __init__(self, logger: "LoggerState") -> None:
         """Initialize the class."""
         self.logger = logger
@@ -34,6 +37,8 @@ class CriticalLogMiddleware:
 
 class _LoggingMiddleware(BaseMiddleware):
     """A middleware class for logging critical errors."""
+
+    __slots__ = ("logger", "source_type")
 
     def __init__(
         self,
@@ -82,6 +87,7 @@ class _LoggingMiddleware(BaseMiddleware):
                 else:
                     self.logger.log(
                         message=f"{exc_type.__name__}: {exc_val}",
+                        log_level=logging.ERROR,
                         exc_info=exc_val,
                         extra=c,
                     )

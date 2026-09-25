@@ -1,6 +1,7 @@
+import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 import pydantic
 import pytest
@@ -10,8 +11,6 @@ from fastapi import Depends as APIDepends
 
 from faststream import Context
 from faststream._internal._compat import PYDANTIC_V2
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.fastapi import StreamRouter
 from tests.marks import pydantic_v2
 
 from .basic import AsyncAPI300Factory
@@ -20,33 +19,55 @@ from .basic import AsyncAPI300Factory
 class FastAPICompatible(AsyncAPI300Factory):
     is_fastapi: bool = False
 
-    broker_class: BrokerUsecase | StreamRouter
-    dependency_builder = staticmethod(APIDepends)
+    broker_class: Any
+    dependency_builder: Any = staticmethod(APIDepends)
+
+    def test_default_naming(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("test")
+        async def handle(msg: Any) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+
+        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
+
+        assert channel_key == IsStr(regex=r"test[\w:]*:Handle"), channel_key
+        assert operation_key == IsStr(regex=r"test[\w:]*:HandleSubscribe"), operation_key
 
     def test_custom_naming(self) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test", title="custom_name", description="test description")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
 
-        assert key == "custom_name"
-        assert schema["channels"][key]["description"] == "test description"
+        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
+
+        assert channel_key == "custom_name"
+        assert operation_key == "custom_name"
+
+        assert schema["channels"][channel_key]["description"] == "test description"
 
     def test_slash_in_title(self) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test", title="/")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert next(iter(schema["channels"].keys())) == "."
-        assert schema["channels"]["."]["address"] == "/"
+        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
 
-        assert next(iter(schema["operations"].keys())) == ".Subscribe"
+        assert channel_key == "."
+        # the title names the channel; `address` stays the address subscribed to
+        assert schema["channels"][channel_key]["address"] == "test"
+
+        assert operation_key == ".Subscribe"
 
         assert next(iter(schema["components"]["messages"].keys())) == ".:SubscribeMessage"
         assert (
@@ -64,7 +85,7 @@ class FastAPICompatible(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test", title="custom_name")
-        async def handle(msg) -> None:
+        async def handle(msg: Any) -> None:
             """Test description."""
 
         schema = self.get_spec(broker).to_jsonable()
@@ -96,7 +117,7 @@ class FastAPICompatible(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -167,7 +188,7 @@ class FastAPICompatible(AsyncAPI300Factory):
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg, another) -> None: ...
+        async def handle(msg: Any, another: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -443,10 +464,10 @@ class FastAPICompatible(AsyncAPI300Factory):
         publisher = broker.publisher("test")
 
         @publisher
-        def handle0(msg) -> User: ...
+        def handle0(msg: Any) -> User: ...
 
         @publisher
-        def handle1(msg) -> Other: ...
+        def handle1(msg: Any) -> Other: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -513,7 +534,7 @@ class FastAPICompatible(AsyncAPI300Factory):
         async def handle(id: int) -> None: ...
 
         @sub
-        async def handle_default(msg) -> None: ...
+        async def handle_default(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -532,17 +553,17 @@ class FastAPICompatible(AsyncAPI300Factory):
     def test_ignores_depends(self) -> None:
         broker = self.broker_class()
 
-        def dep(name: str = ""):
+        def dep(name: str = "") -> Any:
             return name
 
-        def dep2(name2: str):
+        def dep2(name2: str) -> Any:
             return name2
 
         dependencies = (self.dependency_builder(dep2),)
         message = self.dependency_builder(dep)
 
         @broker.subscriber("test", dependencies=dependencies)
-        async def handle(id: int, message=message) -> None: ...
+        async def handle(id: int, message: Any = message) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -574,7 +595,7 @@ class FastAPICompatible(AsyncAPI300Factory):
         @broker.subscriber("test")
         async def handle(
             user: Annotated[Sub2 | Sub, pydantic.Field(discriminator="type")],
-        ): ...
+        ) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -697,7 +718,7 @@ class FastAPICompatible(AsyncAPI300Factory):
 
 
 class ArgumentsTestcase(FastAPICompatible):
-    dependency_builder = staticmethod(Depends)
+    dependency_builder: Any = staticmethod(Depends)
 
     def test_pydantic_field(self) -> None:
         broker = self.broker_class()
@@ -735,7 +756,7 @@ class ArgumentsTestcase(FastAPICompatible):
         async def handle(
             id: int,
             user: str | None = None,
-            message=Context(),
+            message: Any = Context(),
         ) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
@@ -769,6 +790,10 @@ class ArgumentsTestcase(FastAPICompatible):
                 },
             )
 
+    @pytest.mark.skipif(
+        sys.version_info >= (3, 14),
+        reason="Python 3.14 disallows redefining a class with the same name",
+    )
     def test_overwrite_schema(self) -> None:
         @dataclass
         class User:
@@ -781,7 +806,7 @@ class ArgumentsTestcase(FastAPICompatible):
         async def handle(user: User) -> None: ...
 
         @dataclass
-        class User:
+        class User:  # type: ignore[no-redef]
             id: int
             email: str = ""
 

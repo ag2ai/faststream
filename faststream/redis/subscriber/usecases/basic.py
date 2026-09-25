@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
 
 import anyio
 from typing_extensions import override
@@ -32,9 +32,16 @@ if TYPE_CHECKING:
 TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
+# Delay (seconds) before a subscriber retries after a message-fetch error.
+# Shared by all Redis subscriber loops to avoid busy-looping on persistent
+# connection errors (e.g. while a Sentinel pool fails over to a new master).
+CONSUME_ERROR_BACKOFF_SECONDS = 5
+
 
 class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
+
+    __slots__ = ("config",)
 
     _outer_config: "RedisBrokerConfig"
 
@@ -49,7 +56,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     @property
     def _client(self) -> "Redis[bytes]":
-        return self._outer_config.connection.client
+        return cast("Redis[bytes]", self._outer_config.connection.client)
 
     def _make_response_publisher(
         self,
@@ -68,9 +75,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
         self,
         *args: Any,
     ) -> None:
-        if self.tasks:
-            return
-
         await super().start()
 
         self._post_start()
@@ -103,7 +107,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
                 if connected:
                     connected = False
 
-                await anyio.sleep(5)
+                await anyio.sleep(CONSUME_ERROR_BACKOFF_SECONDS)
 
             else:
                 if not connected:
@@ -136,6 +140,8 @@ class ConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     LogicSubscriber,
 ):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",

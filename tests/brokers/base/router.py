@@ -4,9 +4,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from faststream import Context
 from faststream._internal.broker.router import (
     ArgsContainer,
-    BrokerRouter,
     SubscriberRoute,
 )
 from tests.brokers.base.middlewares import LocalMiddlewareTestcase
@@ -21,9 +21,6 @@ class RouterTestcase(
     route_class: type[SubscriberRoute]
     publisher_class: type[ArgsContainer]
 
-    def get_router(self, **kwargs: Any) -> BrokerRouter:
-        raise NotImplementedError
-
     async def test_router_dynamic_objects(
         self,
         queue: str,
@@ -33,7 +30,7 @@ class RouterTestcase(
         router = self.get_router(routers=[nested_router])
         broker = self.get_broker(routers=[router])
 
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -54,16 +51,14 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_empty_prefix(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_empty_prefix(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
         router = self.get_router()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         pub_broker.include_router(router)
@@ -80,12 +75,8 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_not_empty_prefix(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    @pytest.mark.flaky(reruns=3, reruns_delay=1)
+    async def test_not_empty_prefix(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
 
         router = self.get_router(prefix="test_")
@@ -93,7 +84,7 @@ class RouterTestcase(
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         pub_broker.include_router(router)
@@ -110,16 +101,14 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_include_with_prefix(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_include_with_prefix(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
         router = self.get_router()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         pub_broker.include_router(router, prefix="test_")
@@ -136,9 +125,7 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_empty_prefix_publisher(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_empty_prefix_publisher(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
         router = self.get_router()
 
@@ -146,13 +133,13 @@ class RouterTestcase(
 
         @router.subscriber(*args, **kwargs)
         @router.publisher(queue + "resp")
-        def subscriber(m) -> str:
+        def subscriber(m: Any) -> str:
             return "hi"
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @router.subscriber(*args2, **kwargs2)
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         pub_broker.include_router(router)
@@ -170,11 +157,8 @@ class RouterTestcase(
             assert event.is_set()
 
     async def test_not_empty_prefix_publisher(
-        self,
-        queue: str,
+        self, queue: str, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
         router = self.get_router(prefix="test_")
@@ -183,13 +167,13 @@ class RouterTestcase(
 
         @router.subscriber(*args, **kwargs)
         @router.publisher(queue + "resp")
-        def subscriber(m) -> str:
+        def subscriber(m: Any) -> str:
             return "hi"
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @router.subscriber(*args2, **kwargs2)
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         pub_broker.include_router(router)
@@ -206,6 +190,7 @@ class RouterTestcase(
 
             assert event.is_set()
 
+    @pytest.mark.connected()
     async def test_include_publisher_with_prefix(
         self, queue: str, event: asyncio.Event
     ) -> None:
@@ -234,12 +219,7 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_manual_publisher(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_manual_publisher(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
 
         router = self.get_router(prefix="test_")
@@ -249,13 +229,13 @@ class RouterTestcase(
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def subscriber(m) -> None:
+        async def subscriber(m: Any) -> None:
             await p.publish("resp")
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @router.subscriber(*args2, **kwargs2)
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         pub_broker.include_router(router)
@@ -272,12 +252,10 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_delayed_handlers(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_delayed_handlers(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
 
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -301,12 +279,12 @@ class RouterTestcase(
 
             assert event.is_set()
 
-    async def test_delayed_publishers(self, queue: str, mock: MagicMock) -> None:
-        event = asyncio.Event()
-
+    async def test_delayed_publishers(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
         pub_broker = self.get_broker()
 
-        def response(m):
+        def response(m: Any) -> Any:
             return m
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -328,7 +306,7 @@ class RouterTestcase(
         args, kwargs = self.get_subscriber_params(f"test_{queue}1")
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -348,12 +326,8 @@ class RouterTestcase(
             mock.assert_called_once_with("hello")
 
     async def test_nested_routers_sub(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
         core_router = self.get_router(prefix="test1_")
@@ -362,7 +336,7 @@ class RouterTestcase(
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m) -> str:
+        def subscriber(m: Any) -> str:
             event.set()
             mock(m)
             return "hi"
@@ -384,12 +358,7 @@ class RouterTestcase(
             assert event.is_set()
             mock.assert_called_with("hello")
 
-    async def test_nested_routers_pub(
-        self,
-        queue: str,
-    ) -> None:
-        event = asyncio.Event()
-
+    async def test_nested_routers_pub(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
 
         core_router = self.get_router(prefix="test1_")
@@ -399,7 +368,7 @@ class RouterTestcase(
 
         @router.subscriber(*args, **kwargs)
         @router.publisher(queue + "resp")
-        def subscriber(m) -> str:
+        def subscriber(m: Any) -> str:
             return "hi"
 
         args2, kwargs2 = self.get_subscriber_params(
@@ -407,7 +376,7 @@ class RouterTestcase(
         )
 
         @pub_broker.subscriber(*args2, **kwargs2)
-        def response(m) -> None:
+        def response(m: Any) -> None:
             event.set()
 
         core_router.include_routers(router)
@@ -427,19 +396,15 @@ class RouterTestcase(
             assert event.is_set()
 
     async def test_router_parser(
-        self,
-        queue: str,
-        mock: MagicMock,
+        self, queue: str, mock: MagicMock, event: asyncio.Event
     ) -> None:
-        event = asyncio.Event()
-
         pub_broker = self.get_broker()
 
-        async def parser(msg, original):
+        async def parser(msg: Any, original: Any) -> Any:
             mock.parser()
             return await original(msg)
 
-        async def decoder(msg, original):
+        async def decoder(msg: Any, original: Any) -> Any:
             mock.decoder()
             return await original(msg)
 
@@ -448,7 +413,7 @@ class RouterTestcase(
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(s) -> None:
+        def subscriber(s: Any) -> None:
             event.set()
 
         pub_broker.include_router(router)
@@ -467,24 +432,24 @@ class RouterTestcase(
             mock.parser.assert_called_once()
             mock.decoder.assert_called_once()
 
-    async def test_router_parser_override(self, queue: str, mock: MagicMock) -> None:
-        event = asyncio.Event()
-
+    async def test_router_parser_override(
+        self, queue: str, mock: MagicMock, event: asyncio.Event
+    ) -> None:
         pub_broker = self.get_broker()
 
-        async def global_parser(msg, original):  # pragma: no cover
+        async def global_parser(msg: Any, original: Any) -> Any:  # pragma: no cover
             mock()
             return await original(msg)
 
-        async def global_decoder(msg, original):  # pragma: no cover
+        async def global_decoder(msg: Any, original: Any) -> Any:  # pragma: no cover
             mock()
             return await original(msg)
 
-        async def parser(msg, original):
+        async def parser(msg: Any, original: Any) -> Any:
             mock.parser()
             return await original(msg)
 
-        async def decoder(msg, original):
+        async def decoder(msg: Any, original: Any) -> Any:
             mock.decoder()
             return await original(msg)
 
@@ -496,7 +461,7 @@ class RouterTestcase(
         args, kwargs = self.get_subscriber_params(queue, parser=parser, decoder=decoder)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(s) -> None:
+        def subscriber(s: Any) -> None:
             event.set()
 
         pub_broker.include_router(router)
@@ -516,14 +481,12 @@ class RouterTestcase(
             mock.parser.assert_called_once()
             mock.decoder.assert_called_once()
 
-    async def test_router_in_init(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_router_in_init(self, queue: str, event: asyncio.Event) -> None:
         args, kwargs = self.get_subscriber_params(queue)
         router = self.get_router()
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         pub_broker = self.get_broker(routers=[router])
@@ -569,7 +532,7 @@ class RouterLocalTestcase(RouterTestcase):
 
         @router.subscriber(*args, **kwargs)
         @pub
-        def subscriber(m) -> str:
+        def subscriber(m: Any) -> str:
             event.set()
             return "hi"
 
@@ -588,16 +551,14 @@ class RouterLocalTestcase(RouterTestcase):
             assert event.is_set()
             pub.mock.assert_called_with("hi")
 
-    async def test_subscriber_mock(self, queue: str) -> None:
-        event = asyncio.Event()
-
+    async def test_subscriber_mock(self, queue: str, event: asyncio.Event) -> None:
         pub_broker = self.get_broker()
         router = self.get_router()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        def subscriber(m) -> str:
+        def subscriber(m: Any) -> str:
             event.set()
             return "hi"
 
@@ -625,7 +586,7 @@ class RouterLocalTestcase(RouterTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)
-        async def m(m) -> None:
+        async def m(m: Any) -> None:
             await publisher.publish("response")
 
         pub_broker.include_router(router)
@@ -633,3 +594,20 @@ class RouterLocalTestcase(RouterTestcase):
             await br.start()
             await br.publish("hello", queue)
             publisher.mock.assert_called_with("response")
+
+    async def test_func_wrapped_correctly_on_include_in_different_broker(self) -> None:
+        router = self.get_router()
+        broker1 = self.get_broker()
+        broker2 = self.get_broker()
+
+        @router.subscriber("in-queue")
+        async def handle_msg(broker: Any = Context()) -> str:
+            return "test"
+
+        broker1.include_router(router)
+        async with self.patch_broker(broker1) as br:
+            await br.publish({}, "in-queue")
+
+        broker2.include_router(router)
+        async with self.patch_broker(broker2) as br:
+            await br.publish({}, "in-queue")

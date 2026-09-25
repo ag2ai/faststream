@@ -32,6 +32,16 @@ if TYPE_CHECKING:
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
+    __slots__ = (
+        "__no_ack",
+        "_consumer_tag",
+        "_queue_obj",
+        "channel",
+        "consume_args",
+        "exchange",
+        "queue",
+    )
+
     _outer_config: "RabbitBrokerConfig"
 
     def __init__(
@@ -82,8 +92,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         if (
-            self.exchange is not None
-            and queue_to_bind.declare  # queue just getted from RMQ
+            queue_to_bind.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
             exchange = await declarer.declare_exchange(
@@ -148,26 +157,28 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
             ),
-            parser=self._parser,
-            decoder=self._decoder,
+            parser=async_parser,
+            decoder=async_decoder,
         )
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["RabbitMessage"]:
         assert self._queue_obj, "You should start subscriber at first."
         assert not self.calls, (
             "You can't use iterator method if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
 
         async with self._queue_obj.iterator() as queue_iter:
             async for raw_message in queue_iter:
@@ -178,8 +189,8 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                     middlewares=(
                         m(raw_message, context=context) for m in self._broker_middlewares
                     ),
-                    parser=self._parser,
-                    decoder=self._decoder,
+                    parser=async_parser,
+                    decoder=async_decoder,
                 )
                 yield msg
 

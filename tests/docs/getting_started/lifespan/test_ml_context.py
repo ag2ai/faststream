@@ -5,6 +5,7 @@ from tests.marks import (
     require_aiokafka,
     require_aiopika,
     require_confluent,
+    require_mqtt,
     require_nats,
     require_redis,
 )
@@ -85,6 +86,22 @@ async def test_redis_ml_lifespan() -> None:
     from faststream.redis import TestRedisBroker
 
     async with TestRedisBroker(broker), TestApp(app):
+        assert await (await broker.request(1.0, "test")).decode() == {"result": 42.0}
+
+        predict.mock.assert_called_once_with(1.0)
+
+
+@pytest.mark.asyncio()
+@require_mqtt
+async def test_mqtt_ml_lifespan() -> None:
+    from docs.docs_src.getting_started.lifespan.mqtt.ml_context import (
+        app,
+        broker,
+        predict,
+    )
+    from faststream.mqtt import TestMQTTBroker
+
+    async with TestMQTTBroker(broker), TestApp(app):
         assert await (await broker.request(1.0, "test")).decode() == {"result": 42.0}
 
         predict.mock.assert_called_once_with(1.0)

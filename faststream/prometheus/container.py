@@ -44,18 +44,19 @@ class MetricsContainer:
         *,
         metrics_prefix: str = "faststream",
         received_messages_size_buckets: Sequence[float] | None = None,
+        custom_label_names: Sequence[str],
     ) -> None:
         self._registry = registry
         self._metrics_prefix = metrics_prefix
 
         received_messages_total_name = f"{metrics_prefix}_received_messages_total"
         self.received_messages_total = cast(
-            "Counter",
+            "Counter | None",
             self._get_registered_metric(received_messages_total_name),
         ) or Counter(
             name=received_messages_total_name,
             documentation="Count of received messages by broker and handler",
-            labelnames=["app_name", "broker", "handler"],
+            labelnames=["app_name", "broker", "handler", *custom_label_names],
             registry=registry,
         )
 
@@ -63,12 +64,12 @@ class MetricsContainer:
             f"{metrics_prefix}_received_messages_size_bytes"
         )
         self.received_messages_size_bytes = cast(
-            "Histogram",
+            "Histogram | None",
             self._get_registered_metric(received_messages_size_bytes_name),
         ) or Histogram(
             name=received_messages_size_bytes_name,
             documentation="Histogram of received messages size in bytes by broker and handler",
-            labelnames=["app_name", "broker", "handler"],
+            labelnames=["app_name", "broker", "handler", *custom_label_names],
             registry=registry,
             buckets=received_messages_size_buckets or self.DEFAULT_SIZE_BUCKETS,
         )
@@ -77,12 +78,12 @@ class MetricsContainer:
             f"{metrics_prefix}_received_messages_in_process"
         )
         self.received_messages_in_process = cast(
-            "Gauge",
+            "Gauge | None",
             self._get_registered_metric(received_messages_in_process_name),
         ) or Gauge(
             name=received_messages_in_process_name,
             documentation="Gauge of received messages in process by broker and handler",
-            labelnames=["app_name", "broker", "handler"],
+            labelnames=["app_name", "broker", "handler", *custom_label_names],
             registry=registry,
         )
 
@@ -90,12 +91,12 @@ class MetricsContainer:
             f"{metrics_prefix}_received_processed_messages_total"
         )
         self.received_processed_messages_total = cast(
-            "Counter",
+            "Counter | None",
             self._get_registered_metric(received_processed_messages_total_name),
         ) or Counter(
             name=received_processed_messages_total_name,
             documentation="Count of received processed messages by broker, handler and status",
-            labelnames=["app_name", "broker", "handler", "status"],
+            labelnames=["app_name", "broker", "handler", "status", *custom_label_names],
             registry=registry,
         )
 
@@ -103,14 +104,14 @@ class MetricsContainer:
             f"{metrics_prefix}_received_processed_messages_duration_seconds"
         )
         self.received_processed_messages_duration_seconds = cast(
-            "Histogram",
+            "Histogram | None",
             self._get_registered_metric(
                 received_processed_messages_duration_seconds_name,
             ),
         ) or Histogram(
             name=received_processed_messages_duration_seconds_name,
             documentation="Histogram of received processed messages duration in seconds by broker and handler",
-            labelnames=["app_name", "broker", "handler"],
+            labelnames=["app_name", "broker", "handler", *custom_label_names],
             registry=registry,
         )
 
@@ -118,25 +119,37 @@ class MetricsContainer:
             f"{metrics_prefix}_received_processed_messages_exceptions_total"
         )
         self.received_processed_messages_exceptions_total = cast(
-            "Counter",
+            "Counter | None",
             self._get_registered_metric(
                 received_processed_messages_exceptions_total_name,
             ),
         ) or Counter(
             name=received_processed_messages_exceptions_total_name,
             documentation="Count of received processed messages exceptions by broker, handler and exception_type",
-            labelnames=["app_name", "broker", "handler", "exception_type"],
+            labelnames=[
+                "app_name",
+                "broker",
+                "handler",
+                "exception_type",
+                *custom_label_names,
+            ],
             registry=registry,
         )
 
         published_messages_total_name = f"{metrics_prefix}_published_messages_total"
         self.published_messages_total = cast(
-            "Counter",
+            "Counter | None",
             self._get_registered_metric(published_messages_total_name),
         ) or Counter(
             name=published_messages_total_name,
             documentation="Count of published messages by destination and status",
-            labelnames=["app_name", "broker", "destination", "status"],
+            labelnames=[
+                "app_name",
+                "broker",
+                "destination",
+                "status",
+                *custom_label_names,
+            ],
             registry=registry,
         )
 
@@ -144,12 +157,12 @@ class MetricsContainer:
             f"{metrics_prefix}_published_messages_duration_seconds"
         )
         self.published_messages_duration_seconds = cast(
-            "Histogram",
+            "Histogram | None",
             self._get_registered_metric(published_messages_duration_seconds_name),
         ) or Histogram(
             name=published_messages_duration_seconds_name,
             documentation="Histogram of published messages duration in seconds by broker and destination",
-            labelnames=["app_name", "broker", "destination"],
+            labelnames=["app_name", "broker", "destination", *custom_label_names],
             registry=registry,
         )
 
@@ -157,12 +170,18 @@ class MetricsContainer:
             f"{metrics_prefix}_published_messages_exceptions_total"
         )
         self.published_messages_exceptions_total = cast(
-            "Counter",
+            "Counter | None",
             self._get_registered_metric(published_messages_exceptions_total_name),
         ) or Counter(
             name=published_messages_exceptions_total_name,
             documentation="Count of published messages exceptions by broker, destination and exception_type",
-            labelnames=["app_name", "broker", "destination", "exception_type"],
+            labelnames=[
+                "app_name",
+                "broker",
+                "destination",
+                "exception_type",
+                *custom_label_names,
+            ],
             registry=registry,
         )
 

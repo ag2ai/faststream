@@ -25,6 +25,9 @@ There are **four types of hooks**:
 3. `on_shutdown` — before the broker is disconnected
 4. `after_shutdown` — after the broker is disconnected
 
+!!! tip
+    If you prefer to use `FastStream(lifespan=...)`, refer to the [Lifespan Options](./context.md){.internal-link} section instead.
+
 ## Resource availability by hooks
 
 The table below summarizes what is available in each of the hooks at different stages of the broker's life.
@@ -78,14 +81,74 @@ after_shutdown called
 This allows you to safely separate logic and resource initialization across different functions and hooks without worrying about the order of registration.
 
 !!! note ""
-   You can also specify multiple hooks. All your registered hooks will be added to a list and executed.
+    You can also specify multiple hooks. All your registered hooks will be added to a list and executed.
+
+## Graceful Shutdown
+
+When the application stops, **FastStream** does not drop messages that are already being processed. Shutdown happens in this order:
+
+1. `on_shutdown` hooks are called.
+2. Every subscriber stops consuming new messages.
+3. **FastStream** waits for in-flight handlers to finish, up to `graceful_timeout` seconds. Once the timeout expires, the remaining handlers are no longer awaited.
+4. The broker connection is closed.
+5. `after_shutdown` hooks are called.
+6. The `lifespan` context manager (if any) exits.
+
+So, `on_shutdown` runs while your handlers may still be working, and `after_shutdown` runs only after all of them have finished (or the timeout has expired).
+
+The timeout is configured on the broker:
+
+=== "AIOKafka"
+    ```python hl_lines="3"
+    from faststream.kafka import KafkaBroker
+
+    broker = KafkaBroker(graceful_timeout=30.0)
+    ```
+
+=== "Confluent"
+    ```python hl_lines="3"
+    from faststream.confluent import KafkaBroker
+
+    broker = KafkaBroker(graceful_timeout=30.0)
+    ```
+
+=== "RabbitMQ"
+    ```python hl_lines="3"
+    from faststream.rabbit import RabbitBroker
+
+    broker = RabbitBroker(graceful_timeout=30.0)
+    ```
+
+=== "NATS"
+    ```python hl_lines="3"
+    from faststream.nats import NatsBroker
+
+    broker = NatsBroker(graceful_timeout=30.0)
+    ```
+
+=== "Redis"
+    ```python hl_lines="3"
+    from faststream.redis import RedisBroker
+
+    broker = RedisBroker(graceful_timeout=30.0)
+    ```
+
+=== "MQTT"
+    ```python hl_lines="3"
+    from faststream.mqtt import MQTTBroker
+
+    broker = MQTTBroker(graceful_timeout=30.0)
+    ```
+
+!!! note
+    The default is `15.0` seconds for every broker. Pass `#!python graceful_timeout=None` to skip the wait entirely: the connection is closed right away and running handlers are interrupted.
 
 ## Usage example
 
 Let's imagine that your application uses **pydantic** as your settings manager.
 
 !!! note ""
-    I highly recommend using **pydantic** for these purposes, because this dependency is already used at **FastStream**
+    I highly recommend using **pydantic** for these purposes, because this dependency is already used by **FastStream**
     and you don't have to install an additional package
 
 Also, let's imagine that you have several `.env`, `.env.development`, `.env.test`, `.env.production` files with your application settings,
@@ -111,7 +174,7 @@ Now let's look into a little more detail.
 
 To begin with, we are using a `#!python @app.on_startup` decorator
 
-```python linenums="12" hl_lines="14-15" hl_lines="1"
+```python linenums="12" hl_lines="1"
 {! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
@@ -119,7 +182,7 @@ to declare a function that runs when our application starts.
 
 The next step is to declare our function parameters that we expect to receive:
 
-```python linenums="12" hl_lines="14-15" hl_lines="2"
+```python linenums="12" hl_lines="2"
 {! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
@@ -127,18 +190,18 @@ The `env` argument will be passed to the `setup` function from the user-provided
 
 !!! tip
     All lifecycle functions always apply `#!python @apply_types` decorator,
-    therefore, all [context fields](../context/index.md){.internal-link} and [dependencies](../dependencies/index.md){.internal-link} are available in them
+    therefore, all [context fields](../context.md){.internal-link} and [dependencies](../dependencies/index.md){.internal-link} are available in them
 
 Then, we initialize the settings of our application using the file passed to us from the command line:
 
-```python linenums="12" hl_lines="14-15" hl_lines="3"
+```python linenums="12" hl_lines="3"
 {! docs_src/getting_started/cli/kafka/context.py [ln:12-15]!}
 ```
 
 And put these settings in a global context:
 
 ```python linenums="14" hl_lines="4"
-{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
+{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-17] !}
 ```
 
 ??? note
@@ -151,19 +214,13 @@ And put these settings in a global context:
     async def func(settings = Context()): ...
     ```
 
-As the last step we initialize our broker: now, when the application starts, it will be ready to receive messages:
-
-```python linenums="14" hl_lines="5"
-{! docs_src/getting_started/lifespan/kafka/basic.py [ln:14-18] !}
-```
-
 ## Another example
 
 Now let's imagine that we have a machine learning model that needs to process messages from some broker.
 
 Initialization of such models usually takes a long time. It would be wise to do this at the start of the application, and not when processing each message.
 
-You can initialize your model somewhere at the top of your module/file. However, in this case, this code will be run even just in case of importing
+You can initialize your model somewhere at the top of your module/file. However, in this case, this code will be run even just in the case of importing
 this module, for example, during testing.
 
 Therefore, it is worth initializing the model in the `#!python @app.on_startup` hook.
@@ -171,28 +228,33 @@ Therefore, it is worth initializing the model in the `#!python @app.on_startup` 
 Also, we don't want the model to finish its work incorrectly when the application is stopped. To avoid this, we need to also define the `#!python @app.on_shutdown` hook:
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/kafka/ml.py!}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/confluent/ml.py!}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/rabbit/ml.py!}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/nats/ml.py!}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="14 21"
+    ```python linenums="1" hl_lines="16 23"
     {!> docs_src/getting_started/lifespan/redis/ml.py!}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="16 23"
+    {!> docs_src/getting_started/lifespan/mqtt/ml.py!}
     ```
 
 ## Multiple hooks
@@ -208,7 +270,6 @@ If you want to declare multiple lifecycle hooks, they will be used in the order 
 ### Async or not async
 
 In the asynchronous version of the application, both asynchronous and synchronous methods can be used as hooks.
-In the synchronous version, only synchronous methods are available.
 
 ### Command line arguments
 

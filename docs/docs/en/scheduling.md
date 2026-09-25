@@ -4,23 +4,26 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Add periodic and cron tasks to a FastStream service with taskiq-faststream or rocketry
+  instead of running a separate scheduler alongside it.
 search:
   boost: 10
 ---
 
 # Tasks Scheduling
 
-**FastStream** is a framework for asynchronous service development. It allows you to build distributed event-based systems in an easy way. Tasks scheduling is a pretty often use case in such systems.
+**FastStream** is a framework for asynchronous service development. It allows you to build distributed event-based systems in an easy way. Task scheduling is a pretty common use case in such systems.
 
-Unfortunately, this functional conflicts with the original **FastStream** ideology and can't be implemented as a part of the framework. But, you can integrate scheduling in your **FastStream** application by using some extra dependencies. And we have some receipts on how to make it.
+Unfortunately, this functionality conflicts with the original **FastStream** ideology and can't be implemented as a part of the framework. But, you can integrate scheduling in your **FastStream** application by using some extra dependencies. And we have some recipes on how to do it.
 
 ## Taskiq-FastStream
 
-[**Taskiq**](https://github.com/taskiq-python/taskiq){.external-link target="_blank"} is an asynchronous distributed task queue for python. This project takes inspiration from big projects such as **Celery** and **Dramatiq**.
+[**Taskiq**](https://github.com/taskiq-python/taskiq){.external-link target="_blank"} is an asynchronous distributed task queue for Python. This project takes inspiration from big projects such as **Celery** and **Dramatiq**.
 
-As a **Celery** replacement, **Taskiq** should support tasks scheduling and delayed publishing, of course. And it does!
+As a **Celery** replacement, **Taskiq** should support task scheduling and delayed publishing, of course. And it does!
 
-By the way, you can easily integrate **FastStream** with the **Taskiq**. It allows you to create cron or delayed tasks to publish messages and trigger some functions this way.
+By the way, you can easily integrate **FastStream** with **Taskiq**. It allows you to create cron or delayed tasks to publish messages and trigger some functions this way.
 
 We have a helpful project to provide you with this feature - [**Taskiq-FastStream**](https://github.com/taskiq-python/taskiq-faststream){.external-link target="_blank"}.
 
@@ -61,9 +64,14 @@ At first, we should create a regular **FastStream** application.
     {!> docs_src/index/redis/basic.py!}
     ```
 
+=== "MQTT"
+    ```python linenums="1"
+    {!> docs_src/index/mqtt/basic.py!}
+    ```
+
 ### Broker Wrapper
 
-Now, if you want to make it *just working*, we should wrap our `Broker` to special `BrokerWrapper` object:
+Now, if you want to make it *just work*, we should wrap our `Broker` in a special `BrokerWrapper` object:
 
 ```python
 from taskiq_faststream import BrokerWrapper
@@ -71,7 +79,7 @@ from taskiq_faststream import BrokerWrapper
 taskiq_broker = BrokerWrapper(broker)
 ```
 
-It creates a *taskiq-compatible* object, that can be used as an object to create a regular [**taskiq** scheduler](https://taskiq-python.github.io/guide/scheduling-tasks.html){.external-link target="_blank"}.
+It creates a *taskiq-compatible* object that can be used as an object to create a regular [**taskiq** scheduler](https://taskiq-python.github.io/guide/scheduling-tasks.html){.external-link target="_blank"}.
 
 === "AIOKafka"
     ```python linenums="1"
@@ -168,11 +176,30 @@ It creates a *taskiq-compatible* object, that can be used as an object to create
     )
     ```
 
+=== "MQTT"
+    ```python linenums="1"
+    from taskiq_faststream import StreamScheduler
+    from taskiq.schedule_sources import LabelScheduleSource
+
+    taskiq_broker.task(
+        message={"user": "John", "user_id": 1},
+        topic="in-topic",
+        schedule=[{
+            "cron": "* * * * *",
+        }],
+    )
+
+    scheduler = StreamScheduler(
+        broker=taskiq_broker,
+        sources=[LabelScheduleSource(taskiq_broker)],
+    )
+    ```
+
 
 !!! note ""
     We patched the original `TaskiqScheduler` to support message generation callbacks, but its signature remains the same.
 
-`#!python broker.task(...)` has the same with the original `broker.publish(...)` signature and allows you to plan your publishing tasks using the great **taskiq** `schedule` option (you can learn more about it [here](https://taskiq-python.github.io/available-components/schedule-sources.html#labelschedulesource){.external-link target="_blank"}).
+`#!python broker.task(...)` has the same signature as the original `broker.publish(...)` and allows you to plan your publishing tasks using the great **taskiq** `schedule` option (you can learn more about it [here](https://taskiq-python.github.io/available-components/schedule-sources.html#labelschedulesource){.external-link target="_blank"}).
 
 Finally, to run the scheduler, please use the **taskiq CLI** command:
 
@@ -182,7 +209,7 @@ taskiq scheduler module:scheduler
 
 ### Application Wrapper
 
-If you don't want to lose application **AsyncAPI** schema or/and lifespans, you can wrap not the broker, but the application itself using `AppWrapper` class.
+If you don't want to lose application **AsyncAPI** schema and/or lifespans, you can wrap not the broker, but the application itself using `AppWrapper` class.
 
 ```python
 from taskiq_faststream import AppWrapper
@@ -190,14 +217,14 @@ from taskiq_faststream import AppWrapper
 taskiq_broker = AppWrapper(app)
 ```
 
-It allows you to use `taskiq_broker` the same way with the previous example, but saves all original **FastStream** features.
+It allows you to use `taskiq_broker` the same way as in the previous example, but preserves all original **FastStream** features.
 
 !!! tip
-    Creating a separated *Scheduler* service is the best way to make a really distributed and sustainable system. In this case, you can just create an empty **FastStream** broker and use **Taskiq-FastStream** integration to publish your messages (consuming by another services).
+    Creating a separate *Scheduler* service is the best way to make a really distributed and sustainable system. In this case, you can just create an empty **FastStream** broker and use **Taskiq-FastStream** integration to publish your messages (consumed by other services).
 
 ### Generate message payload
 
-Also, you are able to determine message payload right before sending and do not use the final one. To make it, just replace `message` option from the final value to function (sync or async), that returns data to send:
+Also, you are able to determine the message payload right before sending instead of using a final one. To do it, just replace the final value of the `message` option with a function (sync or async) that returns the data to send:
 
 ```python
 async def collect_information_to_send():
@@ -209,9 +236,9 @@ taskiq_broker.task(
 )
 ```
 
-It allows you to collect some data from database, request an outer API, or use another ways to generate data to send right before sending.
+It allows you to collect some data from a database, request an external API, or use other ways to generate data to send right before sending.
 
-More than, you can send not one, but multiple messages per one task using this feature. Just turn your message callback function to generator (sync or async) - and **Taskiq-FastStream** will iterate over your payload and publish all of your messages!
+Moreover, you can send not one, but multiple messages per task using this feature. Just turn your message callback function into a generator (sync or async) - and **Taskiq-FastStream** will iterate over your payload and publish all of your messages!
 
 ```python
 async def collect_information_to_send():
@@ -227,7 +254,7 @@ taskiq_broker.task(
 
 ## Rocketry
 
-Also, you can integrate your **FastStream** application with any other libraries provides you with a scheduling functional.
+Also, you can integrate your **FastStream** application with any other library that provides you with scheduling functionality.
 
 As an example, you can use [**Rocketry**](https://github.com/Miksus/rocketry){.external-link target="_blank"}:
 
