@@ -38,6 +38,34 @@ def test_base() -> None:
 
 
 @pytest.mark.redis()
+@pytest.mark.parametrize(
+    ("url", "expected_host"),
+    (
+        pytest.param(
+            "redis://user:password@localhost:6379/0",
+            "localhost:6379",
+            id="with-credentials",
+        ),
+        pytest.param(
+            "rediss://user:password@host:6380/0",
+            "host:6380",
+            id="rediss-with-credentials",
+        ),
+        pytest.param(
+            "redis://user:password@[::1]:6379/0",
+            "[::1]:6379",
+            id="ipv6-with-credentials",
+        ),
+    ),
+)
+def test_credentials_stripped(url: str, expected_host: str) -> None:
+    schema = get_3_0_0_schema(RedisBroker(url))
+    server = schema["servers"]["development"]
+    assert server["host"] == expected_host
+    assert "@" not in server["host"]
+
+
+@pytest.mark.redis()
 def test_custom() -> None:
     schema = get_3_0_0_schema(
         RedisBroker(

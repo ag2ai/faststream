@@ -171,7 +171,7 @@ class RabbitBroker(
         )
 
         if specification_url is None:
-            specification_url = str(amqp_url)
+            specification_url = str(amqp_url.with_user(None))
 
         # respect ascynapi_url argument scheme
         built_asyncapi_url = urlparse(specification_url)

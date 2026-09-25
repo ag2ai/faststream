@@ -29,8 +29,18 @@ def test_kwargs() -> None:
     )
 
     assert broker.specification.url == [
-        "amqp://guest:guest@127.0.0.1:5672/?heartbeat=300",
+        "amqp://127.0.0.1:5672/?heartbeat=300",
     ]
+
+
+@pytest.mark.rabbit()
+def test_credentials_stripped() -> None:
+    schema = get_3_0_0_schema(
+        RabbitBroker("amqp://guest:guest@localhost:5672/vh"),
+    )
+    server = schema["servers"]["development"]
+    assert server["host"] == "localhost:5672"
+    assert "@" not in server["host"]
 
 
 @pytest.mark.rabbit()

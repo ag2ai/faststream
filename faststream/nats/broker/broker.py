@@ -7,6 +7,7 @@ from typing import (
     Union,
     cast,
 )
+from urllib.parse import urlparse
 
 import anyio
 import nats
@@ -382,7 +383,10 @@ class NatsBroker(
             else:
                 specification_url = list(specification_url)
         else:
-            specification_url = servers
+            specification_url = [
+                parsed._replace(netloc=parsed.netloc.rpartition("@")[-1]).geturl()
+                for parsed in map(urlparse, servers)
+            ]
 
         js_producer = NatsJSFastProducer(
             parser=parser,
