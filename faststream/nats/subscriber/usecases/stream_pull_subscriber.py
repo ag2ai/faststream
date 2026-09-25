@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator, Callable, Coroutine
 from contextlib import suppress
+from time import monotonic
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
@@ -230,12 +231,29 @@ class BatchPullStreamSubscriber(
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription, "You should call `create_subscription` at first."
 
-        while self.running:  # pragma: no branch
-            with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
-                messages = await self.subscription.fetch(
-                    batch=self.pull_sub.batch_size,
-                    timeout=self.pull_sub.timeout,
-                )
+        batch_size = self.pull_sub.batch_size
+        timeout = self.pull_sub.timeout
 
-                if messages:
-                    await self.consume(messages)
+        while self.running:  # pragma: no branch
+            deadline = monotonic() + timeout if timeout is not None else None
+            messages: list[Msg] = []
+
+            while len(messages) < batch_size and self.running:
+                remaining = None if deadline is None else deadline - monotonic()
+                if remaining is not None and remaining <= 0:
+                    break
+
+                try:
+                    messages += await self.subscription.fetch(
+                        batch=batch_size - len(messages),
+                        timeout=remaining,
+                    )
+                except TimeoutError:
+                    break
+                except (ConnectionClosedError, ServiceUnavailableError):
+                    # Unprocessed messages stay unacknowledged for server redelivery.
+                    messages.clear()
+                    break
+
+            if messages and self.running:
+                await self.consume(messages)

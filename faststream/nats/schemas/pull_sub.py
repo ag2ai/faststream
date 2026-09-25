@@ -54,6 +54,13 @@ class PullSub(Generic[BatchT_co]):
         timeout: float | None = 5.0,
         batch: bool = False,
     ) -> None:
+        if batch_size < 1:
+            message = "You must specify a positive `batch_size`."
+            raise ValueError(message)
+        if timeout is not None and timeout <= 0:
+            message = "You must specify a positive `timeout` or None."
+            raise ValueError(message)
+
         self.batch_size = batch_size
         self.batch = batch
         self.timeout = timeout
