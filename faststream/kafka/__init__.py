@@ -16,7 +16,7 @@ try:
     from .annotations import KafkaMessage
     from .broker import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
     from .response import KafkaPublishCommand, KafkaPublishMessage, KafkaResponse
-    from .schemas import TopicPartition
+    from .schemas import Topic, TopicPartition
     from .testing import TestKafkaBroker
 
 except ImportError as e:
@@ -42,5 +42,6 @@ __all__ = (
     "RecordMetadata",
     "TestApp",
     "TestKafkaBroker",
+    "Topic",
     "TopicPartition",
 )

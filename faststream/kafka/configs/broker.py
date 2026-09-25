@@ -1,24 +1,20 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 import aiokafka
-import aiokafka.admin
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.configs import BrokerConfig
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.utils.data import filter_by_dict
-from faststream.exceptions import IncorrectState
+from faststream.kafka.helpers import AdminService
 from faststream.kafka.publisher.producer import (
     AioKafkaFastProducer,
     FakeAioKafkaFastProducer,
 )
-from faststream.kafka.schemas.params import (
-    AdminClientConnectionParams,
-    ConsumerConnectionParams,
-)
+from faststream.kafka.schemas.params import ConsumerConnectionParams
 
 
 @dataclass(kw_only=True)
@@ -29,16 +25,12 @@ class KafkaBrokerConfig(BrokerConfig):
     client_id: str | None = SERVICE_NAME
     client_rack: str | None = None
     consumer_only: bool = False
-
-    _admin_client: Optional["aiokafka.admin.client.AIOKafkaAdminClient"] = None
+    allow_auto_create_topics: bool = True
+    admin: AdminService = field(default_factory=AdminService)
 
     @property
     def admin_client(self) -> "aiokafka.admin.client.AIOKafkaAdminClient":
-        if self._admin_client is None:
-            msg = "Admin client is not initialized. Call connect() first."
-            raise IncorrectState(msg)
-
-        return self._admin_client
+        return self.admin.client
 
     async def connect(self, **connection_kwargs: Any) -> "None":
         # In consumer-only mode the broker neither produces messages nor needs
@@ -51,16 +43,7 @@ class KafkaBrokerConfig(BrokerConfig):
                 serializer=self.fd_config._serializer,
                 codec=self.broker_codec or DefaultCodec(),
             )
-
-            admin_options, _ = filter_by_dict(
-                AdminClientConnectionParams,
-                connection_kwargs,
-            )
-
-            self._admin_client = aiokafka.admin.client.AIOKafkaAdminClient(
-                **admin_options
-            )
-            await self._admin_client.start()
+            await self.admin.connect(**connection_kwargs)
 
         consumer_options, _ = filter_by_dict(
             ConsumerConnectionParams,
@@ -73,9 +56,7 @@ class KafkaBrokerConfig(BrokerConfig):
         self.builder = partial(aiokafka.AIOKafkaConsumer, **consumer_options)
 
     async def disconnect(self) -> "None":
-        if self._admin_client is not None:
-            await self._admin_client.close()
-            self._admin_client = None
+        await self.admin.disconnect()
 
         if not self.consumer_only:
             await self.producer.disconnect()

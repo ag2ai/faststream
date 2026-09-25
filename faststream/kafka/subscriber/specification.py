@@ -23,7 +23,7 @@ class KafkaSubscriberSpecification(
         """
         prefix = self._outer_config.prefix
 
-        topics = [f"{prefix}{t}" for t in self.config.topics]
+        topics = [f"{prefix}{t.name}" for t in self.config.topics]
         topics.extend(f"{prefix}{p.topic}" for p in self.config.partitions)
 
         if self.config.pattern:
