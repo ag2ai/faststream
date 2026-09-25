@@ -1,8 +1,8 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 
 @unique
-class ExchangeType(str, Enum):
+class ExchangeType(StrEnum):
     """A class to represent the exchange type.
 
     Attributes:

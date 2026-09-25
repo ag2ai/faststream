@@ -1,13 +1,13 @@
 from collections.abc import Iterable, Mapping, Sequence
 from ssl import VerifyMode
-from typing import Any
+from typing import Any, Required
 
 from fast_depends import Provider
 from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
 from redis.asyncio.connection import BaseParser, Connection, Encoder
 from redis.asyncio.retry import Retry
-from typing_extensions import Required, TypedDict
+from typing_extensions import TypedDict
 
 from faststream._internal.basic_types import LoggerProto
 from faststream._internal.context.repository import ContextRepo

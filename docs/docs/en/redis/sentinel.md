@@ -56,22 +56,6 @@ broker = RedisSentinelBroker(
 
 Under the hood the broker builds the client through `Sentinel(...).master_for(master_name)`, which returns a client backed by a `SentinelConnectionPool`. That pool re-discovers the current master from the sentinels on every reconnect. Because every publisher and stream consumer goes through `connection.client`, they all fail over transparently — a dropped connection during a master promotion is simply re-established against the new master.
 
-## FastAPI Integration
-
-For FastAPI applications use `RedisSentinelRouter`, which builds a `RedisSentinelBroker` under the hood and otherwise behaves like `RedisRouter`:
-
-```python linenums="1"
-from faststream.redis.fastapi import RedisSentinelRouter
-
-router = RedisSentinelRouter(
-    sentinels=[("sentinel-1", 26379), ("sentinel-2", 26379)],
-    sentinel_master_name="mymaster",
-)
-
-@router.subscriber("channel-name")
-async def handle(msg: str) -> None: ...
-```
-
 ## Feature Support
 
 | Feature | RedisBroker | RedisSentinelBroker |

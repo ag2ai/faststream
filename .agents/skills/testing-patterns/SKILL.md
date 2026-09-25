@@ -71,7 +71,7 @@ Marks pick the CI job, so a wrong one drops a test silently. `just misplaced-mar
 
 ## Shared base testcases
 
-Cross-broker behavior is specified ONCE in `tests/brokers/base/` (`basic.py`, `consume.py`, `publish.py`, `router.py`, `codec.py`, `middlewares.py`, `parser.py`, `requests.py`, `connection.py`, `fastapi.py`, `testclient.py`, ...) and inherited by every broker.
+Cross-broker behavior is specified ONCE in `tests/brokers/base/` (`basic.py`, `consume.py`, `publish.py`, `router.py`, `codec.py`, `middlewares.py`, `parser.py`, `requests.py`, `connection.py`, `testclient.py`, ...) and inherited by every broker.
 
 Each broker defines its config in `tests/brokers/<broker>/basic.py`:
 
@@ -202,7 +202,7 @@ The same run grades the tests already there, and it is how a suite shrinks. Two 
 ## Fixtures & utilities
 
 - Global fixtures (`tests/conftest.py`): `queue` (unique uuid string), `event` (`asyncio.Event`), `mock` / `async_mock` (function-scoped, reset via teardown), `context`, `runner` (CLI).
-- `tests/marks.py`: conditional skips — `skip_windows`, `skip_macos`, `pydantic_v1`/`pydantic_v2`, `require_aiokafka`, `require_confluent`, `require_aiopika`, `require_redis`, `require_nats`, `require_mqtt`.
+- `tests/marks.py`: conditional skips — `skip_windows`, `skip_macos`, `require_aiokafka`, `require_confluent`, `require_aiopika`, `require_redis`, `require_nats`, `require_mqtt`.
 - `tests/tools.py`: `spy_decorator` — wraps a real method with a mock spy (call assertions via `.mock`) while preserving behavior.
 - `tests/mocks.py`: `mock_pydantic_settings_env` for env-driven settings tests.
 - `freezegun` is available as a test dep.

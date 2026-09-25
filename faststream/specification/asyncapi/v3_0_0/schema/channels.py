@@ -1,7 +1,7 @@
-from pydantic import BaseModel
-from typing_extensions import Self
+from typing import Self
 
-from faststream._internal._compat import PYDANTIC_V2
+from pydantic import BaseModel
+
 from faststream.specification.asyncapi.v3_0_0.schema.bindings import ChannelBinding
 from faststream.specification.asyncapi.v3_0_0.schema.message import Message
 from faststream.specification.schema import PublisherSpec, SubscriberSpec
@@ -34,13 +34,7 @@ class Channel(BaseModel):
     # TODO:
     # parameters: Optional[Parameter] = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @classmethod
     def from_sub(

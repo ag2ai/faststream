@@ -4,29 +4,23 @@ import warnings
 from collections import UserString
 from collections.abc import Callable, Iterable, Mapping
 from importlib.util import find_spec
-from typing import (
-    Any,
-    TypeVar,
-)
+from typing import Any
 
 from pydantic import BaseModel
-from pydantic.version import VERSION as PYDANTIC_VERSION
+from pydantic.annotated_handlers import GetJsonSchemaHandler
+from pydantic_core import CoreSchema, to_jsonable_python
+from pydantic_core.core_schema import with_info_plain_validator_function
 
 IS_WINDOWS = sys.platform in {"win32", "cygwin", "msys"}
 IS_MACOS = sys.platform == "darwin"
 
 __all__ = (
     "HAS_TYPER",
-    "PYDANTIC_V2",
     "BaseModel",
-    "CoreSchema",
     "EmailStr",
-    "ExceptionGroup",
-    "GetJsonSchemaHandler",
-    "PydanticUndefined",
+    "dump_json",
     "json_dumps",
     "json_loads",
-    "with_info_plain_validator_function",
 )
 
 try:
@@ -53,111 +47,12 @@ else:
         return json.dumps(*a, **kw).encode()
 
 
-ModelVar = TypeVar("ModelVar", bound=BaseModel)
-
 JsonSchemaValue = Mapping[str, Any]
-major, minor, *_ = PYDANTIC_VERSION.split(".")
-_PYDANTCI_MAJOR, _PYDANTIC_MINOR = int(major), int(minor)
-
-PYDANTIC_V2 = _PYDANTCI_MAJOR >= 2
-
-if PYDANTIC_V2:
-    if _PYDANTIC_MINOR >= 4:
-        from pydantic.annotated_handlers import (
-            GetJsonSchemaHandler,
-        )
-        from pydantic_core.core_schema import (
-            with_info_plain_validator_function,
-        )
-    else:
-        from pydantic._internal._annotated_handlers import (  # type: ignore[no-redef]
-            GetJsonSchemaHandler,
-        )
-        from pydantic_core.core_schema import (
-            general_plain_validator_function as with_info_plain_validator_function,
-        )
-
-    from pydantic_core import CoreSchema, PydanticUndefined, to_jsonable_python
-
-    SCHEMA_FIELD = "json_schema_extra"
-    DEF_KEY = "$defs"
-
-    def model_to_jsonable(
-        model: BaseModel,
-        **kwargs: Any,
-    ) -> Any:
-        return to_jsonable_python(model, **kwargs)
-
-    def dump_json(data: Any) -> bytes:
-        return json_dumps(model_to_jsonable(data))
-
-    def get_model_fields(model: type[BaseModel]) -> dict[str, Any]:
-        return model.model_fields
-
-    def model_to_json(model: BaseModel, **kwargs: Any) -> str:
-        return model.model_dump_json(**kwargs)
-
-    def model_parse(
-        model: type[ModelVar],
-        data: str | bytes,
-        **kwargs: Any,
-    ) -> ModelVar:
-        return model.model_validate_json(data, **kwargs)
-
-    def model_schema(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
-        return model.model_json_schema(**kwargs)
-
-else:
-    from pydantic.json import pydantic_encoder
-
-    GetJsonSchemaHandler = Any  # type: ignore[assignment,misc]
-    CoreSchema = Any  # type: ignore[assignment,misc]
-
-    SCHEMA_FIELD = "schema_extra"
-    DEF_KEY = "definitions"
-
-    PydanticUndefined = Ellipsis  # type: ignore[assignment]
-
-    def dump_json(data: Any) -> bytes:
-        return json_dumps(data, default=pydantic_encoder)
-
-    def get_model_fields(model: type[BaseModel]) -> dict[str, Any]:
-        return model.__fields__  # type: ignore[return-value]
-
-    def model_to_json(model: BaseModel, **kwargs: Any) -> str:
-        return model.json(**kwargs)
-
-    def model_parse(
-        model: type[ModelVar],
-        data: str | bytes,
-        **kwargs: Any,
-    ) -> ModelVar:
-        return model.parse_raw(data, **kwargs)
-
-    def model_schema(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
-        return model.schema(**kwargs)
-
-    def model_to_jsonable(
-        model: BaseModel,
-        **kwargs: Any,
-    ) -> Any:
-        return json_loads(model.json(**kwargs))
-
-    # TODO: pydantic types misc
-    def with_info_plain_validator_function(  # type: ignore[misc]
-        function: Callable[..., Any],
-        *,
-        ref: str | None = None,
-        metadata: Any = None,
-        serialization: Any = None,
-    ) -> JsonSchemaValue:
-        return {}
 
 
-if sys.version_info >= (3, 11):
-    ExceptionGroup = ExceptionGroup  # noqa: F821,PLW0127
-else:
-    from exceptiongroup import ExceptionGroup
+def dump_json(data: Any) -> bytes:
+    return json_dumps(to_jsonable_python(data))
+
 
 try:
     import email_validator

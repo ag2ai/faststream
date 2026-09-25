@@ -1,9 +1,9 @@
 from contextlib import suppress
 from re import Pattern
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, assert_never
 
 import zmqtt
-from typing_extensions import assert_never, override
+from typing_extensions import override
 
 from faststream._internal._compat import json_loads
 from faststream.message import StreamMessage, decode_message

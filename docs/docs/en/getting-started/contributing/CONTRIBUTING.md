@@ -38,10 +38,10 @@ Build faststream image and install all dependencies:
 just init
 ```
 
-By default, this builds Python 3.10. If you need another version, pass it as an argument to the just command:
+By default, this builds Python 3.11. If you need another version, pass it as an argument to the just command:
 
 ```bash
-just init 3.11.5
+just init 3.12
 ```
 
 To check available Python versions, refer to the pyproject.toml file in the project root.
@@ -138,8 +138,6 @@ Import from `tests/marks.py` and apply to individual tests or classes to skip un
 
 - `@skip_windows`: Skips tests on Windows OS.
 - `@skip_macos`: Skips tests on macOS.
-- `@pydantic_v1`: Runs only if Pydantic v1 is installed (skips on v2).
-- `@pydantic_v2`: Runs only if Pydantic v2 is installed (skips on v1).
 - `@require_confluent`: Skips if `confluent-kafka` is not installed.
 - `@require_aiokafka`: Skips if `aiokafka` is not installed (for standard Kafka).
 - `@require_aiopika`: Skips if `aio-pika` is not installed (RabbitMQ).

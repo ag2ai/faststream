@@ -4266,7 +4266,7 @@ Making streaming microservices has never been easier. Designed with junior devel
 
 * **Extendable**: use extensions for lifespans, custom serialization and middlewares
 
-* [**Integrations**](./index.md#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](./index.md#fastapi-plugin-deprecated) especially)
+* [**Integrations**](./index.md#any-framework): **FastStream** is fully compatible with any HTTP framework you want ([**FastAPI**](./index.md#fastapi-plugin) especially)
 
 * **Built for Automatic Code Generation**: **FastStream** is optimized for automatic code generation using advanced models like GPT and Llama
 

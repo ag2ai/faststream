@@ -1,13 +1,14 @@
 from typing import (
     TYPE_CHECKING,
     Literal,
+    NotRequired,
     Optional,
     TypeAlias,
     TypeVar,
     Union,
 )
 
-from typing_extensions import NotRequired, TypedDict, override
+from typing_extensions import TypedDict, override
 
 from faststream.message import StreamMessage as BrokerStreamMessage
 

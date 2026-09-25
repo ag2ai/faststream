@@ -4,13 +4,12 @@ import traceback
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Self
 
 import anyio
 from fast_depends import Provider, dependency_provider
-from typing_extensions import Self
 
-from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, ExceptionGroup, uvicorn
+from faststream._internal._compat import HAS_TYPER, HAS_UVICORN, uvicorn
 from faststream._internal.application import Application
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo

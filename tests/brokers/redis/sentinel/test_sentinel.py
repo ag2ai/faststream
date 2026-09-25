@@ -4,7 +4,6 @@ from redis.asyncio.sentinel import SentinelConnectionPool
 from faststream.exceptions import SetupError
 from faststream.redis import RedisSentinelBroker
 from faststream.redis.configs.state import RedisSentinelConnectionState
-from faststream.redis.fastapi import RedisSentinelRouter
 
 SENTINELS = [("sentinel-1", 26379), ("sentinel-2", 26379)]
 
@@ -51,20 +50,3 @@ class TestRedisSentinelBrokerUnit:
             assert client.connection_pool.service_name == "mymaster"
         finally:
             await connection.disconnect()
-
-
-@pytest.mark.redis()
-class TestRedisSentinelFastAPIRouterUnit:
-    """RedisSentinelRouter (FastAPI) must build a Sentinel-backed broker."""
-
-    def test_router_builds_sentinel_broker(self) -> None:
-        router = RedisSentinelRouter(sentinels=SENTINELS, sentinel_master_name="mymaster")
-        assert isinstance(router.broker, RedisSentinelBroker)
-        connection = router.broker.config.broker_config.connection
-        assert isinstance(connection, RedisSentinelConnectionState)
-        assert connection._master_name == "mymaster"
-        assert connection._sentinels == SENTINELS
-
-    def test_router_requires_master_name(self) -> None:
-        with pytest.raises(SetupError, match="sentinel_master_name"):
-            RedisSentinelRouter(sentinels=SENTINELS)

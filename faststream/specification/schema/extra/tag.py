@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from typing import Required
 
-from typing_extensions import Required, TypedDict
+from typing_extensions import TypedDict
 
 from .external_docs import ExternalDocs, ExternalDocsDict
 

@@ -1,9 +1,8 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Optional
+from typing import TYPE_CHECKING, Any, Generic, Optional, Self
 
 from fast_depends import Provider
-from typing_extensions import Self
 
 from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import (

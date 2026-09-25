@@ -1,14 +1,13 @@
-from enum import Enum
+from enum import StrEnum
 from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
     Optional,
+    Self,
     TypeVar,
 )
 from uuid import uuid4
-
-from typing_extensions import Self
 
 from .source_type import SourceType
 
@@ -21,7 +20,7 @@ MsgType = TypeVar("MsgType")
 _NOT_CACHED = object()
 
 
-class AckStatus(str, Enum):
+class AckStatus(StrEnum):
     ACKED = "ACKED"
     NACKED = "NACKED"
     REJECTED = "REJECTED"

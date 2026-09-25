@@ -28,14 +28,14 @@ def test_init_without_logger(app_without_logger: FastStream) -> None:
     assert app_without_logger.logger is None
 
 
-def test_set_broker(broker: RabbitBroker, app_without_broker: FastStream) -> None:
+def test_add_broker(broker: RabbitBroker, app_without_broker: FastStream) -> None:
     assert app_without_broker.broker is None
     app_without_broker.add_broker(broker)
     assert app_without_broker.broker is broker
 
 
 @pytest.mark.asyncio()
-async def test_set_broker_in_on_startup_hook(
+async def test_add_broker_in_on_startup_hook(
     app_without_broker: FastStream,
     broker: RabbitBroker,
 ) -> None:

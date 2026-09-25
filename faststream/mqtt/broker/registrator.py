@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
-from typing_extensions import overload, override
+from typing_extensions import override
 from zmqtt import QoS
 
 from faststream._internal.broker.registrator import Registrator

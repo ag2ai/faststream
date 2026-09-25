@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SourceType(str, Enum):
+class SourceType(StrEnum):
     CONSUME = "CONSUME"
     """Message consumed by basic subscriber flow."""
 

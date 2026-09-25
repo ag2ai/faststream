@@ -1,12 +1,11 @@
 import warnings
 from copy import deepcopy
-from typing import Any, Generic, Literal, overload
+from typing import Any, Generic, Literal, Self, overload
 
-from typing_extensions import Self, TypeVar
+from typing_extensions import TypeVar
 
 from faststream._internal.proto import NameRequired
 from faststream.exceptions import SetupError
-from faststream.redis._compat import REDIS_V710, _REDIS_VERSION
 
 # Carries `batch` in the type, so `subscriber(stream=StreamSub(..., batch=True))`
 # resolves to the batch subscriber instead of a Union of both.
@@ -173,13 +172,6 @@ class StreamSub(NameRequired, Generic[BatchT_co]):
                 )
 
         if claim_min_idle_time is not None:
-            if not REDIS_V710:
-                msg = (
-                    "`claim_min_idle_time` requires redis-py 7.1.0 or newer "
-                    f"(installed: {_REDIS_VERSION})"
-                )
-                raise SetupError(msg)
-
             if min_idle_time is not None:
                 msg = (
                     "`claim_min_idle_time` (XREADGROUP CLAIM) and `min_idle_time` "

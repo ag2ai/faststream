@@ -2,7 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema.message import Message
 
 
@@ -37,10 +36,4 @@ class Components(BaseModel):
     schemas: dict[str, dict[str, Any]] | None = None
     securitySchemes: dict[str, dict[str, Any]] | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}

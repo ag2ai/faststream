@@ -1,9 +1,9 @@
 from collections.abc import Awaitable, Callable
+from typing import assert_type
 
 import prometheus_client
 from aio_pika import IncomingMessage
 from aiormq.abc import ConfirmationFrameType
-from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.rabbit import (
@@ -13,7 +13,6 @@ from faststream.rabbit import (
     RabbitRouter,
     TestRabbitBroker,
 )
-from faststream.rabbit.fastapi import RabbitRouter as FastAPIRouter
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from faststream.rabbit.prometheus import RabbitPrometheusMiddleware
 from faststream.rabbit.publisher.usecase import RabbitPublisher
@@ -227,71 +226,6 @@ RabbitRouter(
 )
 
 
-FastAPIRouter(
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-FastAPIRouter(
-    parser=async_parser,
-    decoder=async_decoder,
-)
-FastAPIRouter(
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-
-fastapi_router = FastAPIRouter()
-
-
-fastapi_sub = fastapi_router.subscriber("test")
-
-
-@fastapi_sub(
-    filter=sync_filter,
-)
-async def handle15() -> None: ...
-
-
-@fastapi_sub(
-    filter=async_filter,
-)
-async def handle16() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-async def handle17() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=async_parser,
-    decoder=async_decoder,
-)
-async def handle18() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-async def handle19() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-def handle20() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-async def handle21() -> None: ...
-
-
 otlp_middleware = RabbitTelemetryMiddleware()
 RabbitBroker().add_middleware(otlp_middleware)
 RabbitBroker(middlewares=[otlp_middleware])
@@ -326,7 +260,7 @@ async def check_request_response_type() -> None:
 
 
 async def check_subscriber_get_one_type(
-    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+    broker: RabbitBroker | RabbitRouter,
 ) -> None:
     subscriber = broker.subscriber(queue="test")
 
@@ -338,7 +272,7 @@ async def check_subscriber_get_one_type(
 
 
 async def check_instance_type(
-    broker: RabbitBroker | FastAPIRouter | RabbitRouter,
+    broker: RabbitBroker | RabbitRouter,
 ) -> None:
     subscriber = broker.subscriber(queue="test")
     assert_type(subscriber, RabbitSubscriber)
@@ -354,5 +288,3 @@ RabbitBroker().include_routers(RabbitRouter())
 RabbitRouter(routers=[RabbitRouter()])
 RabbitRouter().include_router(RabbitRouter())
 RabbitRouter().include_routers(RabbitRouter())
-
-FastAPIRouter().include_router(RabbitRouter())

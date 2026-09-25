@@ -21,7 +21,7 @@ from tests.brokers.base.testclient import BrokerTestclientTestcase
 from .basic import RabbitMemoryTestcaseConfig
 from .test_publish import TestPublishWithExchange as PublishWithExchangeCase
 
-_frozen_time = dt.datetime(2026, 2, 10, 12, 0, 0, tzinfo=dt.timezone.utc)
+_frozen_time = dt.datetime(2026, 2, 10, 12, 0, 0, tzinfo=dt.UTC)
 
 
 @pytest.mark.rabbit()

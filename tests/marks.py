@@ -3,7 +3,6 @@ import pytest
 from faststream._internal._compat import (
     IS_MACOS,
     IS_WINDOWS,
-    PYDANTIC_V2,
 )
 
 skip_windows = pytest.mark.skipif(
@@ -15,17 +14,6 @@ skip_macos = pytest.mark.skipif(
     IS_MACOS,
     reason="does not run on macOS",
 )
-
-pydantic_v1 = pytest.mark.skipif(
-    PYDANTIC_V2,
-    reason="requires PydanticV2",
-)
-
-pydantic_v2 = pytest.mark.skipif(
-    not PYDANTIC_V2,
-    reason="requires PydanticV1",
-)
-
 
 try:
     from faststream.confluent import KafkaBroker as ConfluentBroker  # noqa: F401
@@ -68,21 +56,14 @@ require_aiopika = pytest.mark.skipif(
 
 try:
     from faststream.redis import RedisBroker  # noqa: F401
-    from faststream.redis._compat import REDIS_V710
 except ImportError:
     HAS_REDIS = False
-    REDIS_V710 = False
 else:
     HAS_REDIS = True
 
 require_redis = pytest.mark.skipif(
     not HAS_REDIS,
     reason="requires redis",
-)
-
-require_redis_v710 = pytest.mark.skipif(
-    not REDIS_V710,
-    reason="requires redis-py 7.1.0+ (`xreadgroup(claim_min_idle_time=...)`)",
 )
 
 

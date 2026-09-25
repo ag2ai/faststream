@@ -103,7 +103,7 @@ class AioPikaParser:
             priority=priority,
             expiration=expiration,
             message_id=message_id,
-            timestamp=timestamp or datetime.datetime.now(tz=datetime.timezone.utc),
+            timestamp=timestamp or datetime.datetime.now(tz=datetime.UTC),
             type=message_type,
             user_id=user_id,
             app_id=app_id,
