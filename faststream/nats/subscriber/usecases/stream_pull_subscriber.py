@@ -237,14 +237,15 @@ class BatchPullStreamSubscriber(
         while self.running:  # pragma: no branch
             deadline = monotonic() + timeout if timeout is not None else None
             messages: list[Msg] = []
+            remaining = None if deadline is None else deadline - monotonic()
 
             # nats-py may return a partial batch before timeout; keep fetching.
             # See https://github.com/nats-io/nats.py/issues/1034.
-            while len(messages) < batch_size and self.running:
-                remaining = None if deadline is None else deadline - monotonic()
-                if remaining is not None and remaining <= 0:
-                    break
-
+            while (
+                len(messages) < batch_size
+                and (remaining is None or remaining > 0)
+                and self.running
+            ):
                 try:
                     messages += await self.subscription.fetch(
                         batch=batch_size - len(messages),
@@ -256,6 +257,8 @@ class BatchPullStreamSubscriber(
                     # Unprocessed messages stay unacknowledged for server redelivery.
                     messages.clear()
                     break
+
+                remaining = None if deadline is None else deadline - monotonic()
 
             if messages and self.running:
                 await self.consume(messages)
