@@ -50,9 +50,7 @@ allowing per‑message `ack()` inside a batch.
 
 So, your subject will be processed much faster, without blocking for each message processing.
 
-`batch_size` is an upper bound, not a target: a batch is never filled up to it by waiting. Each request takes the messages already stored in the stream, up to `batch_size`, and returns at once. If the stream holds `#!python 3` messages, the handler gets a batch of `#!python 3`.
+With `batch=True`, FastStream collects up to `batch_size` messages before calling the handler. It waits until the batch is full or `timeout` expires (5 seconds by default), then delivers any collected messages as a partial batch. Set `timeout=None` to wait until the batch is full.
 
-`timeout` (5 seconds by default) applies only when the stream is empty: the request waits up to that long for new messages, and returns as soon as the first one arrives. So when messages are published one by one and consumed as fast as they come, every batch has a single message.
-
-!!! tip
-    To receive fuller batches, publish in bursts, or let messages build up in the stream before they are consumed.
+!!! note
+    `nats-py` can return a partial batch before its timeout expires. FastStream makes additional fetch requests to fill the batch; see [nats-py issue #1034](https://github.com/nats-io/nats.py/issues/1034){.external-link target="_blank"}.
