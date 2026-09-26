@@ -106,5 +106,5 @@ class _LoggingListenerFacade(ConsumerRebalanceListener):  # type: ignore[misc]
         await call_or_await(self.listener.on_partitions_revoked, revoked)
 
     async def on_partitions_assigned(self, assigned: set["TopicPartition"]) -> None:
-        await self.logging_listener.on_partitions_revoked(assigned)
+        await self.logging_listener.on_partitions_assigned(assigned)
         await call_or_await(self.listener.on_partitions_assigned, assigned)
