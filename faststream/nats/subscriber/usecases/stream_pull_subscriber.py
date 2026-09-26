@@ -238,6 +238,8 @@ class BatchPullStreamSubscriber(
             deadline = monotonic() + timeout if timeout is not None else None
             messages: list[Msg] = []
 
+            # nats-py may return a partial batch before timeout; keep fetching.
+            # See https://github.com/nats-io/nats.py/issues/1034.
             while len(messages) < batch_size and self.running:
                 remaining = None if deadline is None else deadline - monotonic()
                 if remaining is not None and remaining <= 0:
