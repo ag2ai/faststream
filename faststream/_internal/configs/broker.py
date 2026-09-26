@@ -16,7 +16,11 @@ if TYPE_CHECKING:
 
     from faststream._internal.context import ContextRepo
     from faststream._internal.parser import CodecProto
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream._internal.types import (
+        BrokerMiddleware,
+        CustomCallable,
+        ExceptionHandler,
+    )
     from faststream.middlewares import AckPolicy
 
 
@@ -29,6 +33,7 @@ class BrokerConfig:
     broker_parser: Optional["CustomCallable"] = None
     broker_decoder: Optional["CustomCallable"] = None
     broker_codec: Optional["CodecProto"] = None
+    broker_exception_handler: Optional["ExceptionHandler"] = None
 
     producer: "ProducerProto[Any]" = field(default_factory=ProducerUnset)
     logger: "LoggerState" = field(default_factory=LoggerState)

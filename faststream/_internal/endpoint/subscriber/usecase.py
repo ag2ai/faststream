@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
+        AsyncExceptionHandler,
         AsyncFilter,
         BrokerMiddleware,
         CustomCallable,
@@ -87,6 +88,11 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._no_reply = config.no_reply
         self._parser = config.parser
         self._decoder = config.decoder
+        self._exception_handler: AsyncExceptionHandler | None = (
+            to_async(config.exception_handler)
+            if config.exception_handler is not None
+            else None
+        )
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -313,6 +319,17 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         return real_wrapper(func)
 
+    async def _handle_exception(self, exc: BaseException) -> bool:
+        if self._exception_handler is not None and await self._exception_handler(exc):
+            return True
+
+        broker_handler = self._outer_config.broker_exception_handler
+        if broker_handler is not None:
+            async_handler: AsyncExceptionHandler = to_async(broker_handler)
+            return await async_handler(exc)
+
+        return False
+
     async def consume(self, msg: MsgType) -> Any:
         """Consume a message asynchronously."""
         if not self.running:
@@ -332,9 +349,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             if app := self._outer_config.context.get("app"):
                 app.exit()
 
-        except Exception:  # nosec B110  # noqa: S110
+        except Exception as exc:
             # All other exceptions were logged by CriticalLogMiddleware
-            pass
+            await self._handle_exception(exc)
 
     async def process_message(self, msg: MsgType) -> "Response":
         """Execute all message processing stages."""

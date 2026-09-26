@@ -5,7 +5,7 @@ from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
-    from faststream._internal.types import AsyncCallable
+    from faststream._internal.types import AsyncCallable, ExceptionHandler
 
     from .broker import BrokerConfig
 
@@ -23,6 +23,7 @@ class PublisherUsecaseConfig(EndpointConfig):
 @dataclass(kw_only=True)
 class SubscriberUsecaseConfig(EndpointConfig):
     no_reply: bool = False
+    exception_handler: "ExceptionHandler | None" = None
 
     _ack_policy: AckPolicy = field(default_factory=lambda: EMPTY, repr=False)
 

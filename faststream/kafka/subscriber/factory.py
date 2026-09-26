@@ -19,6 +19,7 @@ from .usecase import (
 if TYPE_CHECKING:
     from aiokafka.abc import ConsumerRebalanceListener
 
+    from faststream._internal.types import ExceptionHandler
     from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.kafka.schemas import TopicPartition
 
@@ -38,6 +39,7 @@ def create_subscriber(
     ack_policy: "AckPolicy",
     max_workers: int,
     no_reply: bool,
+    exception_handler: "ExceptionHandler | None",
     config: "KafkaBrokerConfig",
     # Specification args
     title_: str | None,
@@ -66,6 +68,7 @@ def create_subscriber(
         listener=listener,
         pattern=pattern,
         no_reply=no_reply,
+        exception_handler=exception_handler,
         _outer_config=config,
         _ack_policy=ack_policy,
     )
