@@ -2,9 +2,11 @@ from typing import Any
 
 import pytest
 
+from faststream.exceptions import SetupError
 from faststream.kafka import KafkaBroker, KafkaRoute
 from faststream.kafka.configs.broker import KafkaBrokerConfig
 from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
+from tests.marks import require_aiokafka_v014
 
 
 @pytest.mark.kafka()
@@ -17,6 +19,7 @@ class TestBrokerClientRack:
     def test_broker_config_client_rack_defaults_to_none(self) -> None:
         assert KafkaBrokerConfig().client_rack is None
 
+    @require_aiokafka_v014
     def test_broker_forwards_client_rack_to_consumer(self) -> None:
         broker = KafkaBroker(client_rack="us-east-1a")
 
@@ -34,9 +37,20 @@ class TestBrokerClientRack:
         builder: Any = broker.config.broker_config.builder
         assert "client_rack" not in builder.keywords
 
+    def test_broker_client_rack_requires_aiokafka_014(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3202."""
+        monkeypatch.setattr("faststream.kafka._compat.AIOKAFKA_V014", False)
+
+        with pytest.raises(SetupError, match=r"aiokafka 0\.14\.0"):
+            KafkaBroker(client_rack="us-east-1a")
+
 
 @pytest.mark.kafka()
 class TestSubscriberClientRack:
+    @require_aiokafka_v014
     def test_subscriber_passes_client_rack(self) -> None:
         broker = KafkaBroker()
 
@@ -57,6 +71,22 @@ class TestSubscriberClientRack:
         # absent so the broker-level default is used instead.
         assert "client_rack" not in sub._connection_args
 
+    def test_subscriber_client_rack_requires_aiokafka_014(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3202."""
+        monkeypatch.setattr("faststream.kafka._compat.AIOKAFKA_V014", False)
+        broker = KafkaBroker()
+
+        with pytest.raises(SetupError, match=r"aiokafka 0\.14\.0"):
+            broker.subscriber(
+                "test-topic",
+                group_id="test-group",
+                client_rack="sub-rack",
+            )
+
+    @require_aiokafka_v014
     def test_subscriber_client_rack_overrides_broker_default(self) -> None:
         broker = KafkaBroker(client_rack="broker-rack")
 
@@ -85,6 +115,7 @@ class TestSubscriberClientRack:
 
         assert route.kwargs["client_rack"] == "route-rack"
 
+    @require_aiokafka_v014
     def test_fastapi_router_passes_client_rack(self) -> None:
         router = FastAPIKafkaRouter()
         sub = router.subscriber(

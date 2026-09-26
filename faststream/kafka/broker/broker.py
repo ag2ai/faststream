@@ -28,6 +28,7 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.types import IdGenerator
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
+from faststream.kafka._compat import AIOKAFKA_V013, validate_client_rack
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
 from faststream.kafka.response import KafkaPublishCommand
@@ -426,8 +427,11 @@ class KafkaBroker(
             **parse_security(security),
         )
 
-        if protocol_version:
+        # aiokafka 0.13.0 raises `TypeError` on `api_version`, 0.14.0 ignores it
+        if protocol_version and not AIOKAFKA_V013:
             connection_params["api_version"] = protocol_version
+
+        validate_client_rack(client_rack)
 
         consumer_options, _ = filter_by_dict(
             ConsumerConnectionParams,
