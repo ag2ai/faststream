@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotation
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.mqtt.message import MQTTMessage
@@ -97,6 +98,9 @@ class MQTTBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: Optional[
+            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
+        ] = None,
     ) -> None:
         url_options = parse_mqtt_url(url)
         secure_kwargs = parse_security(security)
@@ -195,6 +199,7 @@ class MQTTBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,

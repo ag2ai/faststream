@@ -15,6 +15,9 @@ from typing import (
 
 from typing_extensions import Self, overload, override
 
+from faststream._internal.endpoint.subscriber.hints import (
+    check_context_annotations,
+)
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto
@@ -211,6 +214,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return async_parser, async_decoder
 
     def _build_fastdepends_model(self) -> None:
+        fd_config = self._outer_config.fd_config
+        # nothing is injected without FastDepends, and FastAPI builds its own model
+        driver_annotations = (
+            self._outer_config.resolved_underlying_driver_annotations
+            if fd_config.use_fastdepends and not fd_config.get_dependent
+            else {}
+        )
+
         for call in self.calls:
             async_parser, async_decoder = self._get_parser_and_decoder(
                 call.item_parser, call.item_decoder
@@ -223,6 +234,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 broker_dependencies=self._outer_config.broker_dependencies,
                 _call_decorators=self._call_decorators,
             )
+
+            if driver_annotations and call.dependant is not None:
+                check_context_annotations(call.dependant, driver_annotations)
 
             call.handler.refresh(with_mock=False)
 

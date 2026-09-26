@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from aio_pika import IncomingMessage
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.configs import UnderlyingDriverAnnotation
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -239,6 +240,9 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBroker
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: "AckPolicy" = EMPTY,
+        underlying_driver_annotations: Optional[
+            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
+        ] = None,
     ) -> None:
         """Initialized RabbitRouter.
 
@@ -262,6 +266,10 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBroker
             ack_policy:
                 Default acknowledgement policy for all subscribers in this router.
                 Can be overridden at the subscriber level. Defaults to None.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         super().__init__(
             handlers=handlers,
@@ -273,6 +281,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBroker
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,
                 prefix=prefix,
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             routers=routers,
         )
