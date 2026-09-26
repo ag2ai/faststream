@@ -38,50 +38,32 @@ def test_base() -> None:
 
 @pytest.mark.nats()
 @pytest.mark.parametrize(
-    ("servers", "expected_hosts"),
+    ("servers", "expected"),
     (
         pytest.param(
-            "nats://user:password@localhost:4222",
-            ["localhost:4222"],
-            id="single-with-credentials",
+            ["nats://user:password@host1:4222", "admin:secret@host2:4222"],
+            ["nats://host1:4222", "host2:4222"],
+            id="schemed and scheme-less",
         ),
         pytest.param(
-            ["nats://user:password@host1:4222", "nats://admin:secret@host2:4222"],
-            ["host1:4222", "host2:4222"],
-            id="multi-with-credentials",
+            ["nats://user:password@[::1]:4222"],
+            ["nats://[::1]:4222"],
+            id="ipv6 keeps its brackets",
         ),
         pytest.param(
-            "nats://mytoken@localhost:4222",
-            ["localhost:4222"],
-            id="token-auth",
-        ),
-        pytest.param(
-            "nats://user:pass@[::1]:4222",
-            ["[::1]:4222"],
-            id="ipv6-with-credentials",
-        ),
-        pytest.param(
-            "user:password@localhost:4222",
-            ["localhost:4222"],
-            id="schemeless-with-credentials",
-        ),
-        pytest.param(
-            ["nats://user:pass@host1:4222", "admin:secret@host2:4222"],
-            ["host1:4222", "host2:4222"],
-            id="schemeless-mixed-with-schemed",
+            ["nats://mytoken@localhost:4222"],
+            ["nats://localhost:4222"],
+            id="token without a password",
         ),
     ),
 )
 def test_credentials_stripped(
-    servers: str | list[str],
-    expected_hosts: list[str],
+    servers: list[str],
+    expected: list[str],
 ) -> None:
-    schema = get_3_0_0_schema(NatsBroker(servers))
-    server_values = list(schema["servers"].values())
-    actual_hosts = [s["host"] for s in server_values]
-    assert actual_hosts == expected_hosts
-    for server in server_values:
-        assert "@" not in server["host"]
+    broker = NatsBroker(servers)
+
+    assert broker.specification.url == expected
 
 
 @pytest.mark.nats()

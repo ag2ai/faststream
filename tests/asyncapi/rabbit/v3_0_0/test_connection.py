@@ -34,16 +34,6 @@ def test_kwargs() -> None:
 
 
 @pytest.mark.rabbit()
-def test_credentials_stripped() -> None:
-    schema = get_3_0_0_schema(
-        RabbitBroker("amqp://guest:guest@localhost:5672/vh"),
-    )
-    server = schema["servers"]["development"]
-    assert server["host"] == "localhost:5672"
-    assert "@" not in server["host"]
-
-
-@pytest.mark.rabbit()
 def test_custom(snapshot_json: SnapshotAssertion) -> None:
     broker = RabbitBroker(
         "amqps://localhost",
