@@ -166,7 +166,7 @@ class ChannelPublisher(LogicPublisher):
         return msg
 
 
-class ListPublisher(LogicPublisher):
+class _ListPublisherMixin(LogicPublisher):
     __slots__ = ("_list",)
 
     def __init__(
@@ -191,6 +191,36 @@ class ListPublisher(LogicPublisher):
             "list": self.list.name if name_only else self.list,
             "stream": None,
         }
+
+    @override
+    async def request(
+        self,
+        message: "SendableMessage" = None,
+        list: str | None = None,
+        *,
+        correlation_id: str | None = None,
+        headers: dict[str, Any] | None = None,
+        timeout: float | None = 30.0,
+    ) -> "RedisChannelMessage":
+        cmd = RedisPublishCommand(
+            message,
+            list=list or self.list.name,
+            headers=self.headers | (headers or {}),
+            correlation_id=correlation_id or self._outer_config.id_generator(),
+            timeout=timeout,
+            _publish_type=PublishType.REQUEST,
+            message_format=self.config.message_format,
+        )
+
+        msg: RedisChannelMessage = await self._basic_request(
+            cmd,
+            producer=self.producer,
+        )
+        return msg
+
+
+class ListPublisher(_ListPublisherMixin):
+    __slots__ = ()
 
     @override
     async def publish(
@@ -242,34 +272,10 @@ class ListPublisher(LogicPublisher):
             _extra_middlewares=_extra_middlewares,
         )
 
-    @override
-    async def request(
-        self,
-        message: "SendableMessage" = None,
-        list: str | None = None,
-        *,
-        correlation_id: str | None = None,
-        headers: dict[str, Any] | None = None,
-        timeout: float | None = 30.0,
-    ) -> "RedisChannelMessage":
-        cmd = RedisPublishCommand(
-            message,
-            list=list or self.list.name,
-            headers=self.headers | (headers or {}),
-            correlation_id=correlation_id or self._outer_config.id_generator(),
-            timeout=timeout,
-            _publish_type=PublishType.REQUEST,
-            message_format=self.config.message_format,
-        )
 
-        msg: RedisChannelMessage = await self._basic_request(
-            cmd,
-            producer=self.producer,
-        )
-        return msg
-
-
-class ListBatchPublisher(ListPublisher):
+# Not a `ListPublisher`: its `publish(*messages)` would take the `list` that
+# `ListPublisher.publish(message, list)` accepts positionally as a second message.
+class ListBatchPublisher(_ListPublisherMixin):
     __slots__ = ()
 
     @override
