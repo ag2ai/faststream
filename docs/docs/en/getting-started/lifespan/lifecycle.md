@@ -23,6 +23,9 @@ Most of the time you start an application with `faststream run module:app` and n
 | `stop()`  | Runs the `on_shutdown` hooks, waits for in-flight handlers, stops every broker, runs `after_shutdown`. |
 | `exit()`  | Asks a running `run()` to stop.                                                               |
 
+!!! note
+    You can use `async with app:` instead of calling `start()` and `stop()` manually.
+
 ## Running Without the CLI
 
 `faststream run module:app` imports the module and awaits `#!python app.run()`, passing the CLI's log level and extra options along. You can do the same yourself (if your hooks take CLI options, pass them through `run_extra_options=`):

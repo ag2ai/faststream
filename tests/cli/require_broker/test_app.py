@@ -314,6 +314,35 @@ async def test_test_app(mock: MagicMock) -> None:
 
 
 @pytest.mark.asyncio()
+async def test_application_async_context_manager(mock: MagicMock) -> None:
+    app = FastStream(AsyncMock(spec=RabbitBroker))
+
+    app.on_startup(mock.on)
+    app.on_shutdown(mock.off)
+
+    async with app as context_app:
+        assert context_app is app
+
+    mock.on.assert_called_once()
+    mock.off.assert_called_once()
+
+
+@pytest.mark.asyncio()
+async def test_application_async_context_manager_stops_on_exception(
+    mock: MagicMock,
+) -> None:
+    app = FastStream(AsyncMock(spec=RabbitBroker))
+    app.on_shutdown(mock.off)
+    error = ValueError("expected")
+
+    with pytest.raises(ValueError, match="expected"):
+        async with app:
+            raise error
+
+    mock.off.assert_called_once()
+
+
+@pytest.mark.asyncio()
 async def test_test_app_with_excp(mock: MagicMock) -> None:
     app = FastStream(AsyncMock(spec=RabbitBroker))
 
