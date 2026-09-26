@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -48,3 +49,34 @@ class ExceptionHandlersTestcase(BaseTestcaseConfig[Any]):
             expected_result,
             [(name, error) for name in expected_calls],
         )
+
+    async def test_consume_calls_exception_handler(
+        self,
+        queue: str,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        error = ValueError("message processing failed")
+        received_errors: list[BaseException] = []
+
+        async def exception_handler(exc: BaseException) -> bool:
+            received_errors.append(exc)
+            return True
+
+        broker = self.get_broker()
+        args, kwargs = self.get_subscriber_params(queue)
+        subscriber = broker.subscriber(
+            *args,
+            **kwargs,
+            exception_handler=exception_handler,
+        )
+
+        monkeypatch.setattr(subscriber, "running", True)
+        monkeypatch.setattr(
+            subscriber,
+            "process_message",
+            AsyncMock(side_effect=error),
+        )
+
+        await subscriber.consume(object())
+
+        assert received_errors == [error]
