@@ -136,8 +136,11 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         # also cancel an in-flight UNSUBSCRIBE.
         self.running = False
         if self._subscription is not None:
-            with suppress(Exception):
-                await self._subscription.stop()
+            # A subscription is session state: UNSUBSCRIBE would drop it from a
+            # persistent session, and on shutdown DISCONNECT follows immediately.
+            if not self._outer_config.shutting_down:
+                with suppress(Exception):
+                    await self._subscription.stop()
             self._subscription = None
 
         await super().stop()
