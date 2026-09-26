@@ -76,7 +76,7 @@
   },
   "servers": {
     "development": {
-      "host": "guest:guest@localhost:5672",
+      "host": "localhost:5672",
       "pathname": "/",
       "protocol": "amqp",
       "protocolVersion": "0.9.1"

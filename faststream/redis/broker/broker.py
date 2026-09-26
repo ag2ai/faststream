@@ -91,7 +91,8 @@ class RedisBroker(
         self.message_format = message_format
 
         if specification_url is None:
-            specification_url = url
+            netloc = urlparse(url).netloc
+            specification_url = url.replace(netloc, netloc.rpartition("@")[-1], 1)
         if protocol is None:
             protocol = urlparse(specification_url).scheme
         if retry_on_error is None:

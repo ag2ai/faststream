@@ -37,6 +37,36 @@ def test_base() -> None:
 
 
 @pytest.mark.nats()
+@pytest.mark.parametrize(
+    ("servers", "expected"),
+    (
+        pytest.param(
+            ["nats://user:password@host1:4222", "admin:secret@host2:4222"],
+            ["nats://host1:4222", "host2:4222"],
+            id="schemed and scheme-less",
+        ),
+        pytest.param(
+            ["nats://user:password@[::1]:4222"],
+            ["nats://[::1]:4222"],
+            id="ipv6 keeps its brackets",
+        ),
+        pytest.param(
+            ["nats://mytoken@localhost:4222"],
+            ["nats://localhost:4222"],
+            id="token without a password",
+        ),
+    ),
+)
+def test_credentials_stripped(
+    servers: list[str],
+    expected: list[str],
+) -> None:
+    broker = NatsBroker(servers)
+
+    assert broker.specification.url == expected
+
+
+@pytest.mark.nats()
 def test_multi() -> None:
     broker = NatsBroker(["nats:9092", "nats:9093"])
     schema = get_3_0_0_schema(broker)
