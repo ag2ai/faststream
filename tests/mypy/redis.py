@@ -498,23 +498,18 @@ def check_list_subscriber_instance_type(
     assert_type(sub3, ListConcurrentSubscriber)
 
 
-def check_destination_is_required(
-    broker: RedisBroker | RedisRouter | FastAPIRouter,
-) -> None:
+def check_destination_is_required(broker: RedisBroker, router: FastAPIRouter) -> None:
     # without a channel, list or stream both raise `SetupError`
     broker.subscriber()  # type: ignore[call-overload]
     broker.publisher()  # type: ignore[call-overload]
+    router.subscriber()  # type: ignore[call-overload]
+    router.publisher()  # type: ignore[call-overload]
 
 
-def check_runtime_destination_type(
-    broker: RedisBroker | RedisRouter,
-    name: str | None,
-) -> None:
-    assert_type(broker.subscriber(name), LogicSubscriber)
+def check_runtime_destination_type(broker: RedisBroker, name: str | None) -> None:
     assert_type(broker.subscriber(list=name), LogicSubscriber)
     assert_type(broker.subscriber(stream=name), LogicSubscriber)
 
-    assert_type(broker.publisher(name), LogicPublisher)
     assert_type(broker.publisher(list=name), LogicPublisher)
     assert_type(broker.publisher(stream=name), LogicPublisher)
 
