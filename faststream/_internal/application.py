@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
-from typing_extensions import ParamSpec, deprecated, Self
+from typing_extensions import ParamSpec, Self, deprecated
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
@@ -202,6 +202,7 @@ class Application(StartAbleApplication):
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
+        **run_extra_options: "SettingField",
     ) -> None:
         await self.stop()
 
