@@ -48,4 +48,11 @@ allowing per‑message `ack()` inside a batch.
 {! docs_src/nats/js/pull_sub_batch_example.py !}
 ```
 
-So, your subject will be processed much faster, without blocking for each message processing. However, if your subject has fewer than `#!python 10` messages, your request to **NATS** will be blocked for `timeout` (5 seconds by default) while trying to collect the required number of messages. Therefore, you should choose `batch_size` and `timeout` accurately to optimize your consumer efficiency.
+So, your subject will be processed much faster, without blocking for each message processing.
+
+`batch_size` is an upper bound, not a target: a batch is never filled up to it by waiting. Each request takes the messages already stored in the stream, up to `batch_size`, and returns at once. If the stream holds `#!python 3` messages, the handler gets a batch of `#!python 3`.
+
+`timeout` (5 seconds by default) applies only when the stream is empty: the request waits up to that long for new messages, and returns as soon as the first one arrives. So when messages are published one by one and consumed as fast as they come, every batch has a single message.
+
+!!! tip
+    To receive fuller batches, publish in bursts, or let messages build up in the stream before they are consumed.
