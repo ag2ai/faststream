@@ -83,8 +83,7 @@ class FakeContext:
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
-        if exc_val:
-            raise exc_val
+        pass
 
     async def __aenter__(self) -> Self:
         return self
@@ -95,8 +94,7 @@ class FakeContext:
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
-        if exc_val:
-            raise exc_val
+        pass
 
 
 async def return_input(x: Any) -> Any:
