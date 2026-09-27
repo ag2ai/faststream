@@ -1,4 +1,3 @@
-from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Optional, Protocol, cast
 
 from faststream._internal.constants import EMPTY
@@ -116,12 +115,11 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         if declare is EMPTY:
             declare = queue.declare
 
-        # Keep a nested snapshot so later schema mutations are detected.
         requested_settings = {
             "durable": queue.durable,
             "exclusive": queue.exclusive,
             "auto_delete": queue.auto_delete,
-            "arguments": deepcopy(queue.arguments or {}),
+            "arguments": queue.arguments or {},
         }
         cached_queue = self._queues.get(queue.name)
 
@@ -174,12 +172,11 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         if declare is EMPTY:
             declare = exchange.declare
 
-        # Keep a nested snapshot so later schema mutations are detected.
         requested_settings = {
             "type": exchange.type,
             "durable": exchange.durable,
             "auto_delete": exchange.auto_delete,
-            "arguments": deepcopy(exchange.arguments or {}),
+            "arguments": exchange.arguments or {},
         }
         cached_exchange = self._exchanges.get(exchange.name)
 

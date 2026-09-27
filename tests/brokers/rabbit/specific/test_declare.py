@@ -10,6 +10,7 @@ from faststream.rabbit import (
     RabbitExchange,
     RabbitQueue,
 )
+from faststream.rabbit.helpers.channel_manager import ChannelManager
 from faststream.rabbit.helpers.declarer import RabbitDeclarerImpl
 
 if TYPE_CHECKING:
@@ -18,9 +19,15 @@ if TYPE_CHECKING:
     from faststream.rabbit.schemas import Channel
 
 
-class FakeChannelManager:
+class FakeChannelManager(ChannelManager):
     def __init__(self, async_mock: AsyncMock) -> None:
         self.async_mock = async_mock
+
+    def connect(self, connection: "aio_pika.RobustConnection") -> None:
+        raise NotImplementedError
+
+    def disconnect(self) -> None:
+        raise NotImplementedError
 
     async def get_channel(
         self,
@@ -270,7 +277,7 @@ async def test_reuse_declarations_with_nested_arguments(
     queue: str,
 ) -> None:
     declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
-    arguments = {"custom": ["value", {"nested": True}]}
+    arguments: Any = {"custom": ["value", {"nested": True}]}
 
     q1 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
     q2 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
@@ -325,38 +332,40 @@ async def test_reject_conflicting_cached_parent_exchange(
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
-async def test_detect_queue_schema_mutation(
+async def test_reject_conflicting_nested_queue_arguments(
     async_mock: AsyncMock,
     queue: str,
 ) -> None:
     declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
-    arguments: dict[str, Any] = {"custom": ["first"]}
-    schema = RabbitQueue(queue, arguments=arguments)
-    await declarer.declare_queue(schema)
-
-    arguments["custom"].append("second")
+    first: Any = {"custom": ["first"]}
+    second: Any = {"custom": ["second"]}
+    await declarer.declare_queue(
+        RabbitQueue(queue, arguments=first),
+    )
 
     with pytest.raises(SetupError, match=r"RabbitQueue .*arguments"):
-        await declarer.declare_queue(schema)
+        await declarer.declare_queue(
+            RabbitQueue(queue, arguments=second),
+        )
 
     async_mock.declare_queue.assert_awaited_once()
 
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
-async def test_detect_exchange_schema_mutation(
+async def test_reject_conflicting_nested_exchange_arguments(
     async_mock: AsyncMock,
     queue: str,
 ) -> None:
     declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
-    arguments: dict[str, Any] = {"custom": ["first"]}
-    schema = RabbitExchange(queue, arguments=arguments)
-    await declarer.declare_exchange(schema)
-
-    arguments["custom"].append("second")
+    await declarer.declare_exchange(
+        RabbitExchange(queue, arguments={"custom": ["first"]}),
+    )
 
     with pytest.raises(SetupError, match=r"RabbitExchange .*arguments"):
-        await declarer.declare_exchange(schema)
+        await declarer.declare_exchange(
+            RabbitExchange(queue, arguments={"custom": ["second"]}),
+        )
 
     async_mock.declare_exchange.assert_awaited_once()
 
