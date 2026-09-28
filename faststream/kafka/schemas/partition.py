@@ -45,6 +45,12 @@ class TopicPartition:
         self.partition = partition
         self.declare = declare
 
+    def __setattr__(self, name: str, value: object) -> None:
+        if name in {"topic", "partition", "declare"} and hasattr(self, name):
+            msg = f"{self.__class__.__name__} is immutable"
+            raise AttributeError(msg)
+        super().__setattr__(name, value)
+
     def __iter__(self) -> Iterator[str | int]:
         yield self.topic
         yield self.partition
