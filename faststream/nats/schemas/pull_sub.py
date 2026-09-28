@@ -15,6 +15,10 @@ class PullSub:
         "batch",
         "batch_size",
         "timeout",
+        "min_pending",
+        "min_ack_pending",
+        "priority"
+        
     )
 
     def __init__(
@@ -22,10 +26,16 @@ class PullSub:
         batch_size: int = 1,
         timeout: float | None = 5.0,
         batch: bool = False,
+        min_pending: int | None = None,
+        min_ack_pending: int | None = None,
+        priority: int | None = None,
     ) -> None:
         self.batch_size = batch_size
         self.batch = batch
         self.timeout = timeout
+        self.min_pending = min_pending
+        self.min_ack_pending = min_ack_pending
+        self.priority = priority
 
     @overload
     @classmethod

@@ -17,6 +17,7 @@ try:
         StorageType,
         StreamConfig,
         StreamSource,
+        PriorityPolicy
     )
 
     from .annotations import NatsMessage
@@ -63,4 +64,5 @@ __all__ = (
     "StreamSource",
     "TestApp",
     "TestNatsBroker",
+    "PriorityPolicy",
 )

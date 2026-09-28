@@ -81,6 +81,8 @@ class PullStreamSubscriber(
                 messages = await self.subscription.fetch(
                     batch=self.pull_sub.batch_size,
                     timeout=self.pull_sub.timeout,
+                    min_pending=self.pull_sub.min_pending,
+                    min_ack_pending=self.pull_sub.min_ack_pending,
                 )
 
             if messages:
@@ -137,6 +139,8 @@ class BatchPullStreamSubscriber(
         self,
         *,
         timeout: float = 5,
+        min_pending: Optional[int] = None,
+        min_ack_pending: Optional[int] = None,
     ) -> Optional["NatsMessage"]:
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
@@ -155,6 +159,8 @@ class BatchPullStreamSubscriber(
             raw_message = await fetch_sub.fetch(
                 batch=1,
                 timeout=timeout,
+                min_pending=min_pending,
+                min_ack_pending=min_ack_pending,
             )
         except TimeoutError:
             return None
@@ -193,7 +199,11 @@ class BatchPullStreamSubscriber(
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
-            raw_message = await fetch_sub.fetch(batch=1)
+            raw_message = await fetch_sub.fetch(
+                batch=1,
+                min_pending=self.pull_sub.min_pending,
+                min_ack_pending=self.pull_sub.min_ack_pending,
+            )
 
             yield cast(
                 "NatsMessage",
@@ -229,6 +239,8 @@ class BatchPullStreamSubscriber(
                 messages = await self.subscription.fetch(
                     batch=self.pull_sub.batch_size,
                     timeout=self.pull_sub.timeout,
+                    min_pending=self.pull_sub.min_pending,
+                    min_ack_pending=self.pull_sub.min_ack_pending,
                 )
 
                 if messages:

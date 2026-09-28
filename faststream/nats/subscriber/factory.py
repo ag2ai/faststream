@@ -5,7 +5,7 @@ from nats.aio.subscription import (
     DEFAULT_SUB_PENDING_BYTES_LIMIT,
     DEFAULT_SUB_PENDING_MSGS_LIMIT,
 )
-from nats.js.api import ConsumerConfig, DeliverPolicy
+from nats.js.api import ConsumerConfig, DeliverPolicy, PriorityPolicy
 from nats.js.client import (
     DEFAULT_JS_SUB_PENDING_BYTES_LIMIT,
     DEFAULT_JS_SUB_PENDING_MSGS_LIMIT,
@@ -75,6 +75,10 @@ def create_subscriber(
     broker_config: "NatsBrokerConfig",
     pause_until: str | None,
     name: str | None,
+    priority_policy: PriorityPolicy | None,
+    priority_timeout: float | None,
+    priority_groups: list[str] | None,
+    priority_group: str | None,
     # Specification information
     title_: str | None,
     description_: str | None,
@@ -114,6 +118,12 @@ def create_subscriber(
         config.pause_until = pause_until
     if config.name is None:
         config.name = name
+    if config.priority_policy is None:
+        config.priority_policy = priority_policy
+    if config.priority_timeout is None:
+        config.priority_timeout = priority_timeout
+    if config.priority_groups is None:
+        config.priority_groups = priority_groups
 
     if stream:
         # Both JS Subscribers
@@ -123,6 +133,7 @@ def create_subscriber(
             or DEFAULT_JS_SUB_PENDING_BYTES_LIMIT,
             "durable": durable,
             "stream": stream.name,
+            "priority_group": priority_group,
         }
 
         if pull_sub is not None:
