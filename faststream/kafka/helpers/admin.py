@@ -14,13 +14,15 @@ if TYPE_CHECKING:
     from faststream.kafka.schemas import Topic
 
 
-@dataclass
+@dataclass(slots=True)
 class CreateResult:
     topic: str
     error: Exception | None
 
 
 class AdminService:
+    __slots__ = ("admin_client",)
+
     def __init__(self) -> None:
         self.admin_client: AIOKafkaAdminClient | None = None
 
