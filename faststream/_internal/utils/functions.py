@@ -4,9 +4,7 @@ from concurrent.futures import Executor
 from contextlib import asynccontextmanager
 from functools import partial, wraps
 from typing import (
-    TYPE_CHECKING,
     Any,
-    Optional,
     TypeVar,
     cast,
     overload,
@@ -17,12 +15,9 @@ from fast_depends.utils import (
     run_async as call_or_await,
     run_in_threadpool,
 )
-from typing_extensions import ParamSpec, Self
+from typing_extensions import ParamSpec
 
 from faststream._internal.basic_types import F_Return, F_Spec
-
-if TYPE_CHECKING:
-    from types import TracebackType
 
 __all__ = (
     "call_or_await",
@@ -66,37 +61,6 @@ def to_async(
 @asynccontextmanager
 async def fake_context(*args: Any, **kwargs: Any) -> AsyncGenerator[None, None]:
     yield None
-
-
-class FakeContext:
-    __slots__ = ()
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        pass
-
-    def __enter__(self) -> Self:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        if exc_val:
-            raise exc_val
-
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_val: BaseException | None = None,
-        exc_tb: Optional["TracebackType"] = None,
-    ) -> None:
-        if exc_val:
-            raise exc_val
 
 
 async def return_input(x: Any) -> Any:
