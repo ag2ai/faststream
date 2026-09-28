@@ -24,6 +24,7 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
+from faststream._internal.utils import apply_types
 from faststream._internal.utils.functions import FakeContext, to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
 from faststream.middlewares import AcknowledgementMiddleware
@@ -88,11 +89,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._no_reply = config.no_reply
         self._parser = config.parser
         self._decoder = config.decoder
-        self._exception_handler: AsyncExceptionHandler | None = (
-            to_async(config.exception_handler)
-            if config.exception_handler is not None
-            else None
-        )
+        self._exception_handler: AsyncExceptionHandler | None = config._exception_handler
+        self._exception_handler_call: AsyncExceptionHandler | None = None
+        self._broker_exception_handler_call: AsyncExceptionHandler | None = None
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -202,6 +201,31 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return async_parser, async_decoder
 
     def _build_fastdepends_model(self) -> None:
+        config = self._outer_config.fd_config
+
+        self._exception_handler_call = (
+            apply_types(
+                self._exception_handler,
+                serializer_cls=config._serializer,
+                context__=config.context,
+            )
+            if self._exception_handler is not None
+            else None
+        )
+
+        broker_handler: AsyncExceptionHandler | None = (
+            self._outer_config._broker_exception_handler
+        )
+        self._broker_exception_handler_call = (
+            apply_types(
+                broker_handler,
+                serializer_cls=config._serializer,
+                context__=config.context,
+            )
+            if broker_handler is not None
+            else None
+        )
+
         for call in self.calls:
             async_parser, async_decoder = self._get_parser_and_decoder(
                 call.item_parser, call.item_decoder
@@ -320,13 +344,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return real_wrapper(func)
 
     async def _handle_exception(self, exc: BaseException) -> bool:
-        if self._exception_handler is not None and await self._exception_handler(exc):
+        local_handler = self._exception_handler_call
+        if local_handler is not None and await local_handler(exc):
             return True
 
-        broker_handler = self._outer_config.broker_exception_handler
+        broker_handler = self._broker_exception_handler_call
         if broker_handler is not None:
-            async_handler: AsyncExceptionHandler = to_async(broker_handler)
-            return await async_handler(exc)
+            return await broker_handler(exc)
 
         return False
 
@@ -351,7 +375,12 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         except Exception as exc:
             # All other exceptions were logged by CriticalLogMiddleware
-            await self._handle_exception(exc)
+            has_handler = (
+                self._exception_handler_call is not None
+                or self._broker_exception_handler_call is not None
+            )
+            if has_handler and not await self._handle_exception(exc):
+                raise
 
     async def process_message(self, msg: MsgType) -> "Response":
         """Execute all message processing stages."""
