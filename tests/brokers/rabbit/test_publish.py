@@ -154,7 +154,7 @@ class TestPublish(RabbitTestcaseConfig, BrokerPublishTestcase):
 
         assert mock.call_args.kwargs == {
             "body": b"",
-            "timestamp": IsNow(delta=dt.timedelta(seconds=10), tz=dt.timezone.utc),
+            "timestamp": IsNow(delta=dt.timedelta(seconds=10), tz=dt.UTC),
         }
 
     @pytest.mark.asyncio()

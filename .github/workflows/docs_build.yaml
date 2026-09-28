@@ -34,9 +34,6 @@ jobs:
         with:
           just-version: 1.42.4
 
-      - name: Build API Reference
-        run: just docs-build-api
-
       - run: echo "VERSION=$(python3 -c 'from importlib.metadata import version; print(".".join(version("faststream").split(".")[:2]))')" >> "$GITHUB_ENV"
       - run: echo "IS_RC=$(python3 -c 'from importlib.metadata import version; print("rc" in version("faststream"))')" >> "$GITHUB_ENV"
       - run: echo "$VERSION"
@@ -68,8 +65,8 @@ jobs:
           git reset --soft "$(git rev-list --max-parents=0 HEAD)"
 
       # `git checkout gh-pages` leaves behind everything the build had ignored —
-      # `docs/site/`, the generated API markdown, `__pycache__`. On `gh-pages`
-      # there is no `.gitignore` to keep them out of the commit.
+      # `docs/site/`, `__pycache__`. On `gh-pages` there is no `.gitignore` to
+      # keep them out of the commit.
       - name: Drop the build artifacts left over from the source checkout
         run: git clean -fdx
 

@@ -1115,7 +1115,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             # because it already stopped due to NOGROUP
             event.clear()
             await br.publish("world", stream=queue)
-            with pytest.raises(asyncio.TimeoutError):
+            with pytest.raises(TimeoutError):
                 await asyncio.wait_for(event.wait(), timeout=1)
 
             # Stopped instead of restarting in a hot loop, and asked the app to exit

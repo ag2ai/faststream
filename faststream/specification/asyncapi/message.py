@@ -1,15 +1,8 @@
 from collections.abc import Sequence
 from inspect import isclass
-from typing import TYPE_CHECKING, Any, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 from pydantic import BaseModel, create_model
-
-from faststream._internal._compat import (
-    DEF_KEY,
-    PYDANTIC_V2,
-    get_model_fields,
-    model_schema,
-)
 
 if TYPE_CHECKING:
     from fast_depends.core import CallModel
@@ -37,29 +30,6 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
 
 
 @overload
-def get_response_schema(call: None, prefix: str = "") -> None: ...
-
-
-@overload
-def get_response_schema(call: "CallModel", prefix: str = "") -> dict[str, Any]: ...
-
-
-def get_response_schema(
-    call: Optional["CallModel"],
-    prefix: str = "",
-) -> dict[str, Any] | None:
-    """Get the response schema for a given call."""
-    return get_model_schema(
-        getattr(
-            call,
-            "response_model",
-            None,
-        ),  # NOTE: FastAPI Dependant object compatibility
-        prefix=prefix,
-    )
-
-
-@overload
 def get_model_schema(
     call: None,
     prefix: str = "",
@@ -84,7 +54,7 @@ def get_model_schema(
     if call is None:
         return None
 
-    params = {k: v for k, v in get_model_fields(call).items() if k not in exclude}
+    params = {k: v for k, v in call.model_fields.items() if k not in exclude}
     params_number = len(params)
 
     if params_number == 0:
@@ -95,9 +65,8 @@ def get_model_schema(
     name, param = next(iter(params.items()))
     if (
         params_number == 1
-        and param.annotation
         and isclass(param.annotation)
-        and issubclass(param.annotation, BaseModel)  # NOTE: 3.7-3.10 compatibility
+        and issubclass(param.annotation, BaseModel)
     ):
         model = param.annotation
         use_original_model = True
@@ -105,7 +74,7 @@ def get_model_schema(
     if model is None:
         model = call
 
-    body: dict[str, Any] = model_schema(model)
+    body: dict[str, Any] = model.model_json_schema()
     body["properties"] = body.get("properties", {})
     for i in exclude:
         body["properties"].pop(i, None)
@@ -116,17 +85,17 @@ def get_model_schema(
         param_body: dict[str, Any] = body.get("properties", {})
         param_body = param_body[name]
 
-        if defs := body.get(DEF_KEY):
+        if defs := body.get("$defs"):
             # single argument with useless reference
             if param_body.get("$ref"):
                 ref_obj: dict[str, Any] = next(iter(defs.values()))
-                ref_obj[DEF_KEY] = {
+                ref_obj["$defs"] = {
                     k: v for k, v in defs.items() if k != ref_obj.get("title")
                 }
                 return ref_obj
-            param_body[DEF_KEY] = defs
+            param_body["$defs"] = defs
 
-        original_title = param.title if PYDANTIC_V2 else param.field_info.title
+        original_title = param.title
 
         if original_title:
             use_original_model = True

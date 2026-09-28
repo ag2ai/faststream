@@ -1,7 +1,7 @@
 import re
 from collections.abc import Callable, Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
@@ -347,7 +347,7 @@ async def build_message(
         offset=0,
         headers=[(i, j.encode()) for i, j in headers.items()],
         timestamp_type=1,
-        timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 
@@ -382,7 +382,7 @@ def _build_record(
         offset=0,
         headers=[(i, j.encode()) for i, j in h.items()],
         timestamp_type=1,
-        timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 

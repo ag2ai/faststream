@@ -1,20 +1,21 @@
 import json
 import logging
 import logging.config
+import tomllib
 from collections import defaultdict
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import typer
 
-from faststream.exceptions import INSTALL_TOML, INSTALL_YAML
+from faststream.exceptions import INSTALL_YAML
 
 if TYPE_CHECKING:
     from faststream._internal.application import Application
 
 
-class LogLevels(str, Enum):
+class LogLevels(StrEnum):
     """A class to represent log levels.
 
     Attributes:
@@ -48,7 +49,7 @@ LOG_LEVELS: defaultdict[str, int] = defaultdict(
 )
 
 
-class LogFiles(str, Enum):
+class LogFiles(StrEnum):
     """The class to represent supported log configuration files."""
 
     json = ".json"
@@ -108,15 +109,6 @@ def _get_yaml_config(file: Path) -> dict[str, Any] | Any:
 
 def _get_toml_config(file: Path) -> dict[str, Any] | Any:
     """Parse toml config file to dict."""
-    try:
-        import tomllib
-    except ImportError:
-        try:
-            import tomli as tomllib
-        except ImportError as e:
-            typer.echo(INSTALL_TOML, err=True)
-            raise typer.Exit(1) from e
-
     with file.open("rb") as config_file:
         return tomllib.load(config_file)
 

@@ -1,7 +1,6 @@
 import re
 import uuid
 from collections.abc import AsyncGenerator, Generator, Iterable, Iterator, Sequence
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from functools import partial
@@ -223,8 +222,6 @@ class TestRedisBroker(
 
         connection_state = broker.config.broker_config.connection
         connection_state._client = connection
-        connection_state._sync_cluster = MagicMock()
-        connection_state._thread_pool = ThreadPoolExecutor(max_workers=1)
         connection_state._connected = True
         return connection
 

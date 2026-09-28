@@ -1,9 +1,7 @@
-from typing import overload
+from typing import Self, overload
 
 from pydantic import BaseModel
-from typing_extensions import Self
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema.bindings import (
     amqp as amqp_bindings,
     http as http_bindings,
@@ -36,13 +34,7 @@ class OperationBinding(BaseModel):
     redis: redis_bindings.OperationBinding | None = None
     http: http_bindings.OperationBinding | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @overload
     @classmethod

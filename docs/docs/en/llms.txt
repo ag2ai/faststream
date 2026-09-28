@@ -62,7 +62,7 @@ If you know FastAPI, you already know FastStream: the same decorators, type-driv
 
 ## Integrations
 - [HTTP Async Frameworks](https://faststream.ag2.ai/latest/getting-started/integrations/frameworks/): FastStream brokers are very easy to integrate with any of your applications: it is enough to initialize the broker at startup and close it correctly at the end of your application.
-- [FastAPI Plugin](https://faststream.ag2.ai/latest/getting-started/integrations/fastapi/): FastStream can be used as a part of FastAPI. Just import a StreamRouter you need and declare the message handler in the same way as with a regular FastStream application.
+- [FastAPI Plugin](https://github.com/faststream-community/faststream_fastapi): The FastAPI integration is shipped as the separate faststream_fastapi package. It provides a StreamRouter per broker with the same subscriber and publisher decorators.
 - [Django](https://faststream.ag2.ai/latest/getting-started/integrations/django/): Using FastStream with Django. Django is a high-level Python web framework that promotes rapid development and clean design, allowing developers to focus on building applications without the hassle of web development. In this tutorial, we'll explore how to integrate the FastStream app with a Django application.
 
 ## CLI
@@ -178,11 +178,6 @@ If you know FastAPI, you already know FastStream: the same decorators, type-driv
 - [Message Information](https://faststream.ag2.ai/latest/redis/message/): In FastStream, messages passed through a Redis broker are serialized and can be interacted with just like function parameters. However, you might occasionally need to access more than just the message content, such as metadata and other attributes.
 - [Security Configuration](https://faststream.ag2.ai/latest/redis/security/): This chapter covers the security options available in FastStream and their usage. FastStream enhances application security by utilizing security objects when creating brokers, which encapsulate security-related configurations and mechanisms.
 - [Message Format](https://faststream.ag2.ai/latest/redis/message_format/): To offer features like observability, FastStream includes extra data in your messages. Redis allows sending any type of data within a message, so FastStream uses its own binary format for messages, supporting any data type and additional information you wish to include.
-
-## Reference - Code API
-- [Reference - Code API](https://faststream.ag2.ai/latest/api/): Here’s the reference for the code API, including classes, functions, parameters, attributes, and all FastAPI components you can use in your applications. For a better understanding of FastStream, it's recommended to read the FastStream Tutorial.
-- [Public API](https://faststream.ag2.ai/latest/public_api/faststream/BaseMiddleware/): This section contains information about Public FastStream API
-- [All API](https://faststream.ag2.ai/latest/api/faststream/BaseMiddleware/): This section contains information about All FastStream API
 
 ## Used By
 - [Used By](https://faststream.ag2.ai/latest/who-uses/): Open-source projects and organizations that use FastStream, plus tools shipping a FastStream integration and community extensions.

@@ -1,7 +1,5 @@
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, Generic, Optional
-
-from typing_extensions import Self
+from typing import TYPE_CHECKING, Any, Generic, Optional, Self
 
 from faststream._internal.types import AnyMsg, PublishCommandType
 

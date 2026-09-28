@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
 
 
-class DestinationType(str, Enum):
+class DestinationType(StrEnum):
     Channel = "channel"
     List = "list"
     Stream = "stream"

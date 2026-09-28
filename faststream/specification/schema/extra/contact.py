@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from typing import Required
 
 from pydantic import AnyHttpUrl
-from typing_extensions import Required, TypedDict
+from typing_extensions import TypedDict
 
 from faststream._internal._compat import EmailStr
 

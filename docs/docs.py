@@ -8,7 +8,6 @@ from pathlib import Path
 import mkdocs.commands.serve
 import typer
 from check_site import check_site
-from create_api_docs import create_api_docs, remove_api_dir, render_navigation
 from mkdocs.config import load_config
 from typing_extensions import Annotated
 from update_releases import update_release_notes as _update_release_notes
@@ -52,15 +51,9 @@ def preview() -> None:
 
 
 @app.command()
-def live(
-    port: Annotated[str | None, typer.Argument()] = None,
-    full: bool = False,
-) -> None:
+def live(port: Annotated[str | None, typer.Argument()] = None) -> None:
     """Start mkdocs preview with hotreload."""
-    if full:
-        _build()
-    else:
-        _build_fast()
+    _build()
 
     dev_server = f"0.0.0.0:{port}" if port else DEV_SERVER
 
@@ -76,30 +69,12 @@ def build() -> None:
 
 
 @app.command()
-def build_fast() -> None:
-    """Build documentation without API References."""
-    _build_fast()
-
-
-@app.command()
 def check() -> None:
     """Build the guides with --strict and check the built site, as CI does on PRs."""
-    # generating the reference sources imports every public module, which is where
-    # the reference breaks; rendering its thousand pages would take minutes
-    typer.echo("Generating API reference sources")
-    create_api_docs()
-
-    _build_fast(strict=True)
+    subprocess.run(["mkdocs", "build", "--site-dir", BUILD_DIR, "--strict"], check=True)
 
     typer.echo("Checking the built site")
     check_site(BUILD_DIR)
-
-
-@app.command()
-def build_api_docs() -> None:
-    """Build api docs for faststream."""
-    typer.echo("Updating API docs")
-    create_api_docs()
 
 
 @app.command()
@@ -109,29 +84,7 @@ def update_release_notes() -> None:
     _update_release_notes(release_notes_path=EN_DOCS_DIR / "release.md")
 
 
-@app.command()
-def build_navigation() -> None:
-    typer.echo("Updating Navigation with empty API")
-    render_navigation("", "")
-
-
-def _build_fast(*, strict: bool = False) -> None:
-    typer.echo("Removing API directory")
-    remove_api_dir()
-
-    typer.echo("Building navigation")
-    render_navigation("", "")
-
-    command = ["mkdocs", "build", "--site-dir", BUILD_DIR]
-    if strict:
-        command.append("--strict")
-    subprocess.run(command, check=True)
-
-
 def _build() -> None:
-    typer.echo("Updating Reference")
-    build_api_docs()
-
     typer.echo("Updating Release Notes")
     _update_release_notes(release_notes_path=EN_DOCS_DIR / "release.md")
 

@@ -13,8 +13,8 @@ authors = [
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 
-requires-python = ">=3.10"
-version = "0.7.7"
+requires-python = ">=3.11"
+version = "1.0.0"
 
 keywords = [
     "rabbitmq",
@@ -34,7 +34,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -53,12 +52,12 @@ classifiers = [
     "Environment :: Web Environment",
     "Framework :: AsyncIO",
     "Framework :: Pydantic",
-    "Framework :: Pydantic :: 1",
     "Framework :: Pydantic :: 2",
 ]
 
 dependencies = [
     "fast-depends[pydantic]>=3.0.9",
+    "pydantic>=2.4,<3",
     "typing-extensions>=4.12.0",
     "anyio>=4.14.2,<5",
 ]
@@ -75,7 +74,7 @@ confluent = [
 
 nats = ["nats-py>=2.14.0,<=3.0.0"]
 
-redis = ["redis>=5.0.0,<9.0.0"]
+redis = ["redis>=8.0.0,<9.0.0"]
 
 mqtt = ["zmqtt>=0.2.0,<0.3.0"]
 
@@ -94,8 +93,6 @@ optionals = ["faststream[rabbit,kafka,confluent,nats,redis,mqtt,otel,cli,prometh
 docs = [
     "mkdocs-material==9.7.7",
     "mdx-include==1.4.2",
-    "mkdocstrings[python]==1.0.2",
-    "griffe==1.15.0",
     "mkdocs-literate-nav==0.6.2",
     "mkdocs-git-revision-date-localized-plugin==1.5.1",
     "mike==2.1.3",                                      # versioning
@@ -120,7 +117,6 @@ lint = [
     "pyright==1.1.407",
     "pyrefly==1.3.1",
     # type checkers extensions
-    "types-Deprecated",
     "types-PyYAML",
     "types-setuptools",
     "types-redis",
@@ -186,7 +182,7 @@ module-name = "faststream"
 [tool.mypy]
 files = ["faststream", "tests", "docs/docs_src"]
 strict = true
-python_version = "3.10"
+python_version = "3.11"
 strict_bytes = true
 local_partial_types = true
 ignore_missing_imports = true
@@ -253,11 +249,6 @@ module = ["docs.docs_src.getting_started.opentelemetry.*"]
 disable_error_code = ["name-defined"]
 
 [[tool.mypy.overrides]]
-# The pydantic v1 spelling, shown beside the v2 one.
-module = ["docs.docs_src.getting_started.config.settings_base_1"]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 # tornado is not installed, so its `RequestHandler` is `Any`.
 module = ["docs.docs_src.integrations.http_frameworks_integrations.tornado"]
 disallow_subclassing_any = false
@@ -267,14 +258,14 @@ disallow_subclassing_any = false
 # user does. Pyright still follows imports into `faststream/`, so breakage in
 # the framework surfaces here — but internal annotations are not policed.
 include = ["tests/mypy"]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "strict"
 
 [tool.pyrefly]
 # Same scope as pyright, for the same reason: the documented API has to type
 # check for a user of any checker, internal annotations are mypy's job.
 project-includes = ["tests/mypy"]
-python-version = "3.10"
+python-version = "3.11"
 # the include is explicit; a checkout under an ignored path (a worktree) matches nothing otherwise
 use-ignore-files = false
 

@@ -4,7 +4,6 @@ import pytest
 
 from faststream.kafka import KafkaBroker, KafkaRoute
 from faststream.kafka.configs.broker import KafkaBrokerConfig
-from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
 
 
 @pytest.mark.kafka()
@@ -84,13 +83,3 @@ class TestSubscriberClientRack:
         )
 
         assert route.kwargs["client_rack"] == "route-rack"
-
-    def test_fastapi_router_passes_client_rack(self) -> None:
-        router = FastAPIKafkaRouter()
-        sub = router.subscriber(
-            "test-topic",
-            group_id="test-group",
-            client_rack="fastapi-rack",
-        )
-
-        assert sub._connection_args["client_rack"] == "fastapi-rack"

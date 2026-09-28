@@ -2,7 +2,6 @@ import ssl
 import warnings
 from typing import Any
 
-import anyio
 import pytest
 from redis.asyncio.connection import DefaultParser, Encoder
 
@@ -13,6 +12,8 @@ from faststream.redis.broker import RedisClusterBroker as SubpackageRedisCluster
 from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.parser import BinaryMessageFormatV1
 from faststream.security import BaseSecurity, SASLPlaintext
+
+from .settings import SettingsCluster
 
 pytestmark = pytest.mark.redis_cluster
 
@@ -232,16 +233,17 @@ class TestClusterBrokerInheritance:
         broker = RedisClusterBroker()
         assert isinstance(broker.config, ConfigComposition)
 
-    def test_start_stop_lifecycle(self) -> None:
-        async def test() -> None:
-            broker = RedisClusterBroker()
-            assert broker._connection is None
-            await broker.start()
-            assert broker._connection is not None
-            await broker.stop()
-            assert broker._connection is None
+    @pytest.mark.connected()
+    @pytest.mark.asyncio()
+    async def test_start_stop_lifecycle(self, settings_cluster: SettingsCluster) -> None:
+        broker = RedisClusterBroker(url=settings_cluster.url)
+        assert broker._connection is None
 
-        anyio.run(test)
+        await broker.start()
+        assert broker._connection is not None
+
+        await broker.stop()
+        assert broker._connection is None
 
 
 @pytest.mark.parametrize(

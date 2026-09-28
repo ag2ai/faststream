@@ -16,7 +16,9 @@ from faststream.exceptions import SetupError
 from . import config as config_module
 
 if TYPE_CHECKING:
-    from typing_extensions import NotRequired, TypedDict
+    from typing import NotRequired
+
+    from typing_extensions import TypedDict
 
     from faststream._internal.logger import LoggerState
 

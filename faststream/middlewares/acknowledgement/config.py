@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AckPolicy(str, Enum):
+class AckPolicy(StrEnum):
     ACK_FIRST = "ack_first"
     """Ack message on consume."""
 

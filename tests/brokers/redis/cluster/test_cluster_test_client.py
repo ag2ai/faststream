@@ -20,8 +20,16 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     ) -> None:
         await super().test_broker_with_real_patches_publishers_and_subscribers(queue)
 
+    # the two below start the broker for real, and a cluster `connect()` now
+    # reaches the network to discover the slot map
+
+    @pytest.mark.connected()
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
+
+    @pytest.mark.connected()
+    async def test_broker_with_real_doesnt_get_patched(self) -> None:
+        await super().test_broker_with_real_doesnt_get_patched()
 
     async def test_pub_sub_pattern(self) -> None:
         broker = self.get_broker()

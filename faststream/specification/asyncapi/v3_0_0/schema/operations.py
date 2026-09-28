@@ -1,10 +1,8 @@
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+from typing import Any, Self
 
 from pydantic import BaseModel, Field
-from typing_extensions import Self
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.schema.operation import Operation as OperationSpec
 
 from .bindings import OperationBinding
@@ -13,7 +11,7 @@ from .tag import Tag
 from .utils import Reference
 
 
-class Action(str, Enum):
+class Action(StrEnum):
     SEND = "send"
     RECEIVE = "receive"
 
@@ -48,13 +46,7 @@ class Operation(BaseModel):
 
     tags: list[Tag | dict[str, Any]] | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @classmethod
     def from_sub(

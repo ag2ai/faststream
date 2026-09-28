@@ -5,6 +5,7 @@ from typing import (
     ClassVar,
     Optional,
     cast,
+    overload,
 )
 from urllib.parse import urlparse
 
@@ -15,7 +16,7 @@ from redis.asyncio.connection import (
     parse_url,
 )
 from redis.exceptions import ConnectionError
-from typing_extensions import Unpack, overload, override
+from typing_extensions import Unpack, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -46,7 +47,6 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream.redis.message import RedisChannelMessage
-    from faststream.redis.publisher.producer import RedisClusterFastProducer
     from faststream.redis.schemas.types import RedisBrokerParams
     from faststream.security import BaseSecurity
 
@@ -163,7 +163,7 @@ class RedisBroker(
         self,
         connection_state: "ConnectionState[Any]",
         kwargs: dict[str, Any],
-    ) -> "RedisFastProducer | RedisClusterFastProducer":
+    ) -> "RedisFastProducer":
         """Build the producer. Overridden by the Cluster broker."""
         return RedisFastProducer(
             connection=connection_state,
