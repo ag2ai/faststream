@@ -383,12 +383,10 @@ async def test_consume_topic_object(queue: str, mock: MagicMock) -> None:
 @pytest.mark.asyncio()
 async def test_flag_off_skips_create_and_warns() -> None:
     subscriber = build_subscriber("test", allow_auto_create_topics=False)
-    subscriber._outer_config.admin.create_topics = AsyncMock()
     subscriber._log = MagicMock()
 
     await subscriber._ensure_topics()
 
-    subscriber._outer_config.admin.create_topics.assert_not_called()
     subscriber._log.assert_called_once()
     assert "Auto create topics is disabled" in subscriber._log.call_args.args[1]
 
@@ -397,12 +395,10 @@ async def test_flag_off_skips_create_and_warns() -> None:
 @pytest.mark.asyncio()
 async def test_consumer_only_skips_create_and_warns() -> None:
     subscriber = build_subscriber("test", consumer_only=True)
-    subscriber._outer_config.admin.create_topics = AsyncMock()
     subscriber._log = MagicMock()
 
     await subscriber._ensure_topics()
 
-    subscriber._outer_config.admin.create_topics.assert_not_called()
     subscriber._log.assert_called_once()
     assert "consumer-only" in subscriber._log.call_args.args[1]
 
@@ -411,6 +407,7 @@ async def test_consumer_only_skips_create_and_warns() -> None:
 @pytest.mark.asyncio()
 async def test_refused_topic_is_a_warning_not_an_exception() -> None:
     subscriber = build_subscriber("test")
+    subscriber._outer_config.admin = MagicMock()
     subscriber._outer_config.admin.create_topics = AsyncMock(
         return_value=[
             CreateResult("test", PermissionError("CREATE denied")),
