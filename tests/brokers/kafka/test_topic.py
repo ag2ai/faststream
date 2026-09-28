@@ -1,6 +1,6 @@
 import warnings
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -14,6 +14,7 @@ from faststream.kafka import (
 from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
 from faststream.kafka.helpers.admin import AdminService, CreateResult
 from faststream.kafka.testing import TestKafkaBroker
+from tests.tools import spy_decorator
 
 
 def build_subscriber(
@@ -447,10 +448,12 @@ async def test_not_declared_topic_is_not_created(queue: str) -> None:
     @broker.subscriber(Topic(queue, declare=False), auto_offset_reset="earliest")
     async def handler(msg: str) -> None: ...
 
-    async with broker:
-        await broker.start()
+    with patch.object(
+        AdminService,
+        "create_topics",
+        spy_decorator(AdminService.create_topics),
+    ) as spy:
+        async with broker:
+            await broker.start()
 
-        metadata = await broker.config.admin_client.describe_topics([queue])
-        (topic_info,) = metadata
-        # UnknownTopicOrPartition is encoded as an error on the topic, not a missing key.
-        assert topic_info.get("error") is not None or not topic_info.get("partitions")
+    spy.mock.assert_not_called()
