@@ -3,11 +3,13 @@ from unittest.mock import MagicMock
 
 import pytest
 import zmqtt
+from dirty_equals import IsPartialDataclass
 
 from faststream.mqtt import MQTTBroker
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 
 from .basic import MQTTTestcaseConfig
+from .settings import Settings
 
 
 class _FailingSubscription:
@@ -57,6 +59,27 @@ async def test_terminal_subscription_failure_is_not_restarted(
 @pytest.mark.mqtt()
 @pytest.mark.asyncio()
 class TestConsume(MQTTTestcaseConfig, BrokerRealConsumeTestcase):
+    async def test_unsubscribe_result(self, settings: Settings, queue: str) -> None:
+        broker = self.get_broker(host=settings.host, port=settings.port)
+        subscriber = broker.subscriber(queue)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            assert await subscriber.get_one(timeout=0.01) is None
+            assert subscriber.last_unsubscribe_result is None
+
+            await subscriber.stop()
+            result = subscriber.last_unsubscribe_result
+            assert result == IsPartialDataclass(
+                topic_filters=(queue,),
+                reason_codes=(0,) if self.version == "5.0" else (),
+            )
+
+            await subscriber.stop()
+            assert subscriber.last_unsubscribe_result is result
+
+        assert subscriber.last_unsubscribe_result is result
+
     async def test_consume_with_filter(
         self,
         queue: str,

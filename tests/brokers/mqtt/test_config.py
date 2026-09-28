@@ -1,7 +1,27 @@
+from typing import Any
+
 import pytest
 
 from faststream import AckPolicy
 from faststream.mqtt import MQTTBroker, MQTTRouter, QoS, Will
+
+
+@pytest.mark.mqtt()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "options",
+    (
+        {"receive_maximum": 10},
+        {"maximum_packet_size": 4096},
+        {"user_properties": (("role", "worker"),)},
+        {"request_response_information": False},
+        {"request_problem_information": False},
+    ),
+)
+async def test_broker_connect_properties_reject_v311(options: dict[str, Any]) -> None:
+    broker = MQTTBroker(version="3.1.1", **options)
+    with pytest.raises(RuntimeError, match=r"MQTT 5\.0 is required"):
+        await broker.connect()
 
 
 @pytest.mark.mqtt()
