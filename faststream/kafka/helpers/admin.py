@@ -57,9 +57,12 @@ class AdminService:
         if not topics:
             return []
 
-        response = await self.client.create_topics(
-            [topic.to_aiokafka() for topic in topics],
-        )
+        try:
+            response = await self.client.create_topics(
+                [topic.to_aiokafka() for topic in topics],
+            )
+        except Exception as e:
+            return [CreateResult(topic.name, e) for topic in topics]
 
         results = []
         for topic_error in response.to_object()["topic_errors"]:

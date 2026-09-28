@@ -188,3 +188,16 @@ def _validate_input_for_misconfigure(
             )
 
         declared[topic.name] = topic
+
+    seen_partitions: dict[str, bool] = {}
+    for partition in partitions:
+        previous_declare = seen_partitions.get(partition.topic)
+        if previous_declare is not None and previous_declare != partition.declare:
+            warnings.warn(
+                f"Topic {partition.topic!r} is declared with conflicting settings: "
+                f"TopicPartition(..., declare={previous_declare}) and "
+                f"TopicPartition(..., declare={partition.declare}). The last one wins.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
+        seen_partitions[partition.topic] = partition.declare

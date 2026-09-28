@@ -294,7 +294,10 @@ class KafkaBroker(
                 Kafka credentials scoped to read-only ACLs. Defaults to False.
             allow_auto_create_topics (bool):
                 Allow FastStream to create topics through the admin client when a subscriber starts.
-                Defaults to True. Set to False when topics are provisioned elsewhere.
+                Unlike ``faststream.confluent``, this flag is FastStream-side only: aiokafka has no
+                ``allow.auto.create.topics`` consumer option, so the cluster's own
+                ``auto.create.topics.enable`` is a separate switch. Defaults to True.
+                Set to False when topics are provisioned elsewhere.
             acks (Union[Literal[0, 1, -1, "all"], object]):
                 One of ``0``, ``1``, ``all``. The number of acknowledgments the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are sent. The following settings are common:

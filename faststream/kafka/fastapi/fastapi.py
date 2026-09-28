@@ -226,6 +226,9 @@ class KafkaRouter(
                 Note that enabling idempotence acks to set to ``all``. If it is not
                 explicitly set by the user it will be chosen.
             allow_auto_create_topics: Allow FastStream to create topics through the admin client when a subscriber starts.
+                Unlike ``faststream.confluent``, this flag is FastStream-side only: aiokafka has no
+                ``allow.auto.create.topics`` consumer option, so the cluster's own
+                ``auto.create.topics.enable`` is a separate switch.
             # broker base args
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
             id_generator: Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.

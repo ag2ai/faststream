@@ -128,9 +128,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         prefix = self._outer_config.prefix
         for p in self._partitions:
-            topics.setdefault(
+            # Conflicting declare flags are reported by `create_subscriber`.
+            topics[f"{prefix}{p.topic}"] = Topic(
                 f"{prefix}{p.topic}",
-                Topic(f"{prefix}{p.topic}", declare=p.declare),
+                declare=p.declare,
             )
 
         return [t for t in topics.values() if t.declare]
@@ -144,6 +145,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             return
 
         if self._outer_config.consumer_only:
+            self._log(
+                logging.WARNING,
+                "Topic creation is skipped in consumer-only mode. Make sure the topics exist.",
+            )
             return
 
         topics = self.topics_to_create
@@ -151,14 +156,20 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             return
 
         try:
-            for create_result in await self._outer_config.admin.create_topics(topics):
-                if create_result.error:
-                    self._log(
-                        logging.WARNING,
-                        f"Failed to create topic {create_result.topic}: {create_result.error}",
-                    )
+            results = await self._outer_config.admin.create_topics(topics)
         except IncorrectState:
+            self._log(
+                logging.WARNING,
+                "Admin client is not connected. Topic creation is skipped.",
+            )
             return
+
+        for create_result in results:
+            if create_result.error:
+                self._log(
+                    logging.WARNING,
+                    f"Failed to create topic {create_result.topic}: {create_result.error}",
+                )
 
     async def start(self) -> None:
         """Start the consumer."""

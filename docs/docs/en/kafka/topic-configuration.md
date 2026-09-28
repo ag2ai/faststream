@@ -41,6 +41,23 @@ Set `#!python declare=False` for topics that somebody else provisions — anothe
 !!! note
     `#!python declare=False` narrows creation down for a single topic. To turn topic creation off for the whole broker, use `#!python KafkaBroker(allow_auto_create_topics=False)` — that flag always wins, and no topic is created regardless of its `declare` value.
 
+    Unlike `faststream.confluent`, this flag is FastStream-side only. **aiokafka** has no `allow.auto.create.topics` consumer option, so the cluster's own `auto.create.topics.enable` is a separate switch and still applies to produce/metadata fetches.
+
+    `consumer_only=True` also skips creation (no admin client is started). Topics must already exist.
+
+## Partition-assigned subscribers
+
+A `TopicPartition` carries the same `declare` flag. Set it to `False` when the assigned topic is provisioned elsewhere:
+
+```python
+from faststream.kafka import KafkaBroker, TopicPartition
+
+broker = KafkaBroker()
+
+@broker.subscriber(partitions=[TopicPartition("orders", 0, declare=False)])
+async def on_order(msg: str) -> None: ...
+```
+
 ## Publishers
 
 `#!python @broker.publisher(...)` accepts a `Topic` too, for symmetry with subscribers. **FastStream** never creates publisher topics, though, so only the topic name is used and the creation settings are ignored.
