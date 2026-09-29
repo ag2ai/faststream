@@ -54,7 +54,7 @@ class TestApp:
     async def __aenter__(self) -> "Application":
         self.lifespan_scope = self.app.lifespan_context(**self._extra_options)
         await self.lifespan_scope.__aenter__()
-        return await self.app.__aenter__(**self._extra_options)
+        await self.app.start(**self._extra_options)
 
     async def __aexit__(
         self,
@@ -63,5 +63,5 @@ class TestApp:
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Exit the asynchronous context manager."""
-        await self.app.__aexit__(exc_type, exc_val, exc_tb)
+        await self.app.stop()
         await self.lifespan_scope.__aexit__(exc_type, exc_val, exc_tb)
