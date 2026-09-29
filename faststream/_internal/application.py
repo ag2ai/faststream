@@ -52,7 +52,7 @@ try:
                 invalid_fields=invalid_fields,
             ) from e
 
-except ImportError:
+except ImportError:  # pragma: no cover
     catch_startup_validation_error = nullcontext
 
 
