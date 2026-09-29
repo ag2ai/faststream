@@ -191,7 +191,7 @@ class Application(StartAbleApplication):
                 context__=self.context,
             )
         else:
-            self.lifespan_context = nullcontext
+            self.lifespan_context = lambda *_, **__: nullcontext()
 
     @abstractmethod
     def exit(self) -> None:
