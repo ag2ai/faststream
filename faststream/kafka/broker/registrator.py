@@ -35,7 +35,7 @@ if TYPE_CHECKING:
         BatchPublisher,
         DefaultPublisher,
     )
-    from faststream.kafka.schemas import TopicPartition
+    from faststream.kafka.schemas import Topic, TopicPartition
     from faststream.kafka.subscriber.usecase import (
         BatchSubscriber,
         ConcurrentBetweenPartitionsSubscriber,
@@ -55,7 +55,7 @@ class KafkaRegistrator(
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: Literal[False] = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -105,7 +105,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: Literal[True] = ...,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -155,7 +155,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: Literal[False] = False,
         group_id: None = None,
         group_instance_id: str | None = None,
@@ -205,7 +205,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: Literal[False] = False,
         group_id: str = ...,
         group_instance_id: str | None = None,
@@ -255,7 +255,7 @@ class KafkaRegistrator(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -310,7 +310,7 @@ class KafkaRegistrator(
     @override
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -364,7 +364,8 @@ class KafkaRegistrator(
         """Create a subscriber for Kafka topics.
 
         Args:
-            *topics: Kafka topics to consume messages from.
+            *topics: Kafka topics to consume messages from. Pass a `Topic` object
+                instead of a plain name to configure how the topic is created.
             batch: Whether to consume messages in batches or not.
             group_id:
                 Name of the consumer group to join for dynamic
@@ -623,7 +624,7 @@ class KafkaRegistrator(
     @overload  # type: ignore[override]
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -643,7 +644,7 @@ class KafkaRegistrator(
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -662,7 +663,7 @@ class KafkaRegistrator(
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -685,7 +686,7 @@ class KafkaRegistrator(
     @override
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -712,7 +713,9 @@ class KafkaRegistrator(
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
 
         Args:
-            topic: Topic where the message will be published."
+            topic: Topic where the message will be published. A `Topic` object is
+                accepted as well, but **FastStream** never creates publisher topics,
+                so its creation settings are ignored.
             key:
                 A key to associate with the message. Can be used to
                 determine which partition to send the message to. If partition
