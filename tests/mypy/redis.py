@@ -536,3 +536,12 @@ def accepts_any_list_sub(list_sub: ListSub) -> None: ...
 
 
 accepts_any_list_sub(ListSub("test", batch=True))
+
+
+def accepts_list_publisher(publisher: ListPublisher) -> None: ...
+
+
+# `publish(*messages)` of a batch publisher would take the `list` passed
+# positionally to `ListPublisher.publish` as a second message
+batch_publisher = RedisBroker().publisher(list=ListSub("test", batch=True))
+accepts_list_publisher(batch_publisher)  # type: ignore[arg-type]
