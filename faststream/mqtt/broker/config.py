@@ -27,6 +27,7 @@ class MQTTBrokerConfig(BrokerConfig):
 
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
+    shutting_down: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self) -> None:
         super().__post_init__()

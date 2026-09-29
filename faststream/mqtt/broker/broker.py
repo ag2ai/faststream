@@ -215,6 +215,7 @@ class MQTTBroker(
 
     @override
     async def start(self) -> None:
+        self.config.broker_config.shutting_down = False
         await self.connect()
         c = MQTTBaseSubscriber.build_log_context(None, "")
         self.config.logger.log("Connection established", logging.INFO, c)
@@ -227,6 +228,9 @@ class MQTTBroker(
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
+        # Subscribers check this flag to skip UNSUBSCRIBE: DISCONNECT below drops
+        # every local queue anyway, while the filter stays in a persistent session.
+        self.config.broker_config.shutting_down = True
         await super().stop(exc_type, exc_val, exc_tb)
 
         if self._connection is not None:

@@ -73,6 +73,19 @@ those messages in its session replay buffer and routes them after the matching
 subscriptions are ready. Use `session_replay_buffer_size` and
 `session_replay_timeout` to size that startup window for the expected backlog.
 
+### Persistent sessions and shutdown
+
+An MQTT subscription is session state, not connection state: UNSUBSCRIBE removes the filter
+from the session for good, and the broker stops queueing QoS 1/2 messages for a client that
+is away. FastStream therefore does not unsubscribe when the broker stops — it closes the
+connection with DISCONNECT and leaves the filters in place, so a persistent session keeps
+collecting messages until the application comes back.
+
+UNSUBSCRIBE is still sent when a single subscriber is stopped explicitly — `await
+subscriber.stop()` or raising `StopConsume` in a handler — because that says the application
+is done with the topic. Stop the whole broker instead when the subscription must survive the
+downtime.
+
 ## Where to read next
 
 - [Publishing](publishing.md){.internal-link} — `qos`, `retain`, MQTT 5.0 headers and reply topics
