@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Callable, Sequence
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from typing_extensions import ParamSpec, deprecated
@@ -9,7 +9,7 @@ from typing_extensions import ParamSpec, deprecated
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream._internal.utils import apply_types
-from faststream._internal.utils.functions import fake_context, to_async
+from faststream._internal.utils.functions import to_async
 from faststream.exceptions import SetupError
 from faststream.specification import AsyncAPI
 
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
     from faststream._internal.context import ContextRepo
     from faststream.specification.base import SpecificationFactory
 
+
+catch_startup_validation_error: Callable[[], AbstractAsyncContextManager[Any, Any]]
 
 try:
     from pydantic import ValidationError as PValidation
@@ -51,7 +53,7 @@ try:
             ) from e
 
 except ImportError:
-    catch_startup_validation_error = fake_context
+    catch_startup_validation_error = nullcontext
 
 
 P_HookParams = ParamSpec("P_HookParams")
@@ -189,7 +191,7 @@ class Application(StartAbleApplication):
                 context__=self.context,
             )
         else:
-            self.lifespan_context = fake_context
+            self.lifespan_context = nullcontext
 
     @abstractmethod
     def exit(self) -> None:

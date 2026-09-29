@@ -1,7 +1,6 @@
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import Awaitable, Callable
 from concurrent.futures import Executor
-from contextlib import asynccontextmanager
 from functools import partial, wraps
 from typing import (
     Any,
@@ -21,7 +20,6 @@ from faststream._internal.basic_types import F_Return, F_Spec
 
 __all__ = (
     "call_or_await",
-    "fake_context",
     "to_async",
 )
 
@@ -56,11 +54,6 @@ def to_async(
         return await run_in_threadpool(func, *args, **kwargs)
 
     return to_async_wrapper
-
-
-@asynccontextmanager
-async def fake_context(*args: Any, **kwargs: Any) -> AsyncGenerator[None, None]:
-    yield None
 
 
 async def return_input(x: Any) -> Any:
