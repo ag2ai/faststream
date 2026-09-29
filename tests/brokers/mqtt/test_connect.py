@@ -80,6 +80,7 @@ class TestConnectProperties:
         assert message is not None
         assert await message.decode() == "accepted"
 
+    @pytest.mark.slow()
     async def test_receive_maximum_waits_for_ack(
         self, settings: Settings, queue: str
     ) -> None:
