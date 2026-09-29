@@ -195,8 +195,8 @@ class Application(StartAbleApplication):
         else:
             self.lifespan_context = lambda *_, **__: nullcontext()
 
-    async def __aenter__(self, **run_extra_options: "SettingField") -> Self:
-        await self.start(**run_extra_options)
+    async def __aenter__(self) -> Self:
+        await self.start()
         return self
 
     async def __aexit__(
@@ -204,7 +204,6 @@ class Application(StartAbleApplication):
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
-        **run_extra_options: "SettingField",
     ) -> None:
         await self.stop()
 
