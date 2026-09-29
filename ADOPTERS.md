@@ -74,6 +74,7 @@ please move your row up from the table below, or add a new one.
 | [Tochka Bank](https://github.com/tochka-public) | RabbitMQ | Event transport between services | — | — | — |
 | [IdaProject](https://github.com/idaproject) | RabbitMQ, Kafka | Transport between microservices (EDA) | — | — | — |
 | [DNS Technologies](https://dns-shop.ru) | Kafka | Federal Financial Service, exchange of internal documents and banking transactions between systems | — | — | — |
+| [MTS Web Services](https://github.com/MTSWebServices) | Kafka | [Consumer](https://github.com/MTSWebServices/data-rentgen) for OpenLineage events | — | — | — |
 
 ### Observed from public sources — please confirm
 
@@ -104,7 +105,6 @@ needed.
 | [KIWIQ](https://github.com/rcortx) | multi-agent AI vendor | [kiwiq](https://github.com/rcortx/kiwiq) |
 | [Lemma](https://github.com/lemma-work) | runtime for agent-built software | [lemma-platform](https://github.com/lemma-work/lemma-platform) |
 | [LMDDC](https://github.com/lmddc-lu) | Luxembourg Media & Digital Design Centre | [alice.skilltech.tools](https://github.com/lmddc-lu/alice.skilltech.tools) |
-| [MWS](https://github.com/MTSWebServices) | MTS Web Services | [data-rentgen](https://github.com/MTSWebServices/data-rentgen) |
 | [NCATS (NIH) / PolusAI](https://github.com/PolusAI) | National Center for Advancing Translational Sciences | [aithena](https://github.com/PolusAI/aithena) |
 | [NERSC](https://github.com/NERSC) | National Energy Research Scientific Computing Center, US DOE | [interactEM](https://github.com/NERSC/interactEM) |
 | [NHS Lancashire & South Cumbria SDE](https://github.com/lsc-sde) | NHS secure data environment | [neulander-core](https://github.com/lsc-sde/neulander-core) |
