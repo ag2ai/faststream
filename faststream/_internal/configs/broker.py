@@ -9,6 +9,7 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
 from faststream._internal.producer import ProducerProto, ProducerUnset
 from faststream._internal.types import IdGenerator
+from faststream._internal.utils.functions import to_async
 from faststream.message import gen_cor_id
 
 if TYPE_CHECKING:
@@ -16,7 +17,12 @@ if TYPE_CHECKING:
 
     from faststream._internal.context import ContextRepo
     from faststream._internal.parser import CodecProto
-    from faststream._internal.types import BrokerMiddleware, CustomCallable
+    from faststream._internal.types import (
+        AsyncExceptionHandler,
+        BrokerMiddleware,
+        CustomCallable,
+        ExceptionHandler,
+    )
     from faststream.middlewares import AckPolicy
 
 
@@ -29,6 +35,12 @@ class BrokerConfig:
     broker_parser: Optional["CustomCallable"] = None
     broker_decoder: Optional["CustomCallable"] = None
     broker_codec: Optional["CodecProto"] = None
+    broker_exception_handler: Optional["ExceptionHandler"] = None
+    _broker_exception_handler: Optional["AsyncExceptionHandler"] = field(
+        default=None,
+        init=False,
+        repr=False,
+    )
 
     producer: "ProducerProto[Any]" = field(default_factory=ProducerUnset)
     logger: "LoggerState" = field(default_factory=LoggerState)
@@ -44,6 +56,11 @@ class BrokerConfig:
     def __post_init__(self) -> None:
         # untyped callers still pass a generator: the first subscriber would spend it
         self.broker_dependencies = tuple(self.broker_dependencies)
+
+        if self.broker_exception_handler is not None:
+            self._broker_exception_handler = to_async(
+                self.broker_exception_handler,
+            )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

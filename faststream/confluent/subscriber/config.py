@@ -31,6 +31,7 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     connection_data: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        super().__post_init__()
         self.connection_data["enable_auto_commit"] = self.ack_first
 
     @property
