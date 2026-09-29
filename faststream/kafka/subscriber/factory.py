@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
+from faststream.kafka._compat import validate_client_rack
 from faststream.middlewares import AckPolicy
 
 from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
@@ -56,6 +57,7 @@ def create_subscriber(
         ack_policy=ack_policy,
         max_workers=max_workers,
         batch=batch,
+        client_rack=connection_args.get("client_rack"),
     )
 
     subscriber_config = KafkaSubscriberConfig(
@@ -121,7 +123,10 @@ def _validate_input_for_misconfigure(
     batch: bool,
     pattern: str | None,
     partitions: Collection["TopicPartition"],
+    client_rack: str | None,
 ) -> None:
+    validate_client_rack(client_rack)
+
     if batch and max_workers > 1:
         warnings.warn(
             "The `max_workers` option is ignored by a batch subscriber.",
