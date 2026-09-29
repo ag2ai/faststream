@@ -33,11 +33,11 @@ class TestApp:
 
             lifespan_context = self.app.lifespan_context(**self._extra_options)
             stack.enter_context(portal.wrap_async_context_manager(lifespan_context))
-            portal.call(partial(self.app.start, **self._extra_options))
+            portal.call(partial(self.app.__aenter__, **self._extra_options))
 
             @stack.callback
             def wait_shutdown() -> None:
-                portal.call(self.app.stop)
+                portal.call(partial(self.app.__aexit__, **self._extra_options))
 
             self.exit_stack = stack.pop_all()
 
@@ -54,8 +54,7 @@ class TestApp:
     async def __aenter__(self) -> "Application":
         self.lifespan_scope = self.app.lifespan_context(**self._extra_options)
         await self.lifespan_scope.__aenter__()
-        await self.app.start(**self._extra_options)
-        return self.app
+        return await self.app.__aenter__(**self._extra_options)
 
     async def __aexit__(
         self,
@@ -64,5 +63,5 @@ class TestApp:
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Exit the asynchronous context manager."""
-        await self.app.stop()
+        await self.app.__aexit__(exc_type, exc_val, exc_tb)
         await self.lifespan_scope.__aexit__(exc_type, exc_val, exc_tb)

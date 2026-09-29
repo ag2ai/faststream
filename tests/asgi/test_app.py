@@ -9,6 +9,7 @@ behaviour (message delivery, healthchecks, try-it-out dispatch) lives in
 
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from fast_depends import Depends
@@ -27,6 +28,7 @@ from faststream.asgi import (
 )
 from faststream.asgi.params import Header, Query
 from faststream.asgi.types import ASGIApp, Scope
+from faststream.rabbit import RabbitBroker
 from faststream.specification import AsyncAPI
 
 
@@ -97,6 +99,21 @@ def test_asyncapi_json_disabled() -> None:
     assert client.get("/docs").status_code == 200
     # but the JSON endpoint is not registered
     assert client.get("/docs.json").status_code == 404
+
+
+@pytest.mark.asyncio()
+async def test_async_context_manager(mock: MagicMock) -> None:
+    app = AsgiFastStream(
+        MagicMock(spec=RabbitBroker),
+        on_startup=[mock.on],
+        on_shutdown=[mock.off],
+    )
+
+    async with app as context_app:
+        assert context_app is app
+
+    mock.on.assert_called_once()
+    mock.off.assert_called_once()
 
 
 @pytest.mark.parametrize(
