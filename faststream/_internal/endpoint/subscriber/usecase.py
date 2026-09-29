@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
-from contextlib import AbstractContextManager, AsyncExitStack
+from contextlib import AbstractContextManager, AsyncExitStack, nullcontext
 from itertools import chain
 from types import TracebackType
 from typing import (
@@ -24,7 +24,7 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream._internal.utils.functions import FakeContext, to_async
+from faststream._internal.utils.functions import to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
 from faststream.middlewares import AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
@@ -116,7 +116,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._call_decorators: tuple[Decorator, ...] = ()
 
         self.running = False
-        self.lock = FakeContext()
+        self.lock = nullcontext()
 
         self.extra_watcher_options = {}
 
