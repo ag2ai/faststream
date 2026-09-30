@@ -55,6 +55,7 @@ class TestApp:
         self.lifespan_scope = self.app.lifespan_context(**self._extra_options)
         await self.lifespan_scope.__aenter__()
         await self.app.start(**self._extra_options)
+        return self.app
 
     async def __aexit__(
         self,
