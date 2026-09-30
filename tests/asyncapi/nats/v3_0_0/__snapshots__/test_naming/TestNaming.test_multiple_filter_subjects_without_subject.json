@@ -1,0 +1,108 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "logs.error:Handle": {
+      "address": "logs.error",
+      "bindings": {
+        "nats": {
+          "bindingVersion": "custom",
+          "subject": "logs.error"
+        }
+      },
+      "messages": {
+        "SubscribeMessage": {
+          "$ref": "#/components/messages/logs.error:Handle:SubscribeMessage"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    },
+    "logs.info:Handle": {
+      "address": "logs.info",
+      "bindings": {
+        "nats": {
+          "bindingVersion": "custom",
+          "subject": "logs.info"
+        }
+      },
+      "messages": {
+        "SubscribeMessage": {
+          "$ref": "#/components/messages/logs.info:Handle:SubscribeMessage"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "logs.error:Handle:SubscribeMessage": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/EmptyPayload"
+        },
+        "title": "logs.error:Handle:SubscribeMessage"
+      },
+      "logs.info:Handle:SubscribeMessage": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/EmptyPayload"
+        },
+        "title": "logs.info:Handle:SubscribeMessage"
+      }
+    },
+    "schemas": {
+      "EmptyPayload": {
+        "title": "EmptyPayload",
+        "type": "null"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "logs.error:HandleSubscribe": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/logs.error:Handle"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/logs.error:Handle/messages/SubscribeMessage"
+        }
+      ]
+    },
+    "logs.info:HandleSubscribe": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/logs.info:Handle"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/logs.info:Handle/messages/SubscribeMessage"
+        }
+      ]
+    }
+  },
+  "servers": {
+    "development": {
+      "host": "localhost:4222",
+      "pathname": "",
+      "protocol": "nats",
+      "protocolVersion": "custom"
+    }
+  }
+}
