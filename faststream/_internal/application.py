@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
-from typing_extensions import ParamSpec, deprecated
+from typing_extensions import ParamSpec, Self, deprecated
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
@@ -14,6 +14,8 @@ from faststream.exceptions import SetupError
 from faststream.specification import AsyncAPI
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from faststream._internal.basic_types import (
         AnyCallable,
         AsyncFunc,
@@ -192,6 +194,18 @@ class Application(StartAbleApplication):
             )
         else:
             self.lifespan_context = lambda *_, **__: nullcontext()
+
+    async def __aenter__(self) -> Self:
+        await self.start()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        await self.stop()
 
     @abstractmethod
     def exit(self) -> None:
