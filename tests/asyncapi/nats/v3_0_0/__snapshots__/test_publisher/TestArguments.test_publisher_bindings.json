@@ -1,0 +1,66 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "test:Publisher": {
+      "address": "test",
+      "bindings": {
+        "nats": {
+          "bindingVersion": "custom",
+          "subject": "test"
+        }
+      },
+      "messages": {
+        "Message": {
+          "$ref": "#/components/messages/test:Publisher:Message"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "test:Publisher:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/test:Publisher:Message:Payload"
+        },
+        "title": "test:Publisher:Message"
+      }
+    },
+    "schemas": {
+      "test:Publisher:Message:Payload": {}
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "test:Publisher": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/test:Publisher"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/test:Publisher/messages/Message"
+        }
+      ]
+    }
+  },
+  "servers": {
+    "development": {
+      "host": "localhost:4222",
+      "pathname": "",
+      "protocol": "nats",
+      "protocolVersion": "custom"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.nats import (
     NatsBroker,
@@ -15,83 +16,37 @@ from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 @pytest.mark.nats()
-def test_token_security_schema() -> None:
+def test_token_security_schema(snapshot_json: SnapshotAssertion) -> None:
     schema = get_2_6_0_schema(
         NatsBroker(security=NatsToken("do-not-expose-this-token")),
     )
 
-    assert schema["components"]["securitySchemes"] == {
-        "nats-token": {
-            "type": "apiKey",
-            "in": "user",
-            "description": "NATS authentication token sent as CONNECT auth_token.",
-            "x-nats-auth": "token",
-        },
-    }
-    assert schema["servers"]["development"]["security"] == [
-        {"nats-token": []},
-    ]
+    assert schema == snapshot_json
     assert "do-not-expose-this-token" not in repr(schema)
 
 
 @pytest.mark.nats()
 @pytest.mark.parametrize(
-    ("security", "scheme_name", "expected"),
+    "security",
     (
-        (
-            NatsUserPassword("user", "password"),
-            "nats-user-password",
-            {"type": "userPassword"},
-        ),
-        (
-            NatsNKey.from_seed("SU_DO_NOT_EXPOSE"),
-            "nats-nkey",
-            {
-                "type": "asymmetricEncryption",
-                "description": (
-                    "NATS NKey challenge-response authentication using an "
-                    "Ed25519 signature."
-                ),
-                "x-nats-auth": "nkey",
-                "x-nats-algorithm": "ed25519",
-            },
-        ),
-        (
+        pytest.param(NatsUserPassword("user", "password"), id="user-password"),
+        pytest.param(NatsNKey.from_seed("SU_DO_NOT_EXPOSE"), id="nkey"),
+        pytest.param(
             NatsCredentials.from_file("do-not-expose.creds"),
-            "nats-jwt",
-            {
-                "type": "asymmetricEncryption",
-                "description": (
-                    "NATS user JWT authentication with NKey challenge signing."
-                ),
-                "x-nats-auth": "jwt-nkey",
-                "x-nats-credential-source": "credentials-file",
-            },
+            id="credentials-file",
         ),
-        (
+        pytest.param(
             NatsJWT(Mock(return_value=b"jwt"), Mock(return_value=b"signature")),
-            "nats-jwt",
-            {
-                "type": "asymmetricEncryption",
-                "description": (
-                    "NATS user JWT authentication with NKey challenge signing."
-                ),
-                "x-nats-auth": "jwt-nkey",
-                "x-nats-credential-source": "callbacks",
-            },
+            id="jwt-callbacks",
         ),
     ),
 )
 def test_authentication_security_schema(
     security: NatsSecurity,
-    scheme_name: str,
-    expected: dict[str, str],
+    snapshot_json: SnapshotAssertion,
 ) -> None:
     schema = get_2_6_0_schema(NatsBroker(security=security))
 
-    assert schema["components"]["securitySchemes"] == {scheme_name: expected}
-    assert schema["servers"]["development"]["security"] == [
-        {scheme_name: []},
-    ]
+    assert schema == snapshot_json
     assert "DO_NOT_EXPOSE" not in repr(schema)
     assert "do-not-expose.creds" not in repr(schema)

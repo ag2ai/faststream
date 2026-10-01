@@ -1,0 +1,28 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {}
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {},
+  "servers": {
+    "Server1": {
+      "host": "nats:9092",
+      "pathname": "",
+      "protocol": "nats",
+      "protocolVersion": "custom"
+    },
+    "Server2": {
+      "host": "nats:9093",
+      "pathname": "",
+      "protocol": "nats",
+      "protocolVersion": "custom"
+    }
+  }
+}
