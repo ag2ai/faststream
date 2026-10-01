@@ -108,6 +108,7 @@ def test_router_ack_policy() -> None:
     assert sub.ack_policy is AckPolicy.ACK
 
 
+@pytest.mark.redis()
 @pytest.mark.rabbit()
 def test_broker_ack_policy_without_router() -> None:
     broker = RedisBroker(ack_policy=AckPolicy.ACK)

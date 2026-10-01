@@ -1,4 +1,4 @@
-import asyncio
+from typing import Any
 
 import anyio
 import pytest
@@ -6,11 +6,11 @@ import pytest
 from .basic import BaseTestcaseConfig
 
 
-class RequestsTestcase(BaseTestcaseConfig):
-    def get_middleware(self, **kwargs):
+class RequestsTestcase(BaseTestcaseConfig[Any]):
+    def get_middleware(self, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def get_router(self, **kwargs):
+    def get_router(self, **kwargs: Any) -> Any:
         raise NotImplementedError
 
     async def test_request_timeout(self, queue: str) -> None:
@@ -19,14 +19,14 @@ class RequestsTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg) -> str:
+        async def handler(msg: Any) -> str:
             await anyio.sleep(0.01)
             return "Response"
 
         async with self.patch_broker(broker):
             await broker.start()
 
-            with pytest.raises((TimeoutError, asyncio.TimeoutError)):
+            with pytest.raises(TimeoutError):
                 await broker.request(
                     None,
                     queue,
@@ -39,7 +39,7 @@ class RequestsTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg) -> str:
+        async def handler(msg: Any) -> str:
             return "Response"
 
         async with self.patch_broker(broker):
@@ -63,7 +63,7 @@ class RequestsTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg) -> str:
+        async def handler(msg: Any) -> str:
             return "Response"
 
         async with self.patch_broker(broker):
@@ -86,7 +86,7 @@ class RequestsTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def handler(msg) -> str:
+        async def handler(msg: Any) -> str:
             return "Response"
 
         broker = self.get_broker()
@@ -110,7 +110,7 @@ class RequestsTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker):
@@ -135,7 +135,7 @@ class RequestsTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker):
@@ -159,7 +159,7 @@ class RequestsTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         broker = self.get_broker()

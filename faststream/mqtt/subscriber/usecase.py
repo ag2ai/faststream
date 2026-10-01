@@ -29,6 +29,13 @@ if TYPE_CHECKING:
 class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     """Base class for all MQTT subscribers."""
 
+    __slots__ = (
+        "_address",
+        "_qos",
+        "_shared",
+        "_subscription",
+    )
+
     _outer_config: "MQTTBrokerConfig"
 
     def __init__(
@@ -149,7 +156,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMessage[zmqtt.Message] | None":
+    ) -> "MQTTMessage | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -170,15 +177,16 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
             raw_msg = await self._subscription.get_message()
 
         context = self._outer_config.context
-        return await process_msg(
+        msg: MQTTMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_msg,
             middlewares=(m(raw_msg, context=context) for m in self._broker_middlewares),
             parser=async_parser,
             decoder=async_decoder,
         )
+        return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[zmqtt.Message]"]:
+    async def __aiter__(self) -> AsyncIterator["MQTTMessage"]:
         if self._subscription is None:
             await self._create_subscription()
 
@@ -204,6 +212,8 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 class MQTTDefaultSubscriber(MQTTBaseSubscriber):
     """Sequential MQTT subscriber — processes one message at a time."""
 
+    __slots__ = ()
+
     async def _consume_loop(self) -> None:
         assert self._subscription is not None
         async for msg in self._subscription:
@@ -212,6 +222,8 @@ class MQTTDefaultSubscriber(MQTTBaseSubscriber):
 
 class MQTTConcurrentSubscriber(ConcurrentMixin[zmqtt.Message], MQTTBaseSubscriber):
     """Concurrent MQTT subscriber — processes up to max_workers messages in parallel."""
+
+    __slots__ = ()
 
     @override
     async def start(self) -> None:

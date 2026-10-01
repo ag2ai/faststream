@@ -105,8 +105,8 @@ class StartupValidationError(FastStreamException, ValueError):
         missed_fields: Iterable[str] = (),
         invalid_fields: Iterable[str] = (),
     ) -> None:
-        self.missed_fields = missed_fields
-        self.invalid_fields = invalid_fields
+        self.missed_fields = tuple(missed_fields)
+        self.invalid_fields = tuple(invalid_fields)
 
     def __str__(self) -> str:
         return (
@@ -157,11 +157,6 @@ To use feature which need yaml, please install dependencies:\n
 pip install PyYAML
 """
 
-INSTALL_TOML = """
-To use feature which need toml, please install dependencies:\n
-pip install tomli
-"""
-
 INSTALL_WATCHFILES = """
 To use restart feature, please install dependencies:\n
 pip install watchfiles
@@ -193,6 +188,16 @@ pip install "faststream[redis]"
 INSTALL_FASTSTREAM_NATS = """
 To use NATS with FastStream, please install dependencies:\n
 pip install "faststream[nats]"
+"""
+
+INSTALL_NATS_NKEYS = """
+To use NKey or credentials authentication with NATS, please install dependencies:\n
+pip install "nats-py[nkeys]"
+"""
+
+INSTALL_FASTSTREAM_MQTT = """
+To use MQTT with FastStream, please install dependencies:\n
+pip install "faststream[mqtt]"
 """
 
 INSTALL_UVICORN = """

@@ -41,6 +41,8 @@ CONSUME_ERROR_BACKOFF_SECONDS = 5
 class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
     """A class to represent a Redis handler."""
 
+    __slots__ = ("config",)
+
     _outer_config: "RedisBrokerConfig"
 
     def __init__(
@@ -95,7 +97,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             try:
                 await self._get_msgs(*args)
 
-            except Exception as e:  # noqa: PERF203
+            except Exception as e:
                 self._log(
                     log_level=logging.ERROR,
                     message="Message fetch error",
@@ -138,6 +140,8 @@ class ConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     LogicSubscriber,
 ):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",

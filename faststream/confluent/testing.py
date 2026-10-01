@@ -1,6 +1,6 @@
 from collections.abc import Callable, Generator, Iterable, Sequence
 from contextlib import ExitStack, contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
@@ -37,7 +37,10 @@ if TYPE_CHECKING:
 __all__ = ("TestKafkaBroker",)
 
 
-class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
+class TestKafkaBroker(
+    TestBroker[KafkaBroker, EnterType],
+    broker=KafkaBroker,
+):
     """A class to test Kafka brokers."""
 
     @overload
@@ -162,6 +165,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     def __bool__(self) -> bool:
         return True
 
+    @override
     async def ping(self, timeout: float) -> bool:
         return True
 
@@ -374,7 +378,7 @@ async def build_message(
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
-        timestamp_ms=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp_ms=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 
@@ -405,7 +409,7 @@ def _build_mock_message(
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
-        timestamp_ms=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp_ms=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 

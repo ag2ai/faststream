@@ -6,10 +6,11 @@ from typing import Any, Generic, overload
 from typing_extensions import TypeVar
 
 from faststream._internal.broker import BrokerUsecase
-from faststream._internal.broker.router import BrokerRouter
 
 _BrokerT = TypeVar(
-    "_BrokerT", bound=BrokerUsecase[Any, Any], default=BrokerUsecase[Any, Any]
+    "_BrokerT",
+    bound=BrokerUsecase[Any, Any, Any],
+    default=BrokerUsecase[Any, Any, Any],
 )
 
 
@@ -50,8 +51,8 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
             return brokers[0]
 
         @asynccontextmanager
-        async def enter_broker() -> AsyncGenerator[list[BrokerUsecase], None]:
-            started_brokers = []
+        async def enter_broker() -> AsyncGenerator[tuple[Any, ...], None]:
+            started_brokers: list[Any] = []
 
             async with AsyncExitStack() as stack:
                 for br in brokers:
@@ -76,5 +77,5 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
         return {}
 
     @abstractmethod
-    def get_router(self, **kwargs: Any) -> BrokerRouter:
+    def get_router(self, **kwargs: Any) -> Any:
         raise NotImplementedError

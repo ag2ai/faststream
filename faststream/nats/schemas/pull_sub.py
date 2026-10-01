@@ -1,7 +1,13 @@
-from typing import Literal, Optional, Union, overload
+from typing import Generic, Literal, Optional, Union, overload
+
+from typing_extensions import TypeVar
+
+# Carries `batch` in the type, so `subscriber(pull_sub=PullSub(batch=True))`
+# resolves to the batch subscriber instead of a Union of both.
+BatchT_co = TypeVar("BatchT_co", bound=bool, default=bool, covariant=True)
 
 
-class PullSub:
+class PullSub(Generic[BatchT_co]):
     """A class to represent a NATS pull subscription.
 
     Args:
@@ -16,6 +22,30 @@ class PullSub:
         "batch_size",
         "timeout",
     )
+
+    @overload
+    def __init__(
+        self: "PullSub[Literal[False]]",
+        batch_size: int = 1,
+        timeout: float | None = 5.0,
+        batch: Literal[False] = False,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "PullSub[Literal[True]]",
+        batch_size: int = 1,
+        timeout: float | None = 5.0,
+        batch: Literal[True] = ...,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "PullSub[bool]",
+        batch_size: int = 1,
+        timeout: float | None = 5.0,
+        batch: bool = ...,
+    ) -> None: ...
 
     def __init__(
         self,

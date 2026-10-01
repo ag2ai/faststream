@@ -11,5 +11,5 @@ class TestRedisAsgi(AsgiTestcase):
     def get_broker(self, **kwargs: Any) -> RedisBroker:
         return RedisBroker(**kwargs)
 
-    def get_test_broker(self, broker: RedisBroker) -> TestRedisBroker:
+    def get_test_broker(self, broker: RedisBroker) -> TestRedisBroker[RedisBroker]:
         return TestRedisBroker(broker)

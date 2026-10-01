@@ -1,7 +1,9 @@
 from docs.docs_src.getting_started.asyncapi.asyncapi_customization.basic import app
+from faststream.specification import AsyncAPI
 
 
 def test_basic_customization() -> None:
+    assert isinstance(app.schema, AsyncAPI)
     app.schema.schema_version = "2.6.0"
     schema = app.schema.to_specification().to_jsonable()
 

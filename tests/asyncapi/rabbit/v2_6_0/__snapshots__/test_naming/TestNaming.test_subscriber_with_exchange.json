@@ -1,0 +1,73 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {
+    "test:exchange:Handle": {
+      "bindings": {
+        "amqp": {
+          "bindingVersion": "0.2.0",
+          "exchange": {
+            "autoDelete": false,
+            "durable": true,
+            "name": "exchange",
+            "type": "direct",
+            "vhost": "/"
+          },
+          "is": "routingKey",
+          "queue": {
+            "autoDelete": false,
+            "durable": true,
+            "exclusive": false,
+            "name": "test",
+            "vhost": "/"
+          }
+        }
+      },
+      "publish": {
+        "bindings": {
+          "amqp": {
+            "ack": true,
+            "bindingVersion": "0.2.0",
+            "cc": "test"
+          }
+        },
+        "message": {
+          "$ref": "#/components/messages/test:exchange:Handle:Message"
+        }
+      },
+      "servers": [
+        "development"
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "test:exchange:Handle:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/EmptyPayload"
+        },
+        "title": "test:exchange:Handle:Message"
+      }
+    },
+    "schemas": {
+      "EmptyPayload": {
+        "title": "EmptyPayload",
+        "type": "null"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "amqp",
+      "protocolVersion": "0.9.1",
+      "url": "amqp://guest:guest@localhost:5672/"
+    }
+  }
+}

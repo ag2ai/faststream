@@ -98,7 +98,7 @@ class RabbitBroker(
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RabbitRegistrator] = (),
         # AsyncAPI args

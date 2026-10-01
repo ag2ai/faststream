@@ -1,4 +1,4 @@
-from collections.abc import Callable, Collection, Iterable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -89,7 +89,7 @@ class KafkaRegistrator(
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -139,7 +139,7 @@ class KafkaRegistrator(
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -189,7 +189,7 @@ class KafkaRegistrator(
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -239,7 +239,7 @@ class KafkaRegistrator(
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -289,7 +289,7 @@ class KafkaRegistrator(
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -344,7 +344,7 @@ class KafkaRegistrator(
         partitions: Collection["TopicPartition"] = (),
         # broker args
         persistent: bool = True,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -771,7 +771,7 @@ class KafkaRegistrator(
         router: "KafkaRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:

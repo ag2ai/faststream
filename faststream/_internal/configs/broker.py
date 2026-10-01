@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
@@ -36,10 +36,14 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
-    broker_dependencies: Iterable["Dependant"] = ()
+    broker_dependencies: Sequence["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # untyped callers still pass a generator: the first subscriber would spend it
+        self.broker_dependencies = tuple(self.broker_dependencies)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
@@ -63,28 +67,29 @@ class BrokerConfig:
         self.broker_middlewares = (middleware, *self.broker_middlewares)
 
 
-BrokerConfigType = TypeVar313(
-    "BrokerConfigType",
+BrokerConfigType_co = TypeVar313(
+    "BrokerConfigType_co",
     bound=BrokerConfig,
     default=BrokerConfig,
+    covariant=True,
 )
 
-ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType", BrokerConfig]
+ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType_co", BrokerConfig]
 
 
-class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
-    def __init__(self, config: BrokerConfigType) -> None:
-        self.configs: tuple[ConfigType, ...] = (config,)
+class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
+    def __init__(self, config: BrokerConfigType_co) -> None:
+        self.configs: tuple[ConfigType[BrokerConfigType_co], ...] = (config,)
 
     @property
-    def broker_config(self) -> "BrokerConfigType":
+    def broker_config(self) -> "BrokerConfigType_co":
         assert self.configs
         return self.configs[0]  # type: ignore[return-value]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({', '.join(repr(c) for c in self.configs)})"
 
-    def add_config(self, config: "ConfigType") -> None:
+    def add_config(self, config: "ConfigType[BrokerConfigType_co]") -> None:
         self.configs = (config, *self.configs)
 
     def reset(self) -> None:
@@ -179,5 +184,5 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
         return [m for c in self.configs for m in c.broker_middlewares]
 
     @property
-    def broker_dependencies(self) -> Iterable["Dependant"]:
-        return (b for c in self.configs for b in c.broker_dependencies)
+    def broker_dependencies(self) -> Sequence["Dependant"]:
+        return [b for c in self.configs for b in c.broker_dependencies]

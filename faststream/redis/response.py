@@ -1,5 +1,5 @@
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 from redis.asyncio.client import Pipeline
 from redis.asyncio.cluster import ClusterPipeline
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 _PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline | None)
 
 
-class DestinationType(str, Enum):
+class DestinationType(StrEnum):
     Channel = "channel"
     List = "list"
     Stream = "stream"
@@ -56,6 +56,44 @@ class RedisResponse(Response):
 
 class RedisPublishCommand(BatchPublishCommand, Generic[_PipelineT]):
     destination_type: DestinationType
+
+    @overload
+    def __init__(
+        self: "RedisPublishCommand[None]",
+        message: "SendableMessage",
+        /,
+        *messages: "SendableMessage",
+        _publish_type: "PublishType",
+        correlation_id: str | None = None,
+        channel: str | None = None,
+        list: str | None = None,
+        stream: str | None = None,
+        maxlen: int | None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        timeout: float | None = 30.0,
+        pipeline: None = None,
+        message_format: type["MessageFormat"] = BinaryMessageFormatV1,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self: "RedisPublishCommand[_PipelineT]",
+        message: "SendableMessage",
+        /,
+        *messages: "SendableMessage",
+        _publish_type: "PublishType",
+        correlation_id: str | None = None,
+        channel: str | None = None,
+        list: str | None = None,
+        stream: str | None = None,
+        maxlen: int | None = None,
+        headers: dict[str, Any] | None = None,
+        reply_to: str = "",
+        timeout: float | None = 30.0,
+        pipeline: _PipelineT,
+        message_format: type["MessageFormat"] = BinaryMessageFormatV1,
+    ) -> None: ...
 
     def __init__(
         self,

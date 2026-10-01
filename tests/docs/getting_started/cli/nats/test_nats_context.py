@@ -2,11 +2,10 @@ import pytest
 
 from faststream import TestApp
 from faststream.nats import TestNatsBroker
-from tests.marks import pydantic_v2
 from tests.mocks import mock_pydantic_settings_env
 
 
-@pydantic_v2
+@pytest.mark.nats()
 @pytest.mark.asyncio()
 async def test() -> None:
     with mock_pydantic_settings_env({"any_flag": "True"}):

@@ -1,7 +1,7 @@
-from pydantic import BaseModel
-from typing_extensions import Self
+from typing import Self
 
-from faststream._internal._compat import PYDANTIC_V2
+from pydantic import BaseModel
+
 from faststream.specification.asyncapi.v3_0_0.schema.bindings import (
     amqp as amqp_bindings,
     kafka as kafka_bindings,
@@ -31,13 +31,7 @@ class ChannelBinding(BaseModel):
     nats: nats_bindings.ChannelBinding | None = None
     redis: redis_bindings.ChannelBinding | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @classmethod
     def from_sub(cls, binding: SpecBinding | None) -> Self | None:
@@ -63,8 +57,8 @@ class ChannelBinding(BaseModel):
         ):
             return cls(redis=redis)
 
-        if binding.sqs and (sqs := sqs_bindings.ChannelBinding.from_sub(binding.sqs)):
-            return cls(sqs=sqs)
+        if binding.sqs:
+            return cls(sqs=sqs_bindings.ChannelBinding.from_sub(binding.sqs))
 
         return None
 
@@ -92,7 +86,7 @@ class ChannelBinding(BaseModel):
         ):
             return cls(redis=redis)
 
-        if binding.sqs and (sqs := sqs_bindings.ChannelBinding.from_pub(binding.sqs)):
-            return cls(sqs=sqs)
+        if binding.sqs:
+            return cls(sqs=sqs_bindings.ChannelBinding.from_pub(binding.sqs))
 
         return None

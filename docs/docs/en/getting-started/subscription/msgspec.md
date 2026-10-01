@@ -10,23 +10,23 @@ search:
 
 # Msgspec Serialization
 
-[msgspec](https://jcristharif.com/msgspec/index.html){.external-link target="_blank"} is a *fast* serialization and validation library, with builtin
+[msgspec](https://msgspec.dev/){.external-link target="_blank"} is a *fast* serialization and validation library, with builtin
 support for [JSON](https://www.json.org/json-en.html){target="_blank"}, [MessagePack](https://msgpack.org/){target="_blank"}, [YAML](https://yaml.org/){target="_blank"}, and [TOML](https://toml.io/en/){target="_blank"}. It features:
 
 - 🚀 **High performance encoders/decoders** for common protocols. The JSON and
-  MessagePack implementations regularly [`benchmark`](https://jcristharif.com/msgspec/benchmarks.html){target="_blank"} as the
+  MessagePack implementations regularly [`benchmark`](https://msgspec.dev/benchmarks.html){target="_blank"} as the
   fastest options for Python.
 
 - 🎉 **Support for a wide variety of Python types**. Additional types may
-  be supported through [`extending`](https://jcristharif.com/msgspec/extending.html){target="_blank"}.
+  be supported through [`extending`](https://msgspec.dev/extending.html){target="_blank"}.
 
 - 🔍 **Zero-cost schema validation** using familiar Python type annotations.
-  In [`benchmarks`](https://jcristharif.com/msgspec/benchmarks.html){target="_blank"} `msgspec` decodes *and* validates JSON
+  In [`benchmarks`](https://msgspec.dev/benchmarks.html){target="_blank"} `msgspec` decodes *and* validates JSON
   faster than [orjson](https://github.com/ijl/orjson){target="_blank"} can decode it alone.
 
 - ✨ **A speedy Struct type** for representing structured data. If you already
-  use [dataclasses](https://docs.python.org/3/library/dataclasses.html){target="_blank"} or [attrs](https://www.attrs.org/en/stable/){target="_blank"}, [`Structs`](https://jcristharif.com/msgspec/structs.html){target="_blank"} should feel familiar. However,
-  they're [`5-60x`](https://jcristharif.com/msgspec/benchmarks.html#struct-benchmark){target="_blank"} faster for common operations.
+  use [dataclasses](https://docs.python.org/3/library/dataclasses.html){target="_blank"} or [attrs](https://www.attrs.org/en/stable/){target="_blank"}, [`Structs`](https://msgspec.dev/structs.html){target="_blank"} should feel familiar. However,
+  they're [`5-60x`](https://msgspec.dev/benchmarks.html#struct-benchmark){target="_blank"} faster for common operations.
 
 **FastStream** supports **msgspec** as an alternative backend for serialization, which can be used instead of **Pydantic**.
 
@@ -82,7 +82,7 @@ To use it, you need to pass a `MsgSpecSerializer` object to the broker:
 
 ## msgspec.field
 
-Msgspec [**field**](https://jcristharif.com/msgspec/api.html#msgspec.field){.external-link target="_blank"} allows you to override the field name for encoding/decoding and provide default values.
+Msgspec [**field**](https://msgspec.dev/api.html#msgspec.field){.external-link target="_blank"} allows you to override the field name for encoding/decoding and provide default values.
 
 Just use `msgspec.field` as a function default argument:
 

@@ -1,9 +1,9 @@
 from collections.abc import Awaitable, Callable
+from typing import Any, assert_type
 
 import prometheus_client
 from redis.asyncio.client import Pipeline
 from redis.asyncio.cluster import ClusterPipeline
-from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
@@ -15,6 +15,7 @@ from faststream.redis import (
     RedisClusterBroker,
     RedisListMessage,
     RedisMessage as Message,
+    RedisPublishCommand,
     RedisPublisher,
     RedisRoute as Route,
     RedisRouter,
@@ -26,6 +27,7 @@ from faststream.redis import (
 from faststream.redis.message import RedisMessage as Msg
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from faststream.redis.prometheus import RedisPrometheusMiddleware
+from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.publisher.usecase import (
     ChannelPublisher,
     ListBatchPublisher,
@@ -42,6 +44,7 @@ from faststream.redis.subscriber.usecases import (
     StreamConcurrentSubscriber,
     StreamSubscriber,
 )
+from faststream.redis.testing import PEL
 
 
 async def check_multiple_test_brokers() -> None:
@@ -54,6 +57,9 @@ async def check_multiple_test_brokers() -> None:
     ) as (br1, br2):
         await br1.publish(None, "test")
         await br2.publish(None, "test")
+
+    async with TestRedisBroker(RedisBroker(), pel=PEL()) as br1:
+        await br1.publish(None, "test")
 
 
 def sync_decoder(msg: Message) -> DecodedMessage:
@@ -70,6 +76,13 @@ async def custom_decoder(
 ) -> DecodedMessage:
     return await original(msg)
 
+
+RedisClusterBroker(
+    ssl=True,
+    ssl_ca_certs="ca.pem",
+    ssl_certfile="client.pem",
+    ssl_keyfile="client.key",
+)
 
 RedisBroker(decoder=sync_decoder)
 RedisBroker(decoder=async_decoder)
@@ -332,6 +345,10 @@ async def check_sentinel_broker_publish_result_type(
     )
 
 
+def fake_bool() -> bool:
+    return False
+
+
 async def check_broker_publisher_publish_result_types(
     broker: RedisBroker,
     pipeline: Pipeline,
@@ -347,9 +364,15 @@ async def check_broker_publisher_publish_result_types(
     assert_type(await p1.publish(None, pipeline=pipeline), Pipeline)
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher[Pipeline] | ListPublisher[Pipeline])
+    assert_type(p2, ListBatchPublisher[Pipeline])
     assert_type(await p2.publish(None), int)
     assert_type(await p2.publish(None, pipeline=pipeline), Pipeline)
+
+    p2_plain = broker.publisher(list=ListSub("test"))
+    assert_type(p2_plain, ListPublisher[Pipeline])
+
+    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
+    assert_type(p2_unknown, ListBatchPublisher[Pipeline] | ListPublisher[Pipeline])
 
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher[Pipeline])
@@ -372,7 +395,7 @@ async def check_cluster_broker_publisher_publish_result_types(
     assert_type(await p1.publish(None, pipeline=pipeline), ClusterPipeline)
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher[ClusterPipeline] | ListPublisher[ClusterPipeline])
+    assert_type(p2, ListBatchPublisher[ClusterPipeline])
     assert_type(await p2.publish(None), int)
     assert_type(await p2.publish(None, pipeline=pipeline), ClusterPipeline)
 
@@ -397,7 +420,7 @@ async def check_sentinel_broker_publisher_publish_result_types(
     assert_type(await p1.publish(None, pipeline=pipeline), Pipeline)
 
     p2 = broker.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher[Pipeline] | ListPublisher[Pipeline])
+    assert_type(p2, ListBatchPublisher[Pipeline])
     assert_type(await p2.publish(None), int)
     assert_type(await p2.publish(None, pipeline=pipeline), Pipeline)
 
@@ -422,11 +445,7 @@ async def check_router_publisher_publish_result_types(
     assert_type(await p1.publish(None, pipeline=pipeline), Pipeline | ClusterPipeline)
 
     p2 = router.publisher(list=ListSub("test", batch=True))
-    assert_type(
-        p2,
-        ListBatchPublisher[Pipeline | ClusterPipeline]
-        | ListPublisher[Pipeline | ClusterPipeline],
-    )
+    assert_type(p2, ListBatchPublisher[Pipeline | ClusterPipeline])
     assert_type(await p2.publish(None), int)
     assert_type(await p2.publish(None, pipeline=pipeline), Pipeline | ClusterPipeline)
 
@@ -517,7 +536,13 @@ def check_stream_subscriber_instance_type(
     assert_type(sub1, StreamSubscriber)
 
     sub2 = broker.subscriber(stream=StreamSub("test"))
-    assert_type(sub2, StreamSubscriber | StreamBatchSubscriber)
+    assert_type(sub2, StreamSubscriber)
+
+    sub2_batch = broker.subscriber(stream=StreamSub("test", batch=True))
+    assert_type(sub2_batch, StreamBatchSubscriber)
+
+    sub2_unknown = broker.subscriber(stream=StreamSub("test", batch=fake_bool()))
+    assert_type(sub2_unknown, StreamSubscriber | StreamBatchSubscriber)
 
     sub3 = broker.subscriber(stream="test", max_workers=2)
     assert_type(sub3, StreamConcurrentSubscriber)
@@ -530,7 +555,15 @@ def check_list_subscriber_instance_type(
     assert_type(sub1, ListSubscriber)
 
     sub2 = broker.subscriber(list=ListSub("test"))
-    assert_type(sub2, ListSubscriber | ListBatchSubscriber)
+    assert_type(sub2, ListSubscriber)
+
+    assert_type(RedisBroker().subscriber(list="test", persistent=False), ListSubscriber)
+
+    sub2_batch = broker.subscriber(list=ListSub("test", batch=True))
+    assert_type(sub2_batch, ListBatchSubscriber)
+
+    sub2_unknown = broker.subscriber(list=ListSub("test", batch=fake_bool()))
+    assert_type(sub2_unknown, ListSubscriber | ListBatchSubscriber)
 
     sub3 = broker.subscriber(list="test", max_workers=2)
     assert_type(sub3, ListConcurrentSubscriber)
@@ -560,3 +593,36 @@ RedisRouter(
         ),
     ),
 )
+
+
+@RedisBroker().subscriber(stream=StreamSub("test", batch=True))
+async def handle_stream_batch() -> None: ...
+
+
+@RedisBroker().subscriber(list=ListSub("test", batch=True))
+async def handle_list_batch() -> None: ...
+
+
+def accepts_any_list_sub(list_sub: ListSub) -> None: ...
+
+
+accepts_any_list_sub(ListSub("test", batch=True))
+
+
+async def tests_redis_fast_producer(
+    producer: RedisFastProducer,
+    cmd1: RedisPublishCommand[None],
+    cmd2: RedisPublishCommand[Pipeline],
+    cmd3: RedisPublishCommand[ClusterPipeline],
+) -> None:
+    assert_type(await producer.publish(cmd1), int | bytes)
+    assert_type(await producer.publish(cmd2), Pipeline)
+    assert_type(await producer.publish(cmd3), ClusterPipeline)
+
+    assert_type(await producer.publish_batch(cmd1), int)
+    assert_type(await producer.publish_batch(cmd2), Pipeline)
+    assert_type(await producer.publish_batch(cmd3), ClusterPipeline)
+
+    assert_type(await producer.request(cmd1), Any)
+    assert_type(await producer.request(cmd2), Any)  # type: ignore[arg-type]
+    assert_type(await producer.request(cmd3), Any)  # type: ignore[arg-type]

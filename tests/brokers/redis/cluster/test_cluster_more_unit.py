@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
@@ -13,6 +14,7 @@ from faststream.redis.subscriber.usecases import ChannelSubscriber
 from faststream.response.publish_type import PublishType
 
 
+@pytest.mark.redis_cluster()
 class TestRedisClusterConnectionStateUnit:
     """Unit tests for RedisClusterConnectionState (no cluster needed)."""
 
@@ -31,6 +33,7 @@ class TestRedisClusterConnectionStateUnit:
         assert state._options == opts
 
 
+@pytest.mark.redis_cluster()
 class TestClusterBrokerInheritanceExtra:
     """Additional inheritance/API compatibility tests."""
 
@@ -64,10 +67,10 @@ class TestClusterBrokerInheritanceExtra:
         broker = RedisClusterBroker()
 
         @broker.subscriber(list="l1")
-        async def h1(msg): ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(list="l2")
-        async def h2(msg): ...
+        async def h2(msg: Any) -> None: ...
 
         assert len(broker.subscribers) == 2
 
@@ -75,10 +78,10 @@ class TestClusterBrokerInheritanceExtra:
         broker = RedisClusterBroker()
 
         @broker.subscriber(stream="s1")
-        async def h1(msg): ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(stream="s2")
-        async def h2(msg): ...
+        async def h2(msg: Any) -> None: ...
 
         assert len(broker.subscribers) == 2
 
@@ -86,10 +89,10 @@ class TestClusterBrokerInheritanceExtra:
         broker = RedisClusterBroker()
 
         @broker.subscriber(channel="c1")
-        async def h1(msg): ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(channel="c2")
-        async def h2(msg): ...
+        async def h2(msg: Any) -> None: ...
 
         assert len(broker.subscribers) == 2
 
@@ -100,12 +103,13 @@ class TestClusterBrokerInheritanceExtra:
 
         @pub
         @broker.subscriber(list="l1")
-        async def h(msg): ...
+        async def h(msg: Any) -> None: ...
 
         assert len(broker.publishers) == 1
         assert len(broker.subscribers) == 1
 
 
+@pytest.mark.redis_cluster()
 class TestRedisClusterConnectionStateDisconnect:
     """Tests for disconnect lifecycle."""
 
@@ -133,6 +137,7 @@ class TestRedisClusterConnectionStateDisconnect:
         assert state
 
 
+@pytest.mark.redis_cluster()
 class TestClusterProducerUnit:
     @pytest.fixture()
     def mock_client(self) -> AsyncMock:
@@ -325,6 +330,7 @@ class TestClusterProducerUnit:
             await producer.request(cmd)
 
 
+@pytest.mark.redis_cluster()
 class TestClusterChannelSubscriber:
     def test_channel_subscriber_is_not_patched(self) -> None:
         broker = RedisClusterBroker(url="redis://127.0.0.1:7001")
@@ -339,6 +345,7 @@ class TestClusterChannelSubscriber:
         assert subscriber.start.__func__ is ChannelSubscriber.start  # type: ignore[attr-defined]
 
 
+@pytest.mark.redis_cluster()
 class TestClusterBrokerPing:
     """Tests for RedisClusterBroker.ping()."""
 
@@ -356,6 +363,7 @@ class TestClusterBrokerPing:
         assert result is False
 
 
+@pytest.mark.redis_cluster()
 class TestRedisBrokerInit:
     """Covers branch paths in __init__."""
 

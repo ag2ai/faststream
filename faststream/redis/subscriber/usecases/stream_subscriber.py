@@ -70,6 +70,15 @@ class ClaimMeta(NamedTuple):
 
 
 class _StreamHandlerMixin(LogicSubscriber):
+    __slots__ = (
+        "_stream_sub",
+        "autoclaim_start_id",
+        "claim_min_idle_time",
+        "last_id",
+        "min_idle_time",
+        "read_id",
+    )
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -108,8 +117,9 @@ class _StreamHandlerMixin(LogicSubscriber):
             try:
                 await self._get_msgs(*args)
 
-            except StreamClaimUnsupportedError:  # noqa: PERF203
-                raise
+            except StreamClaimUnsupportedError as e:
+                await self._stop_on_terminal_error(e, str(e))
+                return
 
             except ResponseError as e:
                 if "NOGROUP" in str(e):
@@ -119,7 +129,8 @@ class _StreamHandlerMixin(LogicSubscriber):
                         "The stream was likely deleted or flushed. "
                         "Stopping subscriber — restart the application to recreate the group."
                     )
-                    raise StreamGroupNotFoundError(msg) from e
+                    await self._stop_on_terminal_error(StreamGroupNotFoundError(msg), msg)
+                    return
 
                 raise
 
@@ -134,6 +145,15 @@ class _StreamHandlerMixin(LogicSubscriber):
             finally:
                 if not start_signal.is_set():
                     start_signal.set()
+
+    async def _stop_on_terminal_error(self, exc: Exception, msg: str) -> None:
+        # A terminal error: re-running the read cannot fix it, and raising it
+        # would make the task supervisor restart the read in a hot loop. Stop
+        # the subscriber for good and, if the broker runs inside an app, exit.
+        self._log(log_level=logging.CRITICAL, message=msg, exc_info=exc)
+        await self.stop()
+        if app := self._outer_config.fd_config.context.get("app"):
+            app.exit()
 
     @override
     async def start(self) -> None:
@@ -439,6 +459,8 @@ class _StreamHandlerMixin(LogicSubscriber):
 
 
 class StreamSubscriber(_StreamHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -473,6 +495,8 @@ class StreamSubscriber(_StreamHandlerMixin):
 
 
 class StreamBatchSubscriber(_StreamHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -516,6 +540,8 @@ class StreamConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     StreamSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

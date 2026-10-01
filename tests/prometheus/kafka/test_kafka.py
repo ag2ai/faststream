@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import pytest
 from prometheus_client import CollectorRegistry
@@ -16,11 +17,11 @@ from .basic import BatchKafkaPrometheusSettings, KafkaPrometheusSettings
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestBatchPrometheus(BatchKafkaPrometheusSettings, LocalPrometheusTestcase):
-    async def test_metrics(
+    async def test_metrics(  # type: ignore[override]
         self,
         queue: str,
         event: asyncio.Event,
-    ):
+    ) -> None:
         registry = CollectorRegistry()
         middleware = self.get_middleware(registry=registry)
 
@@ -29,8 +30,8 @@ class TestBatchPrometheus(BatchKafkaPrometheusSettings, LocalPrometheusTestcase)
         args, kwargs = self.get_subscriber_params(queue, batch=True)
         message = None
 
-        @broker.subscriber(*args, **kwargs)
-        async def handler(m=Context("message")):
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(m: Any = Context("message")) -> None:
             event.set()
 
             nonlocal message
@@ -66,8 +67,8 @@ class TestPublishWithPrometheus(PublishCase):
     def get_broker(
         self,
         apply_types: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Any:
         return KafkaBroker(
             middlewares=(KafkaPrometheusMiddleware(registry=CollectorRegistry()),),
             apply_types=apply_types,
@@ -78,7 +79,7 @@ class TestPublishWithPrometheus(PublishCase):
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestConsumeWithPrometheus(ConsumeCase):
-    def get_broker(self, apply_types: bool = False, **kwargs):
+    def get_broker(self, apply_types: bool = False, **kwargs: Any) -> Any:
         return KafkaBroker(
             middlewares=(KafkaPrometheusMiddleware(registry=CollectorRegistry()),),
             apply_types=apply_types,

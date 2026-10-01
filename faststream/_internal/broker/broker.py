@@ -1,11 +1,10 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Optional
+from typing import TYPE_CHECKING, Any, Generic, Optional, Self
 
 from fast_depends import Provider
-from typing_extensions import Self
 
-from faststream._internal.configs import BrokerConfigType
+from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import (
     BrokerMiddleware,
     ConnectionType,
@@ -25,13 +24,16 @@ if TYPE_CHECKING:
 
 
 class BrokerUsecase(
-    Registrator[MsgType, BrokerConfigType],
+    Registrator[MsgType, BrokerConfigType_co],
     BrokerPublishMixin[MsgType],
-    Generic[MsgType, ConnectionType, BrokerConfigType],
+    Generic[MsgType, ConnectionType, BrokerConfigType_co],
 ):
     """Basic class for brokers-only.
 
     Extends `Registrator` by connection, publish and AsyncAPI behavior.
+
+    Unslotted on purpose: one broker exists per process, and it is the object test
+    suites mock — `patch.object(broker, "start")` needs somewhere to put the mock.
     """
 
     _connection: ConnectionType | None
@@ -39,7 +41,7 @@ class BrokerUsecase(
     def __init__(
         self,
         *,
-        config: BrokerConfigType,
+        config: BrokerConfigType_co,
         specification: "BrokerSpec",
         routers: Iterable[Registrator[Any, Any]],
         **connection_kwargs: Any,

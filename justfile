@@ -15,9 +15,14 @@ default:
 # Infra
 [doc("Init infra")]
 [group("infra")]
-init python="3.10":
+init python="3.11":
   docker build . --build-arg PYTHON_VERSION={{python}}
   uv sync --group dev -p {{python}}
+
+[doc("Fail when uv.lock is out of sync with pyproject.toml")]
+[group("infra")]
+lock-check:
+  uv lock --check
 
 [doc("Run all containers")]
 [group("infra")]
@@ -45,6 +50,16 @@ test +param="tests/":
 test-all +param="tests/":
   docker compose exec faststream uv run pytest {{param}} -m "all" -n auto
 
+[doc("Fail on fixtures no test requests")]
+[group("tests")]
+unused-fixtures:
+  uv run --frozen python -m pytest --collect-only -q -m "" -p tests.unused_fixtures
+
+[doc("Fail on marks that drop a test from the CI job meant to run it")]
+[group("tests")]
+misplaced-marks:
+  uv run --frozen python -m pytest --collect-only -q -m "" -p tests.misplaced_marks
+
 [doc("Run fast tests with coverage")]
 [group("tests")]
 test-coverage +param="tests/":
@@ -64,6 +79,11 @@ _docs *params:
 [group("docs")]
 docs-build:
   just _docs build
+
+[doc("Build the guides strictly and check the built site, as CI does")]
+[group("docs")]
+docs-check:
+  just _docs check
 
 [doc("Update release notes")]
 [group("docs")]
@@ -119,24 +139,46 @@ mypy *params:
 pyright *params:
   just _static pyright {{params}}
 
+[doc("Pyrefly check")]
+[group("static analysis")]
+pyrefly *params:
+  just _static pyrefly check {{params}}
+
 [doc("Bandit check")]
 [group("static analysis")]
 bandit:
   just _static bandit -c pyproject.toml -r faststream
 
+# Not in the `lint` group: semgrep pins `opentelemetry-sdk~=1.37`, and inside the
+# project's resolution that pin held the version FastStream is locked and tested with.
 [doc("Semgrep check")]
 [group("static analysis")]
 semgrep:
-  just _static semgrep scan --config auto --error --skip-unknown-extensions faststream
+  uvx semgrep@1.150.0 scan --config auto --error --skip-unknown-extensions faststream
+
+[doc("Slotscheck check")]
+[group("static analysis")]
+slotscheck:
+  just _static slotscheck -m faststream
 
 [doc("Zizmor check")]
 [group("static analysis")]
 zizmor:
   just _static zizmor .
 
+[doc("Import contracts check")]
+[group("static analysis")]
+import-linter:
+  just _static lint-imports
+
+[doc("Actionlint check")]
+[group("static analysis")]
+actionlint:
+  just _static actionlint
+
 [doc("Static analysis check")]
 [group("static analysis")]
-static-analysis: mypy pyright bandit semgrep
+static-analysis: mypy pyright pyrefly bandit semgrep import-linter slotscheck
 
 
 # Pre-commit

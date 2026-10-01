@@ -16,7 +16,12 @@ As you may know, **FastStream** serializes a message body and provides you acces
 
 You can easily access this information by referring to the message object in the [Context](../getting-started/context.md#existing-fields)
 
-This object serves as a unified **FastStream** wrapper around the native broker library message (for example, [`confluent_kafka.Message`](https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message) in this case which uses *Confluent* python library). It contains most of the required information, including:
+This object serves as a unified **FastStream** wrapper around the native broker library message (for example, [`confluent_kafka.Message`](https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message) in the case of the *Confluent* Python library). The wrapper itself carries:
+
+* `#!python body: bytes`
+* `#!python headers: dict[str, str]`
+
+and its `raw_message` (the `confluent_kafka.Message`) exposes the rest through methods, including:
 
 * `#!python headers(): Sequence[Tuple[str, bytes]]`
 * `#!python key(): Optional[Union[str, bytes]]`

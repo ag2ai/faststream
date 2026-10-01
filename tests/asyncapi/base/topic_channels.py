@@ -1,16 +1,16 @@
 from typing import Any
 
-from faststream._internal.broker import BrokerUsecase
+from .basic import SpecificationFactory
 
 
-class TopicChannelsTestcase:
+class TopicChannelsTestcase(SpecificationFactory):
     """One subscriber over several topics is one channel per topic, in order.
 
     Mixed into Kafka and Confluent only: they are the brokers whose subscriber takes
     more than one address at a declaration site.
     """
 
-    broker_class: type[BrokerUsecase[Any, Any]]
+    broker_class: Any
 
     def test_channels_follow_declaration_order(self) -> None:
         broker = self.broker_class()

@@ -10,7 +10,7 @@ search:
 
 # Header Exchange
 
-The **Header** Exchange is the most complex and flexible way to route messages in *RabbitMQ*. This `exchange` type sends messages to queues according by matching the queue binding arguments with message headers.
+The **Header** Exchange is the most complex and flexible way to route messages in *RabbitMQ*. This `exchange` type sends messages to queues by matching the queue binding arguments with message headers.
 
 At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](direct.md#scaling){.internal-link}).
 
@@ -73,7 +73,7 @@ Message `3` will be sent to `handler1` again because it is currently free.
 {! docs_src/rabbit/subscription/header.py [ln:51.5]!}
 ```
 
-Message `4` will be sent to `handler3` because it listens to a queue whose `#!python "key"` header coincided with the `#!python "key"` header of the message.
+Message `4` will be sent to `handler3` because it listens to a queue whose `#!python "key"` header matches the `#!python "key"` header of the message.
 
 ---
 
@@ -81,7 +81,7 @@ Message `4` will be sent to `handler3` because it listens to a queue whose `#!py
 {! docs_src/rabbit/subscription/header.py [ln:52.5]!}
 ```
 
-Message `5` will be sent to `handler3` because it listens to a queue whose header `#!python "key2"` coincided with the header `#!python "key2"` of the message.
+Message `5` will be sent to `handler3` because it listens to a queue whose header `#!python "key2"` matches the header `#!python "key2"` of the message.
 
 ---
 
@@ -94,7 +94,7 @@ Message `6` will be sent to `handler3` and `handler4` because the message header
 ---
 
 !!! note
-    When sending messages to **Header** exchange, it makes no sense to specify the arguments `queue` or `routing_key`, because they will be ignored
+    When sending messages to **Header** exchange, it makes no sense to specify the arguments `queue` or `routing_key`, because they will be ignored.
 
 !!! warning
     For incredibly complex routes, you can use the option to bind an `exchange` to another `exchange`. In this case, all the same rules apply as for queues subscribed to `exchange`. The only difference is that the signed `exchange` can further distribute messages according to its own rules.

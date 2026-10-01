@@ -45,11 +45,11 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=queue + "resp")
-        async def m(_) -> str:
+        async def m(_: Any) -> str:
             return ""
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -71,10 +71,10 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         queue: str,
     ) -> None:
         pub_broker = self.get_broker()
-        msgs_queue = asyncio.Queue(maxsize=2)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(list=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
@@ -101,7 +101,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
             return RedisResponse(1, correlation_id="1")
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg=Context("message")) -> None:
+        async def resp(msg: Any = Context("message")) -> None:
             mock(body=msg.body, correlation_id=msg.correlation_id)
             event.set()
 
@@ -144,7 +144,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(channel=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -171,7 +171,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(channel=queue)
-        async def handler(msg, ctx_msg=Context("message")) -> None:
+        async def handler(msg: Any, ctx_msg: Any = Context("message")) -> None:
             mock(
                 body=msg,
                 correlation_id=ctx_msg.correlation_id,
@@ -200,38 +200,28 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         assert mock.call_args[1]["correlation_id"] == "cor123"
 
     @pytest.mark.asyncio()
-    @pytest.mark.parametrize(
-        "type_queue",
-        (
-            pytest.param("channel"),
-            pytest.param("list"),
-            pytest.param("stream"),
-        ),
-    )
-    async def test_publish_with_pipeline(
+    async def test_channel_publish_with_pipeline(
         self,
         event: asyncio.Event,
-        type_queue: str,
         queue: str,
         mock: MagicMock,
     ) -> None:
         broker = self.get_broker(apply_types=True)
 
-        destination = {type_queue: queue + "resp"}
-        publisher = broker.publisher(**destination)
+        publisher = broker.publisher(channel=queue + "resp")
 
-        @broker.subscriber(**{type_queue: queue})
+        @broker.subscriber(channel=queue)
         async def m(msg: str, pipe: ClusterPipeline) -> None:
             for _ in range(5):
                 # publish 5 messages by publisher
-                await publisher.publish(None, pipeline=pipe)
+                _ = await publisher.publish(None, pipeline=pipe)
 
                 # and 5 by broker
-                await broker.publish(None, **destination, pipeline=pipe)
+                _ = await broker.publish(None, channel=queue + "resp", pipeline=pipe)
 
             await pipe.execute()
 
-        @broker.subscriber(**destination)
+        @broker.subscriber(channel=queue + "resp")
         async def resp(msg: str) -> None:
             mock(msg)
             if mock.call_count == 10:
@@ -241,7 +231,83 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
             await br.start()
 
             tasks = (
-                asyncio.create_task(br.publish("", **{type_queue: queue})),
+                asyncio.create_task(br.publish("", channel=queue)),
+                asyncio.create_task(event.wait()),
+            )
+            await asyncio.wait(tasks, timeout=3)
+
+        assert mock.call_count == 10
+
+    async def test_list_publish_with_pipeline(
+        self,
+        event: asyncio.Event,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        publisher = broker.publisher(list=queue + "resp")
+
+        @broker.subscriber(list=queue)
+        async def m(msg: str, pipe: ClusterPipeline) -> None:
+            for _ in range(5):
+                # publish 5 messages by publisher
+                _ = await publisher.publish(None, pipeline=pipe)
+
+                # and 5 by broker
+                _ = await broker.publish(None, list=queue + "resp", pipeline=pipe)
+
+            await pipe.execute()
+
+        @broker.subscriber(list=queue + "resp")
+        async def resp(msg: str) -> None:
+            mock(msg)
+            if mock.call_count == 10:
+                event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            tasks = (
+                asyncio.create_task(br.publish("", list=queue)),
+                asyncio.create_task(event.wait()),
+            )
+            await asyncio.wait(tasks, timeout=3)
+
+        assert mock.call_count == 10
+
+    async def test_stream_publish_with_pipeline(
+        self,
+        event: asyncio.Event,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        publisher = broker.publisher(stream=queue + "resp")
+
+        @broker.subscriber(stream=queue)
+        async def m(msg: str, pipe: ClusterPipeline) -> None:
+            for _ in range(5):
+                # publish 5 messages by publisher
+                _ = await publisher.publish(None, pipeline=pipe)
+
+                # and 5 by broker
+                _ = await broker.publish(None, stream=queue + "resp", pipeline=pipe)
+
+            await pipe.execute()
+
+        @broker.subscriber(stream=queue + "resp")
+        async def resp(msg: str) -> None:
+            mock(msg)
+            if mock.call_count == 10:
+                event.set()
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            tasks = (
+                asyncio.create_task(br.publish("", stream=queue)),
                 asyncio.create_task(event.wait()),
             )
             await asyncio.wait(tasks, timeout=3)
@@ -259,7 +325,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
 
         @broker.subscriber(channel=queue)
         async def m(msg: str, pipe: ClusterPipeline) -> None:
-            await broker.publish_batch(*range(5), list=queue + "resp", pipeline=pipe)
+            _ = await broker.publish_batch(*range(5), list=queue + "resp", pipeline=pipe)
             await pipe.execute()
 
         @broker.subscriber(list=ListSub(queue + "resp", batch=True, max_records=5))

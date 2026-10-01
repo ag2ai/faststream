@@ -304,6 +304,13 @@ def _validate_input_for_misconfigure(  # noqa: PLR0915
                 stacklevel=4,
             )
 
+    if pull_sub is not None and pull_sub.batch and max_workers > 1:
+        warnings.warn(
+            "The `batch` option of `PullSub` is ignored with `max_workers`.",
+            RuntimeWarning,
+            stacklevel=4,
+        )
+
     if ack_policy is EMPTY:
         ack_policy = AckPolicy.REJECT_ON_ERROR
 

@@ -3,6 +3,8 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Optional, Protocol
 from weakref import WeakSet
 
+from typing_extensions import override
+
 from faststream._internal.constants import EMPTY
 
 if TYPE_CHECKING:
@@ -21,6 +23,8 @@ def make_logger_storage(
 
 
 class LoggerParamsStorage(Protocol):
+    __slots__ = ()
+
     def register_subscriber(self, params: dict[str, Any]) -> None: ...
 
     def get_logger(self, *, context: "ContextRepo") -> Optional["LoggerProto"]: ...
@@ -29,9 +33,12 @@ class LoggerParamsStorage(Protocol):
 
 
 class EmptyLoggerStorage(LoggerParamsStorage):
+    __slots__ = ()
+
     def register_subscriber(self, params: dict[str, Any]) -> None:
         pass
 
+    @override
     def get_logger(self, *, context: "ContextRepo") -> None:
         return None
 
@@ -40,6 +47,8 @@ class EmptyLoggerStorage(LoggerParamsStorage):
 
 
 class ManualLoggerStorage(LoggerParamsStorage):
+    __slots__ = ("__logger",)
+
     def __init__(self, logger: "LoggerProto") -> None:
         self.__logger = logger
 
@@ -55,6 +64,11 @@ class ManualLoggerStorage(LoggerParamsStorage):
 
 
 class DefaultLoggerStorage(LoggerParamsStorage):
+    __slots__ = (
+        "_logger_ref",
+        "logger_log_level",
+    )
+
     def __init__(self) -> None:
         # will be used to build logger in `get_logger` method
         self.logger_log_level = logging.INFO

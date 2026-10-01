@@ -28,6 +28,13 @@ _PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 class LogicPublisher(PublisherUsecase):
     """A class to represent a Redis publisher."""
 
+    __slots__ = (
+        "config",
+        "headers",
+        "producer",
+        "reply_to",
+    )
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -60,6 +67,8 @@ class LogicPublisher(PublisherUsecase):
 
 
 class ChannelPublisher(LogicPublisher, Generic[_PipelineT]):
+    __slots__ = ("_channel",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -184,6 +193,8 @@ class ChannelPublisher(LogicPublisher, Generic[_PipelineT]):
 
 
 class ListPublisher(LogicPublisher, Generic[_PipelineT]):
+    __slots__ = ("_list",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",
@@ -309,6 +320,8 @@ class ListPublisher(LogicPublisher, Generic[_PipelineT]):
 
 
 class ListBatchPublisher(ListPublisher[_PipelineT], Generic[_PipelineT]):
+    __slots__ = ()
+
     @overload
     async def publish(
         self,
@@ -389,6 +402,8 @@ class ListBatchPublisher(ListPublisher[_PipelineT], Generic[_PipelineT]):
 
 
 class StreamPublisher(LogicPublisher, Generic[_PipelineT]):
+    __slots__ = ("_stream",)
+
     def __init__(
         self,
         config: "RedisPublisherConfig",

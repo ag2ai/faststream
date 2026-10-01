@@ -10,7 +10,7 @@ async def custom_parser(
     original_parser: Callable[[PubSubMessage], Awaitable[RedisMessage]],
 ) -> RedisMessage:
     parsed_msg = await original_parser(msg)
-    parsed_msg.message_id = parsed_msg.headers.get("custom_message_id")
+    parsed_msg.message_id = parsed_msg.headers["custom_message_id"]
     return parsed_msg
 
 

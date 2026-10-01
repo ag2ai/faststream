@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from faststream._internal.parser import ParserProto
@@ -19,7 +20,8 @@ try:
     from .testing import TestKafkaBroker
 
 except ImportError as e:
-    if "'aiokafka'" not in e.msg:
+    # the package is installed: the failure is its own, not a missing extra
+    if find_spec("aiokafka") is not None:
         raise
 
     from faststream.exceptions import INSTALL_FASTSTREAM_KAFKA

@@ -1,7 +1,7 @@
 # Dynamic Subscribers
 
 Sometimes, you need to process messages as they arrive. You may not know the source of the messages at startup. They could be sent to the service later: via an incoming message, request, or even generated randomly as a temporary queue for processing the response.
-In these cases, you cannot use the regular **FastStream's** `#!python @broker.subscriber()` decorators.
+In these cases, you cannot use the regular **FastStream** `#!python @broker.subscriber()` decorators.
 
 However, the framework still allows you to do so in a suitable manner.
 
@@ -15,7 +15,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = KafkaBroker()
 
         async with TestKafkaBroker(broker) as br:
-            subscriber = br.subscriber("test-topic", persistent=False)
+            subscriber = br.subscriber("dynamic-topic", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -25,7 +25,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = KafkaBroker()
 
         async with TestKafkaBroker(broker) as br:
-            subscriber = br.subscriber("test-topic", persistent=False)
+            subscriber = br.subscriber("dynamic-topic-confluent", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -36,7 +36,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = RabbitBroker()
 
         async with TestRabbitBroker(broker) as br:
-            subscriber = br.subscriber("test-queue", persistent=False)
+            subscriber = br.subscriber("dynamic-queue", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -46,7 +46,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = NatsBroker()
 
         async with TestNatsBroker(broker) as br:
-            subscriber = br.subscriber("test-subject", persistent=False)
+            subscriber = br.subscriber("dynamic-subject", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -56,7 +56,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = RedisBroker()
 
         async with TestRedisBroker(broker) as br:
-            subscriber = br.subscriber("test-channel", persistent=False)
+            subscriber = br.subscriber("dynamic-channel", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -67,7 +67,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = MQTTBroker("localhost", port=1883)
 
         async with TestMQTTBroker(broker) as br:
-            subscriber = br.subscriber("test-topic", persistent=False)
+            subscriber = br.subscriber("dynamic-topic", persistent=False)
 
             await subscriber.start()
             message = await subscriber.get_one()  # does not work
@@ -84,12 +84,12 @@ To process a single message, you should create a subscriber and call the appropr
     ```
 
     !!! note "Important"
-        Do not forget to `start` and `stop` subscriber manually
+        Do not forget to `start` and `stop` the subscriber manually
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/kafka/dynamic.py [ln:6-10] !}
         ```
-        Or so
+        Or like this:
         ```python linenums="1" hl_lines="1"
         {!> docs_src/getting_started/subscription/kafka/dynamic.py [ln:12-13] !}
         ```
@@ -100,12 +100,12 @@ To process a single message, you should create a subscriber and call the appropr
     ```
 
     !!! note "Important"
-        Do not forget to `start` and `stop` subscriber manually
+        Do not forget to `start` and `stop` the subscriber manually
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/confluent/dynamic.py [ln:6-10] !}
         ```
-        Or so
+        Or like this:
         ```python linenums="1" hl_lines="1"
         {!> docs_src/getting_started/subscription/confluent/dynamic.py [ln:12-13] !}
         ```
@@ -117,12 +117,12 @@ To process a single message, you should create a subscriber and call the appropr
     ```
 
     !!! note "Important"
-        Do not forget to `start` and `stop` subscriber manually
+        Do not forget to `start` and `stop` the subscriber manually
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/rabbit/dynamic.py [ln:6-10] !}
         ```
-        Or so
+        Or like this:
         ```python linenums="1" hl_lines="1"
         {!> docs_src/getting_started/subscription/rabbit/dynamic.py [ln:12-13] !}
         ```
@@ -133,12 +133,12 @@ To process a single message, you should create a subscriber and call the appropr
     ```
 
     !!! note "Important"
-        Do not forget to `start` and `stop` subscriber manually
+        Do not forget to `start` and `stop` the subscriber manually
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/nats/dynamic.py [ln:6-10] !}
         ```
-        Or so
+        Or like this:
         ```python linenums="1" hl_lines="1"
         {!> docs_src/getting_started/subscription/nats/dynamic.py [ln:12-13] !}
         ```
@@ -149,12 +149,12 @@ To process a single message, you should create a subscriber and call the appropr
     ```
 
     !!! note "Important"
-        Do not forget to `start` and `stop` subscriber manually
+        Do not forget to `start` and `stop` the subscriber manually
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/redis/dynamic.py [ln:6-10] !}
         ```
-        Or so
+        Or like this:
         ```python linenums="1" hl_lines="1"
         {!> docs_src/getting_started/subscription/redis/dynamic.py [ln:12-13] !}
         ```
@@ -165,7 +165,7 @@ To process a single message, you should create a subscriber and call the appropr
     ```
 
     !!! note "Important"
-        Do not forget to `start` and `stop` subscriber manually
+        Do not forget to `start` and `stop` the subscriber manually
 
         ```python linenums="1" hl_lines="1 5"
         {!> docs_src/getting_started/subscription/mqtt/dynamic.py [ln:6-10] !}

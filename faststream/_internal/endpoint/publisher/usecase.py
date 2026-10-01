@@ -34,6 +34,13 @@ if TYPE_CHECKING:
 class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
     """A base class for publishers in an asynchronous API."""
 
+    __slots__ = (
+        "_fake_handler",
+        "_recorder",
+        "is_test",
+        "specification",
+    )
+
     def __init__(
         self,
         config: "PublisherUsecaseConfig",
@@ -138,8 +145,9 @@ class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
     ) -> Generator["PublisherMiddleware", None, None]:
         context = self._outer_config.context
 
+        # a subscriber passes a generator, which is truthy even when empty
         yield from (
-            extra_middlewares
+            tuple(extra_middlewares)
             or (
                 m(None, context=context).publish_scope
                 for m in reversed(self._outer_config.broker_middlewares)

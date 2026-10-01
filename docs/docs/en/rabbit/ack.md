@@ -36,7 +36,7 @@ async def base_handler(body: str, msg: RabbitMessage):
 
 ## Interrupt Process
 
-If you want to interrupt message processing at any call stack, you can raise `faststream.exceptions.AckMessage`
+If you want to interrupt message processing at any point in the call stack, you can raise `faststream.exceptions.AckMessage`.
 
 ```python linenums="1" hl_lines="2 16"
 {! docs_src/rabbit/ack/errors.py !}

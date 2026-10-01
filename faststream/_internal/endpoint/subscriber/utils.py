@@ -1,9 +1,8 @@
 import asyncio
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Self
 
 import anyio
-from typing_extensions import Self
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -22,6 +21,8 @@ class MultiLock:
     This lock can be acquired multiple times.
     `wait_release` method waits for all locks will be released.
     """
+
+    __slots__ = ("queue",)
 
     def __init__(self) -> None:
         """Initialize a new instance of the class."""

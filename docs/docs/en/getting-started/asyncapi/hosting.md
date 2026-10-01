@@ -46,10 +46,10 @@ INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
 And you should be able to see the following page in your browser:
 
 === "Short"
-    ![HTML-page](../../../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
+    ![HTML-page](../../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
 
 === "Expand"
-    ![HTML-page](../../../assets/img/AsyncAPI-basic-html-full.png){ .on-glb loading=lazy }
+    ![HTML-page](../../assets/img/AsyncAPI-basic-html-full.png){ .on-glb loading=lazy }
 
 !!! tip
     The command also offers options to serve the documentation on a different host and port.
@@ -151,7 +151,7 @@ app = AsgiFastStream(
 ## Integration with Different HTTP Frameworks (**FastAPI** Example)
 
 **FastStream** provides two robust approaches to combine your message broker documentation with any **ASGI** web frameworks.
-You can choose the method that best fits with your application architecture.
+You can choose the method that best fits your application architecture.
 
 === "ASGI Application"
     ```python linenums="1" hl_lines="5 22"
@@ -217,7 +217,7 @@ After running the app, the documentation will be available at:
 
 FastStream also provides query parameters to show and hide specific sections of AsyncAPI documentation.
 
-You can use the following parameters control the visibility of relevant sections:
+You can use the following parameters to control the visibility of relevant sections:
 
 1. `sidebar`: Whether to include the sidebar. Default is true.
 1. `info`: Whether to include the info section. Default is true.
@@ -230,6 +230,6 @@ You can use the following parameters control the visibility of relevant sections
 
 For example, to hide the entire `Servers` section of the documentation, simply add `servers=false` as a query parameter, i.e., <http://localhost:8000?servers=false>. The resulting page would look like the image below:
 
-![HTML-page](../../../assets/img/AsyncAPI-hidden-servers.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-hidden-servers.png){ .on-glb loading=lazy }
 
 Please use the above-listed query parameters to show and hide sections of the AsyncAPI documentation.

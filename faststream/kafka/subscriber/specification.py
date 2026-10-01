@@ -12,6 +12,8 @@ from .config import KafkaSubscriberSpecificationConfig
 class KafkaSubscriberSpecification(
     SubscriberSpecification[KafkaBrokerConfig, KafkaSubscriberSpecificationConfig],
 ):
+    __slots__ = ()
+
     @property
     def topics(self) -> list[str]:
         """The topics this endpoint reads, in the order they were declared.

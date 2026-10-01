@@ -13,7 +13,7 @@ async def handle(
     logger.info(msg)
 
     for i in range(10):
-        await broker.publish(
+        _ = await broker.publish(
             f"hello {i}",
             channel="test-output",  # destination can be channel, list, or stream
             pipeline=pipe,

@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Optional, overload
 
 from redis.asyncio.cluster import ClusterNode, ClusterPipeline
 from redis.asyncio.connection import SSLConnection
@@ -36,16 +36,13 @@ class RedisClusterBroker(RedisBroker[ClusterPipeline]):
     ) -> None:
         self._init_broker(url, dict(kwargs))
 
+    @override
     def _make_connection_state(
         self,
         connection_options: dict[str, Any],
         kwargs: dict[str, Any],
     ) -> "ConnectionState[Any]":
         return RedisClusterConnectionState(connection_options)
-
-    @property
-    def _cluster_state(self) -> RedisClusterConnectionState:
-        return cast("RedisClusterConnectionState", self.config.broker_config.connection)
 
     @overload  # type: ignore[override]
     async def publish(
@@ -141,7 +138,7 @@ class RedisClusterBroker(RedisBroker[ClusterPipeline]):
         self._connection = None
 
     async def start(self) -> None:
-        await self.connect()
+        _ = await self.connect()
         await super().start()
 
     @overload  # type: ignore[override]

@@ -6,8 +6,10 @@ from opentelemetry.sdk.trace import Span
 from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 from opentelemetry.trace import SpanKind
 
-from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
-from faststream.opentelemetry.middleware import MessageAction as Action
+from faststream.opentelemetry.consts import (
+    MESSAGING_DESTINATION_PUBLISH_NAME,
+    MessageAction as Action,
+)
 from faststream.rabbit import RabbitBroker, RabbitExchange
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from tests.brokers.rabbit.basic import RabbitTestcaseConfig
@@ -17,13 +19,13 @@ from tests.opentelemetry.basic import LocalTelemetryTestcase
 
 
 @pytest.fixture()
-def exchange(queue):
+def exchange(queue: str) -> Any:
     return RabbitExchange(name=queue)
 
 
 @pytest.mark.connected()
 @pytest.mark.rabbit()
-class TestTelemetry(RabbitTestcaseConfig, LocalTelemetryTestcase):  # type: ignore[misc]
+class TestTelemetry(RabbitTestcaseConfig, LocalTelemetryTestcase):
     messaging_system = "rabbitmq"
     include_messages_counters = False
     telemetry_middleware_class = RabbitTelemetryMiddleware
@@ -37,9 +39,9 @@ class TestTelemetry(RabbitTestcaseConfig, LocalTelemetryTestcase):  # type: igno
         action: str,
         queue: str,
         msg: str,
-        parent_span_id: str | None = None,
+        parent_span_id: int | None = None,
     ) -> None:
-        attrs = span.attributes
+        attrs = span.attributes or {}
         assert attrs[SpanAttr.MESSAGING_SYSTEM] == self.messaging_system
         assert attrs[SpanAttr.MESSAGING_MESSAGE_CONVERSATION_ID] == IsUUID
         assert attrs[SpanAttr.MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY] == queue
@@ -62,6 +64,7 @@ class TestTelemetry(RabbitTestcaseConfig, LocalTelemetryTestcase):  # type: igno
             assert attrs[SpanAttr.MESSAGING_OPERATION] == action
 
         if parent_span_id:
+            assert span.parent
             assert span.parent.span_id == parent_span_id
 
 

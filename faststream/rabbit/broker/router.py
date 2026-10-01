@@ -18,11 +18,13 @@ if TYPE_CHECKING:
     from aio_pika.abc import DateType, HeadersType, TimeoutType
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
     )
     from faststream.rabbit.schemas import (
+        Channel,
         RabbitExchange,
         RabbitQueue,
     )
@@ -59,6 +61,7 @@ class RabbitPublisher(ArgsContainer):
         expiration: Optional["DateType"] = None,
         message_type: str | None = None,
         user_id: str | None = None,
+        persistent: bool = True,
     ) -> None:
         """Initialized RabbitPublisher.
 
@@ -107,6 +110,7 @@ class RabbitPublisher(ArgsContainer):
                 Application-specific message type, e.g. **orders.created**.
             user_id:
                 Publisher connection User ID, validated if set.
+            persistent: Whether to make the publisher persistent or not.
         """
         super().__init__(
             queue=queue,
@@ -129,6 +133,7 @@ class RabbitPublisher(ArgsContainer):
             description=description,
             schema=schema,
             include_in_schema=include_in_schema,
+            persistent=persistent,
         )
 
 
@@ -148,7 +153,7 @@ class RabbitRoute(SubscriberRoute):
         publishers: Iterable[RabbitPublisher] = (),
         consume_args: dict[str, Any] | None = None,
         # broker arguments
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         ack_policy: AckPolicy = EMPTY,
@@ -157,6 +162,9 @@ class RabbitRoute(SubscriberRoute):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
+        persistent: bool = True,
+        codec: Optional["CodecProto"] = None,
+        channel: Optional["Channel"] = None,
     ) -> None:
         """Initialized RabbitRoute.
 
@@ -192,6 +200,9 @@ class RabbitRoute(SubscriberRoute):
                 Uses decorated docstring as default.
             include_in_schema:
                 Whetever to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the subscriber persistent or not.
+            codec: Custom codec object.
+            channel: Channel to use for consuming messages.
         """
         super().__init__(
             call,
@@ -207,6 +218,9 @@ class RabbitRoute(SubscriberRoute):
             title=title,
             description=description,
             include_in_schema=include_in_schema,
+            persistent=persistent,
+            codec=codec,
+            channel=channel,
         )
 
 
@@ -218,7 +232,7 @@ class RabbitRouter(RabbitRegistrator, BrokerRouter[IncomingMessage, RabbitBroker
         prefix: str = "",
         handlers: Iterable[RabbitRoute] = (),
         *,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RabbitRegistrator] = (),
         parser: Optional["CustomCallable"] = None,

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Callable, Coroutine
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional, cast
 
@@ -32,6 +32,8 @@ class PullStreamSubscriber(
     TasksMixin,
     StreamSubscriber,
 ):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PullSubscription"]
 
     def __init__(
@@ -70,7 +72,7 @@ class PullStreamSubscriber(
 
     async def _consume_pull(
         self,
-        cb: Callable[["Msg"], Awaitable["SendableMessage"]],
+        cb: Callable[["Msg"], Coroutine[Any, Any, "SendableMessage"]],
     ) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription
@@ -86,10 +88,12 @@ class PullStreamSubscriber(
             if messages:
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
-                        tg.start_soon(cb, msg)
+                        _ = tg.start_soon(cb, msg)
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
+    __slots__ = ()
+
     @override
     async def _create_subscription(self) -> None:
         """Create NATS subscription and start consume task."""
@@ -111,6 +115,8 @@ class BatchPullStreamSubscriber(
     DefaultSubscriber[list["Msg"]],
 ):
     """Batch-message consumer class."""
+
+    __slots__ = ()
 
     subscription: Optional["JetStreamContext.PullSubscription"]
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]

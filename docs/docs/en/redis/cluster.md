@@ -55,6 +55,7 @@ broker = RedisClusterBroker(
 | Stream + XAUTOCLAIM | ✅ | ✅ |
 | Pub/Sub | ✅ | ✅ (via sync cluster) |
 | Pipeline | ✅ | ✅ (lists and streams) |
+| Transaction pipeline | ✅ | ❌ |
 
 ## Stream Location
 

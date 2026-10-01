@@ -1,10 +1,10 @@
-from typing import Any, overload
-
-from typing_extensions import Self
+from typing import Any, Self, overload
 
 
-class NameRequired:
+class NameRequired:  # noqa: PLW1641 - each subclass decides whether it is hashable
     """Required name option object."""
+
+    __slots__ = ("name",)
 
     def __eq__(self, value: object, /) -> bool:
         """Compares the current object with another object for equality."""

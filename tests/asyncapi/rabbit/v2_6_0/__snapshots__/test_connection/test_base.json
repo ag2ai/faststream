@@ -1,0 +1,27 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {}
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "description": "Test description",
+      "protocol": "amqps",
+      "protocolVersion": "0.9.0",
+      "tags": [
+        {
+          "description": "experimental",
+          "name": "some-tag"
+        }
+      ],
+      "url": "amqps://guest:guest@localhost:5673/"
+    }
+  }
+}

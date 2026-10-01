@@ -15,8 +15,8 @@ class KvWatch(NameRequired):
         declare (bool): Whether to create bucket automatically or just connect to it (default is `True`).
     """
 
+    # The bucket name is the `NameRequired.name` slot; there is no `bucket` attribute.
     __slots__ = (
-        "bucket",
         "declare",
         "headers_only",
         "ignore_deletes",

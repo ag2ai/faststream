@@ -32,6 +32,16 @@ if TYPE_CHECKING:
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
+    __slots__ = (
+        "__no_ack",
+        "_consumer_tag",
+        "_queue_obj",
+        "channel",
+        "consume_args",
+        "exchange",
+        "queue",
+    )
+
     _outer_config: "RabbitBrokerConfig"
 
     def __init__(
@@ -82,8 +92,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         if (
-            self.exchange is not None
-            and queue_to_bind.declare  # queue just getted from RMQ
+            queue_to_bind.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
             exchange = await declarer.declare_exchange(

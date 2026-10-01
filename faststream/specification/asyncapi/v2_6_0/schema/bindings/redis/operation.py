@@ -3,10 +3,9 @@
 References: https://github.com/asyncapi/bindings/tree/master/redis
 """
 
-from typing import Any
+from typing import Any, Self
 
 from pydantic import BaseModel
-from typing_extensions import Self
 
 from faststream.specification.schema.bindings import redis
 

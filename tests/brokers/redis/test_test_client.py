@@ -20,7 +20,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker, with_real=True) as br:
@@ -35,7 +35,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         assert event.is_set()
 
     async def test_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -45,10 +45,10 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(m) -> None: ...
+        async def h1(m: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(m) -> None: ...
+        async def h2(m: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("", queue)
@@ -58,7 +58,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -68,10 +68,10 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(m) -> None: ...
+        async def h1(m: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(m) -> None: ...
+        async def h2(m: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
@@ -85,7 +85,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test.{name}")
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -99,7 +99,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -113,7 +113,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -127,7 +127,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -138,7 +138,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg) -> None: ...
+        async def m(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish_batch({"n": 1}, {"n": 2}, list=queue)
@@ -160,7 +160,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -189,12 +189,12 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @batch_publisher
         @broker.subscriber(queue)
-        async def batched(msg):
+        async def batched(msg: Any) -> Any:
             return returned
 
         @default_publisher
         @broker.subscriber(queue + "3")
-        async def single(msg) -> None:
+        async def single(msg: Any) -> None:
             return None
 
         async with self.patch_broker(broker) as br:
@@ -213,7 +213,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(stream=queue)
-        async def handler(msg):
+        async def handler(msg: Any) -> Any:
             return msg
 
         async with self.patch_broker(broker) as br:
@@ -227,7 +227,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(stream=StreamSub(queue, batch=True))
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -245,7 +245,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -262,12 +262,12 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         @broker.subscriber(
             stream=StreamSub(queue, group="workers", consumer="consumer-1"),
         )
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(
             stream=StreamSub(queue, group="workers", consumer="consumer-2"),
         )
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", stream=queue)
@@ -286,12 +286,12 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         @broker.subscriber(
             stream=StreamSub(queue, group="workers-a", consumer="consumer-1"),
         )
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(
             stream=StreamSub(queue, group="workers-b", consumer="consumer-1"),
         )
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", stream=queue)
@@ -308,10 +308,10 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         @broker.subscriber(
             stream=StreamSub(queue, group="workers", consumer="consumer-1"),
         )
-        async def grouped(msg) -> None: ...
+        async def grouped(msg: Any) -> None: ...
 
         @broker.subscriber(stream=queue)
-        async def ungrouped(msg) -> None: ...
+        async def ungrouped(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", stream=queue)
