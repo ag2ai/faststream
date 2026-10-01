@@ -346,7 +346,7 @@ async def check_sentinel_broker_publish_result_type(
 
 
 def fake_bool() -> bool:
-    return False
+    return True
 
 
 async def check_broker_publisher_publish_result_types(
@@ -399,6 +399,14 @@ async def check_cluster_broker_publisher_publish_result_types(
     assert_type(await p2.publish(None), int)
     assert_type(await p2.publish(None, pipeline=pipeline), ClusterPipeline)
 
+    p2_plain = broker.publisher(list=ListSub("test"))
+    assert_type(p2_plain, ListPublisher[ClusterPipeline])
+
+    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
+    assert_type(
+        p2_unknown, ListBatchPublisher[ClusterPipeline] | ListPublisher[ClusterPipeline]
+    )
+
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher[ClusterPipeline])
     assert_type(await p3.publish(None), bytes)
@@ -424,6 +432,12 @@ async def check_sentinel_broker_publisher_publish_result_types(
     assert_type(await p2.publish(None), int)
     assert_type(await p2.publish(None, pipeline=pipeline), Pipeline)
 
+    p2_plain = broker.publisher(list=ListSub("test"))
+    assert_type(p2_plain, ListPublisher[Pipeline])
+
+    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
+    assert_type(p2_unknown, ListBatchPublisher[Pipeline] | ListPublisher[Pipeline])
+
     p3 = broker.publisher(stream="stream")
     assert_type(p3, StreamPublisher[Pipeline])
     assert_type(await p3.publish(None), bytes)
@@ -448,6 +462,16 @@ async def check_router_publisher_publish_result_types(
     assert_type(p2, ListBatchPublisher[Pipeline | ClusterPipeline])
     assert_type(await p2.publish(None), int)
     assert_type(await p2.publish(None, pipeline=pipeline), Pipeline | ClusterPipeline)
+
+    p2_plain = router.publisher(list=ListSub("test"))
+    assert_type(p2_plain, ListPublisher[Pipeline | ClusterPipeline])
+
+    p2_unknown = router.publisher(list=ListSub("test", batch=fake_bool()))
+    assert_type(
+        p2_unknown,
+        ListBatchPublisher[Pipeline | ClusterPipeline]
+        | ListPublisher[Pipeline | ClusterPipeline],
+    )
 
     p3 = router.publisher(stream="stream")
     assert_type(p3, StreamPublisher[Pipeline | ClusterPipeline])

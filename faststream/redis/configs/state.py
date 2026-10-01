@@ -55,6 +55,8 @@ class ConnectionState(ABC, Generic[ClientT]):
 
 
 class RedisConnectionState(ConnectionState["Redis"]):
+    __slots__ = ()
+
     async def connect(self) -> "Redis":
         pool = ConnectionPool(**self._options, driver_info=_DRIVER_INFO)
         client: Redis = Redis.from_pool(pool)
