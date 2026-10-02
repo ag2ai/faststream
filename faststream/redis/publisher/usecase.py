@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Any, TypeVar, Union, overload
 
 from redis.asyncio.client import Pipeline
 from redis.asyncio.cluster import ClusterPipeline
@@ -66,7 +66,7 @@ class LogicPublisher(PublisherUsecase):
         raise NotImplementedError
 
 
-class ChannelPublisher(LogicPublisher, Generic[_PipelineT]):
+class ChannelPublisher(LogicPublisher):
     __slots__ = ("_channel",)
 
     def __init__(
@@ -147,7 +147,7 @@ class ChannelPublisher(LogicPublisher, Generic[_PipelineT]):
     @override
     async def _publish(
         self,
-        cmd: Union["PublishCommand", "RedisPublishCommand[_PipelineT]"],
+        cmd: Union["PublishCommand", "RedisPublishCommand[Any]"],
         *,
         _extra_middlewares: Iterable["PublisherMiddleware"],
     ) -> None:
@@ -175,7 +175,7 @@ class ChannelPublisher(LogicPublisher, Generic[_PipelineT]):
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
-        cmd: RedisPublishCommand[None] = RedisPublishCommand(
+        cmd = RedisPublishCommand(
             message,
             channel=channel or self.channel.name,
             headers=self.headers | (headers or {}),
@@ -192,7 +192,7 @@ class ChannelPublisher(LogicPublisher, Generic[_PipelineT]):
         return msg
 
 
-class ListPublisher(LogicPublisher, Generic[_PipelineT]):
+class ListPublisher(LogicPublisher):
     __slots__ = ("_list",)
 
     def __init__(
@@ -302,7 +302,7 @@ class ListPublisher(LogicPublisher, Generic[_PipelineT]):
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
-        cmd: RedisPublishCommand[None] = RedisPublishCommand(
+        cmd = RedisPublishCommand(
             message,
             list=list or self.list.name,
             headers=self.headers | (headers or {}),
@@ -319,7 +319,7 @@ class ListPublisher(LogicPublisher, Generic[_PipelineT]):
         return msg
 
 
-class ListBatchPublisher(ListPublisher[_PipelineT], Generic[_PipelineT]):
+class ListBatchPublisher(ListPublisher):
     __slots__ = ()
 
     @overload
@@ -401,7 +401,7 @@ class ListBatchPublisher(ListPublisher[_PipelineT], Generic[_PipelineT]):
         )
 
 
-class StreamPublisher(LogicPublisher, Generic[_PipelineT]):
+class StreamPublisher(LogicPublisher):
     __slots__ = ("_stream",)
 
     def __init__(
@@ -516,7 +516,7 @@ class StreamPublisher(LogicPublisher, Generic[_PipelineT]):
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
-        cmd: RedisPublishCommand[None] = RedisPublishCommand(
+        cmd = RedisPublishCommand(
             message,
             stream=stream or self.stream.name,
             headers=self.headers | (headers or {}),

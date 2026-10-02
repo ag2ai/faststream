@@ -1,13 +1,11 @@
 from collections.abc import Iterable, Mapping, Sequence
 from ssl import VerifyMode
-from typing import Any, Generic, Required, TypeVar
+from typing import Any, Required
 
 from fast_depends import Provider
 from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
 from redis._parsers import BaseParser, Encoder
-from redis.asyncio.client import Pipeline
-from redis.asyncio.cluster import ClusterPipeline
 from redis.asyncio.connection import Connection
 from redis.asyncio.retry import Retry
 from typing_extensions import TypedDict
@@ -21,8 +19,6 @@ from faststream.redis.broker.registrator import RedisRegistrator
 from faststream.redis.parser import MessageFormat
 from faststream.security import BaseSecurity
 from faststream.specification.schema.extra import Tag, TagDict
-
-_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 
 
 class RedisConnectionParams(TypedDict, total=False):
@@ -89,7 +85,7 @@ class RedisConnectionParams(TypedDict, total=False):
     """Encoder class. Defaults to ``Encoder``."""
 
 
-class RedisBrokerParams(RedisConnectionParams, Generic[_PipelineT], total=False):
+class RedisBrokerParams(RedisConnectionParams, total=False):
     graceful_timeout: float | None
     """Graceful shutdown timeout. Defaults to ``15.0``."""
 
@@ -117,7 +113,7 @@ class RedisBrokerParams(RedisConnectionParams, Generic[_PipelineT], total=False)
     middlewares: Sequence[BrokerMiddleware[Any, Any]]
     """Global middlewares. Defaults to ``()``."""
 
-    routers: Iterable[RedisRegistrator[_PipelineT]]
+    routers: Iterable[RedisRegistrator]
     """Routers to include. Defaults to ``()``."""
 
     message_format: type[MessageFormat]
@@ -160,7 +156,7 @@ class RedisBrokerParams(RedisConnectionParams, Generic[_PipelineT], total=False)
     """Context repository. Defaults to ``None``."""
 
 
-class RedisClusterParams(RedisBrokerParams[ClusterPipeline], total=False):
+class RedisClusterParams(RedisBrokerParams, total=False):
     startup_nodes: Iterable[tuple[str, int]]
     """Explicit seed node addresses. Auto-discovered when omitted.
 
@@ -190,7 +186,7 @@ class RedisClusterParams(RedisBrokerParams[ClusterPipeline], total=False):
     """Verify the server hostname. Default follows redis-py."""
 
 
-class RedisSentinelParams(RedisBrokerParams[Pipeline], total=False):
+class RedisSentinelParams(RedisBrokerParams, total=False):
     sentinels: Required[Sequence[tuple[str, int]]]
     """Redis Sentinel ``(host, port)`` nodes to discover the master from. Required."""
 

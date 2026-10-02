@@ -2,17 +2,13 @@ from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     Optional,
-    TypeVar,
     Union,
     cast,
     overload,
 )
 
-from redis.asyncio.client import Pipeline
-from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import override
 
 from faststream._internal.broker.registrator import Registrator
@@ -53,12 +49,8 @@ if TYPE_CHECKING:
         StreamSubscriber,
     )
 
-_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 
-
-class RedisRegistrator(
-    Registrator[UnifyRedisDict, RedisBrokerConfig], Generic[_PipelineT]
-):
+class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     """Includable to RedisBroker router."""
 
     @overload  # type: ignore[override]
@@ -399,7 +391,7 @@ class RedisRegistrator(
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "StreamPublisher[_PipelineT]": ...
+    ) -> "StreamPublisher": ...
 
     @overload
     def publisher(
@@ -417,7 +409,7 @@ class RedisRegistrator(
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "ListPublisher[_PipelineT]": ...
+    ) -> "ListPublisher": ...
 
     @overload
     def publisher(
@@ -435,7 +427,7 @@ class RedisRegistrator(
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "ListBatchPublisher[_PipelineT]": ...
+    ) -> "ListBatchPublisher": ...
 
     @overload
     def publisher(
@@ -453,7 +445,7 @@ class RedisRegistrator(
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> Union["ListPublisher[_PipelineT]", "ListBatchPublisher[_PipelineT]"]: ...
+    ) -> Union["ListPublisher", "ListBatchPublisher"]: ...
 
     @overload
     def publisher(
@@ -471,7 +463,7 @@ class RedisRegistrator(
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
-    ) -> "ChannelPublisher[_PipelineT]": ...
+    ) -> "ChannelPublisher": ...
 
     @overload
     def publisher(
@@ -551,7 +543,7 @@ class RedisRegistrator(
     @override
     def include_router(
         self,
-        router: "RedisRegistrator[Any]",  # type: ignore[override]
+        router: "RedisRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
         dependencies: Sequence["Dependant"] = (),

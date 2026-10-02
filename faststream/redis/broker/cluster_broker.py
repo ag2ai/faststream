@@ -1,19 +1,17 @@
 import warnings
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, overload
+from typing import TYPE_CHECKING, Any, Optional
 
-from redis.asyncio.cluster import ClusterNode, ClusterPipeline
+from redis.asyncio.cluster import ClusterNode
 from redis.asyncio.connection import SSLConnection
 from typing_extensions import Unpack, override
 
-from faststream import PublishType
 from faststream._internal.constants import EMPTY
 from faststream.redis.broker import RedisBroker
 from faststream.redis.configs.state import (
     ConnectionState,
     RedisClusterConnectionState,
 )
-from faststream.redis.response import RedisPublishCommand
 from faststream.redis.schemas.types import (
     CLUSTER_INCOMPATIBLE_PARAMS,
 )
@@ -21,12 +19,11 @@ from faststream.redis.schemas.types import (
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream.redis.schemas.types import RedisClusterParams
     from faststream.security import BaseSecurity
 
 
-class RedisClusterBroker(RedisBroker[ClusterPipeline]):
+class RedisClusterBroker(RedisBroker):
     """A Redis Cluster broker."""
 
     def __init__(
@@ -43,85 +40,6 @@ class RedisClusterBroker(RedisBroker[ClusterPipeline]):
         kwargs: dict[str, Any],
     ) -> "ConnectionState[Any]":
         return RedisClusterConnectionState(connection_options)
-
-    @overload  # type: ignore[override]
-    async def publish(
-        self,
-        message: "SendableMessage" = None,
-        channel: str | None = None,
-        *,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        correlation_id: str | None = None,
-        list: str | None = None,
-        stream: None = None,
-        maxlen: int | None = None,
-        pipeline: None = None,
-    ) -> int: ...
-
-    @overload
-    async def publish(
-        self,
-        message: "SendableMessage" = None,
-        channel: str | None = None,
-        *,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        correlation_id: str | None = None,
-        list: str | None = None,
-        stream: str,
-        maxlen: int | None = None,
-        pipeline: None = None,
-    ) -> bytes: ...
-
-    @overload
-    async def publish(
-        self,
-        message: "SendableMessage" = None,
-        channel: str | None = None,
-        *,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        correlation_id: str | None = None,
-        list: str | None = None,
-        stream: str | None = None,
-        maxlen: int | None = None,
-        pipeline: ClusterPipeline,
-    ) -> ClusterPipeline: ...
-
-    @override
-    async def publish(
-        self,
-        message: "SendableMessage" = None,
-        channel: str | None = None,
-        *,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        correlation_id: str | None = None,
-        list: str | None = None,
-        stream: str | None = None,
-        maxlen: int | None = None,
-        pipeline: ClusterPipeline | None = None,
-    ) -> int | bytes | ClusterPipeline:
-        cmd = RedisPublishCommand(
-            message,
-            correlation_id=correlation_id or self.config.id_generator(),
-            channel=channel,
-            list=list,
-            stream=stream,
-            maxlen=maxlen,
-            reply_to=reply_to,
-            headers=headers,
-            pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
-            message_format=self.message_format,
-        )
-
-        result: int | bytes | ClusterPipeline = await super()._basic_publish(
-            cmd,
-            producer=self.config.producer,
-        )
-        return result
 
     async def _connect(self) -> Any:
         await self.config.connect()
@@ -140,55 +58,6 @@ class RedisClusterBroker(RedisBroker[ClusterPipeline]):
     async def start(self) -> None:
         _ = await self.connect()
         await super().start()
-
-    @overload  # type: ignore[override]
-    async def publish_batch(
-        self,
-        *messages: "SendableMessage",
-        list: str,
-        correlation_id: str | None = None,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        pipeline: None = None,
-    ) -> int: ...
-
-    @overload
-    async def publish_batch(
-        self,
-        *messages: "SendableMessage",
-        list: str,
-        correlation_id: str | None = None,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        pipeline: ClusterPipeline,
-    ) -> ClusterPipeline: ...
-
-    @override
-    async def publish_batch(
-        self,
-        *messages: "SendableMessage",
-        list: str,
-        correlation_id: str | None = None,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        pipeline: ClusterPipeline | None = None,
-    ) -> int | ClusterPipeline:
-        cmd = RedisPublishCommand(
-            *messages,
-            list=list,
-            reply_to=reply_to,
-            headers=headers,
-            correlation_id=correlation_id or self.config.id_generator(),
-            pipeline=pipeline,
-            _publish_type=PublishType.PUBLISH,
-            message_format=self.message_format,
-        )
-
-        result: int | ClusterPipeline = await self._basic_publish_batch(
-            cmd,
-            producer=self.config.producer,
-        )
-        return result
 
     @staticmethod
     def _resolve_url_options(

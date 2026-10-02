@@ -277,71 +277,38 @@ RedisBroker(middlewares=[prometheus_middleware])
 
 
 async def check_broker_publish_result_type(
-    broker: RedisBroker,
+    broker: RedisBroker | RedisClusterBroker | RedisSentinelBroker,
     pipeline: Pipeline,
+    cluster_pipeline: ClusterPipeline,
     optional_stream: str | None = "test",
 ) -> None:
     assert_type(await broker.publish(None), int)
     assert_type(await broker.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await broker.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
     assert_type(await broker.publish(None, stream="test"), bytes)
     assert_type(await broker.publish(None, stream="test", pipeline=pipeline), Pipeline)
+    assert_type(
+        await broker.publish(None, stream="test", pipeline=cluster_pipeline),
+        ClusterPipeline,
+    )
 
     assert_type(await broker.publish(None, stream=optional_stream), int | bytes)
     assert_type(
         await broker.publish(None, stream=optional_stream, pipeline=pipeline), Pipeline
     )
-
-    assert_type(await broker.publish_batch(None, list="test"), int)
     assert_type(
-        await broker.publish_batch(None, list="test", pipeline=pipeline), Pipeline
-    )
-
-
-async def check_cluster_broker_publish_result_type(
-    broker: RedisClusterBroker,
-    pipeline: ClusterPipeline,
-    optional_stream: str | None = "test",
-) -> None:
-    assert_type(await broker.publish(None), int)
-    assert_type(await broker.publish(None, pipeline=pipeline), ClusterPipeline)
-
-    assert_type(await broker.publish(None, stream="test"), bytes)
-    assert_type(
-        await broker.publish(None, stream="test", pipeline=pipeline), ClusterPipeline
-    )
-
-    assert_type(await broker.publish(None, stream=optional_stream), int | bytes)
-    assert_type(
-        await broker.publish(None, stream=optional_stream, pipeline=pipeline),
+        await broker.publish(None, stream=optional_stream, pipeline=cluster_pipeline),
         ClusterPipeline,
     )
 
     assert_type(await broker.publish_batch(None, list="test"), int)
     assert_type(
-        await broker.publish_batch(None, list="test", pipeline=pipeline), ClusterPipeline
-    )
-
-
-async def check_sentinel_broker_publish_result_type(
-    broker: RedisSentinelBroker,
-    pipeline: Pipeline,
-    optional_stream: str | None = "test",
-) -> None:
-    assert_type(await broker.publish(None), int)
-    assert_type(await broker.publish(None, pipeline=pipeline), Pipeline)
-
-    assert_type(await broker.publish(None, stream="test"), bytes)
-    assert_type(await broker.publish(None, stream="test", pipeline=pipeline), Pipeline)
-
-    assert_type(await broker.publish(None, stream=optional_stream), int | bytes)
-    assert_type(
-        await broker.publish(None, stream=optional_stream, pipeline=pipeline), Pipeline
-    )
-
-    assert_type(await broker.publish_batch(None, list="test"), int)
-    assert_type(
         await broker.publish_batch(None, list="test", pipeline=pipeline), Pipeline
+    )
+    assert_type(
+        await broker.publish_batch(None, list="test", pipeline=cluster_pipeline),
+        ClusterPipeline,
     )
 
 
@@ -349,134 +316,40 @@ def fake_bool() -> bool:
     return True
 
 
-async def check_broker_publisher_publish_result_types(
-    broker: RedisBroker,
+async def check_publisher_publish_result_types(
+    router: RedisBroker | RedisClusterBroker | RedisSentinelBroker | RedisRouter,
     pipeline: Pipeline,
-) -> None:
-    p = broker.publisher(channel="test")
-    assert_type(p, ChannelPublisher[Pipeline])
-    assert_type(await p.publish(None), int)
-    assert_type(await p.publish(None, pipeline=pipeline), Pipeline)
-
-    p1 = broker.publisher(list="test")
-    assert_type(p1, ListPublisher[Pipeline])
-    assert_type(await p1.publish(None), int)
-    assert_type(await p1.publish(None, pipeline=pipeline), Pipeline)
-
-    p2 = broker.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher[Pipeline])
-    assert_type(await p2.publish(None), int)
-    assert_type(await p2.publish(None, pipeline=pipeline), Pipeline)
-
-    p2_plain = broker.publisher(list=ListSub("test"))
-    assert_type(p2_plain, ListPublisher[Pipeline])
-
-    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
-    assert_type(p2_unknown, ListBatchPublisher[Pipeline] | ListPublisher[Pipeline])
-
-    p3 = broker.publisher(stream="stream")
-    assert_type(p3, StreamPublisher[Pipeline])
-    assert_type(await p3.publish(None), bytes)
-    assert_type(await p3.publish(None, pipeline=pipeline), Pipeline)
-
-
-async def check_cluster_broker_publisher_publish_result_types(
-    broker: RedisClusterBroker,
-    pipeline: ClusterPipeline,
-) -> None:
-    p = broker.publisher(channel="test")
-    assert_type(p, ChannelPublisher[ClusterPipeline])
-    assert_type(await p.publish(None), int)
-    assert_type(await p.publish(None, pipeline=pipeline), ClusterPipeline)
-
-    p1 = broker.publisher(list="test")
-    assert_type(p1, ListPublisher[ClusterPipeline])
-    assert_type(await p1.publish(None), int)
-    assert_type(await p1.publish(None, pipeline=pipeline), ClusterPipeline)
-
-    p2 = broker.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher[ClusterPipeline])
-    assert_type(await p2.publish(None), int)
-    assert_type(await p2.publish(None, pipeline=pipeline), ClusterPipeline)
-
-    p2_plain = broker.publisher(list=ListSub("test"))
-    assert_type(p2_plain, ListPublisher[ClusterPipeline])
-
-    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
-    assert_type(
-        p2_unknown, ListBatchPublisher[ClusterPipeline] | ListPublisher[ClusterPipeline]
-    )
-
-    p3 = broker.publisher(stream="stream")
-    assert_type(p3, StreamPublisher[ClusterPipeline])
-    assert_type(await p3.publish(None), bytes)
-    assert_type(await p3.publish(None, pipeline=pipeline), ClusterPipeline)
-
-
-async def check_sentinel_broker_publisher_publish_result_types(
-    broker: RedisSentinelBroker,
-    pipeline: Pipeline,
-) -> None:
-    p = broker.publisher(channel="test")
-    assert_type(p, ChannelPublisher[Pipeline])
-    assert_type(await p.publish(None), int)
-    assert_type(await p.publish(None, pipeline=pipeline), Pipeline)
-
-    p1 = broker.publisher(list="test")
-    assert_type(p1, ListPublisher[Pipeline])
-    assert_type(await p1.publish(None), int)
-    assert_type(await p1.publish(None, pipeline=pipeline), Pipeline)
-
-    p2 = broker.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher[Pipeline])
-    assert_type(await p2.publish(None), int)
-    assert_type(await p2.publish(None, pipeline=pipeline), Pipeline)
-
-    p2_plain = broker.publisher(list=ListSub("test"))
-    assert_type(p2_plain, ListPublisher[Pipeline])
-
-    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
-    assert_type(p2_unknown, ListBatchPublisher[Pipeline] | ListPublisher[Pipeline])
-
-    p3 = broker.publisher(stream="stream")
-    assert_type(p3, StreamPublisher[Pipeline])
-    assert_type(await p3.publish(None), bytes)
-    assert_type(await p3.publish(None, pipeline=pipeline), Pipeline)
-
-
-async def check_router_publisher_publish_result_types(
-    router: RedisRouter,
-    pipeline: Pipeline,
+    cluster_pipeline: ClusterPipeline,
 ) -> None:
     p = router.publisher(channel="test")
-    assert_type(p, ChannelPublisher[Pipeline | ClusterPipeline])
+    assert_type(p, ChannelPublisher)
     assert_type(await p.publish(None), int)
-    assert_type(await p.publish(None, pipeline=pipeline), Pipeline | ClusterPipeline)
+    assert_type(await p.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
     p1 = router.publisher(list="test")
-    assert_type(p1, ListPublisher[Pipeline | ClusterPipeline])
+    assert_type(p1, ListPublisher)
     assert_type(await p1.publish(None), int)
-    assert_type(await p1.publish(None, pipeline=pipeline), Pipeline | ClusterPipeline)
+    assert_type(await p1.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p1.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
     p2 = router.publisher(list=ListSub("test", batch=True))
-    assert_type(p2, ListBatchPublisher[Pipeline | ClusterPipeline])
+    assert_type(p2, ListBatchPublisher)
     assert_type(await p2.publish(None), int)
-    assert_type(await p2.publish(None, pipeline=pipeline), Pipeline | ClusterPipeline)
+    assert_type(await p2.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p2.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
     p2_plain = router.publisher(list=ListSub("test"))
-    assert_type(p2_plain, ListPublisher[Pipeline | ClusterPipeline])
+    assert_type(p2_plain, ListPublisher)
 
     p2_unknown = router.publisher(list=ListSub("test", batch=fake_bool()))
-    assert_type(
-        p2_unknown,
-        ListBatchPublisher[Pipeline | ClusterPipeline]
-        | ListPublisher[Pipeline | ClusterPipeline],
-    )
+    assert_type(p2_unknown, ListBatchPublisher | ListPublisher)
 
     p3 = router.publisher(stream="stream")
-    assert_type(p3, StreamPublisher[Pipeline | ClusterPipeline])
+    assert_type(p3, StreamPublisher)
     assert_type(await p3.publish(None), bytes)
-    assert_type(await p3.publish(None, pipeline=pipeline), Pipeline | ClusterPipeline)
+    assert_type(await p3.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p3.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
 
 async def check_request_response_type(
