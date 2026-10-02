@@ -4,6 +4,7 @@ from typing import (
     Any,
     ClassVar,
     Optional,
+    TypeVar,
     cast,
     overload,
 )
@@ -52,9 +53,7 @@ if TYPE_CHECKING:
     from faststream.redis.schemas.types import RedisBrokerParams
     from faststream.security import BaseSecurity
 
-from typing_extensions import TypeVar as TypeVar313
-
-_PipelineT = TypeVar313("_PipelineT", bound=Pipeline | ClusterPipeline, default=Pipeline)
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 
 
 class RedisBroker(

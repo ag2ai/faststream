@@ -24,9 +24,6 @@ from faststream.redis.message import (
     RedisStreamMessage as Rsm,
 )
 
-RedisClient = _RedisClient
-RedisPipeline = _RedisPipeline
-
 __all__ = (
     "ClusterPipeline",
     "ContextRepo",
@@ -49,21 +46,21 @@ RedisBatchStreamMessage = Annotated[Rbsm, Context("message")]
 RedisListMessage = Annotated[Rlm, Context("message")]
 
 RedisBroker = Annotated[RB, Context("broker")]
-Redis = Annotated[RedisClient, Context("broker._connection")]
+Redis = Annotated[_RedisClient, Context("broker._connection")]
 
 RedisClusterBroker = Annotated[RCB, Context("broker")]
 RedisCluster = Annotated[_RedisClusterClient, Context("broker._connection")]
 
 
-async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
+async def get_pipe(redis: Redis) -> AsyncGenerator[_RedisPipeline, None]:
     async with redis.pipeline() as pipe:
         yield pipe
 
 
-Pipeline = Annotated[RedisPipeline, Depends(get_pipe, cast=False)]
+Pipeline = Annotated[_RedisPipeline, Depends(get_pipe, cast=False)]
 
 
-async def get_cluster_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
+async def get_cluster_pipe(redis: RedisCluster) -> AsyncGenerator[_ClusterPipeline, None]:
     async with redis.pipeline() as pipe:
         yield pipe
 
