@@ -87,7 +87,7 @@ class _StreamHandlerMixin(LogicSubscriber):
     ) -> None:
         super().__init__(config, specification, calls)
 
-        assert config.stream_sub
+        assert config.stream_sub is not None
         self._stream_sub = config.stream_sub
         self.last_id = config.stream_sub.last_id
         self.read_id = self.last_id
@@ -197,9 +197,9 @@ class _StreamHandlerMixin(LogicSubscriber):
             else:
 
                 async def read(_: str) -> ReadResponse:
-                    assert stream.group
-                    assert stream.consumer
-                    assert self.min_idle_time
+                    assert stream.group is not None
+                    assert stream.consumer is not None
+                    assert self.min_idle_time is not None
 
                     stream_message = await client.xautoclaim(
                         name=self.stream_sub.name,
@@ -395,8 +395,8 @@ class _StreamHandlerMixin(LogicSubscriber):
     ) -> ReadResponse:
         stream = self.stream_sub
 
-        assert stream.group
-        assert stream.consumer
+        assert stream.group is not None
+        assert stream.consumer is not None
 
         response: XReadGroupResponse
 
