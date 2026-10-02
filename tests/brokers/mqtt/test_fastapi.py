@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -8,6 +9,25 @@ from faststream.mqtt.fastapi import MQTTRouter as StreamRouter
 from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 
 from .basic import MQTTMemoryTestcaseConfig, MQTTTestcaseConfig
+from .settings import Settings
+
+
+@pytest.mark.mqtt()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "options",
+    (
+        {"receive_maximum": 10},
+        {"maximum_packet_size": 4096},
+        {"user_properties": (("role", "worker"),)},
+        {"request_response_information": False},
+        {"request_problem_information": False},
+    ),
+)
+async def test_router_connect_properties_reject_v311(options: dict[str, Any]) -> None:
+    router = StreamRouter(version="3.1.1", **options)
+    with pytest.raises(RuntimeError, match=r"MQTT 5\.0 is required"):
+        await router.broker.connect()
 
 
 class MQTTFastAPITestcaseConfig(MQTTTestcaseConfig):
@@ -76,6 +96,29 @@ def test_router_session_replay_config_threaded_to_broker() -> None:
 class TestRouter(MQTTFastAPITestcaseConfig, FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = MQTTRouter
+
+    async def test_connect_properties(self, settings: Settings, queue: str) -> None:
+        router = self.router_class(
+            host=settings.host,
+            port=settings.port,
+            version="5.0",
+            receive_maximum=10,
+            maximum_packet_size=4096,
+            user_properties=(("role", "worker"), ("role", "reader")),
+            request_response_information=True,
+            request_problem_information=False,
+        )
+        subscriber = router.subscriber(queue, qos=QoS.AT_LEAST_ONCE)
+        publisher = router.publisher(queue, qos=QoS.AT_LEAST_ONCE)
+
+        async with router.broker:
+            await router.broker.start()
+            assert await subscriber.get_one(timeout=0.01) is None
+            await publisher.publish("accepted")
+            message = await subscriber.get_one()
+
+        assert message is not None
+        assert await message.decode() == "accepted"
 
     async def test_path(self, queue: str, mock: MagicMock, event: asyncio.Event) -> None:
         router = self.router_class()

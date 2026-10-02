@@ -70,6 +70,11 @@ class MQTTBroker(
         on_connection_recovery_failed: Callable[[], Awaitable[None]] | None = None,
         mqtt_connect_timeout: float = 30.0,
         session_expiry_interval: int = 0,
+        receive_maximum: int | None = None,
+        maximum_packet_size: int | None = None,
+        user_properties: Sequence[tuple[str, str]] = (),
+        request_response_information: bool | None = None,
+        request_problem_information: bool | None = None,
         session_replay_buffer_size: int = 1000,
         session_replay_timeout: float = 30.0,
         stripped_prefixes: tuple[str, ...] | None = None,
@@ -125,6 +130,11 @@ class MQTTBroker(
             "password": password,
             "tls": connection_tls,
             "will": will,
+            "receive_maximum": receive_maximum,
+            "maximum_packet_size": maximum_packet_size,
+            "user_properties": user_properties,
+            "request_response_information": request_response_information,
+            "request_problem_information": request_problem_information,
         }
         if stripped_prefixes is not None:
             connection_kwargs["stripped_prefixes"] = stripped_prefixes
@@ -205,6 +215,14 @@ class MQTTBroker(
                 security=security,
             ),
         )
+
+    @property
+    def connection_info(self) -> zmqtt.ConnectionInfo:
+        """Current handshake snapshot; raises MQTTDisconnectedError when disconnected."""
+        if self._connection is None:
+            msg = "No active connection information"
+            raise zmqtt.MQTTDisconnectedError(msg)
+        return self._connection.connection_info
 
     @override
     async def _connect(self) -> zmqtt.MQTTClient:
