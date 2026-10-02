@@ -91,6 +91,40 @@ class MiddlewaresOrderTestcase(BaseTestcaseConfig[Any]):
         assert [c.args[0] for c in mock.enter.call_args_list] == ["outer", "inner"]
         assert [c.args[0] for c in mock.exit.call_args_list] == ["inner", "outer"]
 
+    async def test_broker_middleware_exit_on_enter_error(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        class OuterMiddleware(BaseMiddleware):
+            async def after_processed(
+                self,
+                exc_type: type[BaseException] | None = None,
+                exc_val: BaseException | None = None,
+                exc_tb: TracebackType | None = None,
+            ) -> bool | None:
+                mock.exit_outer(exc_type)
+                return await super().after_processed(exc_type, exc_val, exc_tb)
+
+        class InnerMiddleware(BaseMiddleware):
+            async def on_receive(self) -> None:
+                error_msg = "Ooops!"
+                raise ValueError(error_msg)
+
+        broker = self.get_broker(middlewares=[OuterMiddleware, InnerMiddleware])
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(msg: Any) -> None:
+            pass
+
+        async with self.patch_broker(broker) as br:
+            with pytest.raises(ValueError, match="Ooops!"):
+                await br.publish(None, queue)
+
+        mock.exit_outer.assert_called_once_with(ValueError)
+
     async def test_publisher_middleware_order(
         self,
         queue: str,
