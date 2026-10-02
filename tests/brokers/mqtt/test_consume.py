@@ -9,7 +9,6 @@ from faststream.mqtt import MQTTBroker
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 
 from .basic import MQTTTestcaseConfig
-from .settings import Settings
 
 
 class _FailingSubscription:
@@ -59,8 +58,8 @@ async def test_terminal_subscription_failure_is_not_restarted(
 @pytest.mark.mqtt()
 @pytest.mark.asyncio()
 class TestConsume(MQTTTestcaseConfig, BrokerRealConsumeTestcase):
-    async def test_unsubscribe_result(self, settings: Settings, queue: str) -> None:
-        broker = self.get_broker(host=settings.host, port=settings.port)
+    async def test_unsubscribe_result(self, queue: str) -> None:
+        broker = self.get_broker()
         subscriber = broker.subscriber(queue)
 
         async with self.patch_broker(broker) as br:
