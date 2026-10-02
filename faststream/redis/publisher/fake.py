@@ -1,4 +1,7 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, TypeVar, Union
+
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 
 from faststream._internal.endpoint.publisher.fake import FakePublisher
 from faststream.redis.response import RedisPublishCommand
@@ -7,6 +10,8 @@ if TYPE_CHECKING:
     from faststream._internal.producer import ProducerProto
     from faststream.redis.parser import MessageFormat
     from faststream.response.response import PublishCommand
+
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline | None)
 
 
 class RedisFakePublisher(FakePublisher):
@@ -19,7 +24,7 @@ class RedisFakePublisher(FakePublisher):
 
     def __init__(
         self,
-        producer: "ProducerProto[RedisPublishCommand]",
+        producer: "ProducerProto[RedisPublishCommand[Any]]",
         channel: str,
         message_format: type["MessageFormat"],
     ) -> None:
@@ -29,8 +34,8 @@ class RedisFakePublisher(FakePublisher):
 
     def patch_command(
         self,
-        cmd: Union["PublishCommand", "RedisPublishCommand"],
-    ) -> "RedisPublishCommand":
+        cmd: Union["PublishCommand", "RedisPublishCommand[_PipelineT]"],
+    ) -> "RedisPublishCommand[_PipelineT]":
         cmd = super().patch_command(cmd)
         real_cmd = RedisPublishCommand.from_cmd(cmd, message_format=self.message_format)
         real_cmd.set_destination(channel=self.channel)

@@ -1,7 +1,9 @@
 from collections.abc import Awaitable, Callable
-from typing import assert_type
+from typing import Any, assert_type
 
 import prometheus_client
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
@@ -13,9 +15,11 @@ from faststream.redis import (
     RedisClusterBroker,
     RedisListMessage,
     RedisMessage as Message,
+    RedisPublishCommand,
     RedisPublisher,
     RedisRoute as Route,
     RedisRouter,
+    RedisSentinelBroker,
     RedisStreamMessage,
     StreamSub,
     TestRedisBroker,
@@ -23,6 +27,7 @@ from faststream.redis import (
 from faststream.redis.message import RedisMessage as Msg
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from faststream.redis.prometheus import RedisPrometheusMiddleware
+from faststream.redis.publisher.producer import RedisFastProducer
 from faststream.redis.publisher.usecase import (
     ChannelPublisher,
     ListBatchPublisher,
@@ -271,20 +276,40 @@ RedisBroker().add_middleware(prometheus_middleware)
 RedisBroker(middlewares=[prometheus_middleware])
 
 
-async def check_broker_publish_result_type(optional_stream: str | None = "test") -> None:
-    broker = RedisBroker()
+async def check_broker_publish_result_type(
+    broker: RedisBroker | RedisClusterBroker | RedisSentinelBroker,
+    pipeline: Pipeline,
+    cluster_pipeline: ClusterPipeline,
+    optional_stream: str | None = "test",
+) -> None:
+    assert_type(await broker.publish(None), int)
+    assert_type(await broker.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await broker.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
-    publish_with_confirm = await broker.publish(None)
-    assert_type(publish_with_confirm, int)
+    assert_type(await broker.publish(None, stream="test"), bytes)
+    assert_type(await broker.publish(None, stream="test", pipeline=pipeline), Pipeline)
+    assert_type(
+        await broker.publish(None, stream="test", pipeline=cluster_pipeline),
+        ClusterPipeline,
+    )
 
-    publish_without_confirm = await broker.publish(None, stream="test")
-    assert_type(publish_without_confirm, bytes)
+    assert_type(await broker.publish(None, stream=optional_stream), int | bytes)
+    assert_type(
+        await broker.publish(None, stream=optional_stream, pipeline=pipeline), Pipeline
+    )
+    assert_type(
+        await broker.publish(None, stream=optional_stream, pipeline=cluster_pipeline),
+        ClusterPipeline,
+    )
 
-    publish_confirm_bool = await broker.publish(None, stream=optional_stream)
-    assert_type(publish_confirm_bool, int | bytes)
-
-    publish_with_confirm = await broker.publish_batch(None, list="test")
-    assert_type(publish_with_confirm, int)
+    assert_type(await broker.publish_batch(None, list="test"), int)
+    assert_type(
+        await broker.publish_batch(None, list="test", pipeline=pipeline), Pipeline
+    )
+    assert_type(
+        await broker.publish_batch(None, list="test", pipeline=cluster_pipeline),
+        ClusterPipeline,
+    )
 
 
 def fake_bool() -> bool:
@@ -292,29 +317,39 @@ def fake_bool() -> bool:
 
 
 async def check_publisher_publish_result_types(
-    broker: RedisBroker | RedisRouter,
+    router: RedisBroker | RedisClusterBroker | RedisSentinelBroker | RedisRouter,
+    pipeline: Pipeline,
+    cluster_pipeline: ClusterPipeline,
 ) -> None:
-    p = broker.publisher(channel="test")
+    p = router.publisher(channel="test")
     assert_type(p, ChannelPublisher)
     assert_type(await p.publish(None), int)
+    assert_type(await p.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
-    p1 = broker.publisher(list="test")
+    p1 = router.publisher(list="test")
     assert_type(p1, ListPublisher)
     assert_type(await p1.publish(None), int)
+    assert_type(await p1.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p1.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
-    p2 = broker.publisher(list=ListSub("test", batch=True))
+    p2 = router.publisher(list=ListSub("test", batch=True))
     assert_type(p2, ListBatchPublisher)
     assert_type(await p2.publish(None), int)
+    assert_type(await p2.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p2.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
-    p2_plain = broker.publisher(list=ListSub("test"))
+    p2_plain = router.publisher(list=ListSub("test"))
     assert_type(p2_plain, ListPublisher)
 
-    p2_unknown = broker.publisher(list=ListSub("test", batch=fake_bool()))
+    p2_unknown = router.publisher(list=ListSub("test", batch=fake_bool()))
     assert_type(p2_unknown, ListBatchPublisher | ListPublisher)
 
-    p3 = broker.publisher(stream="stream")
+    p3 = router.publisher(stream="stream")
     assert_type(p3, StreamPublisher)
     assert_type(await p3.publish(None), bytes)
+    assert_type(await p3.publish(None, pipeline=pipeline), Pipeline)
+    assert_type(await p3.publish(None, pipeline=cluster_pipeline), ClusterPipeline)
 
 
 async def check_request_response_type(
@@ -469,3 +504,22 @@ def accepts_any_list_sub(list_sub: ListSub) -> None: ...
 
 
 accepts_any_list_sub(ListSub("test", batch=True))
+
+
+async def tests_redis_fast_producer(
+    producer: RedisFastProducer,
+    cmd1: RedisPublishCommand[None],
+    cmd2: RedisPublishCommand[Pipeline],
+    cmd3: RedisPublishCommand[ClusterPipeline],
+) -> None:
+    assert_type(await producer.publish(cmd1), int | bytes)
+    assert_type(await producer.publish(cmd2), Pipeline)
+    assert_type(await producer.publish(cmd3), ClusterPipeline)
+
+    assert_type(await producer.publish_batch(cmd1), int)
+    assert_type(await producer.publish_batch(cmd2), Pipeline)
+    assert_type(await producer.publish_batch(cmd3), ClusterPipeline)
+
+    assert_type(await producer.request(cmd1), Any)
+    assert_type(await producer.request(cmd2), Any)  # type: ignore[arg-type]
+    assert_type(await producer.request(cmd3), Any)  # type: ignore[arg-type]

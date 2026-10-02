@@ -67,7 +67,7 @@ def test_publish_command_with_redis_options(runner: CliRunner) -> None:
 
         assert result.exit_code == 0
 
-        cmd: RedisPublishCommand = producer_mock.publish.call_args.args[0]
+        cmd: RedisPublishCommand[Any] = producer_mock.publish.call_args.args[0]
         assert cmd.body == "hello world"
         assert cmd.reply_to == "tester"
         assert cmd.destination == "channelname"

@@ -1,7 +1,9 @@
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast, overload
 
 import anyio
+from redis.asyncio.client import Pipeline
+from redis.asyncio.cluster import ClusterPipeline
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
@@ -21,8 +23,10 @@ if TYPE_CHECKING:
     from faststream.redis.configs import ConnectionState
     from faststream.redis.parser import MessageFormat
 
+_PipelineT = TypeVar("_PipelineT", bound=Pipeline | ClusterPipeline)
 
-class RedisFastProducer(ProducerProto[RedisPublishCommand]):
+
+class RedisFastProducer(ProducerProto[RedisPublishCommand[Any]]):
     """Producer for both a single-node Redis and a Redis Cluster.
 
     Since redis-py 8.0.0 the async ``RedisCluster`` speaks the same command
@@ -65,8 +69,16 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
         self.serializer = serializer
         self.codec = codec or DefaultCodec()
 
+    @overload
+    async def publish(self, cmd: "RedisPublishCommand[None]") -> int | bytes: ...
+
+    @overload
+    async def publish(self, cmd: "RedisPublishCommand[_PipelineT]") -> _PipelineT: ...
+
     @override
-    async def publish(self, cmd: "RedisPublishCommand") -> int | bytes:
+    async def publish(
+        self, cmd: "RedisPublishCommand[None] | RedisPublishCommand[_PipelineT]"
+    ) -> int | bytes | _PipelineT:
         msg = await cmd.message_format.encode(
             message=cmd.body,
             reply_to=cmd.reply_to,
@@ -78,8 +90,18 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
 
         return await self.__publish(msg, cmd)
 
+    @overload
+    async def publish_batch(self, cmd: "RedisPublishCommand[None]") -> int: ...
+
+    @overload
+    async def publish_batch(
+        self, cmd: "RedisPublishCommand[_PipelineT]"
+    ) -> _PipelineT: ...
+
     @override
-    async def publish_batch(self, cmd: "RedisPublishCommand") -> int:
+    async def publish_batch(
+        self, cmd: "RedisPublishCommand[None] | RedisPublishCommand[_PipelineT]"
+    ) -> int | _PipelineT:
         batch = [
             await cmd.message_format.encode(
                 message=msg,
@@ -93,10 +115,10 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
         ]
 
         connection = cmd.pipeline or self._connection.client
-        return cast("int", await connection.rpush(cmd.destination, *batch))
+        return cast("int | _PipelineT", await connection.rpush(cmd.destination, *batch))
 
     @override
-    async def request(self, cmd: "RedisPublishCommand") -> "Any":
+    async def request(self, cmd: "RedisPublishCommand[None]") -> "Any":
         nuid = NUID()
         reply_to = str(nuid.next(), "utf-8")
         psub = self._connection.client.pubsub()
@@ -147,22 +169,45 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
         if codec is not None:
             self.codec = codec
 
+    @overload
     async def __publish(
         self,
         msg: bytes,
-        cmd: "RedisPublishCommand",
-    ) -> int | bytes:
+        cmd: "RedisPublishCommand[None]",
+    ) -> int | bytes: ...
+
+    @overload
+    async def __publish(
+        self,
+        msg: bytes,
+        cmd: "RedisPublishCommand[_PipelineT]",
+    ) -> _PipelineT: ...
+
+    @overload
+    async def __publish(
+        self,
+        msg: bytes,
+        cmd: "RedisPublishCommand[None] | RedisPublishCommand[_PipelineT]",
+    ) -> int | bytes | _PipelineT: ...
+
+    async def __publish(
+        self,
+        msg: bytes,
+        cmd: "RedisPublishCommand[None] | RedisPublishCommand[_PipelineT]",
+    ) -> int | bytes | _PipelineT:
         connection = cmd.pipeline or self._connection.client
 
         if cmd.destination_type is DestinationType.Channel:
-            return cast("int", await connection.publish(cmd.destination, msg))
+            return cast(
+                "int | _PipelineT", await connection.publish(cmd.destination, msg)
+            )
 
         if cmd.destination_type is DestinationType.List:
-            return cast("int", await connection.rpush(cmd.destination, msg))
+            return cast("int | _PipelineT", await connection.rpush(cmd.destination, msg))
 
         if cmd.destination_type is DestinationType.Stream:
             return cast(
-                "bytes",
+                "bytes | _PipelineT",
                 await connection.xadd(
                     name=cmd.destination,
                     fields={DATA_KEY: msg},

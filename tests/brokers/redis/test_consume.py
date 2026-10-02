@@ -17,7 +17,7 @@ from faststream.redis import (
     StreamSub,
 )
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
-from tests.tools import spy_decorator
+from tests.tools import awaitable_to_coro, spy_decorator
 
 from .basic import RedisTestcaseConfig
 
@@ -170,7 +170,7 @@ class TestConsumeList(RedisTestcaseConfig):
             client = await br.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(client.rpush(queue, "hello")),
+                    asyncio.create_task(awaitable_to_coro(client.rpush(queue, "hello"))),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -476,7 +476,7 @@ class TestConsumeStream(RedisTestcaseConfig):
 
             client = await br.connect()
             # XREADGROUP NOACK delivers the entry without ever putting it in the PEL
-            assert await client.xpending(queue, "group") == IsPartialDict(  # type: ignore[no-untyped-call]
+            assert await client.xpending(queue, "group") == IsPartialDict(
                 pending=0,
             )
 
@@ -571,7 +571,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        client.xadd(queue, {"message": "hello"}),
+                        awaitable_to_coro(client.xadd(queue, {"message": "hello"})),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -693,7 +693,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        client.xadd(queue, {"message": "hello"}),
+                        awaitable_to_coro(client.xadd(queue, {"message": "hello"})),
                     ),
                     asyncio.create_task(event.wait()),
                 ),

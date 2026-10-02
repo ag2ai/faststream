@@ -1,14 +1,14 @@
 from faststream import FastStream, Logger
-from faststream.redis import RedisBroker, Pipeline
+from faststream.redis import RedisClusterBroker, ClusterPipeline
 
-broker = RedisBroker()
+broker = RedisClusterBroker()
 app = FastStream(broker)
 
 @broker.subscriber("test")
 async def handle(
     msg: str,
     logger: Logger,
-    pipe: Pipeline,
+    pipe: ClusterPipeline,
 ) -> None:
     logger.info(msg)
 

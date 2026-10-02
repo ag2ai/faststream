@@ -3,7 +3,8 @@ import warnings
 from typing import Any
 
 import pytest
-from redis.asyncio.connection import DefaultParser, Encoder
+from redis._parsers import Encoder
+from redis.asyncio.connection import DefaultParser
 
 from faststream._internal.configs import ConfigComposition
 from faststream.exceptions import IncorrectState

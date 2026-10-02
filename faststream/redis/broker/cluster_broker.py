@@ -1,6 +1,6 @@
 import warnings
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional
 
 from redis.asyncio.cluster import ClusterNode
 from redis.asyncio.connection import SSLConnection
@@ -19,9 +19,6 @@ from faststream.redis.schemas.types import (
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from redis.asyncio.client import Pipeline
-
-    from faststream._internal.basic_types import SendableMessage
     from faststream.redis.schemas.types import RedisClusterParams
     from faststream.security import BaseSecurity
 
@@ -44,45 +41,6 @@ class RedisClusterBroker(RedisBroker):
     ) -> "ConnectionState[Any]":
         return RedisClusterConnectionState(connection_options)
 
-    async def publish(  # type: ignore[override]
-        self,
-        message: "SendableMessage" = None,
-        channel: str | None = None,
-        *,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        correlation_id: str | None = None,
-        list: str | None = None,
-        stream: str | None = None,
-        maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = EMPTY,
-    ) -> int | bytes:
-        if pipeline is not EMPTY:
-            warnings.warn(
-                "Pipeline is not supported in Redis Cluster and will be ignored.",
-                category=RuntimeWarning,
-                stacklevel=2,
-            )
-
-        publish_kwargs: dict[str, Any] = {}
-        if stream is not None:
-            publish_kwargs["stream"] = stream
-        if maxlen is not None:
-            publish_kwargs["maxlen"] = maxlen
-
-        return cast(
-            "int | bytes",
-            await super().publish(
-                message,
-                channel,
-                reply_to=reply_to,
-                headers=headers,
-                correlation_id=correlation_id,
-                list=list,
-                **publish_kwargs,
-            ),
-        )
-
     async def _connect(self) -> Any:
         await self.config.connect()
         return self.config.broker_config.connection.client
@@ -100,30 +58,6 @@ class RedisClusterBroker(RedisBroker):
     async def start(self) -> None:
         _ = await self.connect()
         await super().start()
-
-    async def publish_batch(  # type: ignore[override]
-        self,
-        *messages: "SendableMessage",
-        list: str,
-        correlation_id: str | None = None,
-        reply_to: str = "",
-        headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = EMPTY,
-    ) -> int:
-        if pipeline is not EMPTY:
-            warnings.warn(
-                "Pipeline is not supported in Redis Cluster and will be ignored.",
-                category=RuntimeWarning,
-                stacklevel=2,
-            )
-
-        return await super().publish_batch(
-            *messages,
-            list=list,
-            correlation_id=correlation_id,
-            reply_to=reply_to,
-            headers=headers,
-        )
 
     @staticmethod
     def _resolve_url_options(

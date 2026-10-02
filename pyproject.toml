@@ -119,7 +119,6 @@ lint = [
     # type checkers extensions
     "types-PyYAML",
     "types-setuptools",
-    "types-redis",
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",
@@ -223,6 +222,10 @@ module = [
     "tests.brokers.redis.stream_claim",
 ]
 disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = ["tests.mypy.*"]
+disable_error_code = ["unused-awaitable"]
 
 [[tool.mypy.overrides]]
 # AsyncAPI tests declare handlers only for their signature: the body never runs.

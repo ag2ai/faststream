@@ -10,6 +10,7 @@ from faststream._internal._compat import json_dumps
 from faststream.redis import RedisBroker, TestRedisBroker
 from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from tests.brokers.base.parser import CustomParserTestcase
+from tests.tools import awaitable_to_coro
 
 from .basic import RedisTestcaseConfig
 
@@ -126,7 +127,9 @@ class TestFormats:
             client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(client.publish(queue, message)),
+                    asyncio.create_task(
+                        awaitable_to_coro(client.publish(queue, message))
+                    ),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -174,7 +177,9 @@ class TestFormats:
             client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(client.publish(queue, message)),
+                    asyncio.create_task(
+                        awaitable_to_coro(client.publish(queue, message))
+                    ),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -227,7 +232,9 @@ class TestFormats:
             client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(client.publish(queue, "hello world")),
+                    asyncio.create_task(
+                        awaitable_to_coro(client.publish(queue, "hello world"))
+                    ),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -304,8 +311,10 @@ class TestTestBrokerFormats:
             client = await broker.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(client.xadd(queue, data)),
-                    asyncio.create_task(client.xadd(queue, {"data": json.dumps(data)})),
+                    asyncio.create_task(awaitable_to_coro(client.xadd(queue, data))),  # type: ignore[arg-type]
+                    asyncio.create_task(
+                        awaitable_to_coro(client.xadd(queue, {"data": json.dumps(data)}))
+                    ),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,

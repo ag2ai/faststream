@@ -10,7 +10,7 @@ search:
 
 # Redis Pipeline
 
-**FastStream** supports [**Redis** pipelining](https://redis.io/docs/latest/develop/use/pipelining/){.external-link target="_blank"} to optimize performance when publishing multiple messages in a batch. This allows you to queue several **Redis** operations and execute them in one network round-trip, reducing latency significantly.
+**FastStream** supports [**Redis** pipelining](https://redis.io/docs/latest/develop/use/pipelining/){.external-link target="_blank"} to optimize performance when publishing multiple messages in a batch. This allows you to queue several **Redis** operations and execute them together, reducing network round-trips.
 
 ## Usage Example
 
@@ -36,11 +36,26 @@ When using `#!python broker.publish_batch()` in combination with the `pipeline` 
 
 ## Notes
 
-- Pipelining is supported for all **Redis** queue types, including channels, lists, and streams.
-- You can combine multiple queue types in a single pipeline.
+- With `RedisBroker`, pipelining is supported for all **Redis** queue types, including channels, lists, and streams.
+- You can combine supported queue types in a single pipeline.
 
-!!! warning "Redis Cluster"
-    Pipeline is **not supported** in Redis Cluster. If you are using `RedisClusterBroker`, the `pipeline` parameter is not available. Consider using `publish_batch()` with individual requests instead.
+## Redis Cluster
+
+`RedisClusterBroker` accepts a `redis.asyncio.cluster.ClusterPipeline` through the same `pipeline` parameter. Create it from the client returned by `#!python await broker.connect()`. You can queue list and stream publications with `broker.publish()` or a publisher's `publish()`, and list batches with `broker.publish_batch()` or a batch publisher.
+
+Pipelining alone does not make commands atomic. To combine a state update and a publication atomically, use `transaction=True` and keep every key in the same hash slot. The example uses the shared `{orders}` hash tag for the counter and stream:
+
+```python linenums="1"
+{!> docs_src/redis/pipeline/cluster_pipeline.py !}
+```
+
+The publication stays queued alongside `INCR` until `#!python await pipe.execute()`. Its result list contains the command results in order: the updated counter followed by the stream entry ID. `transaction=True` requires `redis-py >= 6.2.0`; ordinary cluster pipelines do not provide transaction semantics.
+
+!!! warning "Cluster pipeline restrictions"
+    redis-py blocks `PUBLISH` in cluster pipelines. Passing `pipeline=pipe` with a channel raises `RedisClusterException`; FastStream does not publish outside the pipeline as a fallback. Publish to channels without a pipeline instead.
+
+!!! note "WATCH and MULTI"
+    With a watched transaction, commands issued after `WATCH` but before `MULTI` execute immediately, following redis-py's behavior. Call `pipe.multi()` before queueing publications that must belong to the transaction.
 
 ## Benefits
 

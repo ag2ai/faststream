@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 @dataclass(kw_only=True)
 class RedisBrokerConfig(BrokerConfig):
     producer: "RedisFastProducer"
-    connection: "ConnectionState[Redis[bytes]] | ConnectionState[RedisCluster[bytes]]"
+    connection: "ConnectionState[Redis] | ConnectionState[RedisCluster]"
 
     message_format: type["MessageFormat"]
 
