@@ -61,6 +61,10 @@ class KafkaMessage(
         self.consumer = consumer
         self.committed = AckStatus.ACKED
 
+    @property
+    def tombstone(self) -> bool:
+        return self.no_body
+
 
 class KafkaAckableMessage(KafkaMessage):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
