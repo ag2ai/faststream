@@ -1,17 +1,66 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any
 
-from faststream._internal.configs import BrokerConfig
+from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
 from faststream._internal.parser import DefaultCodec
 from faststream.rabbit.helpers.channel_manager import FakeChannelManager
 from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from aio_pika import RobustConnection
 
     from faststream.rabbit.helpers import ChannelManager, RabbitDeclarer
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
+
+
+def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
+    # `annotations` reaches this module through the broker, so the
+    # objects a row needs only exist once the package is built.
+    from aio_pika.robust_channel import RobustChannel  # noqa: PLC0415
+    from aio_pika.robust_connection import RobustConnection  # noqa: PLC0415
+
+    from faststream.rabbit import annotations  # noqa: PLC0415
+    from faststream.rabbit.broker.broker import (  # noqa: PLC0415
+        RabbitBroker as RabbitBrokerDriver,
+    )
+    from faststream.rabbit.message import (  # noqa: PLC0415
+        RabbitMessage as RabbitMessageDriver,
+    )
+    from faststream.rabbit.publisher.producer import AioPikaFastProducer  # noqa: PLC0415
+
+    return MappingProxyType(
+        {
+            RobustConnection: UnderlyingDriverAnnotation(
+                type_hint=annotations.Connection,
+                module="faststream.rabbit.annotations",
+                name="Connection",
+            ),
+            RobustChannel: UnderlyingDriverAnnotation(
+                type_hint=annotations.Channel,
+                module="faststream.rabbit.annotations",
+                name="Channel",
+            ),
+            RabbitBrokerDriver: UnderlyingDriverAnnotation(
+                type_hint=annotations.RabbitBroker,
+                module="faststream.rabbit.annotations",
+                name="RabbitBroker",
+            ),
+            RabbitMessageDriver: UnderlyingDriverAnnotation(
+                type_hint=annotations.RabbitMessage,
+                module="faststream.rabbit.annotations",
+                name="RabbitMessage",
+            ),
+            AioPikaFastProducer: UnderlyingDriverAnnotation(
+                type_hint=annotations.RabbitProducer,
+                module="faststream.rabbit.annotations",
+                name="RabbitProducer",
+            ),
+        },
+    )
 
 
 @dataclass(kw_only=True)
@@ -22,6 +71,10 @@ class RabbitBrokerConfig(BrokerConfig):
 
     virtual_host: str = ""
     app_id: str | None = None
+
+    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
+        default_factory=_context_annotations_factory,
+    )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"

@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
@@ -20,6 +20,21 @@ if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
 
 
+@dataclass(kw_only=True, slots=True)
+class UnderlyingDriverAnnotation:
+    """A driver class mapped to the context annotation that injects it.
+
+    Attributes:
+        type_hint: the context annotation to use instead.
+        module: where that annotation is importable from.
+        name: its name in that module.
+    """
+
+    type_hint: Any
+    module: str
+    name: str
+
+
 @dataclass(kw_only=True)
 class BrokerConfig:
     prefix: str = ""
@@ -36,6 +51,12 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
+    underlying_driver_annotations: Mapping[Any, UnderlyingDriverAnnotation | Any] = field(
+        default_factory=dict
+    )
+    default_driver_annotations: Mapping[Any, UnderlyingDriverAnnotation | Any] = field(
+        default_factory=dict
+    )
     broker_dependencies: Sequence["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
@@ -44,6 +65,16 @@ class BrokerConfig:
     def __post_init__(self) -> None:
         # untyped callers still pass a generator: the first subscriber would spend it
         self.broker_dependencies = tuple(self.broker_dependencies)
+
+    @property
+    def resolved_underlying_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+        # A broker's own rows are the defaults; anything the user passed wins.
+        return {
+            **self.default_driver_annotations,
+            **self.underlying_driver_annotations,
+        }
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
@@ -170,6 +201,33 @@ class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
         for c in self.configs:
             context |= c.extra_context
         return context
+
+    @property
+    def underlying_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+        annotations: dict[Any, Any] = {}
+        for c in self.configs:
+            annotations |= c.underlying_driver_annotations
+        return annotations
+
+    @property
+    def default_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+        annotations: dict[Any, Any] = {}
+        for c in self.configs:
+            annotations |= c.default_driver_annotations
+        return annotations
+
+    @property
+    def resolved_underlying_driver_annotations(
+        self,
+    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+        return {
+            **self.default_driver_annotations,
+            **self.underlying_driver_annotations,
+        }
 
     @property
     def prefix(self) -> str:

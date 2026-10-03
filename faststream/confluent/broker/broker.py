@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -48,6 +48,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.configs import UnderlyingDriverAnnotation
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -122,6 +123,9 @@ class KafkaBroker(
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: Optional[
+            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
+        ] = None,
     ) -> None:
         """Initialize KafkaBroker.
 
@@ -228,6 +232,10 @@ class KafkaBroker(
             serializer: Serializer for FastDepends.
             provider: Provider for FastDepends.
             context: Context for FastDepends.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         if protocol is None:
             if security is not None and security.use_ssl:
@@ -302,6 +310,7 @@ class KafkaBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,
