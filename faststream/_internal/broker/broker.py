@@ -11,6 +11,7 @@ from faststream._internal.types import (
     ConnectionType,
     MsgType,
 )
+from faststream._internal.utils import apply_types, to_async
 
 from .pub_base import BrokerPublishMixin
 from .registrator import Registrator
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.producer import ProducerProto
+    from faststream._internal.types import AsyncExceptionHandler
     from faststream.specification.schema import BrokerSpec
 
 
@@ -48,6 +50,15 @@ class BrokerUsecase(
             routers=routers,
             config=config,
         )
+        if config.broker_exception_handler is not None:
+            async_handler: AsyncExceptionHandler = to_async(
+                config.broker_exception_handler,
+            )
+            config._broker_exception_handler = apply_types(
+                async_handler,
+                serializer_cls=config.fd_config._serializer,
+                context__=config.context,
+            )
         self.specification = specification
 
         self.running = False

@@ -35,7 +35,6 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        super().__post_init__()
         self.connection_args["enable_auto_commit"] = self.ack_first
 
     @property

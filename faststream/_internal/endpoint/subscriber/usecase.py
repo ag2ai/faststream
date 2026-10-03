@@ -89,9 +89,16 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._no_reply = config.no_reply
         self._parser = config.parser
         self._decoder = config.decoder
-        self._exception_handler: AsyncExceptionHandler | None = config._exception_handler
         self._exception_handler_call: AsyncExceptionHandler | None = None
-        self._broker_exception_handler_call: AsyncExceptionHandler | None = None
+        if config.exception_handler is not None:
+            async_handler: AsyncExceptionHandler = to_async(
+                config.exception_handler,
+            )
+            self._exception_handler_call = apply_types(
+                async_handler,
+                serializer_cls=self._outer_config.fd_config._serializer,
+                context__=self._outer_config.context,
+            )
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -201,31 +208,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return async_parser, async_decoder
 
     def _build_fastdepends_model(self) -> None:
-        config = self._outer_config.fd_config
-
-        self._exception_handler_call = (
-            apply_types(
-                self._exception_handler,
-                serializer_cls=config._serializer,
-                context__=config.context,
-            )
-            if self._exception_handler is not None
-            else None
-        )
-
-        broker_handler: AsyncExceptionHandler | None = (
-            self._outer_config._broker_exception_handler
-        )
-        self._broker_exception_handler_call = (
-            apply_types(
-                broker_handler,
-                serializer_cls=config._serializer,
-                context__=config.context,
-            )
-            if broker_handler is not None
-            else None
-        )
-
         for call in self.calls:
             async_parser, async_decoder = self._get_parser_and_decoder(
                 call.item_parser, call.item_decoder
@@ -348,7 +330,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         if local_handler is not None and await local_handler(exc):
             return True
 
-        broker_handler = self._broker_exception_handler_call
+        broker_handler: AsyncExceptionHandler | None = (
+            self._outer_config._broker_exception_handler
+        )
         if broker_handler is not None:
             return await broker_handler(exc)
 
@@ -377,7 +361,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             # All other exceptions were logged by CriticalLogMiddleware
             has_handler = (
                 self._exception_handler_call is not None
-                or self._broker_exception_handler_call is not None
+                or self._outer_config._broker_exception_handler is not None
             )
             if has_handler and not await self._handle_exception(exc):
                 raise

@@ -9,7 +9,6 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import LoggerState
 from faststream._internal.producer import ProducerProto, ProducerUnset
 from faststream._internal.types import IdGenerator
-from faststream._internal.utils.functions import to_async
 from faststream.message import gen_cor_id
 
 if TYPE_CHECKING:
@@ -56,11 +55,6 @@ class BrokerConfig:
     def __post_init__(self) -> None:
         # untyped callers still pass a generator: the first subscriber would spend it
         self.broker_dependencies = tuple(self.broker_dependencies)
-
-        if self.broker_exception_handler is not None:
-            self._broker_exception_handler = to_async(
-                self.broker_exception_handler,
-            )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
