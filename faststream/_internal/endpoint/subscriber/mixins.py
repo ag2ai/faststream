@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class TasksMixin(SubscriberUsecase[Any]):
+    __slots__ = ("tasks",)
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.tasks: list[asyncio.Task[Any]] = []
@@ -52,6 +54,12 @@ class TasksMixin(SubscriberUsecase[Any]):
 
 
 class ConcurrentMixin(TasksMixin, Generic[MsgType]):
+    """Unslotted on purpose.
+
+    Every `Concurrent<X>Subscriber` mixes this into a broker's own slotted
+    subscriber, and two slotted bases under one `SubscriberUsecase` conflict.
+    """
+
     send_stream: "MemoryObjectSendStream[MsgType]"
     receive_stream: "MemoryObjectReceiveStream[MsgType]"
 

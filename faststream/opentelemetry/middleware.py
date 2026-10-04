@@ -156,6 +156,16 @@ class _MetricsContainer:
 
 
 class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
+    # `__settings_provider` is name-mangled here exactly as the attribute is.
+    __slots__ = (
+        "__settings_provider",
+        "_current_span",
+        "_metrics",
+        "_origin_context",
+        "_scope_tokens_stack",
+        "_tracer",
+    )
+
     def __init__(
         self,
         msg: Any | None,

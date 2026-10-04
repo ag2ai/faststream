@@ -21,6 +21,8 @@ MQTTVersion = Literal["3.1.1", "5.0"]
 class MQTTBaseParser:
     """Base parser for MQTT messages — shared parse + decode logic."""
 
+    __slots__ = ("_path_regex",)
+
     def __init__(
         self,
         path_regex: Pattern[str] | None = None,
@@ -44,6 +46,8 @@ class MQTTBaseParser:
 
 class MQTTParserV311(MQTTBaseParser):
     """Parser for MQTT 3.1.1 messages — raw payload, no metadata."""
+
+    __slots__ = ()
 
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         return MQTTMessage(
@@ -73,6 +77,8 @@ class MQTTParserV5(MQTTBaseParser):
     Extracts content_type, response_topic, correlation_data, and
     user_properties from PUBLISH properties when available.
     """
+
+    __slots__ = ()
 
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         props = msg.properties

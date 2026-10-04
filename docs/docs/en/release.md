@@ -12,6 +12,41 @@ hide:
 ---
 
 # Release Notes
+## 0.7.7
+
+### What's Changed
+* perf: make every declared __slots__ take effect in subclasses too by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3220](https://github.com/ag2ai/faststream/pull/3220){.external-link target="_blank"}
+* fix(typing): accept every broker where BrokerUsecase[Any, Any] is annotated by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3222](https://github.com/ag2ai/faststream/pull/3222){.external-link target="_blank"}
+* test(cli): check for process exit before select in the stderr reader by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3203](https://github.com/ag2ai/faststream/pull/3203){.external-link target="_blank"}
+* test: cover the docs_src snippets no test imported by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3221](https://github.com/ag2ai/faststream/pull/3221){.external-link target="_blank"}
+* test: fail on a docs_src snippet that no test imports by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3197](https://github.com/ag2ai/faststream/pull/3197){.external-link target="_blank"}
+* docs: add Puzzle Pools adopter by [@Lebedanna](https://github.com/Lebedanna){.external-link target="_blank"} in [#3206](https://github.com/ag2ai/faststream/pull/3206){.external-link target="_blank"}
+* docs: Add DNS Technologies to adopters list by [@Oidaho](https://github.com/Oidaho){.external-link target="_blank"} in [#3207](https://github.com/ag2ai/faststream/pull/3207){.external-link target="_blank"}
+* Nats security by [@C3EQUALZz](https://github.com/C3EQUALZz){.external-link target="_blank"} in [#3191](https://github.com/ag2ai/faststream/pull/3191){.external-link target="_blank"}
+* docs: grammar, typos and broken markup across the reference pages by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3214](https://github.com/ag2ai/faststream/pull/3214){.external-link target="_blank"}
+* docs: raw bytes are published without a content-type, and how to set one by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3213](https://github.com/ag2ai/faststream/pull/3213){.external-link target="_blank"}
+* docs: RabbitMQ connection page by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3210](https://github.com/ag2ai/faststream/pull/3210){.external-link target="_blank"}
+* docs: RabbitMQ queue arguments page with a dead letter queue example by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3211](https://github.com/ag2ai/faststream/pull/3211){.external-link target="_blank"}
+* docs: application lifecycle page: run(), start(), stop() and exit() by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3212](https://github.com/ag2ai/faststream/pull/3212){.external-link target="_blank"}
+* docs: align the reference pages with what the framework does by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3215](https://github.com/ag2ai/faststream/pull/3215){.external-link target="_blank"}
+* ci: fail on marks that drop a test from the job meant to run it by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3196](https://github.com/ag2ai/faststream/pull/3196){.external-link target="_blank"}
+* ci: fail when uv.lock is out of sync with pyproject.toml by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3198](https://github.com/ag2ai/faststream/pull/3198){.external-link target="_blank"}
+* ci: check broker import boundaries with import-linter by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3193](https://github.com/ag2ai/faststream/pull/3193){.external-link target="_blank"}
+* ci: lint workflows with actionlint and check the external links of the docs by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3194](https://github.com/ag2ai/faststream/pull/3194){.external-link target="_blank"}
+* ci: type check the public API with pyrefly by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3199](https://github.com/ag2ai/faststream/pull/3199){.external-link target="_blank"}
+* ci: require the lines a PR changes in faststream/ to be covered by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3195](https://github.com/ag2ai/faststream/pull/3195){.external-link target="_blank"}
+* ci: wait 20s between lychee retries and raise them to 5 by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3217](https://github.com/ag2ai/faststream/pull/3217){.external-link target="_blank"}
+* ci: stop a macro error at the docs build, and drop diff-cover's deprecated flag by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3218](https://github.com/ag2ai/faststream/pull/3218){.external-link target="_blank"}
+* ci: name the broker job a connected test needs, wherever the test lives by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3227](https://github.com/ag2ai/faststream/pull/3227){.external-link target="_blank"}
+* chore(lint): check that declared __slots__ take effect with slotscheck by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3200](https://github.com/ag2ai/faststream/pull/3200){.external-link target="_blank"}
+* chore(lint): run semgrep outside the project's dependency resolution; lock OpenTelemetry at 1.44 by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3209](https://github.com/ag2ai/faststream/pull/3209){.external-link target="_blank"}
+
+### New Contributors
+* [@Lebedanna](https://github.com/Lebedanna){.external-link target="_blank"} made their first contribution in [#3206](https://github.com/ag2ai/faststream/pull/3206){.external-link target="_blank"}
+* [@Oidaho](https://github.com/Oidaho){.external-link target="_blank"} made their first contribution in [#3207](https://github.com/ag2ai/faststream/pull/3207){.external-link target="_blank"}
+
+**Full Changelog**: [#0.7.6...0.7.7](https://github.com/ag2ai/faststream/compare/0.7.6...0.7.7){.external-link target="_blank"}
+
 ## 0.7.6
 
 ### What's Changed

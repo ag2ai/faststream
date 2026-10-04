@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 
 
 class MQTTParamsStorage(DefaultLoggerStorage):
+    __slots__ = (
+        "_max_shared_len",
+        "_max_topic_len",
+    )
+
     def __init__(self) -> None:
         super().__init__()
 

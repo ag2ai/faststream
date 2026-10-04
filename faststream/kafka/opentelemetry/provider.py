@@ -53,6 +53,8 @@ class BaseKafkaTelemetrySettingsProvider(
 class KafkaTelemetrySettingsProvider(
     BaseKafkaTelemetrySettingsProvider["ConsumerRecord"],
 ):
+    __slots__ = ()
+
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[ConsumerRecord]",
@@ -83,6 +85,8 @@ class KafkaTelemetrySettingsProvider(
 class BatchKafkaTelemetrySettingsProvider(
     BaseKafkaTelemetrySettingsProvider[tuple["ConsumerRecord", ...]],
 ):
+    __slots__ = ()
+
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[tuple[ConsumerRecord, ...]]",

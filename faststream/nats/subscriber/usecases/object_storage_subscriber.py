@@ -37,6 +37,8 @@ class ObjStoreWatchSubscriber(
     TasksMixin,
     LogicSubscriber[ObjectInfo],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
     _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
 

@@ -12,6 +12,8 @@ from .config import NatsPublisherSpecificationConfig
 class NatsPublisherSpecification(
     PublisherSpecification[NatsBrokerConfig, NatsPublisherSpecificationConfig],
 ):
+    __slots__ = ()
+
     @property
     def subject(self) -> "Address":
         """The subject this endpoint was declared with, and its Broker address."""

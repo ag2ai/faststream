@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -46,6 +47,7 @@ class NatsPublisher(ArgsContainer):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
+        persistent: bool = True,
     ) -> None:
         """Initialized the NatsPublisher object.
 
@@ -71,6 +73,7 @@ class NatsPublisher(ArgsContainer):
                 Should be any python-native object annotation or `pydantic.BaseModel`.
             include_in_schema:
                 Whetever to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the publisher persistent or not.
         """
         super().__init__(
             subject=subject,
@@ -82,6 +85,7 @@ class NatsPublisher(ArgsContainer):
             description=description,
             schema=schema,
             include_in_schema=include_in_schema,
+            persistent=persistent,
         )
 
 
@@ -122,6 +126,8 @@ class NatsRoute(SubscriberRoute):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
+        persistent: bool = True,
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         """Initialized NatsRoute.
 
@@ -183,6 +189,8 @@ class NatsRoute(SubscriberRoute):
                 "Uses decorated docstring as default.
             include_in_schema:
                 Whetever to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the subscriber persistent or not.
+            codec: Custom codec object.
         """
         super().__init__(
             call,
@@ -213,6 +221,8 @@ class NatsRoute(SubscriberRoute):
             title=title,
             description=description,
             include_in_schema=include_in_schema,
+            persistent=persistent,
+            codec=codec,
         )
 
 

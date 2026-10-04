@@ -1,0 +1,33 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {},
+    "securitySchemes": {
+      "nats-token": {
+        "description": "NATS authentication token sent as CONNECT auth_token.",
+        "in": "user",
+        "type": "apiKey",
+        "x-nats-auth": "token"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "nats",
+      "protocolVersion": "custom",
+      "security": [
+        {
+          "nats-token": []
+        }
+      ],
+      "url": "nats://localhost:4222"
+    }
+  }
+}

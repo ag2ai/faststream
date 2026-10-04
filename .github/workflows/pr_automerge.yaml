@@ -1,7 +1,7 @@
 name: Automerge
 
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
 
 jobs:
   automerge:

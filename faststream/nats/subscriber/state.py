@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class SubscriberState(Protocol):
+    __slots__ = ()
+
     @property
     def client(self) -> "Client": ...
 
@@ -22,6 +24,8 @@ class SubscriberState(Protocol):
 
 
 class EmptySubscriberState(SubscriberState):
+    __slots__ = ()
+
     @property
     def client(self) -> "Client":
         msg = "Connection is not available yet. Please, setup the subscriber first."
@@ -54,6 +58,12 @@ class EmptySubscriberState(SubscriberState):
 
 
 class ConnectedSubscriberState(SubscriberState):
+    __slots__ = (
+        "_parent_state",
+        "kv_declarer",
+        "os_declarer",
+    )
+
     def __init__(
         self,
         *,

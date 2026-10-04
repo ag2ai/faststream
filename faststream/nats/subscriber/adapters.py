@@ -8,6 +8,8 @@ class Unsubscriptable(Protocol):
 
 
 class Watchable(Protocol):
+    __slots__ = ()
+
     async def stop(self) -> None: ...
 
     async def updates(self, timeout: float) -> Any | None: ...

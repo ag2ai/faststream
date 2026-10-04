@@ -9,6 +9,8 @@ from faststream.exceptions import IncorrectState
 
 
 class LoggerObject(LoggerProto):
+    __slots__ = ()
+
     logger: Optional["LoggerProto"]
 
     @abstractmethod
@@ -20,6 +22,8 @@ class NotSetLoggerObject(LoggerObject):
 
     Raises an error if user tries to log smth before state setup.
     """
+
+    __slots__ = ("logger",)
 
     def __init__(self) -> None:
         self.logger = None
@@ -53,6 +57,8 @@ class EmptyLoggerObject(LoggerObject):
     Will be used if user setup `logger=None`.
     """
 
+    __slots__ = ("logger",)
+
     def __init__(self) -> None:
         self.logger = None
 
@@ -80,6 +86,8 @@ class RealLoggerObject(LoggerObject):
     Will be used if user setup custom `logger` (.params_storage.ManualLoggerStorage)
     or in default logger case (.params_storage.DefaultLoggerStorage).
     """
+
+    __slots__ = ("logger",)
 
     logger: "LoggerProto"
 

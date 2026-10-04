@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 class MQTTSubscriberSpecification(
     SubscriberSpecification[MQTTBrokerConfig, MQTTSubscriberSpecificationConfig],
 ):
+    __slots__ = ()
+
     def __init__(
         self,
         _outer_config: "MQTTBrokerConfig",

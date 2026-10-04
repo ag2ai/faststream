@@ -34,6 +34,13 @@ if TYPE_CHECKING:
 class PublisherUsecase(CallAssertions, Endpoint, PublisherProto):
     """A base class for publishers in an asynchronous API."""
 
+    __slots__ = (
+        "_fake_handler",
+        "_recorder",
+        "is_test",
+        "specification",
+    )
+
     def __init__(
         self,
         config: "PublisherUsecaseConfig",

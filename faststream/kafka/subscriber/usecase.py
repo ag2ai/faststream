@@ -43,6 +43,16 @@ KAFKA_ADDRESS_SYNTAX = AddressSyntax(
 class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
+    __slots__ = (
+        "_connection_args",
+        "_listener",
+        "_partitions",
+        "_pattern",
+        "_topics",
+        "consumer",
+        "group_id",
+    )
+
     consumer: Optional["AIOKafkaConsumer"]
 
     batch: bool
@@ -284,6 +294,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
 
 class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
+    __slots__ = ("parser",)
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
@@ -326,6 +338,12 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
 
 
 class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
+    __slots__ = (
+        "batch_timeout_ms",
+        "max_records",
+        "parser",
+    )
+
     def __init__(
         self,
         config: "KafkaSubscriberConfig",
@@ -385,6 +403,8 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
 
 
 class ConcurrentDefaultSubscriber(ConcurrentMixin["ConsumerRecord"], DefaultSubscriber):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()
@@ -394,6 +414,11 @@ class ConcurrentDefaultSubscriber(ConcurrentMixin["ConsumerRecord"], DefaultSubs
 
 
 class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
+    __slots__ = (
+        "consumer_subgroup",
+        "max_workers",
+    )
+
     consumer_subgroup: list["AIOKafkaConsumer"]
 
     def __init__(

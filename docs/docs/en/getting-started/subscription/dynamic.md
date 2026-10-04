@@ -15,7 +15,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = KafkaBroker()
 
         async with TestKafkaBroker(broker) as br:
-            subscriber = br.subscriber("test-topic", persistent=False)
+            subscriber = br.subscriber("dynamic-topic", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -25,7 +25,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = KafkaBroker()
 
         async with TestKafkaBroker(broker) as br:
-            subscriber = br.subscriber("test-topic", persistent=False)
+            subscriber = br.subscriber("dynamic-topic-confluent", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -36,7 +36,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = RabbitBroker()
 
         async with TestRabbitBroker(broker) as br:
-            subscriber = br.subscriber("test-queue", persistent=False)
+            subscriber = br.subscriber("dynamic-queue", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -46,7 +46,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = NatsBroker()
 
         async with TestNatsBroker(broker) as br:
-            subscriber = br.subscriber("test-subject", persistent=False)
+            subscriber = br.subscriber("dynamic-subject", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -56,7 +56,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = RedisBroker()
 
         async with TestRedisBroker(broker) as br:
-            subscriber = br.subscriber("test-channel", persistent=False)
+            subscriber = br.subscriber("dynamic-channel", persistent=False)
 
             async with subscriber:
                 message = await subscriber.get_one()  # does not work
@@ -67,7 +67,7 @@ However, the framework still allows you to do so in a suitable manner.
         broker = MQTTBroker("localhost", port=1883)
 
         async with TestMQTTBroker(broker) as br:
-            subscriber = br.subscriber("test-topic", persistent=False)
+            subscriber = br.subscriber("dynamic-topic", persistent=False)
 
             await subscriber.start()
             message = await subscriber.get_one()  # does not work

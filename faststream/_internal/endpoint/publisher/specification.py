@@ -26,6 +26,8 @@ T_BrokerConfig = TypeVar313("T_BrokerConfig", bound=BrokerConfig, default=Broker
 class PublisherSpecification(
     EndpointSpecification[T_BrokerConfig, T_SpecificationConfig],
 ):
+    __slots__ = ("calls",)
+
     def __init__(
         self,
         _outer_config: "T_BrokerConfig",

@@ -44,7 +44,7 @@ __all__ = (
 )
 
 
-@dataclass
+@dataclass(slots=True)
 class SolvedDependency:
     values: dict[str, Any]
     errors: list[Any]

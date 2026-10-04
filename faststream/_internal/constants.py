@@ -12,6 +12,8 @@ class ContentTypes(str, Enum):
 
 
 class EmptyPlaceholder:
+    __slots__ = ()
+
     def __repr__(self) -> str:
         return "EMPTY"
 

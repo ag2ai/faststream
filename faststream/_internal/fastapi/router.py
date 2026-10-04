@@ -68,6 +68,8 @@ if TYPE_CHECKING:
 
 
 class _BackgroundMiddleware(BaseMiddleware):
+    __slots__ = ()
+
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None = None,

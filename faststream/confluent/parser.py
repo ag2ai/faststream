@@ -24,6 +24,11 @@ if TYPE_CHECKING:
 class AsyncConfluentParser:
     """A class to parse Kafka messages."""
 
+    __slots__ = (
+        "_consumer",
+        "is_manual",
+    )
+
     def __init__(self, is_manual: bool = False) -> None:
         self.is_manual = is_manual
         self._consumer: ConsumerProtocol = FAKE_CONSUMER

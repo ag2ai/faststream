@@ -21,14 +21,14 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class BuiltDependant:
     original_call: Callable[..., Any]
     wrapped_call: Callable[..., Any]
     dependent: "CallModel"
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class FastDependsConfig:
     use_fastdepends: bool = True
 

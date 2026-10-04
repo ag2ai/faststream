@@ -39,6 +39,8 @@ class BaseNatsTelemetrySettingsProvider(TelemetrySettingsProvider[MsgType]):
 
 
 class NatsTelemetrySettingsProvider(BaseNatsTelemetrySettingsProvider["Msg"]):
+    __slots__ = ()
+
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[Msg]",
@@ -62,6 +64,8 @@ class NatsTelemetrySettingsProvider(BaseNatsTelemetrySettingsProvider["Msg"]):
 class NatsBatchTelemetrySettingsProvider(
     BaseNatsTelemetrySettingsProvider[list["Msg"]],
 ):
+    __slots__ = ()
+
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[list[Msg]]",

@@ -46,6 +46,8 @@ class ExitEvent:
     process on a lock it already owns (see issue #3119).
     """
 
+    __slots__ = ("_is_set",)
+
     def __init__(self) -> None:
         self._is_set = False
 

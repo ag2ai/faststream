@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 
 
 class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
+    __slots__ = ()
+
     async def connect(
         self,
         producer: "AIOKafkaProducer",
@@ -65,6 +67,14 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
 
 class AioKafkaFastProducerImpl(AioKafkaFastProducer):
     """A class to represent Kafka producer."""
+
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "_producer",
+        "codec",
+        "serializer",
+    )
 
     def __init__(
         self,
@@ -185,6 +195,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
 
 class FakeAioKafkaFastProducer(AioKafkaFastProducer):
+    __slots__ = ()
+
     async def connect(
         self,
         producer: "AIOKafkaProducer",

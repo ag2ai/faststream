@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 
 class StreamSubscriber(DefaultSubscriber["Msg"]):
+    __slots__ = ()
+
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
 
     def __init__(
