@@ -156,14 +156,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         if not topics:
             return
 
-        try:
-            results = await self._outer_config.admin.create_topics(topics)
-        except IncorrectState:
-            self._log(
-                logging.WARNING,
-                "Admin client is not connected. Topic creation is skipped.",
-            )
-            return
+        results = await self._outer_config.admin.create_topics(topics)
 
         for create_result in results:
             if create_result.error:
