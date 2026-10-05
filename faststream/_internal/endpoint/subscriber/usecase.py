@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
-from contextlib import AbstractContextManager, AsyncExitStack, nullcontext
+from contextlib import AbstractContextManager, AsyncExitStack, ExitStack, nullcontext
 from itertools import chain
 from types import TracebackType
 from typing import (
@@ -370,12 +370,16 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 ),
             )
 
+            # reserve place for context scope under the middlewares __aexit__
+            # because middlewares should be exited before context scope release
+            message_scope = stack.enter_context(ExitStack())
+
             # enter all middlewares
             middlewares: list[BaseMiddleware] = []
             for base_m in self.__build__middlewares_stack():
                 middleware = base_m(msg, context=context)
                 middlewares.append(middleware)
-                await middleware.__aenter__()
+                await stack.enter_async_context(middleware)
 
             cache: dict[Any, Any] = {}
             parsing_error: Exception | None = None
@@ -387,7 +391,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     break
 
                 if message is not None:
-                    stack.enter_context(
+                    message_scope.enter_context(
                         context.scopes(
                             (
                                 ("log_context", self.get_log_context(message)),
@@ -395,10 +399,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                             ),
                         ),
                     )
-
-                    # Middlewares should be exited before scope release
-                    for m in middlewares:
-                        stack.push_async_exit(m.__aexit__)
 
                     result_msg = ensure_response(
                         await h.call(
@@ -428,10 +428,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     return result_msg
 
             # Suitable handler was not found or
-            # parsing/decoding exception occurred
-            for m in middlewares:
-                stack.push_async_exit(m.__aexit__)
-
+            # parsing/decoding exception occurred.
             # Reraise it to catch in tests
             if parsing_error:
                 raise parsing_error
