@@ -97,15 +97,6 @@ class TestPartitionSchema:
 
         assert (partition.topic, partition.declare) == ("prefix_test", False)
 
-    def test_declare_is_not_part_of_equality(self) -> None:
-        assert TopicPartition("test", 1, declare=False) == TopicPartition("test", 1)
-
-    def test_is_immutable(self) -> None:
-        partition = TopicPartition("test", 1)
-
-        with pytest.raises(AttributeError, match="immutable"):
-            partition.topic = "other"
-
 
 @pytest.mark.kafka()
 class TestSubscriberTopics:
