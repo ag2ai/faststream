@@ -71,7 +71,7 @@ class TopicPartition:
         if isinstance(value, tuple):
             return (self.topic, self.partition) == value
         if isinstance(value, TopicPartition):
-            return (self.topic, self.partition) == (value.topic, value.partition)
+            return self.topic == value.topic and self.partition == value.partition
         return NotImplemented
 
     def __hash__(self) -> int:
