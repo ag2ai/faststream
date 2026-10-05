@@ -20,7 +20,6 @@ from faststream._internal.types import IdGenerator
 from faststream.exceptions import SubscriberNotFound
 from faststream.kafka import TopicPartition
 from faststream.kafka.broker import KafkaBroker
-from faststream.kafka.helpers.admin import AdminService
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
 from faststream.kafka.publisher.producer import AioKafkaFastProducer
@@ -92,9 +91,6 @@ class TestKafkaBroker(
         *args: Any,
         **kwargs: Any,
     ) -> Callable[..., AsyncMock]:
-        # A stub admin with no topics to create: `_ensure_topics` still runs,
-        # hits the empty-list path, and never talks to a cluster.
-        broker.config.broker_config.admin = AdminService()
         builder = MagicMock(return_value=FakeConsumer())
         broker.config.broker_config.builder = builder
 

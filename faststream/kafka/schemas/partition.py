@@ -3,19 +3,10 @@ from typing import overload
 
 
 class TopicPartition:
-    """A topic and partition pair, naming the assignment a Subscriber is declared with.
+    """A Kafka topic partition with its creation setting.
 
-    FastStream's own rather than a re-export of `aiokafka.TopicPartition`, so the
-    type is ours to grow at the same import path. Still two-field-shaped:
-    unpacking, indexing, hashing and equality against the client library's
-    tuple compare on ``(topic, partition)`` only. `declare` rides alongside
-    because a third field would break those comparisons. What the consumer is
-    assigned is the client library's tuple, rebuilt where the assignment
-    happens; this one is never handed to aiokafka.
-
-    Separate from `faststream.confluent.TopicPartition`, which carries `offset`,
-    `leader_epoch` and `metadata` — fields the aiokafka client has no equivalent
-    for, and so a promise this signature must not make.
+    The object is class-shaped like Confluent's ``TopicPartition``. Tuple
+    operations preserve compatibility with aiokafka's two-field value.
     """
 
     __slots__ = (
@@ -23,7 +14,6 @@ class TopicPartition:
         "partition",
         "topic",
     )
-    __match_args__ = ("topic", "partition")
 
     def __init__(
         self,
@@ -45,6 +35,8 @@ class TopicPartition:
         self.partition = partition
         self.declare = declare
 
+    __match_args__ = ("topic", "partition")
+
     def __setattr__(self, name: str, value: object) -> None:
         if name in {"topic", "partition", "declare"} and hasattr(self, name):
             msg = f"{self.__class__.__name__} is immutable"
@@ -52,8 +44,7 @@ class TopicPartition:
         super().__setattr__(name, value)
 
     def __iter__(self) -> Iterator[str | int]:
-        yield self.topic
-        yield self.partition
+        return iter((self.topic, self.partition))
 
     def __len__(self) -> int:
         return 2
