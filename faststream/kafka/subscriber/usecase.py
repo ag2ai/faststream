@@ -17,7 +17,6 @@ from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType
 from faststream._internal.utils.path import Address, AddressSyntax
-from faststream.exceptions import IncorrectState
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
@@ -129,10 +128,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         prefix = self._outer_config.prefix
         for p in self._partitions:
             # Conflicting declare flags are reported by `create_subscriber`.
-            p = p.add_prefix(prefix)
-            topics[p.name] = Topic(
-                p.name,
-                declare=p.declare,
+            partition = p.add_prefix(prefix)
+            topics[partition.topic] = Topic(
+                partition.topic,
+                declare=partition.declare,
             )
 
         return [t for t in topics.values() if t.declare]
