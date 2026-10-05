@@ -129,8 +129,9 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         prefix = self._outer_config.prefix
         for p in self._partitions:
             # Conflicting declare flags are reported by `create_subscriber`.
-            topics[f"{prefix}{p.topic}"] = Topic(
-                f"{prefix}{p.topic}",
+            p = p.add_prefix(prefix)
+            topics[p.name] = Topic(
+                p.name,
                 declare=p.declare,
             )
 
