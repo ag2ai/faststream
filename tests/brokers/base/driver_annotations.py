@@ -3,13 +3,25 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 import pytest
 
-from faststream import Context, Depends
+from faststream import Context, Depends, UnderlyingDriverAnnotation
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 
 from .basic import BaseTestcaseConfig
 
 if TYPE_CHECKING:
     from logging import Logger
+
+
+class _CustomDriver:
+    pass
+
+
+class _RouterDriver:
+    pass
+
+
+_CustomAnnotation = Annotated[_CustomDriver, Context("custom")]
 
 
 class DriverAnnotationTestcase(BaseTestcaseConfig[Any]):
@@ -146,3 +158,109 @@ class DriverAnnotationTestcase(BaseTestcaseConfig[Any]):
 
         async with self.patch_broker(broker):
             pass
+
+    @pytest.mark.asyncio()
+    async def test_custom_row_names_its_import(self, queue: str) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            underlying_driver_annotations={
+                _CustomDriver: UnderlyingDriverAnnotation(
+                    type_hint=_CustomAnnotation, module=__name__, name="_CustomAnnotation"
+                ),
+            },
+        )
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(thing: _CustomDriver) -> None: ...
+
+        with pytest.raises(SetupError) as excinfo:
+            async with self.patch_broker(broker):
+                pass
+
+        assert str(excinfo.value) == (
+            f"`thing` is annotated with `{__name__}._CustomDriver`,"
+            " which FastStream cannot inject.\n"
+            "Use the context annotation instead:\n"
+            f"\n    from {__name__} import _CustomAnnotation\n"
+        )
+
+    @pytest.mark.asyncio()
+    async def test_bare_custom_row_suggests_no_import(self, queue: str) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            underlying_driver_annotations={_CustomDriver: _CustomAnnotation},
+        )
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(thing: _CustomDriver) -> None: ...
+
+        with pytest.raises(SetupError) as excinfo:
+            async with self.patch_broker(broker):
+                pass
+
+        assert str(excinfo.value) == (
+            f"`thing` is annotated with `{__name__}._CustomDriver`,"
+            " which FastStream cannot inject.\n"
+            "Use the context annotation FastStream provides for it instead."
+        )
+
+    @pytest.mark.asyncio()
+    async def test_custom_rows_do_not_replace_the_broker_defaults(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            underlying_driver_annotations={_CustomDriver: _CustomAnnotation},
+        )
+        driver_class = self.driver_class
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(driver: driver_class) -> None: ...  # type: ignore[valid-type]
+
+        with pytest.raises(SetupError) as excinfo:
+            async with self.patch_broker(broker):
+                pass
+
+        assert str(excinfo.value) == self._expected_error("`driver`")
+
+    @pytest.mark.asyncio()
+    async def test_included_router_merges_its_rows_with_the_broker_rows(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            underlying_driver_annotations={_CustomDriver: _CustomAnnotation},
+        )
+        router = self.get_router(
+            underlying_driver_annotations={_RouterDriver: _CustomAnnotation},
+        )
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(thing: _CustomDriver, other: _RouterDriver) -> None: ...
+
+        broker.include_router(router)
+
+        with pytest.raises(ExceptionGroup) as excinfo:
+            async with self.patch_broker(broker):
+                pass
+
+        assert [str(e).splitlines()[0] for e in excinfo.value.exceptions] == [
+            (
+                f"`thing` is annotated with `{__name__}._CustomDriver`,"
+                " which FastStream cannot inject."
+            ),
+            (
+                f"`other` is annotated with `{__name__}._RouterDriver`,"
+                " which FastStream cannot inject."
+            ),
+        ]
