@@ -280,7 +280,7 @@ class LocalTelemetryTestcase(BaseTestcaseConfig[Any]):
             await broker.start()
             await broker_without_middlewares.start()
 
-            broker.config.broker_config.middlewares = ()
+            broker.config.broker_config.broker_middlewares = ()
             tasks = (
                 asyncio.create_task(broker_without_middlewares.publish(msg, queue)),
                 asyncio.create_task(event.wait()),
