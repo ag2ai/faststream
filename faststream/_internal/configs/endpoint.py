@@ -10,17 +10,17 @@ if TYPE_CHECKING:
     from .broker import BrokerConfig
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class EndpointConfig:
     _outer_config: "BrokerConfig"
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class PublisherUsecaseConfig(EndpointConfig):
     pass
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class SubscriberUsecaseConfig(EndpointConfig):
     no_reply: bool = False
 

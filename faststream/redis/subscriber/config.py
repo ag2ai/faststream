@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 
 
 class RedisSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    pass
+    __slots__ = ()
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RedisSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: RedisBrokerConfig
 

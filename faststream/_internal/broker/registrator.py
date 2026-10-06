@@ -23,6 +23,18 @@ class Registrator(Generic[MsgType, BrokerConfigType_co]):
     Contains subscribers & publishers registration logic only.
     """
 
+    __slots__ = (
+        "__parent",
+        "__persistent_publishers",
+        "__persistent_subscribers",
+        "_decoder",
+        "_parser",
+        "_publishers",
+        "_subscribers",
+        "config",
+        "routers",
+    )
+
     def __init__(
         self,
         *,

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 class MQTTPrometheusMiddleware(
     PrometheusMiddleware[zmqtt.Message, MQTTPublishCommand],
 ):
+    __slots__ = ()
+
     def __init__(
         self,
         *,

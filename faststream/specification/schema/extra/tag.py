@@ -12,7 +12,7 @@ class TagDict(TypedDict, total=False):
     external_docs: ExternalDocs | ExternalDocsDict
 
 
-@dataclass
+@dataclass(slots=True)
 class Tag:
     name: str
     description: str | None = None

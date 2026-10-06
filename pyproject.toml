@@ -501,10 +501,6 @@ exclude-classes = '''
   ^faststream\.specification\.(asyncapi\.v[0-9_]+\.schema|base|schema\.bindings\.http)
       # pydantic models: the fields live in BaseModel's own `__dict__` slot and the
       # AsyncAPI ones accept extra keys, so declaring `__slots__` would save nothing
-| ^faststream\._internal\.configs\.(broker:BrokerConfig|endpoint:EndpointConfig|specification:SpecificationConfig)$
-      # the config dataclass roots, and with them every broker config below. Python
-      # 3.10 re-emits inherited fields into a `slots=True` subclass, doubling the
-      # storage it is meant to save; safe again once 3.10 support is dropped
 | ^faststream\._internal\.application:Application$
       # the user's application object, one per process; our CLI tests patch `app.run`
 | ^faststream\._internal\.broker\.broker:BrokerUsecase$
@@ -519,20 +515,6 @@ exclude-classes = '''
       # NatsRouter mixes it with BrokerRouter, a slotted sibling under Registrator
 | ^faststream\.nats\.subscriber\.usecases\.basic:LogicSubscriber$
       # ConcurrentCoreSubscriber mixes TasksMixin in beside it; the lay-outs conflict
-| ^faststream\.rabbit\.configs\.base:RabbitConfig$
-      # mixed into two slotted dataclass configs; the lay-outs conflict
-| ^faststream\._internal\.(broker\.(pub_base|registrator)|context|testing)[.:]
-      # public objects user code constructs, receives or holds (messages, responses,
-      # routers, test clients, context, ASGI, specification schema): slotting them is a
-      # breaking change, so they are slotted in the 1.0 follow-up, which removes this
-      # entry and the ones below it
-| ^faststream\.asgi\.
-| ^faststream\.(message\.message|response\.response|params\.no_cast):
-| ^faststream\.specification\.schema\.
-| ^faststream\.(kafka|confluent|mqtt|nats|rabbit|redis)\.(broker\.router|testing):
-| ^faststream\.(kafka|confluent|mqtt|nats|rabbit|redis)\.(opentelemetry|prometheus)\.middleware:\w+Middleware$
-| ^faststream\.middlewares\.acknowledgement\.middleware:AcknowledgementMiddleware$
-| ^faststream\.(confluent\.configs\.broker:ConsumerBuilder|nats\.schemas\.schedule:Schedule|rabbit\.schemas\.channel:Channel)$
 '''
 
 [tool.typos.default.extend-identifiers]

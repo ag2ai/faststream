@@ -7,6 +7,8 @@ from faststream.opentelemetry.middleware import TelemetryMiddleware
 
 
 class MQTTTelemetryMiddleware(TelemetryMiddleware[MQTTPublishCommand]):
+    __slots__ = ()
+
     def __init__(
         self,
         *,

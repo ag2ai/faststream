@@ -8,6 +8,8 @@ from faststream.message import StreamMessage
 class NatsMessage(StreamMessage[Msg]):
     """A class to represent a NATS message."""
 
+    __slots__ = ()
+
     async def ack(self) -> None:
         # Check `self.raw_message._ackd` instead of `self.committed`
         # to be compatible with `self.raw_message.ack()`
@@ -40,6 +42,8 @@ class NatsMessage(StreamMessage[Msg]):
 
 class NatsBatchMessage(StreamMessage[list[Msg]]):
     """A class to represent a NATS batch message."""
+
+    __slots__ = ()
 
     async def ack(self) -> None:
         for m in filter(
@@ -80,8 +84,8 @@ class NatsBatchMessage(StreamMessage[list[Msg]]):
 
 
 class NatsKvMessage(StreamMessage[KeyValue.Entry]):
-    pass
+    __slots__ = ()
 
 
 class NatsObjMessage(StreamMessage[ObjectInfo]):
-    pass
+    __slots__ = ()

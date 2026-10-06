@@ -43,6 +43,8 @@ class TestKafkaBroker(
 ):
     """A class to test Kafka brokers."""
 
+    __slots__ = ()
+
     @overload
     def __init__(
         self: "TestKafkaBroker[KafkaBroker]",
@@ -142,6 +144,14 @@ class FakeProducer(AsyncConfluentFastProducer):
 
     This class extends AsyncConfluentFastProducer and is used to simulate Kafka message publishing during tests.
     """
+
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "broker",
+        "brokers",
+        "codec",
+    )
 
     def __init__(
         self,
@@ -286,6 +296,17 @@ class FakeProducer(AsyncConfluentFastProducer):
 
 
 class MockConfluentMessage:
+    __slots__ = (
+        "_error",
+        "_headers",
+        "_key",
+        "_offset",
+        "_partition",
+        "_raw_msg",
+        "_timestamp",
+        "_topic",
+    )
+
     def __init__(
         self,
         raw_msg: bytes | None,

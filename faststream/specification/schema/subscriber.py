@@ -4,7 +4,7 @@ from .bindings import ChannelBinding
 from .operation import Operation
 
 
-@dataclass
+@dataclass(slots=True)
 class SubscriberSpec:
     """One subscriber, as the specification generators see it.
 

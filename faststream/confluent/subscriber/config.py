@@ -14,13 +14,13 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic, TopicPartition
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
     topics: Sequence["Topic"] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 
