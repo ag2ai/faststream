@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, Optional, Union
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeAlias, Union
 
 from typing_extensions import TypeVar as TypeVar313
 
@@ -33,6 +33,11 @@ class UnderlyingDriverAnnotation:
     type_hint: Any
     module: str
     name: str
+
+
+UnderlyingDriverAnnotations: TypeAlias = (
+    Mapping[Any, UnderlyingDriverAnnotation | Any] | None
+)
 
 
 @dataclass(kw_only=True)

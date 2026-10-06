@@ -3,6 +3,7 @@ from .broker import (
     BrokerConfigType_co,
     ConfigComposition,
     UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
 )
 from .endpoint import PublisherUsecaseConfig, SubscriberUsecaseConfig
 from .specification import (
@@ -19,4 +20,5 @@ __all__ = (
     "SubscriberSpecificationConfig",
     "SubscriberUsecaseConfig",
     "UnderlyingDriverAnnotation",
+    "UnderlyingDriverAnnotations",
 )

@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from nats.aio.msg import Msg
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
-    from faststream._internal.configs import UnderlyingDriverAnnotation
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -242,9 +242,7 @@ class NatsRouter(NatsRegistrator, BrokerRouter[Msg, NatsBrokerConfig]):
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: "AckPolicy" = EMPTY,
-        underlying_driver_annotations: Optional[
-            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
-        ] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations" = None,
     ) -> None:
         """Initialize the NatsRouter instance.
 

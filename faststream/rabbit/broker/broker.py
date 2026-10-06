@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from yarl import URL
 
     from faststream._internal.basic_types import LoggerProto
-    from faststream._internal.configs import UnderlyingDriverAnnotation
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -117,9 +117,7 @@ class RabbitBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
-        underlying_driver_annotations: Optional[
-            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
-        ] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations" = None,
     ) -> None:
         """Initialize the RabbitBroker.
 

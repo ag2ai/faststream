@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -56,7 +56,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
-    from faststream._internal.configs import UnderlyingDriverAnnotation
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -256,9 +256,7 @@ class KafkaBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
-        underlying_driver_annotations: Optional[
-            "Mapping[Any, UnderlyingDriverAnnotation | Any]"
-        ] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations" = None,
     ) -> None:
         """Kafka broker constructor.
 
