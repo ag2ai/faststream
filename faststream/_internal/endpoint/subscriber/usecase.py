@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Callable, Iterable, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack, nullcontext
 from itertools import chain
 from types import TracebackType
@@ -24,7 +24,6 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream._internal.utils import apply_types
 from faststream._internal.utils.functions import to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
 from faststream.middlewares import AcknowledgementMiddleware
@@ -104,16 +103,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._no_reply = config.no_reply
         self._parser = config.parser
         self._decoder = config.decoder
-        self._exception_handler_call: AsyncExceptionHandler | None = None
-        if config.exception_handler is not None:
-            async_handler: AsyncExceptionHandler = to_async(
-                config.exception_handler,
-            )
-            self._exception_handler_call = apply_types(
-                async_handler,
-                serializer_cls=self._outer_config.fd_config._serializer,
-                context__=self._outer_config.context,
-            )
+        self._exception_handler = config.exception_handler
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -340,16 +330,35 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         return real_wrapper(func)
 
+    @property
+    def _app_exception_handler(self) -> "AsyncExceptionHandler | None":
+        app_handler: AsyncExceptionHandler | None = getattr(
+            self._outer_config.context.get("app"),
+            "_exception_handler",
+            None,
+        )
+        return app_handler
+
     async def _handle_exception(self, exc: BaseException) -> bool:
-        local_handler = self._exception_handler_call
-        if local_handler is not None and await local_handler(exc):
+        context = self._outer_config.context
+
+        local_handler = cast(
+            "Callable[..., Awaitable[bool]] | None",
+            self._exception_handler,
+        )
+        if local_handler is not None and await local_handler(exc, context__=context):
             return True
 
-        broker_handler: AsyncExceptionHandler | None = (
-            self._outer_config._broker_exception_handler
+        broker_handler = cast(
+            "Callable[..., Awaitable[bool]] | None",
+            self._outer_config.broker_exception_handler,
         )
-        if broker_handler is not None:
-            return await broker_handler(exc)
+        if broker_handler is not None and await broker_handler(exc, context__=context):
+            return True
+
+        app_handler = self._app_exception_handler
+        if app_handler is not None:
+            return await app_handler(exc)
 
         return False
 
@@ -375,8 +384,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         except Exception as exc:
             # All other exceptions were logged by CriticalLogMiddleware
             has_handler = (
-                self._exception_handler_call is not None
-                or self._outer_config._broker_exception_handler is not None
+                self._exception_handler is not None
+                or self._outer_config.broker_exception_handler is not None
+                or self._app_exception_handler is not None
             )
             if has_handler and not await self._handle_exception(exc):
                 raise

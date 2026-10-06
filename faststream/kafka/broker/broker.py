@@ -26,6 +26,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.types import IdGenerator
+from faststream._internal.utils import to_async
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
 from faststream.kafka._compat import AIOKAFKA_V013, validate_client_rack
@@ -465,7 +466,9 @@ class KafkaBroker(
                 broker_decoder=decoder,
                 broker_codec=codec,
                 broker_parser=parser,
-                broker_exception_handler=exception_handler,
+                broker_exception_handler=(
+                    to_async(exception_handler) if exception_handler is not None else None
+                ),
                 broker_middlewares=middlewares,
                 logger=make_kafka_logger_state(
                     logger=logger,
