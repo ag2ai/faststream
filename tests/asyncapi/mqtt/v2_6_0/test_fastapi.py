@@ -2,7 +2,6 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.mqtt.fastapi import MQTTRouter
 from faststream.mqtt.testing import TestMQTTBroker
 from faststream.specification import Specification
@@ -17,13 +16,13 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
     router_class = MQTTRouter
     broker_wrapper = staticmethod(TestMQTTBroker)
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))
 
 
 @pytest.mark.mqtt()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = MQTTRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))

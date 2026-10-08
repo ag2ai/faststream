@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -6,18 +5,15 @@ from dirty_equals import IsStr
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.fastapi.router import StreamRouter
-from faststream._internal.types import MsgType
 from faststream.specification import AsyncAPI
 
 
 class FastAPITestCase:
     is_fastapi = True
-    dependency_builder = staticmethod(Depends)
+    dependency_builder: Any = staticmethod(Depends)
 
-    router_class: type[StreamRouter[MsgType]]
-    broker_wrapper: Callable[[BrokerUsecase[MsgType, Any]], BrokerUsecase[MsgType, Any]]
+    router_class: Any
+    broker_wrapper: Any
 
     @pytest.mark.asyncio()
     async def test_fastapi_full_information(self) -> None:

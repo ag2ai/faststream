@@ -1,5 +1,6 @@
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Callable, Coroutine
 from contextlib import suppress
+from time import monotonic
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
@@ -32,6 +33,8 @@ class PullStreamSubscriber(
     TasksMixin,
     StreamSubscriber,
 ):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PullSubscription"]
 
     def __init__(
@@ -70,7 +73,7 @@ class PullStreamSubscriber(
 
     async def _consume_pull(
         self,
-        cb: Callable[["Msg"], Awaitable["SendableMessage"]],
+        cb: Callable[["Msg"], Coroutine[Any, Any, "SendableMessage"]],
     ) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription
@@ -86,10 +89,12 @@ class PullStreamSubscriber(
             if messages:
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
-                        tg.start_soon(cb, msg)
+                        _ = tg.start_soon(cb, msg)
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
+    __slots__ = ()
+
     @override
     async def _create_subscription(self) -> None:
         """Create NATS subscription and start consume task."""
@@ -111,6 +116,8 @@ class BatchPullStreamSubscriber(
     DefaultSubscriber[list["Msg"]],
 ):
     """Batch-message consumer class."""
+
+    __slots__ = ()
 
     subscription: Optional["JetStreamContext.PullSubscription"]
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
@@ -159,7 +166,7 @@ class BatchPullStreamSubscriber(
         except TimeoutError:
             return None
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
@@ -189,7 +196,7 @@ class BatchPullStreamSubscriber(
         else:
             fetch_sub = self._fetch_sub
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
@@ -224,12 +231,34 @@ class BatchPullStreamSubscriber(
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription, "You should call `create_subscription` at first."
 
-        while self.running:  # pragma: no branch
-            with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
-                messages = await self.subscription.fetch(
-                    batch=self.pull_sub.batch_size,
-                    timeout=self.pull_sub.timeout,
-                )
+        batch_size = self.pull_sub.batch_size
+        timeout = self.pull_sub.timeout
 
-                if messages:
-                    await self.consume(messages)
+        while self.running:  # pragma: no branch
+            deadline = monotonic() + timeout if timeout is not None else None
+            messages: list[Msg] = []
+            remaining = None if deadline is None else deadline - monotonic()
+
+            # nats-py may return a partial batch before timeout; keep fetching.
+            # See https://github.com/nats-io/nats.py/issues/1034.
+            while (
+                len(messages) < batch_size
+                and (remaining is None or remaining > 0)
+                and self.running
+            ):
+                try:
+                    messages += await self.subscription.fetch(
+                        batch=batch_size - len(messages),
+                        timeout=remaining,
+                    )
+                except TimeoutError:
+                    break
+                except (ConnectionClosedError, ServiceUnavailableError):
+                    # Unprocessed messages stay unacknowledged for server redelivery.
+                    messages.clear()
+                    break
+
+                remaining = None if deadline is None else deadline - monotonic()
+
+            if messages and self.running:
+                await self.consume(messages)

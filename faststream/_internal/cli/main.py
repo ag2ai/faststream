@@ -1,5 +1,6 @@
 import logging
 import os
+import platform
 import sys
 import warnings
 from contextlib import suppress
@@ -25,6 +26,8 @@ from .options import (
     RELOAD_EXTENSIONS_OPTION,
     RELOAD_FLAG,
 )
+from .supervisors.asgi_multiprocess import ASGIMultiprocess
+from .supervisors.multiprocess import Multiprocess
 from .utils.imports import import_from_string
 from .utils.logs import (
     LogFiles,
@@ -56,8 +59,6 @@ cli.add_typer(docs_app, name="docs", help="Documentations commands")
 def version_callback(version: bool) -> None:
     """Callback function for displaying version information."""
     if version:
-        import platform
-
         typer.echo(
             f"Running FastStream {__version__} with {platform.python_implementation()} "
             f"{platform.python_version()} on {platform.system()}",
@@ -169,9 +170,7 @@ def run(
             _run(run_args)
 
         else:
-            reload_dirs = []
-            if module_path:
-                reload_dirs.append(str(module_path))
+            reload_dirs = [str(module_path)]
             if app_dir != ".":
                 reload_dirs.append(app_dir)
 
@@ -184,8 +183,6 @@ def run(
 
     elif workers > 1:
         if isinstance(app_obj, FastStream):
-            from faststream._internal.cli.supervisors.multiprocess import Multiprocess
-
             run_args.app_level = logging.DEBUG
 
             Multiprocess(
@@ -195,10 +192,6 @@ def run(
             ).run()
 
         elif isinstance(app_obj, AsgiFastStream):
-            from faststream._internal.cli.supervisors.asgi_multiprocess import (
-                ASGIMultiprocess,
-            )
-
             ASGIMultiprocess(
                 target=app,
                 args=run_args,

@@ -8,12 +8,12 @@ from faststream._internal._compat import EmailStr
 
 class ContactDict(TypedDict, total=False):
     name: Required[str]
-    url: AnyHttpUrl
+    url: AnyHttpUrl | str
     email: EmailStr
 
 
 @dataclass
 class Contact:
     name: str
-    url: AnyHttpUrl | None = None
+    url: AnyHttpUrl | str | None = None
     email: EmailStr | None = None

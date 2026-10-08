@@ -8,6 +8,8 @@ behaviour (message delivery, healthchecks, try-it-out dispatch) lives in
 """
 
 from collections.abc import Callable
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from fast_depends import Depends
@@ -26,6 +28,7 @@ from faststream.asgi import (
 )
 from faststream.asgi.params import Header, Query
 from faststream.asgi.types import ASGIApp, Scope
+from faststream.rabbit import RabbitBroker
 from faststream.specification import AsyncAPI
 
 
@@ -98,6 +101,21 @@ def test_asyncapi_json_disabled() -> None:
     assert client.get("/docs.json").status_code == 404
 
 
+@pytest.mark.asyncio()
+async def test_async_context_manager(mock: MagicMock) -> None:
+    app = AsgiFastStream(
+        MagicMock(spec=RabbitBroker),
+        on_startup=[mock.on],
+        on_shutdown=[mock.off],
+    )
+
+    async with app as context_app:
+        assert context_app is app
+
+    mock.on.assert_called_once()
+    mock.off.assert_called_once()
+
+
 @pytest.mark.parametrize(
     ("decorator", "client_method"),
     (
@@ -157,7 +175,7 @@ def test_fast_depends_injected(
         return "test"
 
     @decorator
-    async def some_handler(string=Depends(get_string)) -> AsgiResponse:  # noqa: B008
+    async def some_handler(string: str = Depends(get_string)) -> AsgiResponse:
         return AsgiResponse(body=string.encode(), status_code=200)
 
     app = AsgiFastStream(asgi_routes=[("/test", some_handler)])
@@ -177,7 +195,7 @@ def test_fast_depends_injected(
 )
 def test_validation_error_handled(dependency: Context) -> None:
     @get
-    async def some_handler(dep=dependency) -> AsgiResponse:
+    async def some_handler(dep: Any = dependency) -> AsgiResponse:
         return AsgiResponse(status_code=200)
 
     app = AsgiFastStream(asgi_routes=[("/test", some_handler)])

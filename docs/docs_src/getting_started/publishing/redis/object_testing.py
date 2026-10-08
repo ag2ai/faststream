@@ -11,3 +11,11 @@ async def test_handle():
         await br.publish("", channel="test-channel")
 
         publisher.mock.assert_called_once_with("Hi!")
+
+
+@pytest.mark.asyncio
+async def test_message_fields():
+    async with TestRedisBroker(broker) as br:
+        await br.publish("", channel="test-channel", correlation_id="42")
+
+        await publisher.assert_called_once_with("Hi!", correlation_id="42")

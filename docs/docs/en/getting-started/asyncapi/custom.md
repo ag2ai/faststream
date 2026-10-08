@@ -14,7 +14,7 @@ In this guide, we will explore how to customize **AsyncAPI** documentation for y
 
 ## Prerequisites
 
-Before we dive into customization, ensure you have a instance **AsyncAPI** specification. If you haven't done that yet, let's create a simple instance right now.
+Before we dive into customization, ensure you have an instance of the **AsyncAPI** specification. If you haven't done that yet, let's create a simple instance right now.
 
 Copy the following code in your basic.py file:
 
@@ -28,7 +28,7 @@ Now, when you run
 ```
 you should see the following documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-basic-html-short.png){ .on-glb loading=lazy }
 
 ## Setup Custom FastStream App Info
 
@@ -51,7 +51,7 @@ Now, when you run
 ```
 you should see the following in your general app documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-custom-info.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-custom-info.png){ .on-glb loading=lazy }
 
 Now, your documentation reflects your application's identity and purpose.
 
@@ -64,7 +64,7 @@ The next step is to customize broker information. This helps users understand th
 
 1. Locate the broker configuration in your **FastStream** application.
 1. Update the `description` field.
-1. Update the `asyncapi_url` field with a non-sensitive URL if you want to conceal your broker's actual bootstrap server URL.
+1. Update the `specification_url` field with a non-sensitive URL if you want to conceal your broker's actual bootstrap server URL.
 1. Save the changes.
 1. Serve your **FastStream** app.
 
@@ -80,7 +80,7 @@ Now, when you run
 ```
 you should see the description in your broker documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-custom-broker.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-custom-broker.png){ .on-glb loading=lazy }
 
 Your **AsyncAPI** documentation now provides clear insights into the messaging infrastructure you're using.
 
@@ -89,10 +89,10 @@ Your **AsyncAPI** documentation now provides clear insights into the messaging i
 Customizing handler information helps users comprehend the purpose and behavior of each message handler. Here's how to do it:
 
 1. Navigate to your handler definitions in your **FastStream** application.
-1. Add descriptions to each handler using `description` field.
-1. For subscriber, consumer function's docstring can be used as `description`.
-1. Add titles to each handler using `title` field adhering to [URI format](https://datatracker.ietf.org/doc/html/rfc3986).
-1. Add publishing schema to publisher handler using `schema` field.
+1. Add descriptions to each handler using the `description` field.
+1. For a subscriber, the consumer function's docstring can be used as the `description`.
+1. Add titles to each handler using the `title` field adhering to [URI format](https://datatracker.ietf.org/doc/html/rfc3986).
+1. Add a publishing schema to the publisher handler using the `schema` field.
 1. Save the changes.
 1. Serve your **FastStream** app.
 
@@ -108,7 +108,7 @@ Now, when you run
 ```
 you should see the descriptions in your handlers:
 
-![HTML-page](../../../assets/img/AsyncAPI-custom-handler.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-custom-handler.png){ .on-glb loading=lazy }
 
 Now, your documentation is enriched with meaningful details about each message handler.
 
@@ -134,7 +134,7 @@ Now, when you run
 ```
 you should see the payload schema described in your documentation:
 
-![HTML-page](../../../assets/img/AsyncAPI-payload-info.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/AsyncAPI-payload-info.png){ .on-glb loading=lazy }
 
 Your **AsyncAPI** documentation now showcases well-structured payload information.
 

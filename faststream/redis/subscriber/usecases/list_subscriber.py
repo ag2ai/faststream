@@ -35,6 +35,11 @@ Offset: TypeAlias = bytes
 
 
 class _ListHandlerMixin(LogicSubscriber):
+    __slots__ = (
+        "_list_sub",
+        "_read_lock",
+    )
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -108,7 +113,7 @@ class _ListHandlerMixin(LogicSubscriber):
             channel=self.list_sub.name,
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
@@ -131,7 +136,7 @@ class _ListHandlerMixin(LogicSubscriber):
         sleep_interval = timeout / 10
         raw_message = None
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
@@ -163,6 +168,8 @@ class _ListHandlerMixin(LogicSubscriber):
 
 
 class ListSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -194,6 +201,8 @@ class ListSubscriber(_ListHandlerMixin):
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -229,6 +238,8 @@ class ListConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     ListSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

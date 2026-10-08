@@ -1,3 +1,5 @@
+from typing import Any
+
 from faststream import apply_types
 from faststream.params import NoCast
 
@@ -7,4 +9,5 @@ def test_no_cast() -> None:
     def handler(s: NoCast[str]) -> None:
         assert isinstance(s, int)
 
-    handler(1)
+    value: Any = 1
+    handler(value)

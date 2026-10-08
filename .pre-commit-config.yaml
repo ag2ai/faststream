@@ -11,6 +11,7 @@ repos:
     rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
+        exclude: '^docs/site_root/'
     -   id: mixed-line-ending
     -   id: check-case-conflict
     -   id: check-ast
@@ -20,15 +21,16 @@ repos:
     -   id: check-added-large-files
         exclude: |
             (?x)^(
-                docs/docs/SUMMARY.md|
+                docs/docs/en/SUMMARY.md|
                 docs/docs/en/api/.meta.yml
             )$
     -   id: end-of-file-fixer
         exclude: |
-            (?x)^(
-                docs/docs/SUMMARY.md|
-                docs/docs/en/api/.meta.yml
-            )$
+            (?x)(
+                ^docs/docs/en/SUMMARY.md$|
+                ^docs/docs/en/api/.meta.yml$|
+                ^docs/site_root/
+            )
 
 -   repo: https://github.com/crate-ci/typos
     rev: v1.30.3
@@ -54,6 +56,15 @@ repos:
 
 -   repo: local
     hooks:
+    -   id: uv-lock
+        name: uv.lock is in sync
+        entry: just lock-check
+        language: python
+        files: ^(pyproject\.toml|uv\.lock)$
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
     -   id: lint
         name: Linter
         entry: just lint
@@ -81,9 +92,27 @@ repos:
         verbose: true
         pass_filenames: false
 
+    -   id: pyrefly
+        name: Pyrefly
+        entry: just pyrefly
+        language: python
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
     -   id: bandit
         name: bandit
         entry: just bandit
+        language: python
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
+    -   id: slotscheck
+        name: slotscheck
+        entry: just slotscheck
         language: python
         types: [python]
         require_serial: true
@@ -99,11 +128,29 @@ repos:
         verbose: true
         pass_filenames: false
 
+    -   id: import-linter
+        name: import-linter
+        language: python
+        entry: just import-linter
+        types: [python]
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
     -   id: zizmor
         name: zizmor
         language: python
         entry: just zizmor
         files: ^\.github\/workflows\/
+        require_serial: true
+        verbose: true
+        pass_filenames: false
+
+    -   id: actionlint
+        name: actionlint
+        language: python
+        entry: just actionlint
+        files: ^\.github\/(workflows\/|actionlint\.yaml$)
         require_serial: true
         verbose: true
         pass_filenames: false

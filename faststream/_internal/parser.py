@@ -16,6 +16,8 @@ MsgType = TypeVar("MsgType")
 class ParserProto(Protocol[MsgType]):
     """Protocol for parsing raw messages into StreamMessage."""
 
+    __slots__ = ()
+
     @abstractmethod
     async def parse_message(self, message: MsgType) -> "StreamMessage[MsgType]":
         """Parse a raw message into a StreamMessage."""
@@ -25,6 +27,8 @@ class ParserProto(Protocol[MsgType]):
 class DecoderProto(Protocol):
     """Protocol for decoding StreamMessage into DecodedMessage."""
 
+    __slots__ = ()
+
     @abstractmethod
     async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
         """Decode a StreamMessage into a DecodedMessage."""
@@ -33,6 +37,8 @@ class DecoderProto(Protocol):
 
 class BatchParserProto(Protocol[MsgType]):
     """Protocol for parsing a batch of raw messages into StreamMessage."""
+
+    __slots__ = ()
 
     @abstractmethod
     async def parse_batch(
@@ -45,6 +51,8 @@ class BatchParserProto(Protocol[MsgType]):
 class BatchDecoderProto(Protocol[MsgType]):
     """Protocol for decoding a batch of StreamMessage into list of DecodedMessage."""
 
+    __slots__ = ()
+
     @abstractmethod
     async def decode_batch(
         self, msg: "StreamMessage[Sequence[MsgType]]"
@@ -55,6 +63,8 @@ class BatchDecoderProto(Protocol[MsgType]):
 
 class CodecProto(Protocol):
     """Protocol for encoding and decoding message bodies."""
+
+    __slots__ = ()
 
     @abstractmethod
     async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
@@ -71,6 +81,8 @@ class CodecProto(Protocol):
 
 @runtime_checkable
 class BatchCodecProto(Protocol):
+    __slots__ = ()
+
     @abstractmethod
     async def encode_batch(
         self,
@@ -86,10 +98,12 @@ class BatchCodecProto(Protocol):
 
 
 class DefaultCodec:
-    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":
+    __slots__ = ()
+
+    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # noqa: PLR6301
         return decode_message(msg)
 
-    async def encode(
+    async def encode(  # noqa: PLR6301
         self,
         msg: "SendableMessage",
         serializer: "SerializerProto | None" = None,

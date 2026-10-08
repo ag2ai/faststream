@@ -8,6 +8,8 @@ from typing import (
 )
 from uuid import uuid4
 
+from typing_extensions import Self
+
 from .source_type import SourceType
 
 if TYPE_CHECKING:
@@ -69,6 +71,13 @@ class StreamMessage(Generic[MsgType]):
 
     def clear_cache(self) -> None:
         self.__decoded_caches.clear()
+
+    def __copy__(self) -> Self:
+        message = self.__class__.__new__(self.__class__)
+        message.__dict__.update(self.__dict__)
+        # A copy answers for its own body, so it must not share the decode cache
+        message.__decoded_caches = {}
+        return message
 
     def __repr__(self) -> str:
         inner = ", ".join(

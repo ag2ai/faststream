@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.redis import RedisBroker
@@ -12,7 +14,7 @@ class TestArguments(PublisherTestcase):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
@@ -29,7 +31,7 @@ class TestArguments(PublisherTestcase):
         broker = self.broker_class()
 
         @broker.publisher(list="test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
@@ -42,7 +44,7 @@ class TestArguments(PublisherTestcase):
         broker = self.broker_class()
 
         @broker.publisher(stream="test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
         key = tuple(schema["channels"].keys())[0]  # noqa: RUF015

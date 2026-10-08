@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 
 class StreamSubscriber(DefaultSubscriber["Msg"]):
+    __slots__ = ()
+
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
 
     def __init__(
@@ -89,7 +91,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
         except (TimeoutError, ConnectionClosedError):
             return None
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: NatsMessage = await process_msg(  # type: ignore[assignment]
@@ -124,7 +126,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 **extra_options,
             )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:

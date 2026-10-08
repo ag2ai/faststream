@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 
 
 class OSBucketDeclarer:
+    __slots__ = (
+        "__state",
+        "buckets",
+    )
+
     buckets: dict[str, "ObjectStore"]
 
     def __init__(self) -> None:

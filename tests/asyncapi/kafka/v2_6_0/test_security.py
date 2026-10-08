@@ -1,5 +1,6 @@
 import ssl
 from copy import deepcopy
+from typing import Any
 
 import pytest
 
@@ -14,7 +15,7 @@ from faststream.security import (
 )
 from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
-basic_schema = {
+basic_schema: dict[str, Any] = {
     "asyncapi": "2.6.0",
     "channels": {
         "test_1:TestTopic": {

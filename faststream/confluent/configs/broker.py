@@ -52,6 +52,8 @@ class KafkaBrokerConfig(BrokerConfig):
     )
 
     def __post_init__(self) -> None:
+        super().__post_init__()
+
         self.builder = ConsumerBuilder(
             config=self.connection_config,
             admin=self.admin,

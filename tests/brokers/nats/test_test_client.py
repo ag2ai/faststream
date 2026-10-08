@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import pytest
 
@@ -17,6 +18,21 @@ from .basic import NatsMemoryTestcaseConfig
 @pytest.mark.nats()
 @pytest.mark.asyncio()
 class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
+    async def test_assert_called_once_with_path(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(f"{queue}.{{level}}")
+        async def m(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hi", f"{queue}.info")
+
+            await m.assert_called_once_with("hi", path={"level": "info"})
+
+            # Path matches exactly: a template never leaves stray keys behind
+            with pytest.raises(AssertionError, match="path: expected"):
+                await m.assert_called_once_with(path={})
+
     @pytest.mark.asyncio()
     async def test_stream_publish(
         self,
@@ -25,7 +41,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         pub_broker = self.get_broker(apply_types=False)
 
         @pub_broker.subscriber(queue, stream="test")
-        async def m(msg) -> None: ...
+        async def m(msg: Any) -> None: ...
 
         async with self.patch_broker(pub_broker) as br:
             await br.publish("Hi!", queue, stream="test")
@@ -39,7 +55,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         pub_broker = self.get_broker(apply_types=False)
 
         @pub_broker.subscriber(queue)
-        async def m(msg) -> None: ...
+        async def m(msg: Any) -> None: ...
 
         async with self.patch_broker(pub_broker) as br:
             await br.publish("Hi!", queue, stream="test")
@@ -50,7 +66,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker, with_real=True) as br:
@@ -67,16 +83,16 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
     @pytest.mark.connected()
     async def test_inbox_prefix_with_real(
         self,
-        queue: str,
     ) -> None:
         broker = self.get_broker(inbox_prefix="test")
 
         async with self.patch_broker(broker, with_real=True) as br:
-            assert br._connection._inbox_prefix == b"test"
-            assert "test" in str(br._connection.new_inbox())
+            connection = await br.connect()
+            assert connection._inbox_prefix == b"test"
+            assert "test" in str(connection.new_inbox())
 
     async def test_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -86,10 +102,10 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(m) -> None: ...
+        async def h1(m: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(m) -> None: ...
+        async def h2(m: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("", queue)
@@ -99,7 +115,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -109,10 +125,10 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(m) -> None: ...
+        async def h1(m: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(m) -> None: ...
+        async def h2(m: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
@@ -130,7 +146,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, stream=stream)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -148,7 +164,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @publisher
         @broker.subscriber(queue, stream=stream)
-        async def m(msg) -> str:
+        async def m(msg: Any) -> str:
             return "response"
 
         async with self.patch_broker(broker) as br:
@@ -159,7 +175,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test.*.subj.*")
-        def subscriber(msg) -> None: ...
+        def subscriber(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", "test.a.subj.b")
@@ -169,7 +185,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test.>")
-        def subscriber(msg) -> None: ...
+        def subscriber(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", "test.a.subj.b")
@@ -179,7 +195,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("*.*.subj.>")
-        def subscriber(msg) -> None: ...
+        def subscriber(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", "test.a.subj.b.c")
@@ -193,7 +209,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, stream=stream, pull_sub=PullSub(1))
-        def subscriber(m) -> None: ...
+        def subscriber(m: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("hello", queue)
@@ -211,7 +227,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
             stream=stream,
             pull_sub=PullSub(1, batch=True),
         )
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -225,7 +241,7 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
             config=ConsumerConfig(filter_subjects=[f"{queue}.a"]),
             stream=JStream(queue, subjects=[f"{queue}.*"]),
         )
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:

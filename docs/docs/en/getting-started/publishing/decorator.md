@@ -25,7 +25,7 @@ It creates a structured DataPipeline unit with an input and output. The order of
 
     :fontawesome-solid-square-xmark:{.x_mark} **No testing support** - This method lacks full [`Testing`](./test.md) support.
 
-    :fontawesome-solid-square-xmark:{.x_mark} **No broker availability from Context** - You cannot leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :fontawesome-solid-square-xmark:{.x_mark} **No broker availability from Context** - You cannot leverage **FastStream's** [`Context`](../context.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :fontawesome-solid-square-xmark:{.x_mark} **Not reusable** - This method cannot be reused.
 
@@ -75,14 +75,14 @@ async def handle(msg) -> str:
     return "Response"
 ```
 
-This way you will send a copy of your return to the all output topics.
+This way you will send a copy of your return to all output topics.
 
 !!! note
-    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers as well.
+    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers.
 
     See more information about RPC in the specific broker sections:
 
     * [Kafka RPC](../../howto/kafka/rpc.md)
     * [RabbitMQ RPC](../../rabbit/rpc.md)
-    * [Nats PRC](../../nats/rpc.md)
+    * [NATS RPC](../../nats/rpc.md)
     * [Redis RPC](../../redis/rpc.md)

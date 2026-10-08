@@ -8,7 +8,7 @@ search:
   boost: 10
 ---
 
-# How To
+# How-To
 
 **Confluent** is a highly complex tool, so the **FastStream** `KafkaBroker` API can be complicated and confusing in specific cases. Our main documentation sections cover only the primary **FastStream** and **Confluent** concepts. Therefore, this section provides concrete **FastStream - Confluent** examples that you can use in your regular services as copy-paste code or, at the very least, as a reference.
 

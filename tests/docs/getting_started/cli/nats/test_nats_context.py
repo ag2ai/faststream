@@ -6,6 +6,7 @@ from tests.marks import pydantic_v2
 from tests.mocks import mock_pydantic_settings_env
 
 
+@pytest.mark.nats()
 @pydantic_v2
 @pytest.mark.asyncio()
 async def test() -> None:

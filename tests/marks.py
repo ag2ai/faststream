@@ -28,7 +28,7 @@ pydantic_v2 = pytest.mark.skipif(
 
 
 try:
-    from faststream.confluent import KafkaBroker
+    from faststream.confluent import KafkaBroker as ConfluentBroker  # noqa: F401
 except ImportError:
     HAS_CONFLUENT = False
 else:
@@ -42,14 +42,21 @@ require_confluent = pytest.mark.skipif(
 
 try:
     from faststream.kafka import KafkaBroker  # noqa: F401
+    from faststream.kafka._compat import AIOKAFKA_V014
 except ImportError:
     HAS_AIOKAFKA = False
+    AIOKAFKA_V014 = False
 else:
     HAS_AIOKAFKA = True
 
 require_aiokafka = pytest.mark.skipif(
     not HAS_AIOKAFKA,
     reason="requires aiokafka",
+)
+
+require_aiokafka_v014 = pytest.mark.skipif(
+    not AIOKAFKA_V014,
+    reason="requires aiokafka 0.14.0+ (`AIOKafkaConsumer(client_rack=...)`)",
 )
 
 
@@ -68,14 +75,21 @@ require_aiopika = pytest.mark.skipif(
 
 try:
     from faststream.redis import RedisBroker  # noqa: F401
+    from faststream.redis._compat import REDIS_V710
 except ImportError:
     HAS_REDIS = False
+    REDIS_V710 = False
 else:
     HAS_REDIS = True
 
 require_redis = pytest.mark.skipif(
     not HAS_REDIS,
     reason="requires redis",
+)
+
+require_redis_v710 = pytest.mark.skipif(
+    not REDIS_V710,
+    reason="requires redis-py 7.1.0+ (`xreadgroup(claim_min_idle_time=...)`)",
 )
 
 

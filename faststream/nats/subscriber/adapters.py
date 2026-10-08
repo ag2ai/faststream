@@ -2,10 +2,14 @@ from typing import Any, Generic, Protocol, TypeVar
 
 
 class Unsubscriptable(Protocol):
+    __slots__ = ()
+
     async def unsubscribe(self) -> None: ...
 
 
 class Watchable(Protocol):
+    __slots__ = ()
+
     async def stop(self) -> None: ...
 
     async def updates(self, timeout: float) -> Any | None: ...

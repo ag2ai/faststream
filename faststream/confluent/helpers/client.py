@@ -54,6 +54,14 @@ class _LazyLoggerProxy(logging.Logger):
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
 
+    __slots__ = (
+        "__running",
+        "_poll_task",
+        "config",
+        "logger_state",
+        "producer",
+    )
+
     def __init__(
         self,
         *,
@@ -117,7 +125,7 @@ class AsyncConfluentProducer:
 
         def resolve(err: BaseException | None, msg: Message | None) -> None:
             if result_future.done():
-                # already cancelled by a sibling failure in `send_batch`
+                # cancelled by a sibling failure in `send_batch` (#2836)
                 return
             if err is not None:
                 result_future.set_exception(err)
@@ -144,7 +152,7 @@ class AsyncConfluentProducer:
         produce_key: bytes | None = (
             kwargs["key"]
             if isinstance(kwargs["key"], (bytes, type(None)))
-            else (kwargs["key"].encode() if kwargs["key"] is not None else None)
+            else kwargs["key"].encode()
         )
         produce_headers: (
             dict[str, str | bytes | None] | list[tuple[str, str | bytes | None]] | None
@@ -162,20 +170,12 @@ class AsyncConfluentProducer:
         try:
             self.producer.produce(topic, **produce_kwargs)
         except BufferError:
+            # the opt-in is a safety net for `queue.buffering.max.kbytes`, which
+            # `send_batch` can't prevent by chunking on the message count
             if not retry_on_buffer_error:
                 raise
 
-            # Opt-in safety net for `send_batch`: even with count-based chunking the
-            # local queue can still overflow on `queue.buffering.max.kbytes`.
-            # The background `_poll_loop` serves delivery reports every 100 ms,
-            # so just sleep and retry until the queue drains, bounded by the
-            # producer's own delivery deadline (`message.timeout.ms`).
-            # `message.timeout.ms=0` means "no delivery timeout" in librdkafka,
-            # so retry until the queue drains in that case.
-            timeout_ms = int(self.config.get("message.timeout.ms", 300000))
-            deadline = (
-                anyio.current_time() + timeout_ms / 1000 if timeout_ms > 0 else math.inf
-            )
+            deadline = self._delivery_deadline()
 
             if _buffer_warning_latch is None or not _buffer_warning_latch[0]:
                 if _buffer_warning_latch is not None:
@@ -188,6 +188,7 @@ class AsyncConfluentProducer:
                     ),
                 )
 
+            # `_poll_loop` keeps serving delivery reports, which drains the queue
             while True:
                 await anyio.sleep(0.1)
                 try:
@@ -201,7 +202,7 @@ class AsyncConfluentProducer:
             return result_future
         return await result_future
 
-    def create_batch(self) -> "BatchBuilder":
+    def create_batch(self) -> "BatchBuilder":  # noqa: PLR6301
         """Creates a batch for sending multiple messages."""
         return BatchBuilder()
 
@@ -215,61 +216,70 @@ class AsyncConfluentProducer:
         retry_on_buffer_error: bool = False,
     ) -> None:
         """Sends a batch of messages to a Kafka topic."""
-        messages = batch._builder
+        if retry_on_buffer_error:
+            messages = batch._builder
+            # chunk so a big batch can't overflow the local queue (#2836);
+            # `0` means "no limit" in librdkafka, so there is nothing to chunk by
+            chunk_size = int(self.config.get("queue.buffering.max.messages", 100000))
+            if chunk_size <= 0:
+                chunk_size = len(messages) or 1
 
-        if not retry_on_buffer_error:
-            # Default path: identical to the pre-#2836 behavior.
-            async with anyio.create_task_group() as tg:
-                for msg in messages:
-                    tg.start_soon(
-                        self.send,
-                        topic,
-                        msg["value"],
-                        msg["key"],
-                        partition,
-                        msg["timestamp_ms"],
-                        msg["headers"],
-                        no_confirm,
-                    )
+            # shared by every send below, so a full queue is logged once per batch
+            warning_latch = [False]
+
+            for start in range(0, len(messages), chunk_size):
+                if start:
+                    # wait for the previous chunk to leave the local queue
+                    await self._wait_for_queue_drain()
+
+                async with anyio.create_task_group() as tg:
+                    for msg in messages[start : start + chunk_size]:
+                        _ = tg.start_soon(
+                            self.send,
+                            topic,
+                            msg["value"],
+                            msg["key"],
+                            partition,
+                            msg["timestamp_ms"],
+                            msg["headers"],
+                            no_confirm,
+                            retry_on_buffer_error,
+                            warning_latch,
+                        )
             return
 
-        # Opt-in path: send at most `queue.buffering.max.messages` messages at
-        # a time so a large batch can't overflow librdkafka's local produce
-        # queue (#2836).  `0` means "no limit" in librdkafka, so no chunking.
-        chunk_size = int(self.config.get("queue.buffering.max.messages", 100000))
-        if chunk_size <= 0:
-            chunk_size = len(messages) or 1
-
-        warning_latch = [False]
-
-        for start in range(0, len(messages), chunk_size):
-            if start:
-                # wait for the previous chunk to leave the local queue
-                await self._wait_for_queue_drain()
-
-            async with anyio.create_task_group() as tg:
-                for msg in messages[start : start + chunk_size]:
-                    tg.start_soon(
-                        self.send,
-                        topic,
-                        msg["value"],
-                        msg["key"],
-                        partition,
-                        msg["timestamp_ms"],
-                        msg["headers"],
-                        no_confirm,
-                        retry_on_buffer_error,
-                        warning_latch,
-                    )
+        async with anyio.create_task_group() as tg:
+            for msg in batch._builder:
+                _ = tg.start_soon(
+                    self.send,
+                    topic,
+                    msg["value"],
+                    msg["key"],
+                    partition,
+                    msg["timestamp_ms"],
+                    msg["headers"],
+                    no_confirm,
+                )
 
     async def _wait_for_queue_drain(self) -> None:
-        # Cancellable alternative to `flush()`: `producer.flush()` blocks a
-        # threadpool thread with no timeout, while the background `_poll_loop`
-        # already serves delivery reports, so just poll the queue length.
-        # There is no event to await here: librdkafka drains the queue in a
-        # background thread, so polling is the only cancellable option.
-        while len(self.producer):  # noqa: ASYNC110
+        # other publishers share the queue and can keep it from emptying, so past the
+        # delivery timeout the next chunk goes anyway and `send` retries what doesn't fit
+        deadline = self._delivery_deadline()
+        # unlike `flush()` this holds no thread and can be cancelled; `_poll_loop` serves
+        # the delivery reports, and librdkafka has no drain event to await instead
+        while len(self.producer) and anyio.current_time() < deadline:  # noqa: ASYNC110
             await anyio.sleep(0.1)
+
+    def _delivery_deadline(self) -> float:
+        # `delivery.timeout.ms` is librdkafka's alias for `message.timeout.ms`
+        timeout_ms = int(
+            self.config.get(
+                "message.timeout.ms",
+                self.config.get("delivery.timeout.ms", 300000),
+            ),
+        )
+        # `0` means "no delivery timeout" in librdkafka, so the waits never give up
+        return anyio.current_time() + timeout_ms / 1000 if timeout_ms > 0 else math.inf
 
     async def ping(
         self,
@@ -293,6 +303,19 @@ class AsyncConfluentProducer:
 
 class AsyncConfluentConsumer:
     """An asynchronous Python Kafka client for consuming messages using the "confluent-kafka" package."""
+
+    __slots__ = (
+        "_on_assign",
+        "_on_lost",
+        "_on_revoke",
+        "_thread_pool",
+        "admin_client",
+        "config",
+        "consumer",
+        "logger_state",
+        "partitions",
+        "topics",
+    )
 
     def __init__(
         self,
@@ -523,6 +546,8 @@ def check_msg_error(msg: Message | None) -> Message | None:
 
 class BatchBuilder:
     """A helper class to build a batch of messages to send to Kafka."""
+
+    __slots__ = ("_builder",)
 
     def __init__(self) -> None:
         """Initializes a new BatchBuilder instance."""

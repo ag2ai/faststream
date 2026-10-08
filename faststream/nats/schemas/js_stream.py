@@ -25,7 +25,7 @@ class JStream(NameRequired):
     __slots__ = (
         "config",
         "declare",
-        "name",
+        "subjects",
     )
 
     def __init__(

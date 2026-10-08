@@ -71,7 +71,7 @@ async def test_on_startup_calls(async_mock: AsyncMock, mock: MagicMock) -> None:
         await async_mock.call_start2()
         assert mock.call_start1.call_count == 1
 
-    test_app = FastStream(AsyncMock(), on_startup=[call1, call2])
+    test_app = FastStream(AsyncMock(spec=RabbitBroker), on_startup=[call1, call2])
 
     await test_app.start()
 
@@ -113,7 +113,7 @@ async def test_on_shutdown_calls(async_mock: AsyncMock, mock: MagicMock) -> None
         await async_mock.call_stop2()
         assert mock.call_stop1.call_count == 1
 
-    test_app = FastStream(AsyncMock(), on_shutdown=[call1, call2])
+    test_app = FastStream(AsyncMock(spec=RabbitBroker), on_shutdown=[call1, call2])
 
     await test_app.stop()
 
@@ -123,7 +123,7 @@ async def test_on_shutdown_calls(async_mock: AsyncMock, mock: MagicMock) -> None
 
 @pytest.mark.asyncio()
 async def test_shutdown_calls_lifespans(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(AsyncMock(spec=RabbitBroker))
 
     def call1() -> None:
         mock.call_stop1()
@@ -277,7 +277,6 @@ async def test_exception_group(async_mock: AsyncMock, app: FastStream) -> None:
 
 @pytest.mark.asyncio()
 async def test_running_lifespan_contextmanager(
-    async_mock: AsyncMock,
     mock: MagicMock,
     app: FastStream,
 ) -> None:
@@ -287,13 +286,14 @@ async def test_running_lifespan_contextmanager(
         yield
         mock.off()
 
-    app = FastStream(async_mock, lifespan=lifespan)
+    broker = AsyncMock(spec=RabbitBroker)
+    app = FastStream(broker, lifespan=lifespan)
     app.exit()
 
     await app.run(run_extra_options={"env": "test"})
 
-    async_mock.start.assert_called_once()
-    async_mock.stop.assert_called_once()
+    broker.start.assert_called_once()
+    broker.stop.assert_called_once()
 
     mock.on.assert_called_once_with("test")
     mock.off.assert_called_once()
@@ -301,7 +301,7 @@ async def test_running_lifespan_contextmanager(
 
 @pytest.mark.asyncio()
 async def test_test_app(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(AsyncMock(spec=RabbitBroker))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
@@ -314,8 +314,37 @@ async def test_test_app(mock: MagicMock) -> None:
 
 
 @pytest.mark.asyncio()
+async def test_application_async_context_manager(mock: MagicMock) -> None:
+    app = FastStream(AsyncMock(spec=RabbitBroker))
+
+    app.on_startup(mock.on)
+    app.on_shutdown(mock.off)
+
+    async with app as context_app:
+        assert context_app is app
+
+    mock.on.assert_called_once()
+    mock.off.assert_called_once()
+
+
+@pytest.mark.asyncio()
+async def test_application_async_context_manager_stops_on_exception(
+    mock: MagicMock,
+) -> None:
+    app = FastStream(AsyncMock(spec=RabbitBroker))
+    app.on_shutdown(mock.off)
+    error = ValueError("expected")
+
+    with pytest.raises(ValueError, match="expected"):
+        async with app:
+            raise error
+
+    mock.off.assert_called_once()
+
+
+@pytest.mark.asyncio()
 async def test_test_app_with_excp(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(AsyncMock(spec=RabbitBroker))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
@@ -329,7 +358,7 @@ async def test_test_app_with_excp(mock: MagicMock) -> None:
 
 
 def test_sync_test_app(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(AsyncMock(spec=RabbitBroker))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
@@ -342,7 +371,7 @@ def test_sync_test_app(mock: MagicMock) -> None:
 
 
 def test_sync_test_app_with_excp(mock: MagicMock) -> None:
-    app = FastStream(AsyncMock())
+    app = FastStream(AsyncMock(spec=RabbitBroker))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
@@ -362,6 +391,7 @@ async def test_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) -
         yield
         await async_mock.off()
 
+    assert app.broker
     app = FastStream(app.broker, lifespan=lifespan)
 
     with (
@@ -384,6 +414,7 @@ def test_sync_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) ->
         yield
         await async_mock.off()
 
+    assert app.broker
     app = FastStream(app.broker, lifespan=lifespan)
 
     with (
@@ -407,8 +438,8 @@ async def test_stop_with_sigint(async_mock: AsyncMock, app: FastStream) -> None:
         patch.object(app.broker, "stop", async_mock.broker_stopped_sigint),
     ):
         async with anyio.create_task_group() as tg:
-            tg.start_soon(app.run)
-            tg.start_soon(_kill, signal.SIGINT)
+            _ = tg.start_soon(app.run)
+            _ = tg.start_soon(_kill, signal.SIGINT)
 
     async_mock.broker_run_sigint.assert_called_once()
     async_mock.broker_stopped_sigint.assert_called_once()
@@ -422,8 +453,8 @@ async def test_stop_with_sigterm(async_mock: AsyncMock, app: FastStream) -> None
         patch.object(app.broker, "stop", async_mock.broker_stopped_sigterm),
     ):
         async with anyio.create_task_group() as tg:
-            tg.start_soon(app.run)
-            tg.start_soon(_kill, signal.SIGTERM)
+            _ = tg.start_soon(app.run)
+            _ = tg.start_soon(_kill, signal.SIGTERM)
 
     async_mock.broker_run_sigterm.assert_called_once()
     async_mock.broker_stopped_sigterm.assert_called_once()
@@ -448,8 +479,8 @@ async def test_run_asgi(async_mock: AsyncMock, app: FastStream) -> None:
         patch.object(app.broker, "stop", async_mock.broker_stopped),
     ):
         async with anyio.create_task_group() as tg:
-            tg.start_soon(app.run)
-            tg.start_soon(_kill, signal.SIGINT)
+            _ = tg.start_soon(app.run)
+            _ = tg.start_soon(_kill, signal.SIGINT)
 
     async_mock.broker_run.assert_called_once()
     async_mock.broker_stopped.assert_called_once()

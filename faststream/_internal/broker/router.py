@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterable
 from typing import Any
 
-from faststream._internal.configs import BrokerConfigType
+from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import MsgType
 
 from .registrator import Registrator
@@ -46,13 +46,13 @@ class SubscriberRoute(ArgsContainer):
         super().__init__(*args, **kwargs)
 
 
-class BrokerRouter(Registrator[MsgType, BrokerConfigType]):
+class BrokerRouter(Registrator[MsgType, BrokerConfigType_co]):
     """A generic class representing a broker router."""
 
     def __init__(
         self,
         *,
-        config: BrokerConfigType,
+        config: BrokerConfigType_co,
         handlers: Iterable[SubscriberRoute],
         routers: Iterable["Registrator[Any, Any]"],
     ) -> None:

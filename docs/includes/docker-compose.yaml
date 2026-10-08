@@ -35,14 +35,14 @@ services:
       - no-new-privileges:true
 
   redis:
-    image: redis:alpine
+    image: redis:8-alpine
     ports:
       - 6379:6379
     security_opt:
       - no-new-privileges:true
 
   redis-cluster:
-    image: redis:7-alpine
+    image: redis:8-alpine
     network_mode: host
     healthcheck:
       test: redis-cli -p 7001 ping || exit 1

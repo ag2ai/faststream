@@ -92,13 +92,13 @@ class RabbitBroker(
         default_channel: Optional["Channel"] = None,
         app_id: str | None = SERVICE_NAME,
         # broker base args
-        graceful_timeout: float | None = None,
+        graceful_timeout: float | None = 15.0,
         ack_policy: AckPolicy = EMPTY,
         id_generator: IdGenerator = gen_cor_id,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[RabbitRegistrator] = (),
         # AsyncAPI args
@@ -171,7 +171,7 @@ class RabbitBroker(
         )
 
         if specification_url is None:
-            specification_url = str(amqp_url)
+            specification_url = str(amqp_url.with_user(None))
 
         # respect ascynapi_url argument scheme
         built_asyncapi_url = urlparse(specification_url)

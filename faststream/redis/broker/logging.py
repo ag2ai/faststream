@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class RedisParamsStorage(DefaultLoggerStorage):
+    __slots__ = ("_max_channel_name",)
+
     def __init__(self) -> None:
         super().__init__()
 

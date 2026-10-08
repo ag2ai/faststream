@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 class AioPikaParser:
     """A class for parsing, encoding, and decoding messages using aio-pika."""
 
+    __slots__ = ("pattern",)
+
     def __init__(self, pattern: Optional["Pattern[str]"] = None) -> None:
         self.pattern = pattern
 
@@ -50,7 +52,7 @@ class AioPikaParser:
             raw_message=message,
         )
 
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: StreamMessage["IncomingMessage"],
     ) -> "DecodedMessage":

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class CriticalLogMiddleware:
+    __slots__ = ("logger",)
+
     def __init__(self, logger: "LoggerState") -> None:
         """Initialize the class."""
         self.logger = logger
@@ -35,6 +37,8 @@ class CriticalLogMiddleware:
 
 class _LoggingMiddleware(BaseMiddleware):
     """A middleware class for logging critical errors."""
+
+    __slots__ = ("logger", "source_type")
 
     def __init__(
         self,

@@ -92,15 +92,15 @@ def get_model_schema(
 
     model = None
     use_original_model = False
-    if params_number == 1:
-        name, param = next(iter(params.items()))
-        if (
-            param.annotation
-            and isclass(param.annotation)
-            and issubclass(param.annotation, BaseModel)  # NOTE: 3.7-3.10 compatibility
-        ):
-            model = param.annotation
-            use_original_model = True
+    name, param = next(iter(params.items()))
+    if (
+        params_number == 1
+        and param.annotation
+        and isclass(param.annotation)
+        and issubclass(param.annotation, BaseModel)  # NOTE: 3.7-3.10 compatibility
+    ):
+        model = param.annotation
+        use_original_model = True
 
     if model is None:
         model = call

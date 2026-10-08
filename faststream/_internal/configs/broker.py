@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, Union
 
@@ -14,6 +14,7 @@ from faststream.message import gen_cor_id
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.context import ContextRepo
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.middlewares import AckPolicy
@@ -35,10 +36,14 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
-    broker_dependencies: Iterable["Dependant"] = ()
-    graceful_timeout: float | None = None
+    broker_dependencies: Sequence["Dependant"] = ()
+    graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
     extra_context: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # untyped callers still pass a generator: the first subscriber would spend it
+        self.broker_dependencies = tuple(self.broker_dependencies)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id: {id(self)})"
@@ -51,6 +56,10 @@ class BrokerConfig:
             or self.prefix,
         )
 
+    @property
+    def context(self) -> "ContextRepo":
+        return self.fd_config.context
+
     def add_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
         self.broker_middlewares = (*self.broker_middlewares, middleware)
 
@@ -58,28 +67,29 @@ class BrokerConfig:
         self.broker_middlewares = (middleware, *self.broker_middlewares)
 
 
-BrokerConfigType = TypeVar313(
-    "BrokerConfigType",
+BrokerConfigType_co = TypeVar313(
+    "BrokerConfigType_co",
     bound=BrokerConfig,
     default=BrokerConfig,
+    covariant=True,
 )
 
-ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType", BrokerConfig]
+ConfigType = Union["ConfigComposition[Any]", "BrokerConfigType_co", BrokerConfig]
 
 
-class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
-    def __init__(self, config: BrokerConfigType) -> None:
-        self.configs: tuple[ConfigType, ...] = (config,)
+class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
+    def __init__(self, config: BrokerConfigType_co) -> None:
+        self.configs: tuple[ConfigType[BrokerConfigType_co], ...] = (config,)
 
     @property
-    def broker_config(self) -> "BrokerConfigType":
+    def broker_config(self) -> "BrokerConfigType_co":
         assert self.configs
         return self.configs[0]  # type: ignore[return-value]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({', '.join(repr(c) for c in self.configs)})"
 
-    def add_config(self, config: "ConfigType") -> None:
+    def add_config(self, config: "ConfigType[BrokerConfigType_co]") -> None:
         self.configs = (config, *self.configs)
 
     def reset(self) -> None:
@@ -101,6 +111,10 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
     @fd_config.setter
     def fd_config(self, value: "FastDependsConfig") -> None:
         self.broker_config.fd_config = value
+
+    @property
+    def context(self) -> "ContextRepo":
+        return self.broker_config.context
 
     @property
     def graceful_timeout(self) -> float | None:
@@ -170,5 +184,5 @@ class ConfigComposition(Generic[BrokerConfigType]):  # noqa: PLR0904
         return [m for c in self.configs for m in c.broker_middlewares]
 
     @property
-    def broker_dependencies(self) -> Iterable["Dependant"]:
-        return (b for c in self.configs for b in c.broker_dependencies)
+    def broker_dependencies(self) -> Sequence["Dependant"]:
+        return [b for c in self.configs for b in c.broker_dependencies]

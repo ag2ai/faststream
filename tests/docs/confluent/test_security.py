@@ -93,3 +93,21 @@ async def test_gssapi() -> None:
         "sasl.mechanism": "GSSAPI",
         "security.protocol": "sasl_ssl",
     })
+
+
+@pytest.mark.asyncio()
+@pytest.mark.confluent()
+async def test_custom_config() -> None:
+    from docs.docs_src.confluent.security.custom_config import (
+        broker as custom_config_broker,
+    )
+
+    producer_config = custom_config_broker.config.connection_config.producer_config
+
+    # the `config` the snippet passes is merged into what the security builds
+    assert producer_config == IsPartialDict({
+        "sasl.mechanism": "PLAIN",
+        "sasl.username": "admin",
+        "sasl.password": "password",
+        "ssl.ca.location": "~/my_certs/CRT_cacerts.pem",
+    })

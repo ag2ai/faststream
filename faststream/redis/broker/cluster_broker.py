@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from redis.asyncio.cluster import ClusterNode
 from redis.asyncio.connection import SSLConnection
-from typing_extensions import Unpack
+from typing_extensions import Unpack, override
 
 from faststream._internal.constants import EMPTY
 from faststream.redis.broker import RedisBroker
@@ -42,6 +42,7 @@ class RedisClusterBroker(RedisBroker):
     ) -> None:
         self._init_broker(url, dict(kwargs))
 
+    @override
     def _make_connection_state(
         self,
         connection_options: dict[str, Any],
@@ -165,7 +166,7 @@ class RedisClusterBroker(RedisBroker):
         self._connection = None
 
     async def start(self) -> None:
-        await self.connect()
+        _ = await self.connect()
         await super().start()
 
     async def publish_batch(  # type: ignore[override]

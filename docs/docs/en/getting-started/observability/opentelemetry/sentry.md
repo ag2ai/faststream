@@ -22,7 +22,7 @@ Fortunately, there is a workaround for exporting spans to **Sentry**. You just n
     pip install opentelemetry-exporter-otlp
     ```
 
-2. Setup the `TracerProvider` with **gRPC** exporter:
+2. Set up the `TracerProvider` with the **gRPC** exporter:
 
     ```python linenums="1" hl_lines="8 10"
     from opentelemetry import trace
@@ -61,7 +61,7 @@ Fortunately, there is a workaround for exporting spans to **Sentry**. You just n
 
 4. Run the **Docker** container with the `opentelemetry-collector`:
 
-    ```yaml title="docker-compose.yaml" linenums="1""
+    ```yaml title="docker-compose.yaml" linenums="1"
     services:
       otel-collector:
         image: otel/opentelemetry-collector-contrib:latest

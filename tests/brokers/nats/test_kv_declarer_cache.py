@@ -12,13 +12,13 @@ from tests.tools import spy_decorator
 @pytest.mark.nats()
 async def test_kv_storage_cache() -> None:
     broker = NatsBroker()
-    await broker.connect()
-    with patch.object(
-        JetStreamContext,
-        "create_key_value",
-        spy_decorator(JetStreamContext.create_key_value),
-    ) as m:
-        await broker.key_value("test")
-        await broker.key_value("test")
-        assert broker.config.kv_declarer.buckets["test"]
-        m.mock.assert_called_once()
+    async with broker:
+        with patch.object(
+            JetStreamContext,
+            "create_key_value",
+            spy_decorator(JetStreamContext.create_key_value),
+        ) as m:
+            await broker.key_value("test")
+            await broker.key_value("test")
+            assert broker.config.kv_declarer.buckets["test"]
+            m.mock.assert_called_once()

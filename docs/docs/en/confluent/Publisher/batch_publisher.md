@@ -53,8 +53,8 @@ Or you can decorate your processing function and return a batch of messages, as 
 The application in the example implements both of these ways, so feel free to use whichever option fits your needs better.
 
 !!! note
-    Also, you can publishes messages in batches right from a `broker` object: just call
-    `#!python broker.publish_batch("msg2", "msg2", topic="output_data")`
+    Also, you can publish messages in batches right from a `broker` object: just call
+    `#!python broker.publish_batch("msg1", "msg2", topic="output_data")`
 
 ## Per-Message Attributes with `KafkaPublishMessage`
 
@@ -93,11 +93,23 @@ In the example above, the first two messages are sent with their own dedicated k
 !!! tip
     Use `#!python KafkaPublishMessage` whenever messages within a single batch need to be routed to different partitions via distinct keys, or when you need to attach per-message metadata — this is the cleanest way to control individual message attributes without splitting the batch into separate `#!python publish(...)` calls.
 
+## Why Publish in Batches?
+
+In the above example, we've explored how to leverage the `#!python @broker.publisher(...)` decorator to efficiently publish messages in batches using **FastStream** and **Kafka**. By following the two key steps outlined in the previous sections, you can significantly enhance the performance and reliability of your **Kafka**-based applications.
+
+Publishing messages in batches offers several advantages when working with **Kafka**:
+
+1. **Improved Throughput**: Batch publishing allows you to send multiple messages in a single transmission, reducing the overhead associated with individual message delivery. This leads to improved throughput and lower latency in your **Kafka** applications.
+
+2. **Reduced Network and Broker Load**: Sending messages in batches reduces the number of network calls and broker interactions. This optimization minimizes the load on the **Kafka** brokers and network resources, making your **Kafka** cluster more efficient.
+
+3. **Enhanced Scalability**: With batch publishing, you can efficiently scale your **Kafka** applications to handle high message volumes. By sending messages in larger chunks, you can make the most of **Kafka**'s parallelism and partitioning capabilities.
+
 ## Handling Producer Queue Overflow
 
 Very large batches can overflow the local **librdkafka** produce queue, which is limited both by message count (`queue.buffering.max.messages`, `100000` by default) and by total size (`queue.buffering.max.kbytes`). When that happens, the producer raises a `#!python BufferError` and the batch fails.
 
-By default, `#!python publish_batch(...)` **fails fast**: the `#!python BufferError` is raised immediately, and it is up to your application to retry.
+By default, `#!python publish_batch(...)` **fails fast**: the `#!python BufferError` is raised immediately (inside an `#!python ExceptionGroup`, as the messages of a batch are sent concurrently), and it is up to your application to retry.
 
 If you prefer the producer to wait for the queue to drain instead, pass `#!python retry_on_buffer_error=True`:
 
@@ -112,18 +124,4 @@ await broker.publish_batch(
 With this flag enabled, the batch is sent in `queue.buffering.max.messages`-sized chunks, and any message rejected with a `#!python BufferError` (for example, due to the size-based `queue.buffering.max.kbytes` limit, which count-based chunking cannot account for) is retried while the queue drains.
 
 !!! warning
-    A retried publish may block for up to `message.timeout.ms` (**5 minutes** by default) while waiting for the queue to drain. If the timeout expires before the message can be enqueued, the `#!python BufferError` is raised anyway. Setting `#!python "message.timeout.ms": 0` (no delivery timeout) makes the retry wait indefinitely.
-
-## Why Publish in Batches?
-
-In the above example, we've explored how to leverage the `#!python @broker.publisher(...)` decorator to efficiently publish messages in batches using **FastStream** and **Kafka**. By following the two key steps outlined in the previous sections, you can significantly enhance the performance and reliability of your **Kafka**-based applications.
-
-Publishing messages in batches offers several advantages when working with **Kafka**:
-
-1. **Improved Throughput**: Batch publishing allows you to send multiple messages in a single transmission, reducing the overhead associated with individual message delivery. This leads to improved throughput and lower latency in your **Kafka** applications.
-
-2. **Reduced Network and Broker Load**: Sending messages in batches reduces the number of network calls and broker interactions. This optimization minimizes the load on the **Kafka** brokers and network resources, making your **Kafka** cluster more efficient.
-
-3. **Atomicity**: Batches ensure that a group of related messages is processed together or not at all. This atomicity can be crucial in scenarios where message processing needs to maintain data consistency and integrity.
-
-4. **Enhanced Scalability**: With batch publishing, you can efficiently scale your **Kafka** applications to handle high message volumes. By sending messages in larger chunks, you can make the most of **Kafka**'s parallelism and partitioning capabilities.
+    A retried publish may block for up to `message.timeout.ms` (also known as `delivery.timeout.ms`, **5 minutes** by default) while waiting for the queue to drain. If the timeout expires before the message can be enqueued, the `#!python BufferError` is raised anyway. Setting it to `#!python 0` (no delivery timeout) makes the retry wait indefinitely.

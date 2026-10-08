@@ -1,10 +1,12 @@
 import warnings
-from collections.abc import Collection, Iterable
+from collections.abc import Collection
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
+from faststream.kafka._compat import validate_client_rack
+from faststream.kafka.schemas import Topic
 from faststream.middlewares import AckPolicy
 
 from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
@@ -24,7 +26,7 @@ if TYPE_CHECKING:
 
 
 def create_subscriber(
-    *topics: str,
+    *topics: Union[str, "Topic"],
     batch: bool,
     batch_timeout_ms: int,
     max_records: int | None,
@@ -49,16 +51,20 @@ def create_subscriber(
     "ConcurrentDefaultSubscriber",
     "ConcurrentBetweenPartitionsSubscriber",
 ]:
+    declared_topics = [Topic.validate(t) for t in topics]
+
     _validate_input_for_misconfigure(
-        *topics,
+        *declared_topics,
         pattern=pattern,
         partitions=partitions,
         ack_policy=ack_policy,
         max_workers=max_workers,
+        batch=batch,
+        client_rack=connection_args.get("client_rack"),
     )
 
     subscriber_config = KafkaSubscriberConfig(
-        topics=topics,
+        topics=declared_topics,
         partitions=partitions,
         connection_args=connection_args,
         group_id=group_id,
@@ -75,7 +81,7 @@ def create_subscriber(
         _outer_config=config,
         calls=calls,
         specification_config=KafkaSubscriberSpecificationConfig(
-            topics=topics,
+            topics=declared_topics,
             partitions=partitions,
             pattern=pattern,
             title_=title_,
@@ -102,7 +108,7 @@ def create_subscriber(
                 max_workers=max_workers,
             )
 
-        subscriber_config.topics = (topics[0],)
+        subscriber_config.topics = (declared_topics[0],)
         return ConcurrentBetweenPartitionsSubscriber(
             subscriber_config,
             specification,
@@ -114,12 +120,23 @@ def create_subscriber(
 
 
 def _validate_input_for_misconfigure(
-    *topics: str,
+    *topics: "Topic",
     ack_policy: "AckPolicy",
     max_workers: int,
+    batch: bool,
     pattern: str | None,
-    partitions: Iterable["TopicPartition"],
+    partitions: Collection["TopicPartition"],
+    client_rack: str | None,
 ) -> None:
+    validate_client_rack(client_rack)
+
+    if batch and max_workers > 1:
+        warnings.warn(
+            "The `max_workers` option is ignored by a batch subscriber.",
+            RuntimeWarning,
+            stacklevel=4,
+        )
+
     effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy
     if effective_ack is AckPolicy.REJECT_ON_ERROR:
         warnings.warn(
@@ -157,3 +174,30 @@ def _validate_input_for_misconfigure(
     if partitions and pattern:
         msg = "You can't provide both `partitions` and `pattern`."
         raise SetupError(msg)
+
+    declared: dict[str, Topic] = {}
+    for topic in topics:
+        # One name declared twice with different settings is a contradiction
+        # only the caller can resolve, so name both and keep the last one.
+        if (previous := declared.get(topic.name)) is not None and previous != topic:
+            warnings.warn(
+                f"Topic {topic.name!r} is declared with conflicting settings: "
+                f"{previous!r} and {topic!r}. The last one wins.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
+
+        declared[topic.name] = topic
+
+    seen_partitions: dict[str, bool] = {}
+    for partition in partitions:
+        previous_declare = seen_partitions.get(partition.topic)
+        if previous_declare is not None and previous_declare != partition.declare:
+            warnings.warn(
+                f"Topic {partition.topic!r} is declared with conflicting settings: "
+                f"TopicPartition(..., declare={previous_declare}) and "
+                f"TopicPartition(..., declare={partition.declare}). The last one wins.",
+                RuntimeWarning,
+                stacklevel=4,
+            )
+        seen_partitions[partition.topic] = partition.declare

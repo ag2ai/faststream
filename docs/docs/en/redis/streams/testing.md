@@ -33,7 +33,7 @@ If nothing in the group has `min_idle_time` set, a nacked message simply stays p
 Pass a `PEL` instance to `TestRedisBroker` to inspect it directly after publishing. A `pel` fixture keeps every test working against its own instance:
 
 ```python linenums="1"
-{! docs_src/redis/stream/pel_testing.py [ln:17-29] !}
+{! docs_src/redis/stream/pel_testing.py [ln:17-25] !}
 ```
 
 ## Multiple Groups Mean Multiple PEL Entries
@@ -45,7 +45,7 @@ The PEL is tracked per consumer group, not per message. If the same stream has s
 ```
 
 ```python linenums="1"
-{! docs_src/redis/stream/pel_testing.py [ln:32-40] !}
+{! docs_src/redis/stream/pel_testing.py [ln:28-37] !}
 ```
 
 This mirrors real Redis: `XPENDING` is scoped to a single consumer group, so groups never see or interfere with each other's pending entries, even when they're reading the same stream.
@@ -59,7 +59,7 @@ Add a `min_idle_time` consumer to the same group, and it reclaims the pending en
 ```
 
 ```python linenums="1"
-{! docs_src/redis/stream/pel_testing.py [ln:54-60] !}
+{! docs_src/redis/stream/pel_testing.py [ln:52-59] !}
 ```
 
 !!! tip
@@ -74,7 +74,7 @@ Because `#!python no_ack=True` disables acknowledgement altogether, the fake bro
 ```
 
 ```python linenums="1"
-{! docs_src/redis/stream/pel_testing.py [ln:43-51] !}
+{! docs_src/redis/stream/pel_testing.py [ln:40-49] !}
 ```
 
 ## Inspecting the `PEL`

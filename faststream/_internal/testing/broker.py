@@ -59,6 +59,15 @@ class TestBroker(Generic[Broker, EnterType]):
     # This is set so pytest ignores this class
     __test__ = False
 
+    def __init_subclass__(
+        cls,
+        broker: type[BrokerUsecase[Any, Any, Any]] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init_subclass__(**kwargs)
+        if broker is not None:
+            _TEST_BROKERS[broker] = cls
+
     def __init__(
         self,
         *brokers: Broker,
@@ -139,28 +148,17 @@ class TestBroker(Generic[Broker, EnterType]):
             yield broker
 
         finally:
+            if self.with_real:
+                # The real `broker.start()` started the fakes, and `_fake_close` hides
+                # them from `broker.stop()` (see #3046): stop them here or they leak.
+                for sub in self._fake_subscribers:
+                    await sub.stop()
+
             self._fake_close(broker)
 
     @contextmanager
     def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
         raise NotImplementedError
-
-    @contextmanager
-    def _patch_logger(self, broker: Broker) -> Generator[None, None, None]:
-        broker._setup_logger()
-
-        logger_state = broker.config.logger
-
-        old_log_object, logger_state.logger = (
-            logger_state.logger,
-            RealLoggerObject(MagicMock()),
-        )
-
-        try:
-            yield
-
-        finally:
-            logger_state.logger = old_log_object
 
     @contextmanager
     def _patch_broker(self, broker: Broker) -> Generator[None, None, None]:
@@ -185,7 +183,7 @@ class TestBroker(Generic[Broker, EnterType]):
                 new=None,
             ),
             self._patch_producer(broker),
-            self._patch_logger(broker),
+            _patch_logger(broker),
             mock.patch.object(
                 broker,
                 "ping",
@@ -211,18 +209,16 @@ class TestBroker(Generic[Broker, EnterType]):
                     pass
 
             if is_real:
-                mock = MagicMock()
-                publisher.set_test(mock=mock, with_fake=False)
+                # A real subscriber keeps its own record; the publisher gets a copy
+                publisher.set_test(with_fake=False)
                 for h in sub.calls:
                     h.handler.set_test()
-                    assert h.handler.mock
-                    h.handler.mock.side_effect = mock
+                    h.handler._recorder.mirror_to(publisher._recorder)
 
             else:
                 handler = sub.calls[0].handler
                 handler.set_test()
-                assert handler.mock
-                publisher.set_test(mock=handler.mock, with_fake=True)
+                publisher.set_test(recorder=handler._recorder, with_fake=True)
 
         patch_broker_calls(broker)
 
@@ -237,8 +233,7 @@ class TestBroker(Generic[Broker, EnterType]):
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         for p in broker.publishers:
-            if getattr(p, "_fake_handler", None):
-                p.reset_test()
+            p.reset_test()
 
         # Fakes are registered with `persistent=False`, so the broker holds them weakly
         # and they outlive us until the next collection (see issue #2990).
@@ -265,6 +260,17 @@ class TestBroker(Generic[Broker, EnterType]):
         raise NotImplementedError
 
 
+def find_test_broker(
+    broker: BrokerUsecase[Any, Any, Any],
+) -> type[TestBroker[Any, Any]] | None:
+    """Return the TestBroker registered for the broker's class, if any."""
+    # the closest class wins: a broker subclass may register a TestBroker of its own
+    for broker_cls in type(broker).__mro__:
+        if test_broker_cls := _TEST_BROKERS.get(broker_cls):
+            return test_broker_cls
+    return None
+
+
 def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
     """Patch broker calls."""
     for sub in broker.subscribers:
@@ -272,3 +278,26 @@ def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
 
         for h in sub.calls:
             h.handler.set_test()
+
+
+@contextmanager
+def _patch_logger(
+    broker: "BrokerUsecase[Any, Any, Any]",
+) -> Generator[None, None, None]:
+    broker._setup_logger()
+
+    logger_state = broker.config.logger
+
+    old_log_object, logger_state.logger = (
+        logger_state.logger,
+        RealLoggerObject(MagicMock()),
+    )
+
+    try:
+        yield
+
+    finally:
+        logger_state.logger = old_log_object
+
+
+_TEST_BROKERS: dict[type[BrokerUsecase[Any, Any, Any]], type[TestBroker[Any, Any]]] = {}

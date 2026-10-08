@@ -1,0 +1,30 @@
+# External links of the guides and the README. `mkdocs build --strict` already
+# covers the internal ones.
+no_progress = true
+# The default of 128 parallel requests gets connections reset or TLS handshakes
+# refused now and then, and lychee does not retry a failed connect.
+max_concurrency = 4
+# retries cover only timeouts, 5xx and 429
+max_retries = 5
+# seconds, doubled after each retry: 4 + 8 + 16 + 32 + 64
+retry_wait_time = 4
+timeout = 30
+accept = ["200..=299", "429"]
+
+exclude_path = [
+    # generated from GitHub releases and from the source tree
+    "docs/docs/en/release.md",
+    "docs/docs/en/api",
+]
+
+exclude = [
+    # addresses of the reader's own running application
+    '^https?://(localhost|127\.0\.0\.1)',
+    # answers 403 to anything that is not a browser
+    '^https://sentry\.io/?$',
+    # redirects to the latest coverage report and answers 400 while there is
+    # none, which depends on the CI runs, not on the docs
+    '^https://coverage-badge\.samuelcolvin\.workers\.dev/redirect/',
+    # terminates automated requests to public channels that a browser opens
+    '^https://t\.me/',
+]

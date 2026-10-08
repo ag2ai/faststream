@@ -4,7 +4,8 @@ from multiprocessing.context import SpawnProcess
 import pytest
 
 from faststream._internal.cli.dto import RunArgs
-from faststream._internal.cli.supervisors.basereload import BaseReload, get_subprocess
+from faststream._internal.cli.supervisors.basereload import BaseReload
+from faststream._internal.cli.supervisors.utils import get_subprocess
 
 
 class PatchedBaseReload(BaseReload):

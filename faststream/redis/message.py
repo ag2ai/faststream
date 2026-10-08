@@ -94,6 +94,10 @@ bDATA_KEY = DATA_KEY.encode()  # noqa: N816
 class _StreamMessage(TypedDict):
     channel: str
     message_ids: list[bytes]
+    # Only with `StreamSub.claim_min_idle_time`, aligned with `message_ids`;
+    # `delivery_counts` is XPENDING's `times_delivered` - 1 (0 = new message).
+    idle_times: NotRequired[list[int]]
+    delivery_counts: NotRequired[list[int]]
 
 
 class DefaultStreamMessage(_StreamMessage):

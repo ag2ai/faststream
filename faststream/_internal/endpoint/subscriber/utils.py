@@ -23,6 +23,8 @@ class MultiLock:
     `wait_release` method waits for all locks will be released.
     """
 
+    __slots__ = ("queue",)
+
     def __init__(self) -> None:
         """Initialize a new instance of the class."""
         self.queue: asyncio.Queue[None] = asyncio.Queue()

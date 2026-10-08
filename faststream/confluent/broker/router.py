@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
@@ -44,6 +45,8 @@ class KafkaPublisher(ArgsContainer):
         description: str | None = None,
         schema: Any | None = None,
         include_in_schema: bool = True,
+        persistent: bool = True,
+        autoflush: bool = False,
     ) -> None:
         """Initialize KafkaPublisher.
 
@@ -68,6 +71,8 @@ class KafkaPublisher(ArgsContainer):
             schema: AsyncAPI publishing message type.
                 Should be any python-native object annotation or `pydantic.BaseModel`.
             include_in_schema: Whetever to include operation in AsyncAPI schema or not.
+            persistent: Whether to make the publisher persistent or not.
+            autoflush: Whether to flush the producer or not on every publish call.
         """
         super().__init__(
             topic=topic,
@@ -81,6 +86,8 @@ class KafkaPublisher(ArgsContainer):
             description=description,
             schema=schema,
             include_in_schema=include_in_schema,
+            persistent=persistent,
+            autoflush=autoflush,
         )
 
 
@@ -119,7 +126,7 @@ class KafkaRoute(SubscriberRoute):
         batch: bool = False,
         max_records: int | None = None,
         # broker args
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         ack_policy: AckPolicy = EMPTY,
@@ -129,6 +136,8 @@ class KafkaRoute(SubscriberRoute):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
+        persistent: bool = True,
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         """Initialize KafkaRoute.
 
@@ -257,6 +266,8 @@ class KafkaRoute(SubscriberRoute):
                 Uses decorated docstring as default.
             include_in_schema: Whetever to include operation in AsyncAPI schema or not.
             max_workers: Number of workers to process messages concurrently.
+            persistent: Whether to make the subscriber persistent or not.
+            codec: Custom codec object.
         """
         super().__init__(
             call,
@@ -294,6 +305,8 @@ class KafkaRoute(SubscriberRoute):
             description=description,
             include_in_schema=include_in_schema,
             ack_policy=ack_policy,
+            persistent=persistent,
+            codec=codec,
         )
 
 
@@ -314,7 +327,7 @@ class KafkaRouter(
         prefix: str = "",
         handlers: Iterable[KafkaRoute] = (),
         *,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
         parser: Optional["CustomCallable"] = None,

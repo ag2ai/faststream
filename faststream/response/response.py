@@ -28,7 +28,7 @@ class Response:
             _publish_type=PublishType.PUBLISH,
         )
 
-    def get_publish_key(self) -> Any | None:
+    def get_publish_key(self) -> Any | None:  # noqa: PLR6301
         """Get the key for publishing this message.
 
         Override this method in subclasses to provide broker-specific keys.

@@ -23,7 +23,7 @@ Additionally, this object can be used as a decorator. The order of Subscriber an
 
     :material-checkbox-marked:{.checked_mark} **Testing support** - This method has full [`Testing`](./test.md) support.
 
-    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context/index.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
+    :material-checkbox-marked:{.checked_mark} **Broker availability from Context** - You can leverage **FastStream's** [`Context`](../context.md), a built-in Dependency Injection (DI) container, to work with brokers or other external services.
 
     :material-checkbox-marked:{.checked_mark} **Reusable** - This method is reusable.
 
@@ -76,4 +76,4 @@ async def handle(msg) -> str:
 This way, you will send a copy of your return to all output topics.
 
 !!! note
-    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers as well.
+    Also, if this subscriber consumes a message with **RPC** mode, it sends a reply not only to the **RPC** channel but also to all publishers.

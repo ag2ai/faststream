@@ -50,7 +50,7 @@ Just use `pydantic.Field` as a function default argument:
 
 
 !!! tip
-    Also you can use `typing.Annotated` (python 3.9+) or `typing_extensions.Annotated` to declare your handler fields
+    Also, you can use `typing.Annotated` to declare your handler fields
 
     ```python
     {!> docs_src/getting_started/subscription/kafka/pydantic_annotated_fields.py [ln:14.5,15.5,16.5,17.5,18.5,19.5,20.5,21.5] !}

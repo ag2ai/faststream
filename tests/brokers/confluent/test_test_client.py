@@ -8,7 +8,9 @@ from faststream import AckPolicy, BaseMiddleware, Context
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
+from faststream.exceptions import SetupError
 from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.marks import require_aiopika
 from tests.tools import spy_decorator
 
 from .basic import ConfluentMemoryTestcaseConfig
@@ -25,7 +27,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(queue)
-        async def handler(msg=Context("message")) -> None:
+        async def handler(msg: Any = Context("message")) -> None:
             mock(msg.raw_message.value())
 
         async with self.patch_broker(broker) as br:
@@ -36,14 +38,16 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_message_nack_seek(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
-        @broker.subscriber(
-            queue,
-            group_id=f"{queue}-consume",
-            auto_offset_reset="earliest",
-            ack_policy=AckPolicy.REJECT_ON_ERROR,
-        )
-        async def m(msg: KafkaMessage) -> None:
-            await msg.nack()
+        with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+
+            @broker.subscriber(
+                queue,
+                group_id=f"{queue}-consume",
+                auto_offset_reset="earliest",
+                ack_policy=AckPolicy.REJECT_ON_ERROR,
+            )
+            async def m(msg: KafkaMessage) -> None:
+                await msg.nack()
 
         async with self.patch_broker(broker) as br:
             with patch.object(
@@ -61,8 +65,8 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
-        def subscriber(m) -> None:
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker, with_real=True) as br:
@@ -80,11 +84,11 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -99,11 +103,11 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         publisher = broker.publisher(queue + "1", batch=True, autoflush=True)
-        publisher.flush = AsyncMock()
+        publisher.flush = AsyncMock()  # type: ignore[method-assign]
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -121,7 +125,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -135,12 +139,79 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
             await br.publish_batch("hello", topic=queue)
             m.mock.assert_called_once_with(["hello"])
+
+    async def test_batch_assert_called_once_with(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue, batch=True)
+        async def m(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch({"n": 1}, {"n": 2}, topic=queue)
+
+            await m.assert_called_once_with([{"n": 1}, {"n": 2}])
+
+            # A batch has one header set per message, so there is no single answer
+            with pytest.raises(SetupError, match="received a batch"):
+                await m.assert_called_once_with(headers={"key": "value"})
+
+            with pytest.raises(SetupError, match=r"received a batch.*key, partition"):
+                await m.assert_called_once_with(key=b"k", partition=0)
+
+    async def test_assertions_take_the_kafka_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handle(msg: str) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("hello", queue, key=b"k", partition=1)
+
+            await handle.assert_called_once_with("hello", key=b"k", partition=1)
+            await handle.assert_called_with(key=b"k")
+            await handle.assert_any_call(partition=1)
+
+            with pytest.raises(AssertionError, match="key: expected b'other', got b'k'"):
+                await handle.assert_called_once_with("hello", key=b"other")
+
+    async def test_publisher_assertions_take_the_kafka_fields(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        publisher = broker.publisher(queue)
+
+        async with self.patch_broker(broker):
+            await publisher.publish("response", key=b"k", partition=1)
+
+            await publisher.assert_called_once_with("response", key=b"k", partition=1)
+            await publisher.assert_called_with(key=b"k")
+            await publisher.assert_any_call(partition=1)
+
+    @require_aiopika
+    async def test_kafka_fields_refuse_another_brokers_message(self, queue: str) -> None:
+        from faststream.rabbit import RabbitBroker, TestRabbitBroker  # noqa: PLC0415
+
+        broker = self.get_broker()
+        rabbit = RabbitBroker()
+
+        @broker.subscriber(queue)
+        async def handle(msg: str) -> None: ...
+
+        # The broker that wraps a handler first decides its wrapper class: Kafka's here
+        _ = rabbit.subscriber(queue)(handle)
+
+        async with self.patch_broker(broker), TestRabbitBroker(rabbit):
+            await rabbit.publish("hello", queue)
+
+            await handle.assert_called_once_with("hello")
+
+            with pytest.raises(SetupError, match="`key` is a Kafka field"):
+                await handle.assert_called_once_with("hello", key=b"k")
 
     async def test_batch_publisher_mock(self, queue: str) -> None:
         broker = self.get_broker()
@@ -149,7 +220,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @publisher
         @broker.subscriber(queue)
-        async def m(msg):
+        async def m(msg: Any) -> Any:
             return 1, 2, 3
 
         async with self.patch_broker(broker) as br:
@@ -178,12 +249,12 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         @batch_publisher
         @broker.subscriber(queue)
-        async def batched(msg):
+        async def batched(msg: Any) -> Any:
             return returned
 
         @default_publisher
         @broker.subscriber(queue + "3")
-        async def single(msg) -> None:
+        async def single(msg: Any) -> None:
             return None
 
         async with self.patch_broker(broker) as br:
@@ -194,7 +265,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
             batch_publisher.mock.assert_called_once_with([b""])
 
     async def test_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -204,10 +275,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(msg) -> None: ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(msg) -> None: ...
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("", queue)
@@ -217,7 +288,7 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -228,13 +299,13 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
 
-        @broker.subscriber(*args, **kwargs)
-        async def h1(msg) -> None: ...
+        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def h1(msg: Any) -> None: ...
 
         args2, kwargs2 = self.get_subscriber_params(queue + "1")
 
-        @broker.subscriber(*args2, **kwargs2)
-        async def h2(msg) -> None: ...
+        @broker.subscriber(*args2, **kwargs2)  # type: ignore[untyped-decorator]
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
@@ -248,10 +319,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, group_id="group2")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -264,10 +335,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, group_id="group1")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -282,10 +353,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, batch=True, group_id="group2")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -298,10 +369,10 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         @broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber1(msg) -> None: ...
+        async def subscriber1(msg: Any) -> None: ...
 
         @broker.subscriber(queue, batch=True, group_id="group1")
-        async def subscriber2(msg) -> None: ...
+        async def subscriber2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.start()

@@ -45,11 +45,11 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
 
         @pub_broker.subscriber(list=queue)
         @pub_broker.publisher(list=queue + "resp")
-        async def m(_) -> str:
+        async def m(_: Any) -> str:
             return ""
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg) -> None:
+        async def resp(msg: Any) -> None:
             event.set()
             mock(msg)
 
@@ -71,10 +71,10 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         queue: str,
     ) -> None:
         pub_broker = self.get_broker()
-        msgs_queue = asyncio.Queue(maxsize=2)
+        msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
         @pub_broker.subscriber(list=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
@@ -101,7 +101,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
             return RedisResponse(1, correlation_id="1")
 
         @pub_broker.subscriber(list=queue + "resp")
-        async def resp(msg=Context("message")) -> None:
+        async def resp(msg: Any = Context("message")) -> None:
             mock(body=msg.body, correlation_id=msg.correlation_id)
             event.set()
 
@@ -142,7 +142,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         broker = self.get_broker()
 
         with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish("hello", channel=queue, pipeline=None)  # type: ignore[arg-type]
+            await broker.publish("hello", channel=queue, pipeline=None)
 
     async def test_publish_batch_with_pipeline_warns(
         self,
@@ -151,8 +151,9 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         """Pipeline should emit RuntimeWarning for publish_batch in cluster."""
         broker = self.get_broker()
 
-        with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
-            await broker.publish_batch("x", "y", list=queue, pipeline=None)  # type: ignore[arg-type]
+        async with broker:
+            with pytest.warns(RuntimeWarning, match="Pipeline is not supported"):
+                await broker.publish_batch("x", "y", list=queue, pipeline=None)
 
     async def test_channel_publish(
         self,
@@ -164,7 +165,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker()
 
         @pub_broker.subscriber(channel=queue)
-        async def handler(msg) -> None:
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -191,7 +192,7 @@ class TestClusterPublish(RedisClusterTestcaseConfig, BrokerPublishTestcase):
         pub_broker = self.get_broker(apply_types=True)
 
         @pub_broker.subscriber(channel=queue)
-        async def handler(msg, ctx_msg=Context("message")) -> None:
+        async def handler(msg: Any, ctx_msg: Any = Context("message")) -> None:
             mock(
                 body=msg,
                 correlation_id=ctx_msg.correlation_id,

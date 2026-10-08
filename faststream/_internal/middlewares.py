@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional
 
 from typing_extensions import Self
 
-from faststream._internal.types import AnyMsg, PublishCommandType
+from faststream._internal.types import MiddlewareMsgType, PublishCommandType
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -13,12 +13,14 @@ if TYPE_CHECKING:
     from faststream.message import StreamMessage
 
 
-class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
+class BaseMiddleware(Generic[PublishCommandType, MiddlewareMsgType]):
     """A base middleware class."""
+
+    __slots__ = ("context", "msg")
 
     def __init__(
         self,
-        msg: AnyMsg | None,
+        msg: MiddlewareMsgType,
         /,
         *,
         context: "ContextRepo",
@@ -29,7 +31,7 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
     async def on_receive(self) -> None:
         """Hook to call on message receive."""
 
-    async def after_processed(
+    async def after_processed(  # noqa: PLR6301
         self,
         exc_type: type[BaseException] | None = None,
         exc_val: BaseException | None = None,
@@ -51,15 +53,15 @@ class BaseMiddleware(Generic[PublishCommandType, AnyMsg]):
         """Exit the asynchronous context manager."""
         return await self.after_processed(exc_type, exc_val, exc_tb)
 
-    async def consume_scope(
+    async def consume_scope(  # noqa: PLR6301
         self,
         call_next: "AsyncFuncAny",
-        msg: "StreamMessage[AnyMsg]",
+        msg: "StreamMessage[Any]",
     ) -> Any:
         """Asynchronously consumes a message and returns an asynchronous iterator of decoded messages."""
         return await call_next(msg)
 
-    async def publish_scope(
+    async def publish_scope(  # noqa: PLR6301
         self,
         call_next: Callable[[PublishCommandType], Awaitable[Any]],
         cmd: PublishCommandType,

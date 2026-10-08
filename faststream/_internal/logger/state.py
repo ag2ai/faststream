@@ -36,6 +36,12 @@ def make_logger_state(
 
 
 class LoggerState:
+    __slots__ = (
+        "log_level",
+        "logger",
+        "params_storage",
+    )
+
     def __init__(
         self,
         log_level: int = logging.INFO,

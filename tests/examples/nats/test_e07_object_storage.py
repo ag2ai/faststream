@@ -17,7 +17,7 @@ async def test_basic() -> None:
         try:
             existed_files = await os.list()
         except Exception:
-            existed_files = ()
+            existed_files = []
 
         call = True
         for file in existed_files:

@@ -3,15 +3,17 @@ from urllib.parse import quote
 
 import pytest
 from dirty_equals import Contains, HasLen, IsPartialDict, IsStr
-from pydantic import create_model
-
-from faststream._internal.broker import BrokerUsecase
+from pydantic import BaseModel
 
 from .basic import AsyncAPI260Factory
 
 
+class SimpleModel(BaseModel):
+    pass
+
+
 class BaseNaming(AsyncAPI260Factory):
-    broker_class: type[BrokerUsecase[Any, Any]]
+    broker_class: Any
 
 
 class MultibrokersSchema(BaseNaming):
@@ -107,15 +109,13 @@ class MultibrokersSchema(BaseNaming):
     ) -> None:
         broker_first = self.broker_class(description="1")
 
-        model = create_model("SimpleModel")
-
         @broker_first.subscriber("test")
-        async def handle_broker_first(msg: model) -> None: ...
+        async def handle_broker_first(msg: SimpleModel) -> None: ...
 
         broker_second = self.broker_class(description="2")
 
         @broker_second.subscriber("test2")
-        async def handle_broker_second(msg: model) -> None: ...
+        async def handle_broker_second(msg: SimpleModel) -> None: ...
 
         schema = self.get_spec(broker_first, broker_second).to_jsonable()
 
@@ -143,7 +143,7 @@ class MultibrokersSchema(BaseNaming):
 
         broker_second = self.broker_class(description="2")
 
-        @broker_second.subscriber("test")
+        @broker_second.subscriber("test")  # type: ignore[no-redef]
         async def handle_broker() -> None: ...  # noqa: F811
 
         with pytest.warns(RuntimeWarning, match=r"test[\w:]*:HandleBroker"):
@@ -179,7 +179,7 @@ class SubscriberNaming(BaseNaming):
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle_user_created(msg: create_model("SimpleModel")) -> None: ...
+        async def handle_user_created(msg: SimpleModel) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -352,7 +352,7 @@ class FilterNaming(BaseNaming):
         sub = broker.subscriber("test")
 
         @sub
-        async def handle_user_created(msg: create_model("SimpleModel")) -> None: ...
+        async def handle_user_created(msg: SimpleModel) -> None: ...
 
         @sub
         async def handle_user_id(msg: int) -> None: ...
@@ -418,7 +418,7 @@ class PublisherNaming(BaseNaming):
         broker = self.broker_class()
 
         @broker.publisher("test")
-        async def handle_user_created() -> create_model("SimpleModel"): ...
+        async def handle_user_created() -> SimpleModel: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

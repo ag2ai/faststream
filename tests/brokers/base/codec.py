@@ -1,23 +1,26 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
 
-from faststream._internal.parser import DefaultCodec
+from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream.message.utils import encode_message
 from tests.brokers.base.basic import BaseTestcaseConfig
 
+if TYPE_CHECKING:
+    from faststream._internal.basic_types import SendableMessage
+
 
 @pytest.mark.asyncio()
-class CodecTestcase(BaseTestcaseConfig):
+class CodecTestcase(BaseTestcaseConfig[Any]):
     async def test_codec_decode_called(
         self,
         mock: MagicMock,
         queue: str,
     ) -> None:
         class TrackingCodec(DefaultCodec):
-            async def decode(self, msg):
+            async def decode(self, msg: Any) -> Any:
                 mock()
                 return await super().decode(msg)
 
@@ -27,7 +30,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue, codec=codec)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -45,13 +48,40 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             mock(m)
 
         async with self.patch_broker(broker) as br:
             await br.publish({"key": "value"}, queue)
 
         mock.assert_called_once_with({"key": "value"})
+
+    async def test_codec_survives_building_the_model_twice(
+        self,
+        mock: MagicMock,
+        queue: str,
+    ) -> None:
+        class TrackingCodec(DefaultCodec):
+            async def decode(self, msg: Any) -> Any:
+                mock()
+                return await super().decode(msg)
+
+        broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue, codec=TrackingCodec())
+
+        @broker.subscriber(*args, **kwargs)
+        async def handle(m: Any) -> None:
+            pass
+
+        # Rendering the schema composes the model once; starting composes it again
+        subscriber = next(iter(broker.subscribers))
+        subscriber.schema()
+
+        async with self.patch_broker(broker) as br:
+            await br.publish(b"hello", queue)
+
+        mock.assert_called_once()
 
     async def test_codec_and_decoder_conflict_raises(
         self,
@@ -60,13 +90,13 @@ class CodecTestcase(BaseTestcaseConfig):
         broker = self.get_broker()
         codec = DefaultCodec()
 
-        async def my_decoder(msg, original):
+        async def my_decoder(msg: Any, original: Any) -> Any:
             return await original(msg)
 
         args, kwargs = self.get_subscriber_params(queue, codec=codec, decoder=my_decoder)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass  # pragma: no cover
 
         # ValueError raised inside _get_parser_and_decoder() during start(),
@@ -82,7 +112,7 @@ class CodecTestcase(BaseTestcaseConfig):
         queue: str,
     ) -> None:
         class TrackingCodec(DefaultCodec):
-            async def decode(self, msg):
+            async def decode(self, msg: Any) -> Any:
                 mock()
                 return await super().decode(msg)
 
@@ -91,7 +121,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -103,7 +133,7 @@ class CodecTestcase(BaseTestcaseConfig):
         mock = MagicMock()
 
         class TrackingCodec(DefaultCodec):
-            async def encode(self, msg, serializer=None):
+            async def encode(self, msg: Any, serializer: Any = None) -> Any:
                 mock()
                 return await super().encode(msg, serializer)
 
@@ -112,7 +142,7 @@ class CodecTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handle(m) -> None:
+        async def handle(m: Any) -> None:
             pass
 
         async with self.patch_broker(broker) as br:
@@ -120,10 +150,10 @@ class CodecTestcase(BaseTestcaseConfig):
 
         assert mock.called, "codec.encode was not called on publish"
 
-    async def test_default_codec_encode_matches_encode_message(self, queue: str) -> None:
+    async def test_default_codec_encode_matches_encode_message(self) -> None:
         codec = DefaultCodec()
 
-        test_cases = [
+        test_cases: list[SendableMessage] = [
             None,
             b"raw bytes",
             "hello string",
@@ -140,7 +170,7 @@ class CodecTestcase(BaseTestcaseConfig):
 
 
 @pytest.mark.asyncio()
-class BatchCodecTestcase(BaseTestcaseConfig):
+class BatchCodecTestcase(BaseTestcaseConfig[Any]):
     async def test_batch_codec_decode_batch_called(
         self,
         mock: MagicMock,
@@ -217,8 +247,6 @@ class BatchCodecTestcase(BaseTestcaseConfig):
                 pass
 
     async def test_batch_codec_isinstance_dispatch(self) -> None:
-        from faststream._internal.parser import BatchCodecProto
-
         class WithBatch(DefaultCodec):
             async def encode_batch(
                 self,

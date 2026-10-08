@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Collect Prometheus metrics for FastStream publishers and subscribers with the built-in
+  middleware and expose them over the ASGI endpoint.
 search:
   boost: 10
 ---
@@ -18,7 +21,7 @@ and performance of systems and applications.
 
 ### FastStream Metrics
 
-To add a metrics to your broker, you need to:
+To add metrics to your broker, you need to:
 
 1. Install `FastStream` with `prometheus-client`
 
@@ -136,7 +139,7 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | Label                             | Description                                                     | Values                                            |
 |-----------------------------------|-----------------------------------------------------------------|---------------------------------------------------|
 | app_name                          | The name of the application, which the user can specify himself | `faststream` by default                           |
-| broker                            | Broker name                                                     | `kafka`, `rabbit`, `nats`, `redis`                |
+| broker                            | Broker name                                                     | `kafka`, `rabbitmq`, `nats`, `redis`, `mqtt`      |
 | handler                           | Where the message came from                                     |                                                   |
 | status (while receiving)          | Message processing status                                       | `acked`, `nacked`, `rejected`, `skipped`, `error` |
 | exception_type (while receiving)  | Exception type when processing message                          |                                                   |
@@ -160,10 +163,10 @@ You can import the [**Grafana dashboard**](https://grafana.com/grafana/dashboard
 
 Enter the dashboard **URL** `https://grafana.com/grafana/dashboards/22130-faststream-metrics/` (or just the **ID**, `22130`), and click on **Load**.
 
-![HTML-page](../../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
 `Import dashboard`
 
 An [example](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"} application with configured **metrics**, **Prometheus** and **Grafana**.
 
-![HTML-page](../../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
 `Grafana dashboard`

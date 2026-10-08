@@ -24,6 +24,11 @@ if TYPE_CHECKING:
 class AsyncConfluentParser:
     """A class to parse Kafka messages."""
 
+    __slots__ = (
+        "_consumer",
+        "is_manual",
+    )
+
     def __init__(self, is_manual: bool = False) -> None:
         self.is_manual = is_manual
         self._consumer: ConsumerProtocol = FAKE_CONSUMER
@@ -88,7 +93,7 @@ class AsyncConfluentParser:
             is_manual=self.is_manual,
         )
 
-    async def decode_message(
+    async def decode_message(  # noqa: PLR6301
         self,
         msg: "StreamMessage[Message]",
     ) -> "DecodedMessage":
@@ -108,8 +113,4 @@ def _parse_msg_headers(headers: "_HeadersInput") -> dict[str, str]:
         seq: Sequence[tuple[str, bytes | str | None]] = list(headers.items())
     else:
         seq = headers
-    return {
-        i: (j if isinstance(j, str) else (j.decode() if j is not None else ""))
-        for i, j in seq
-        if j is not None
-    }
+    return {i: (j if isinstance(j, str) else j.decode()) for i, j in seq if j is not None}

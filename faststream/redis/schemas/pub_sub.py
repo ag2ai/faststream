@@ -24,7 +24,6 @@ class PubSub(NameRequired):
 
     __slots__ = (
         "address",
-        "name",
         "pattern",
         "polling_interval",
     )

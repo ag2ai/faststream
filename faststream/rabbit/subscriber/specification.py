@@ -19,6 +19,8 @@ from .config import RabbitSubscriberSpecificationConfig
 class RabbitSubscriberSpecification(
     SubscriberSpecification[RabbitBrokerConfig, RabbitSubscriberSpecificationConfig],
 ):
+    __slots__ = ()
+
     @property
     def channel_labels(self) -> list[str]:
         """A queue and the exchange it is bound to, which is not the address.
