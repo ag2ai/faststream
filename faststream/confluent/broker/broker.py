@@ -123,7 +123,7 @@ class KafkaBroker(
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
         context: Optional["ContextRepo"] = None,
-        underlying_driver_annotations: "UnderlyingDriverAnnotations" = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Initialize KafkaBroker.
 

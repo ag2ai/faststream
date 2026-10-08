@@ -439,7 +439,7 @@ class NatsBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
-        underlying_driver_annotations: "UnderlyingDriverAnnotations" = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Initialize the NatsBroker object.
 

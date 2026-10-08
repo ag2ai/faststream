@@ -3,15 +3,17 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
 from faststream._internal._compat import HAS_OPENTELEMETRY
-from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
+from faststream._internal.configs import (
+    BrokerConfig,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
 from faststream.mqtt.parser import MQTTVersion
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     import zmqtt
 
     from faststream._internal.types import BrokerMiddleware
@@ -24,7 +26,7 @@ if HAS_OPENTELEMETRY:
 MQTTVersionUnset = cast("str", object())
 
 
-def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
+def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from zmqtt.client import MQTTClient  # noqa: PLC0415
@@ -63,7 +65,7 @@ class MQTTBrokerConfig(BrokerConfig):
     producer: "ZmqttBaseProducer" = field(default_factory=ZmqttFakeProducer)
     _client: Optional["zmqtt.MQTTClient"] = field(default=None, init=False, repr=False)
 
-    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=_context_annotations_factory,
     )
 

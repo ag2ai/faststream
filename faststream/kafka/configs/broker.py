@@ -1,4 +1,4 @@
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
 from types import MappingProxyType
@@ -7,7 +7,11 @@ from typing import Any
 import aiokafka
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
+from faststream._internal.configs import (
+    BrokerConfig,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.utils.data import filter_by_dict
 from faststream.kafka.helpers import AdminService
@@ -18,7 +22,7 @@ from faststream.kafka.publisher.producer import (
 from faststream.kafka.schemas.params import ConsumerConnectionParams
 
 
-def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
+def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from aiokafka.consumer.consumer import AIOKafkaConsumer  # noqa: PLC0415
@@ -69,7 +73,7 @@ class KafkaBrokerConfig(BrokerConfig):
     allow_auto_create_topics: bool = True
     admin: AdminService = field(default_factory=AdminService)
 
-    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=_context_annotations_factory,
     )
 

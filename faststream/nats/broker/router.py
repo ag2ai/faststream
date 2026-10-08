@@ -242,7 +242,7 @@ class NatsRouter(NatsRegistrator, BrokerRouter[Msg, NatsBrokerConfig]):
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: "AckPolicy" = EMPTY,
-        underlying_driver_annotations: "UnderlyingDriverAnnotations" = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Initialize the NatsRouter instance.
 

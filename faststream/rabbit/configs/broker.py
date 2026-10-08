@@ -1,23 +1,25 @@
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
+from faststream._internal.configs import (
+    BrokerConfig,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream._internal.parser import DefaultCodec
 from faststream.rabbit.helpers.channel_manager import FakeChannelManager
 from faststream.rabbit.helpers.declarer import FakeRabbitDeclarer
 from faststream.rabbit.publisher.producer import FakeAioPikaFastProducer
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from aio_pika import RobustConnection
 
     from faststream.rabbit.helpers import ChannelManager, RabbitDeclarer
     from faststream.rabbit.publisher.producer import AioPikaFastProducer
 
 
-def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
+def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from aio_pika.robust_channel import RobustChannel  # noqa: PLC0415
@@ -72,7 +74,7 @@ class RabbitBrokerConfig(BrokerConfig):
     virtual_host: str = ""
     app_id: str | None = None
 
-    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=_context_annotations_factory,
     )
 

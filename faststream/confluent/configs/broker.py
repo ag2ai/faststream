@@ -1,10 +1,14 @@
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
+from faststream._internal.configs import (
+    BrokerConfig,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream._internal.parser import DefaultCodec
 from faststream.confluent.helpers import (
     AdminService,
@@ -22,7 +26,7 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic
 
 
-def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
+def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from faststream.confluent import annotations  # noqa: PLC0415
@@ -95,7 +99,7 @@ class KafkaBrokerConfig(BrokerConfig):
         default_factory=FakeConfluentFastProducer,
     )
 
-    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=_context_annotations_factory,
     )
 

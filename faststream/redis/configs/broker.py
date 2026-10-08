@@ -1,14 +1,16 @@
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from faststream._internal.configs import BrokerConfig, UnderlyingDriverAnnotation
+from faststream._internal.configs import (
+    BrokerConfig,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import IncorrectState
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from redis.asyncio.client import Redis
     from redis.asyncio.cluster import RedisCluster
 
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
     from .state import ConnectionState
 
 
-def _context_annotations_factory() -> "Mapping[Any, UnderlyingDriverAnnotation | Any]":
+def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
     from redis.asyncio.client import (  # noqa: PLC0415
@@ -94,7 +96,7 @@ class RedisBrokerConfig(BrokerConfig):
 
     message_format: type["MessageFormat"]
 
-    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=_context_annotations_factory,
     )
 
@@ -110,7 +112,7 @@ class RedisBrokerConfig(BrokerConfig):
 
 @dataclass(kw_only=True)
 class RedisRouterConfig(BrokerConfig):
-    default_driver_annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]" = field(
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=_context_annotations_factory,
     )
 

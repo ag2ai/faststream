@@ -35,9 +35,7 @@ class UnderlyingDriverAnnotation:
     name: str
 
 
-UnderlyingDriverAnnotations: TypeAlias = (
-    Mapping[Any, UnderlyingDriverAnnotation | Any] | None
-)
+UnderlyingDriverAnnotations: TypeAlias = Mapping[Any, UnderlyingDriverAnnotation | Any]
 
 
 @dataclass(kw_only=True)
@@ -56,12 +54,10 @@ class BrokerConfig:
     id_generator: IdGenerator = gen_cor_id
 
     # subscriber options
-    underlying_driver_annotations: Mapping[Any, UnderlyingDriverAnnotation | Any] = field(
+    underlying_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=dict
     )
-    default_driver_annotations: Mapping[Any, UnderlyingDriverAnnotation | Any] = field(
-        default_factory=dict
-    )
+    default_driver_annotations: UnderlyingDriverAnnotations = field(default_factory=dict)
     broker_dependencies: Sequence["Dependant"] = ()
     graceful_timeout: float | None = 15.0
     ack_policy: "AckPolicy" = field(default_factory=lambda: EMPTY)
@@ -74,7 +70,7 @@ class BrokerConfig:
     @property
     def resolved_underlying_driver_annotations(
         self,
-    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+    ) -> UnderlyingDriverAnnotations:
         # A broker's own rows are the defaults; anything the user passed wins.
         return {
             **self.default_driver_annotations,
@@ -210,7 +206,7 @@ class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
     @property
     def underlying_driver_annotations(
         self,
-    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+    ) -> UnderlyingDriverAnnotations:
         annotations: dict[Any, Any] = {}
         for c in self.configs:
             annotations |= c.underlying_driver_annotations
@@ -219,7 +215,7 @@ class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
     @property
     def default_driver_annotations(
         self,
-    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+    ) -> UnderlyingDriverAnnotations:
         annotations: dict[Any, Any] = {}
         for c in self.configs:
             annotations |= c.default_driver_annotations
@@ -228,7 +224,7 @@ class ConfigComposition(Generic[BrokerConfigType_co]):  # noqa: PLR0904
     @property
     def resolved_underlying_driver_annotations(
         self,
-    ) -> Mapping[Any, UnderlyingDriverAnnotation | Any]:
+    ) -> UnderlyingDriverAnnotations:
         return {
             **self.default_driver_annotations,
             **self.underlying_driver_annotations,

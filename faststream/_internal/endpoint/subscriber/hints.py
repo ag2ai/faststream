@@ -3,7 +3,10 @@ from types import UnionType
 from typing import TYPE_CHECKING, Annotated, Any, Union, get_args, get_origin
 
 from faststream._internal._compat import ExceptionGroup
-from faststream._internal.configs import UnderlyingDriverAnnotation
+from faststream._internal.configs import (
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
@@ -15,7 +18,7 @@ if TYPE_CHECKING:
 
 def check_context_annotations(
     dependent: "CallModel",
-    annotations: "Mapping[Any, UnderlyingDriverAnnotation | Any]",
+    annotations: UnderlyingDriverAnnotations,
 ) -> None:
     """Reject call model arguments annotated with a broker's own driver class.
 
