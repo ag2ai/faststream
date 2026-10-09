@@ -8,7 +8,12 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
-from faststream.rabbit.address import as_declared, broker_exchange, broker_queue
+from faststream.rabbit.address import (
+    as_declared,
+    broker_exchange,
+    broker_queue,
+    broker_queue_routing_key,
+)
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -81,7 +86,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         return as_declared(self._outer_config, self._queue)
 
     def routing(self) -> str:
-        return self.queue.routing()
+        return broker_queue_routing_key(self._outer_config, self._queue)
 
     @override
     async def start(self) -> None:

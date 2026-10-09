@@ -8,6 +8,7 @@ from faststream._internal.utils.data import filter_by_dict
 from faststream.rabbit.address import (
     broker_exchange,
     broker_queue,
+    broker_queue_routing_key,
     broker_routing_key,
 )
 from faststream.rabbit.response import RabbitPublishCommand
@@ -89,7 +90,10 @@ class RabbitPublisher(PublisherUsecase):
             if q := RabbitQueue.validate(queue):
                 routing_key = q.routing()
             else:
-                routing_key = self.routing_key or self.queue.routing()
+                routing_key = self.routing_key or broker_queue_routing_key(
+                    self._outer_config,
+                    self._queue,
+                )
 
         return routing_key
 

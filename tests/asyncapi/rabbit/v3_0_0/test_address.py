@@ -5,6 +5,7 @@ from faststream.rabbit import (
     RabbitBroker,
     RabbitExchange,
     RabbitQueue,
+    RabbitRouter,
 )
 from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
 
@@ -35,3 +36,25 @@ def test_every_address_is_named_as_declared() -> None:
         "logs-q:logs-ex:HandleLogsSubscribe": ["logs.{level}"],
         "cache{shard}:logs-ex:Publisher": ["cache{shard}"],
     }
+
+
+@pytest.mark.rabbit()
+def test_publisher_schema_keeps_the_router_prefix_literal() -> None:
+    """Fixes https://github.com/ag2ai/faststream/pull/3109."""
+    broker = RabbitBroker()
+    router = RabbitRouter(prefix="logs.{{tenant}}.")
+    router.publisher(
+        RabbitQueue("events", routing_key="events{{version}}.{level}"),
+        EXCHANGE,
+    )
+    broker.include_router(router)
+
+    schema = get_3_0_0_schema(broker)
+    name = "events{version}.{level}:logs-ex:Publisher"
+    assert (
+        schema["channels"][name]["address"],
+        schema["operations"][name]["bindings"]["amqp"]["cc"],
+    ) == (
+        "logs.{{tenant}}.events{version}.{level}",
+        ["logs.{{tenant}}.events{version}.{level}"],
+    )

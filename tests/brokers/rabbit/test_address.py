@@ -3,12 +3,43 @@ from typing import Any
 import pytest
 from typing_extensions import override
 
-from faststream.rabbit import ExchangeType, RabbitExchange, RabbitQueue
+from faststream.rabbit import (
+    ExchangeType,
+    RabbitBroker,
+    RabbitExchange,
+    RabbitQueue,
+    RabbitRouter,
+)
 from tests.brokers.base.address import AddressPublisherDeliveryTestcase
 
 from .basic import RabbitMemoryTestcaseConfig, RabbitTestcaseConfig
 
 EXCHANGE = RabbitExchange("address-tests", type=ExchangeType.TOPIC)
+
+
+@pytest.mark.rabbit()
+@pytest.mark.parametrize("prefix", ("logs.{tenant}.", "logs.{{tenant}}."))
+@pytest.mark.parametrize(
+    ("routing_key", "expected_key"),
+    (("events", "events"), ("events{{version}}.{level}", "events{version}.*")),
+)
+def test_endpoint_routing_keeps_the_router_prefix_literal(
+    prefix: str,
+    routing_key: str,
+    expected_key: str,
+) -> None:
+    """Fixes https://github.com/ag2ai/faststream/pull/3109."""
+    broker = RabbitBroker()
+    router = RabbitRouter(prefix=prefix)
+    queue = RabbitQueue("events", routing_key=routing_key)
+    subscriber = router.subscriber(queue)
+    publisher = router.publisher(queue)
+    broker.include_router(router)
+
+    assert (subscriber.routing(), publisher.routing()) == (
+        f"{prefix}{expected_key}",
+        f"{prefix}{expected_key}",
+    )
 
 
 class RabbitAddressDelivery(AddressPublisherDeliveryTestcase):

@@ -15,6 +15,23 @@ def broker_queue(config: "RabbitBrokerConfig", queue: "RabbitQueue") -> "RabbitQ
     return queue.add_prefix(config.prefix)
 
 
+def broker_queue_routing_key(
+    config: "RabbitBrokerConfig",
+    queue: "RabbitQueue",
+) -> str:
+    """Return the compiled queue routing key with a literal Router prefix."""
+    # Routing has always treated the prefix literally, unlike queue bindings (PR #3109).
+    return f"{config.prefix}{queue.routing()}"
+
+
+def broker_queue_routing_template(
+    config: "RabbitBrokerConfig",
+    queue: "RabbitQueue",
+) -> str:
+    """Return the queue routing template with a literal Router prefix."""
+    return f"{config.prefix}{queue.routing_template()}"
+
+
 def broker_exchange(
     config: "RabbitBrokerConfig",
     exchange: "RabbitExchange",

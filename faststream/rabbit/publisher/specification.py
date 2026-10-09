@@ -5,6 +5,7 @@ from faststream.rabbit.address import (
     as_declared,
     broker_exchange,
     broker_queue,
+    broker_queue_routing_template,
     broker_routing_key,
 )
 from faststream.rabbit.configs import RabbitBrokerConfig
@@ -75,7 +76,10 @@ class RabbitPublisherSpecification(
         if not self.routing:
             return None
 
-        return self.routing_key or self.queue.routing_template()
+        return self.routing_key or broker_queue_routing_template(
+            self._outer_config,
+            self.config.queue,
+        )
 
     @property
     def name(self) -> str:
@@ -94,7 +98,10 @@ class RabbitPublisherSpecification(
 
         # Not `self.address`: the binding hands the key over whatever the exchange
         # type, and the renderer is what drops it where the exchange ignores one.
-        routing_key = self.routing_key or self.queue.routing_template()
+        routing_key = self.routing_key or broker_queue_routing_template(
+            self._outer_config,
+            self.config.queue,
+        )
 
         return {
             self.name: PublisherSpec(
