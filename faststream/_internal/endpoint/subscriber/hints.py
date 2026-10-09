@@ -10,8 +10,6 @@ from faststream._internal.configs import (
 from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from fast_depends.core import CallModel
     from fast_depends.library.serializer import OptionItem
 
@@ -58,7 +56,7 @@ def _options(
         yield from _options(sub_model, sub_model.call_name)
 
 
-def _find_mapped(hint: Any, annotations: "Mapping[Any, Any]") -> Any:
+def _find_mapped(hint: Any, annotations: UnderlyingDriverAnnotations) -> Any:
     origin = get_origin(hint)
 
     if origin is Annotated:

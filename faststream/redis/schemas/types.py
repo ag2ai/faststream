@@ -10,9 +10,7 @@ from redis.asyncio.retry import Retry
 from typing_extensions import Required, TypedDict
 
 from faststream._internal.basic_types import LoggerProto
-from faststream._internal.configs import (
-    UnderlyingDriverAnnotations,
-)
+from faststream._internal.configs import UnderlyingDriverAnnotations
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.parser import CodecProto
 from faststream._internal.types import BrokerMiddleware, CustomCallable, IdGenerator
@@ -157,10 +155,10 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     context: ContextRepo | None
     """Context repository. Defaults to ``None``."""
 
-    underlying_driver_annotations: UnderlyingDriverAnnotations
+    underlying_driver_annotations: UnderlyingDriverAnnotations | None
     """Extra driver type hints that FastStream cannot inject, mapped to the annotation to use instead.
 
-    Merged over the broker's own rows.
+    Merged over the broker's own rows. Defaults to ``None``.
     """
 
 
