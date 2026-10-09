@@ -4,27 +4,62 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Redis Pub/Sub in Python: Async Publish and Subscribe"
+description: >-
+  Publish and subscribe to Redis channels in async Python with redis-py and FastStream. Run a channel example and learn when to use Streams for durable processing.
 search:
   boost: 10
 ---
 
-# Redis Channels
+# Redis Pub/Sub in Python: Async Publish and Subscribe
 
-[**Redis Pub/Sub Channels**](https://redis.io/docs/latest/develop/pubsub/){.external-link target="_blank"} are a feature of **Redis** that enables messaging between clients through a publish/subscribe (pub/sub) pattern. A **Redis** channel is essentially a medium through which messages are transmitted. Different clients can subscribe to these channels to listen for messages, while other clients can publish messages to these channels.
+Use **Redis Pub/Sub in Python** to broadcast messages to applications listening on a channel. FastStream uses **redis-py** for Redis access and lets you declare asynchronous subscribers and publishers with decorators. Pub/Sub delivers to currently connected subscribers; use [Redis Streams](../streams/index.md) when you need stored messages, consumer groups or acknowledgement.
+
+## Run an async Python publisher and subscriber
+
+Install the Redis backend and CLI:
+
+```bash
+pip install "faststream[redis,cli]"
+```
+
+With Redis listening on `localhost:6379`, save this application as `redis_pubsub.py`:
+
+```python linenums="1"
+{! docs_src/index/redis/basic.py !}
+```
+
+Start the application:
+
+```bash
+faststream run redis_pubsub:app
+```
+
+In a second terminal, listen for the response:
+
+```bash
+redis-cli SUBSCRIBE out-channel
+```
+
+In a third terminal, publish JSON matching the Python handler's arguments:
+
+```bash
+redis-cli PUBLISH in-channel '{"user": "Alice", "user_id": 1}'
+```
+
+The subscriber processes the message and the publisher sends its return value, `User: 1 - Alice registered`, to `out-channel`. FastStream wraps outgoing messages in its [binary message format](../message_format.md#publishing-to-an-external-consumer), so `redis-cli` shows envelope bytes containing this response rather than plain text alone. Another FastStream subscriber decodes the body automatically. Keep the subscriber connected before publishing: Pub/Sub does not replay earlier messages.
+
+For publishing directly from Python, see [channel publishing](publishing.md). For wildcard channels such as `logs.*`, see [pattern subscriptions](subscription.md#pattern-channel-subscription).
 
 !!! tip "Cluster Support"
     `RedisClusterBroker` supports Pub/Sub via a synchronous `RedisCluster` client. See the [Cluster docs](../cluster.md){.internal-link}.
 
-When a message is published to a **Redis** channel, all subscribers to that channel receive the message instantly. This makes **Redis** channels suitable for a variety of real-time applications such as chat rooms, notifications, live updates, and many more use cases where messages must be broadcast promptly to multiple clients.
+## Delivery and limitations
 
-## Limitations
+[Redis Pub/Sub](https://redis.io/docs/latest/develop/pubsub/){.external-link target="_blank"} broadcasts each published message to the subscribers currently connected to its channel. It suits live notifications and updates when missing a message during a disconnection is acceptable.
 
-**Redis Pub/Sub** Channels, while powerful for real-time communication in scenarios like chat rooms and live updates, have certain limitations when compared to **Redis List** and **Redis Streams**.
+- **No replay or persistence**: channel messages are not retained for subscribers that connect later.
+- **No processing acknowledgement**: Redis Pub/Sub uses at-most-once delivery. A subscriber that disconnects or fails to process a received message cannot ask Pub/Sub to redeliver it.
+- **Delivery order and processing order differ**: Redis delivers Pub/Sub messages in publication order, but concurrent handler execution can complete out of order.
 
-* **No Persistence**. One notable limitation is the lack of message persistence. Unlike **Redis List**, where messages are stored in an ordered queue, and **Redis Streams**, which provides an append-only log-like structure with persistence, **Redis Pub/Sub** doesn't retain messages once they are broadcasted. This absence of message durability means that subscribers who join a channel after a message has been sent won't receive the message, missing out on historical data.
-
-* **No Acknowledgement**. Additionally, **Redis Pub/Sub** operates on a simple broadcast model. While this is advantageous for immediate message dissemination to all subscribers, it lacks the nuanced features of **Redis Streams**, such as consumer groups and message acknowledgment. **Redis Streams**' ability to organize messages into entries and support parallel processing through consumer groups makes it more suitable for complex scenarios where ordered, persistent, and scalable message handling is essential.
-
-* **No Order**. Furthermore, **Redis Pub/Sub** might not be the optimal choice for scenarios requiring strict message ordering, as it prioritizes immediate broadcast over maintaining a specific order. **Redis List**, with its FIFO structure, and **Redis Streams**, with their focus on ordered append-only logs, offer more control over message sequencing.
-
-In summary, while **Redis Pub/Sub** excels in simplicity and real-time broadcast scenarios, **Redis List** and **Redis Streams** provide additional features such as message persistence, ordered processing, and scalability, making them better suited for certain use cases with specific requirements. The choice between these **Redis** features depends on the nature of the application and its messaging needs.
+Choose [Redis Streams](../streams/index.md) for retained entries, consumer groups, acknowledgement and recovery of pending messages. Choose [Redis Lists](../list/index.md) for a queue based on list operations.
