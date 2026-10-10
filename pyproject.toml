@@ -522,7 +522,7 @@ exclude-classes = '''
       # a `__getattr__` proxy: reads forward to the inner config, writes land here
 | ^faststream\._internal\.endpoint\.subscriber\.mixins:ConcurrentMixin$
       # mixed into each broker's slotted subscriber; two slotted bases conflict
-| ^faststream\.(kafka|confluent)\.message:FakeConsumer$
+| ^faststream\.(kafka|confluent|redis)\.message:FakeConsumer$
       # the FAKE_CONSUMER singleton, whose methods tests patch on the instance
 | ^faststream\.nats\.broker\.registrator:NatsRegistrator$
       # NatsRouter mixes it with BrokerRouter, a slotted sibling under Registrator

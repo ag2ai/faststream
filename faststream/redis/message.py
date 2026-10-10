@@ -1,14 +1,20 @@
+import warnings
 from typing import (
     TYPE_CHECKING,
+    Annotated,
+    Any,
     Literal,
     Optional,
+    Protocol,
     TypeAlias,
     TypeVar,
     Union,
+    overload,
 )
 
-from typing_extensions import NotRequired, TypedDict, override
+from typing_extensions import NotRequired, TypedDict, deprecated, override
 
+from faststream._internal.constants import EMPTY
 from faststream.message import StreamMessage as BrokerStreamMessage
 
 if TYPE_CHECKING:
@@ -113,61 +119,144 @@ class BatchStreamMessage(_StreamMessage):
 _StreamMsgType = TypeVar("_StreamMsgType", bound=_StreamMessage)
 
 
+class ConsumerProtocol(Protocol):
+    """A protocol for Redis consumers."""
+
+    async def xack(self, name: str, groupname: str, *ids: bytes) -> None:
+        pass
+
+    async def xdel(self, name: str, *ids: bytes) -> None:
+        pass
+
+    async def xpending_range(
+        self, name: str, groupname: str, min: bytes, max: bytes, count: int
+    ) -> list[dict[str, Any]]:
+        pass
+
+
+class FakeConsumer:
+    """A fake Redis consumer."""
+
+    async def xack(self, name: str, groupname: str, *ids: bytes) -> None:
+        pass
+
+    async def xdel(self, name: str, *ids: bytes) -> None:
+        pass
+
+    async def xpending_range(  # noqa: PLR6301
+        self, name: str, groupname: str, min: bytes, max: bytes, count: int
+    ) -> list[dict[str, Any]]:
+        return []
+
+
+FAKE_CONSUMER = FakeConsumer()
+
+
+_DEPRECATION_MESSAGE = (
+    "The client and group are bound to the message now."
+    " `redis` and `group` arguments will be removed in 1.0.0."
+)
+_RedisDeprecatedType = Annotated[
+    Optional["Redis[bytes]"], deprecated(_DEPRECATION_MESSAGE)
+]
+_GroupDeprecatedType = Annotated[str | None, deprecated(_DEPRECATION_MESSAGE)]
+
+
 class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
+    def __init__(
+        self, *args: Any, consumer: ConsumerProtocol, group: str | None, **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.consumer = consumer
+        self.group = group
+
+    @overload
+    def _resolve_consumer_context(
+        self, redis: "Redis[bytes]", group: str
+    ) -> tuple[ConsumerProtocol, str]: ...
+
+    @overload
+    def _resolve_consumer_context(
+        self, redis: Optional["Redis[bytes]"], group: str | None
+    ) -> tuple[ConsumerProtocol | None, str | None]: ...
+
+    def _resolve_consumer_context(
+        self, redis: Optional["Redis[bytes]"], group: str | None
+    ) -> tuple[ConsumerProtocol | None, str | None]:
+        if redis is not EMPTY or group is not EMPTY:
+            warnings.warn(
+                _DEPRECATION_MESSAGE,
+                DeprecationWarning,
+                stacklevel=3,
+            )
+        return (
+            redis if redis is not EMPTY else self.consumer,
+            group if group is not EMPTY else self.group,
+        )
+
     @override
     async def ack(
         self,
-        redis: Optional["Redis[bytes]"] = None,
-        group: str | None = None,
+        redis: _RedisDeprecatedType = EMPTY,
+        group: _GroupDeprecatedType = EMPTY,
     ) -> None:
-        if not self.committed and group is not None and redis is not None:
+        redis_resolved, group_resolved = self._resolve_consumer_context(redis, group)
+        if (
+            not self.committed
+            and group_resolved is not None
+            and redis_resolved is not None
+        ):
             ids = self.raw_message["message_ids"]
             channel = self.raw_message["channel"]
-            await redis.xack(channel, group, *ids)  # type: ignore[no-untyped-call]
+            await redis_resolved.xack(channel, group_resolved, *ids)
         await super().ack()
 
     @override
     async def nack(
         self,
-        redis: Optional["Redis[bytes]"] = None,
-        group: str | None = None,
+        redis: _RedisDeprecatedType = EMPTY,
+        group: _GroupDeprecatedType = EMPTY,
     ) -> None:
+        self._resolve_consumer_context(redis, group)
         await super().nack()
 
     @override
     async def reject(
         self,
-        redis: Optional["Redis[bytes]"] = None,
-        group: str | None = None,
+        redis: _RedisDeprecatedType = EMPTY,
+        group: _GroupDeprecatedType = EMPTY,
     ) -> None:
+        self._resolve_consumer_context(redis, group)
         await super().reject()
 
-    async def delete(self, redis: Optional["Redis[bytes]"]) -> None:
-        if redis is not None:
+    async def delete(self, redis: _RedisDeprecatedType = EMPTY) -> None:
+        redis_resolved, _ = self._resolve_consumer_context(redis, EMPTY)
+        if redis_resolved is not None:
             ids = self.raw_message["message_ids"]
             channel = self.raw_message["channel"]
-            await redis.xdel(channel, *ids)
+            await redis_resolved.xdel(channel, *ids)
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
     async def get_delivery_count(
         self,
-        redis: "Redis[bytes]",
-        group: str,
+        redis: Annotated["Redis[bytes]", deprecated(_DEPRECATION_MESSAGE)] = EMPTY,
+        group: Annotated[str, deprecated(_DEPRECATION_MESSAGE)] = EMPTY,
     ) -> int:
         """Return this message's current delivery count from the Redis PEL.
 
         The count is queried on every call. Messages without an ID or a pending
         entry, including acknowledged messages, return ``1``.
         """
+        redis_resolved, group_resolved = self._resolve_consumer_context(redis, group)
         message_ids = self.raw_message["message_ids"]
         if not message_ids:
             return 1
 
         message_id = message_ids[0]
-        entries = await redis.xpending_range(
+        entries = await redis_resolved.xpending_range(
             name=self.raw_message["channel"],
-            groupname=group,
+            groupname=group_resolved,
             min=message_id,
             max=message_id,
             count=1,
