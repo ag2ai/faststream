@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
 
@@ -119,6 +120,7 @@ class MQTTRouter(
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: AckPolicy = EMPTY,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         super().__init__(
             handlers=handlers,
@@ -130,6 +132,7 @@ class MQTTRouter(
                 broker_parser=parser,
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             routers=routers,
         )

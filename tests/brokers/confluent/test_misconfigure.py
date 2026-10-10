@@ -3,11 +3,15 @@ from typing import Any
 import pytest
 
 from faststream import AckPolicy
-from faststream.confluent import KafkaBroker, TopicPartition
+from faststream.confluent import KafkaBroker, TopicPartition, annotations
 from faststream.confluent.broker.router import KafkaRouter
+from faststream.confluent.helpers import AsyncConfluentConsumer
 from faststream.confluent.subscriber.usecase import ConcurrentDefaultSubscriber
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
+from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
+
+from .basic import ConfluentMemoryTestcaseConfig
 
 
 @pytest.mark.confluent()
@@ -68,3 +72,11 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
     # the warning points at the line that registered the subscriber
     assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
+
+
+@pytest.mark.confluent()
+class TestDriverAnnotations(ConfluentMemoryTestcaseConfig, DriverAnnotationTestcase):
+    driver_class = AsyncConfluentConsumer
+    driver_path = "faststream.confluent.helpers.client.AsyncConfluentConsumer"
+    context_annotation = annotations.Consumer
+    annotation_import = "from faststream.confluent.annotations import Consumer"

@@ -348,6 +348,51 @@ from faststream import Logger, ContextRepo
         await broker.publish("test", "response")
     ```
 
+### Driver Type Hints
+
+A broker's driver objects, such as the `redis.asyncio.Redis` client, the `aiokafka.AIOKafkaConsumer` or the broker itself, live in the context. An argument typed with the bare driver class is not a context field, so **FastStream** would try to validate it as message data. Instead, it refuses to start and names the annotation to use:
+
+```text
+`redis` is annotated with `redis.asyncio.client.Redis`, which FastStream cannot inject.
+Use the context annotation instead:
+
+    from faststream.redis.annotations import Redis
+```
+
+Every broker knows its own driver classes. To get the same check for your own objects, pass `underlying_driver_annotations` to the broker or a router. Each key is a class that must not be used as a bare type hint. Wrap the value in `UnderlyingDriverAnnotation` to name the import the error should suggest:
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/kafka/driver_annotations.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/confluent/driver_annotations.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/rabbit/driver_annotations.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/nats/driver_annotations.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/redis/driver_annotations.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="8 13-19"
+    {!> docs_src/getting_started/context/mqtt/driver_annotations.py !}
+    ```
+
+A handler argument typed `storage: Storage` now fails at startup with `from app.dependencies import StorageClient` in the message. Your rows are merged over the broker's own, so a row for one of the broker's driver classes replaces its default.
+
 ## Context Extra Options
 
 Additionally, `Context` provides you with some extra capabilities for working with containing objects.

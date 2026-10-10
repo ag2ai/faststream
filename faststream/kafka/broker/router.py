@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -424,6 +425,7 @@ class KafkaRouter(
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: "AckPolicy" = EMPTY,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Initialize KafkaRouter.
 
@@ -439,6 +441,10 @@ class KafkaRouter(
             ack_policy:
                 Default acknowledgement policy for all subscribers in this router.
                 Can be overridden at the subscriber level.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         super().__init__(
             handlers=handlers,
@@ -450,6 +456,7 @@ class KafkaRouter(
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,
                 prefix=prefix,
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             routers=routers,
         )
