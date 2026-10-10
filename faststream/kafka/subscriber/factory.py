@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream._internal.utils import to_async
 from faststream.exceptions import SetupError
 from faststream.kafka._compat import validate_client_rack
 from faststream.kafka.schemas import Topic
@@ -21,6 +22,7 @@ from .usecase import (
 if TYPE_CHECKING:
     from aiokafka.abc import ConsumerRebalanceListener
 
+    from faststream._internal.types import ExceptionHandler
     from faststream.kafka.configs import KafkaBrokerConfig
     from faststream.kafka.schemas import TopicPartition
 
@@ -40,6 +42,7 @@ def create_subscriber(
     ack_policy: "AckPolicy",
     max_workers: int,
     no_reply: bool,
+    exception_handler: "ExceptionHandler | None",
     config: "KafkaBrokerConfig",
     # Specification args
     title_: str | None,
@@ -71,6 +74,9 @@ def create_subscriber(
         listener=listener,
         pattern=pattern,
         no_reply=no_reply,
+        exception_handler=(
+            to_async(exception_handler) if exception_handler is not None else None
+        ),
         _outer_config=config,
         _ack_policy=ack_policy,
     )

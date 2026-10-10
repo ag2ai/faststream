@@ -19,6 +19,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
+from faststream._internal.utils import apply_types, to_async
 from faststream.asgi.app import AsgiFastStream
 
 if TYPE_CHECKING:
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
         SettingField,
     )
     from faststream._internal.broker import BrokerUsecase
+    from faststream._internal.types import AsyncExceptionHandler, ExceptionHandler
     from faststream.asgi import AsyncAPIRoute
     from faststream.asgi.types import ASGIApp
     from faststream.specification.base import SpecificationFactory
@@ -49,6 +51,7 @@ class FastStream(Application):
         provider: Optional["Provider"] = None,
         serializer: Optional["SerializerProto"] = EMPTY,
         context: ContextRepo | None = None,
+        exception_handler: "ExceptionHandler | None" = None,
         lifespan: Optional["Lifespan"] = None,
         on_startup: Sequence["AnyCallable"] = (),
         after_startup: Sequence["AnyCallable"] = (),
@@ -71,6 +74,14 @@ class FastStream(Application):
             after_shutdown=after_shutdown,
             specification=specification,
         )
+
+        self._exception_handler: AsyncExceptionHandler | None = None
+        if exception_handler is not None:
+            self._exception_handler = apply_types(
+                to_async(exception_handler),
+                serializer_cls=self.config._serializer,
+                context__=self.context,
+            )
 
         self._should_exit = False
 

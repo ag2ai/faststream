@@ -54,6 +54,8 @@ class BrokerUsecase(
             routers=routers,
             config=config,
         )
+        self._exception_handler = config.broker_exception_handler
+
         self.specification = specification
 
         self.running = False

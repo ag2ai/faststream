@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
+        ExceptionHandler,
     )
     from faststream.kafka.publisher.usecase import (
         BatchPublisher,
@@ -96,6 +97,7 @@ class KafkaRegistrator(
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        exception_handler: "ExceptionHandler | None" = None,
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -146,6 +148,7 @@ class KafkaRegistrator(
         max_workers: None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        exception_handler: "ExceptionHandler | None" = None,
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -196,6 +199,7 @@ class KafkaRegistrator(
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        exception_handler: "ExceptionHandler | None" = None,
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -246,6 +250,7 @@ class KafkaRegistrator(
         max_workers: int = ...,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        exception_handler: "ExceptionHandler | None" = None,
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -296,6 +301,7 @@ class KafkaRegistrator(
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        exception_handler: "ExceptionHandler | None" = None,
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -351,6 +357,7 @@ class KafkaRegistrator(
         max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
+        exception_handler: "ExceptionHandler | None" = None,
         # Specification args
         title: str | None = None,
         description: str | None = None,
@@ -553,6 +560,9 @@ class KafkaRegistrator(
             no_ack: Whether to disable **FastStream** auto acknowledgement logic or not.
             ack_policy: Acknowledgement policy for the subscriber.
             no_reply: Whether to disable **FastStream** RPC and Reply To auto responses or not.
+            exception_handler: Sync or async exception handler called before
+                the broker's handler. Return True if handled, otherwise False
+                to delegate to the broker.
             title: Specification subscriber object title.
             description: Specification subscriber object description. " "Uses decorated docstring as default.
             include_in_schema: Whetever to include operation in Specification schema or not.
@@ -596,6 +606,7 @@ class KafkaRegistrator(
             partitions=partitions,
             ack_policy=ack_policy,
             no_reply=no_reply,
+            exception_handler=exception_handler,
             config=cast("KafkaBrokerConfig", self.config),
             # Specification
             title_=title,

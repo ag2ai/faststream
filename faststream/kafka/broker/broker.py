@@ -26,6 +26,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.types import IdGenerator
+from faststream._internal.utils import to_async
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
 from faststream.kafka._compat import AIOKAFKA_V013, validate_client_rack
@@ -60,6 +61,7 @@ if TYPE_CHECKING:
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
+        ExceptionHandler,
     )
     from faststream.kafka.message import KafkaMessage
     from faststream.kafka.types import KafkaSendableMessage
@@ -237,6 +239,7 @@ class KafkaBroker(
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         parser: Optional["CustomCallable"] = None,
+        exception_handler: "ExceptionHandler | None" = None,
         dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[KafkaRegistrator] = (),
@@ -357,6 +360,10 @@ class KafkaBroker(
                 Custom codec object.
             parser (Optional[CustomCallable]):
                 Custom parser object.
+            exception_handler (ExceptionHandler | None):
+                Sync or async exception handler called when a subscriber's
+                exception handler is absent or returns False.
+                Return True if handled, otherwise False for default handling.
             dependencies (Sequence[Dependant]):
                 Dependencies to apply to all broker subscribers.
             middlewares (Sequence[BrokerMiddlewarep[Any, Any]]):
@@ -468,6 +475,9 @@ class KafkaBroker(
                 broker_decoder=decoder,
                 broker_codec=codec,
                 broker_parser=parser,
+                broker_exception_handler=(
+                    to_async(exception_handler) if exception_handler is not None else None
+                ),
                 broker_middlewares=middlewares,
                 logger=make_kafka_logger_state(
                     logger=logger,
