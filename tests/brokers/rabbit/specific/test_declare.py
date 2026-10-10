@@ -38,6 +38,38 @@ async def test_declare_queue(async_mock: AsyncMock, queue: str) -> None:
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
+async def test_declare_expiring_queue_again(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/2721."""
+    channel_manager: Any = FakeChannelManager(async_mock)
+    declarer = RabbitDeclarerImpl(channel_manager)
+
+    await declarer.declare_queue(RabbitQueue(queue, arguments={"x-expires": 1000}))
+    await declarer.declare_queue(RabbitQueue(queue, arguments={"x-expires": 1000}))
+
+    assert async_mock.declare_queue.await_count == 2
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_declare_auto_delete_queue_again(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/2721."""
+    channel_manager: Any = FakeChannelManager(async_mock)
+    declarer = RabbitDeclarerImpl(channel_manager)
+
+    await declarer.declare_queue(RabbitQueue(queue, auto_delete=True))
+    await declarer.declare_queue(RabbitQueue(queue, auto_delete=True))
+
+    assert async_mock.declare_queue.await_count == 2
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
 async def test_declare_exchange(async_mock: AsyncMock, queue: str) -> None:
     channel_manager: Any = FakeChannelManager(async_mock)
     declarer = RabbitDeclarerImpl(channel_manager)

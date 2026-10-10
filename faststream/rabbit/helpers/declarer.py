@@ -63,9 +63,12 @@ class FakeRabbitDeclarer(RabbitDeclarer):
         raise NotImplementedError
 
 
+def _can_be_deleted_by_broker(queue: "RabbitQueue") -> bool:
+    return queue.auto_delete or "x-expires" in (queue.arguments or {})
+
+
 class RabbitDeclarerImpl(RabbitDeclarer):
     __slots__ = ("__channel_manager", "_exchanges", "_queues")
-
     def __init__(self, channel_manager: "ChannelManager") -> None:
         self.__channel_manager = channel_manager
         self._queues: dict[RabbitQueue, aio_pika.RobustQueue] = {}
@@ -85,10 +88,10 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         *,
         channel: Optional["Channel"] = None,
     ) -> "aio_pika.RobustQueue":
-        if (q := self._queues.get(queue)) is None:
+        # Re-declare: the broker may have deleted it meanwhile (see issue #2721).
+        if (q := self._queues.get(queue)) is None or _can_be_deleted_by_broker(queue):
             if declare is EMPTY:
                 declare = queue.declare
-
             channel_obj = await self.__channel_manager.get_channel(channel)
 
             self._queues[queue] = q = cast(
