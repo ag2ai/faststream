@@ -130,6 +130,14 @@ def _validate_input_for_misconfigure(
         msg = "You can't provide both `topics` and `partitions`."
         raise SetupError(msg)
 
+    for partition in partitions:
+        if partition.partition < 0:
+            msg = (
+                f"Topic {partition.topic!r} requires a non-negative partition number, "
+                f"got {partition.partition}."
+            )
+            raise SetupError(msg)
+
     if not group_id and effective_ack is not AckPolicy.ACK_FIRST:
         msg = "You must use `group_id` with manual commit mode."
         raise SetupError(msg)

@@ -46,6 +46,18 @@ def test_wrong_destination(queue: str) -> None:
 
 
 @pytest.mark.confluent()
+@pytest.mark.parametrize("partition", (None, -1, -2))
+def test_invalid_partition(queue: str, partition: int | None) -> None:
+    broker = KafkaBroker()
+    invalid = (
+        TopicPartition(queue) if partition is None else TopicPartition(queue, partition)
+    )
+
+    with pytest.raises(SetupError, match="non-negative partition"):
+        broker.subscriber(partitions=[TopicPartition(queue, 0), invalid])
+
+
+@pytest.mark.confluent()
 def test_use_only_confluent_router() -> None:
     broker = KafkaBroker()
     router: Any = NatsRouter()
