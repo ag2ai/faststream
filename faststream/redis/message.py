@@ -9,7 +9,6 @@ from typing import (
     TypeAlias,
     TypeVar,
     Union,
-    overload,
 )
 
 from typing_extensions import NotRequired, TypedDict, deprecated, override
@@ -170,16 +169,6 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
         self.consumer = consumer
         self.group = group
 
-    @overload
-    def _resolve_consumer_context(
-        self, redis: "Redis[bytes]", group: str
-    ) -> tuple[ConsumerProtocol, str]: ...
-
-    @overload
-    def _resolve_consumer_context(
-        self, redis: Optional["Redis[bytes]"], group: str | None
-    ) -> tuple[ConsumerProtocol | None, str | None]: ...
-
     def _resolve_consumer_context(
         self, redis: Optional["Redis[bytes]"], group: str | None
     ) -> tuple[ConsumerProtocol | None, str | None]:
@@ -250,7 +239,7 @@ class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
         """
         redis_resolved, group_resolved = self._resolve_consumer_context(redis, group)
         message_ids = self.raw_message["message_ids"]
-        if not message_ids:
+        if not message_ids or redis_resolved is None or group_resolved is None:
             return 1
 
         message_id = message_ids[0]
