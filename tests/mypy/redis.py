@@ -7,7 +7,6 @@ from faststream._internal.basic_types import DecodedMessage
 from faststream.redis import (
     ListSub,
     PubSub,
-    Redis,
     RedisBroker,
     RedisChannelMessage,
     RedisClusterBroker,
@@ -423,14 +422,13 @@ async def check_channel_subscriber_message_type(
 
 async def check_stream_subscriber_message_type(
     broker: RedisBroker | RedisRouter | FastAPIRouter,
-    redis: Redis,
 ) -> None:
     subscriber = broker.subscriber(stream=StreamSub("test"))
 
     message = await subscriber.get_one()
     assert_type(message, RedisStreamMessage | None)
     if message is not None:
-        assert_type(await message.get_delivery_count(redis, "group"), int)
+        assert_type(await message.get_delivery_count(), int)
 
     async for msg in subscriber:
         assert_type(msg, RedisStreamMessage)

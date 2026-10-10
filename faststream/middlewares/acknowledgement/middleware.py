@@ -26,10 +26,8 @@ class AcknowledgementMiddleware:
         self,
         logger: "LoggerState",
         ack_policy: "AckPolicy",
-        extra_options: dict[str, Any],
     ) -> None:
         self.ack_policy = ack_policy
-        self.extra_options = extra_options
         self.logger = logger
 
     def __call__(
@@ -41,13 +39,12 @@ class AcknowledgementMiddleware:
             msg,
             logger=self.logger,
             ack_policy=self.ack_policy,
-            extra_options=self.extra_options,
             context=context,
         )
 
 
 class _AcknowledgementMiddleware(BaseMiddleware):
-    __slots__ = ("ack_policy", "extra_options", "logger", "message")
+    __slots__ = ("ack_policy", "logger", "message")
 
     def __init__(
         self,
@@ -56,14 +53,12 @@ class _AcknowledgementMiddleware(BaseMiddleware):
         *,
         logger: "LoggerState",
         context: "ContextRepo",
-        extra_options: dict[str, Any],
         # can't be created with AckPolicy.MANUAL
         ack_policy: AckPolicy,
     ) -> None:
         super().__init__(msg, context=context)
 
         self.ack_policy = ack_policy
-        self.extra_options = extra_options
         self.logger = logger
 
         self.message: StreamMessage[Any] | None = None
@@ -122,7 +117,7 @@ class _AcknowledgementMiddleware(BaseMiddleware):
     async def __ack(self, **exc_extra_options: Any) -> None:
         if self.message:
             try:
-                await self.message.ack(**exc_extra_options, **self.extra_options)
+                await self.message.ack(**exc_extra_options)
             except Exception as er:
                 if self.logger is not None:
                     self.logger.log(repr(er), logging.CRITICAL, exc_info=er)
@@ -130,7 +125,7 @@ class _AcknowledgementMiddleware(BaseMiddleware):
     async def __nack(self, **exc_extra_options: Any) -> None:
         if self.message:
             try:
-                await self.message.nack(**exc_extra_options, **self.extra_options)
+                await self.message.nack(**exc_extra_options)
             except Exception as er:
                 if self.logger is not None:
                     self.logger.log(repr(er), logging.CRITICAL, exc_info=er)
@@ -138,7 +133,7 @@ class _AcknowledgementMiddleware(BaseMiddleware):
     async def __reject(self, **exc_extra_options: Any) -> None:
         if self.message:
             try:
-                await self.message.reject(**exc_extra_options, **self.extra_options)
+                await self.message.reject(**exc_extra_options)
             except Exception as er:
                 if self.logger is not None:
                     self.logger.log(repr(er), logging.CRITICAL, exc_info=er)
