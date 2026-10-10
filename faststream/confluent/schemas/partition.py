@@ -37,7 +37,8 @@ class TopicPartition:
 
         Args:
             topic: Kafka topic name.
-            partition: Partition number to assign.
+            partition: Partition number to assign. Must be explicitly set to a
+                non-negative number when used in a subscriber's `partitions`.
             offset: Offset to start consuming from.
             metadata: Application-specific metadata to attach to the partition.
             leader_epoch: Leader epoch of the offset.
