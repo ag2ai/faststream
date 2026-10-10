@@ -87,3 +87,20 @@ async def test_several_messages() -> None:
             Data(name="John", user_id=1),
             correlation_id="first",
         )
+
+
+@pytest.mark.asyncio
+async def test_kafka_fields() -> None:
+    async with TestKafkaBroker(broker) as br:
+        await br.publish(
+            Data(name="John", user_id=1),
+            topic="test-topic",
+            headers={"trace-id": "42"},
+            key=b"user-1",
+        )
+
+        # `key` and `partition` are named as `publish()` names them
+        await handle.assert_called_once_with(
+            Data(name="John", user_id=1),
+            key=b"user-1",
+        )

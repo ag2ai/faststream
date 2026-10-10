@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from contextlib import nullcontext
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,7 +13,7 @@ from typing import (
 
 from faststream._internal.middlewares import BaseMiddleware
 from faststream._internal.utils import apply_types
-from faststream._internal.utils.functions import FakeContext, to_async
+from faststream._internal.utils.functions import to_async
 from faststream.exceptions import IgnoredException
 
 if TYPE_CHECKING:
@@ -177,7 +178,7 @@ class _BaseExceptionMiddleware(BaseMiddleware):
                     if not self.context.get_local("message"):
                         scope = self.context.scope("message", self.msg)
                     else:
-                        scope = FakeContext()
+                        scope = nullcontext()
 
                     with scope:
                         await handler(exc_val, context__=self.context)

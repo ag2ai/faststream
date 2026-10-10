@@ -34,6 +34,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         "_qos",
         "_shared",
         "_subscription",
+        "last_unsubscribe_result",
     )
 
     _outer_config: "MQTTBrokerConfig"
@@ -54,6 +55,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
+        self.last_unsubscribe_result: zmqtt.UnsubscribeResult | None = None
 
         if config.ack_policy is AckPolicy.NACK_ON_ERROR:
             warnings.warn(
@@ -136,8 +138,9 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         # also cancel an in-flight UNSUBSCRIBE.
         self.running = False
         if self._subscription is not None:
+            self.last_unsubscribe_result = None
             with suppress(Exception):
-                await self._subscription.stop()
+                self.last_unsubscribe_result = await self._subscription.stop()
             self._subscription = None
 
         await super().stop()
