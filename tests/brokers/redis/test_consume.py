@@ -8,7 +8,8 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
-from faststream import AckPolicy
+from faststream import AckPolicy, BaseMiddleware
+from faststream.message import StreamMessage
 from faststream.redis import (
     ListSub,
     PubSub,
@@ -831,6 +832,32 @@ class TestConsumeStream(RedisTestcaseConfig):
                 m.mock.assert_called_once()
 
         assert event.is_set()
+
+    async def test_consume_ack_first_on_middleware_error(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        class FailingMiddleware(BaseMiddleware):
+            async def on_receive(self) -> None:
+                raise ValueError
+
+        consume_broker = self.get_broker()
+        consume_broker.add_middleware(FailingMiddleware)
+
+        @consume_broker.subscriber(
+            stream=StreamSub(queue, group="group", consumer=queue),
+            ack_policy=AckPolicy.ACK_FIRST,
+        )
+        async def handler(msg: RedisMessage) -> None: ...
+
+        with patch.object(StreamMessage, "ack", spy_decorator(StreamMessage.ack)) as ack:
+            ack.mock.side_effect = lambda *_, **__: event.set()
+
+            async with self.patch_broker(consume_broker) as br:
+                await br.start()
+                await br.publish("hello", stream=queue)
+                await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        ack.mock.assert_awaited_once()
 
     async def test_consume_ack_with_deprecated_args(
         self,

@@ -449,6 +449,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 AcknowledgementMiddleware(
                     logger=logger_state,
                     ack_policy=self.ack_policy,
+                    fallback_parser=self._parser,
                 ),
                 CriticalLogMiddleware(logger_state),
                 *self._broker_middlewares,
