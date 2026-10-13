@@ -1,12 +1,17 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
+from types import MappingProxyType
 from typing import Any
 
 import aiokafka
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.configs import BrokerConfig
+from faststream._internal.configs import (
+    BrokerConfig,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.utils.data import filter_by_dict
 from faststream.kafka.helpers import AdminService
@@ -15,6 +20,46 @@ from faststream.kafka.publisher.producer import (
     FakeAioKafkaFastProducer,
 )
 from faststream.kafka.schemas.params import ConsumerConnectionParams
+
+
+def _context_annotations_factory() -> UnderlyingDriverAnnotations:
+    # `annotations` reaches this module through the broker, so the
+    # objects a row needs only exist once the package is built.
+    from aiokafka.consumer.consumer import AIOKafkaConsumer  # noqa: PLC0415
+
+    from faststream.kafka import annotations  # noqa: PLC0415
+    from faststream.kafka.broker.broker import (  # noqa: PLC0415
+        KafkaBroker as KafkaBrokerDriver,
+    )
+    from faststream.kafka.message import (  # noqa: PLC0415
+        KafkaMessage as KafkaMessageDriver,
+    )
+    from faststream.kafka.publisher.producer import AioKafkaFastProducer  # noqa: PLC0415
+
+    return MappingProxyType(
+        {
+            AIOKafkaConsumer: UnderlyingDriverAnnotation(
+                type_hint=annotations.Consumer,
+                module="faststream.kafka.annotations",
+                name="Consumer",
+            ),
+            KafkaBrokerDriver: UnderlyingDriverAnnotation(
+                type_hint=annotations.KafkaBroker,
+                module="faststream.kafka.annotations",
+                name="KafkaBroker",
+            ),
+            KafkaMessageDriver: UnderlyingDriverAnnotation(
+                type_hint=annotations.KafkaMessage,
+                module="faststream.kafka.annotations",
+                name="KafkaMessage",
+            ),
+            AioKafkaFastProducer: UnderlyingDriverAnnotation(
+                type_hint=annotations.KafkaProducer,
+                module="faststream.kafka.annotations",
+                name="KafkaProducer",
+            ),
+        },
+    )
 
 
 @dataclass(kw_only=True)
@@ -27,6 +72,10 @@ class KafkaBrokerConfig(BrokerConfig):
     consumer_only: bool = False
     allow_auto_create_topics: bool = True
     admin: AdminService = field(default_factory=AdminService)
+
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
+        default_factory=_context_annotations_factory,
+    )
 
     @property
     def admin_client(self) -> "aiokafka.admin.client.AIOKafkaAdminClient":
