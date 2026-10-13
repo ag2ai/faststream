@@ -47,7 +47,7 @@ class RabbitExchange(NameRequired):
         )
 
     def __hash__(self) -> int:
-        """Supports hash to store real objects in declarer."""
+        """Return a hash based on declaration settings."""
 
         def _hash_dict(d: Any) -> Any:
             if isinstance(d, dict):
