@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Callable
 from concurrent.futures import Executor
 from functools import partial, wraps
 from typing import (
+    TYPE_CHECKING,
     Any,
     TypeVar,
     cast,
@@ -18,8 +19,12 @@ from typing_extensions import ParamSpec
 
 from faststream._internal.basic_types import F_Return, F_Spec
 
+if TYPE_CHECKING:
+    from faststream._internal.types import AsyncExceptionHandler, ExceptionHandler
+
 __all__ = (
     "call_or_await",
+    "ensure_exception_handler",
     "to_async",
 )
 
@@ -54,6 +59,15 @@ def to_async(
         return await run_in_threadpool(func, *args, **kwargs)
 
     return to_async_wrapper
+
+
+def ensure_exception_handler(
+    handler: "ExceptionHandler | None",
+) -> "AsyncExceptionHandler | None":
+    if handler is None:
+        return None
+
+    return to_async(handler)
 
 
 async def return_input(x: Any) -> Any:

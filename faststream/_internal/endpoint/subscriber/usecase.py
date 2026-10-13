@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
+        AsyncExceptionHandler,
         AsyncFilter,
         BrokerMiddleware,
         CustomCallable,
@@ -100,6 +101,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._no_reply = config.no_reply
         self._parser = config.parser
         self._decoder = config.decoder
+        self._exception_handler = config.exception_handler
 
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
@@ -324,6 +326,36 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         return real_wrapper(func)
 
+    @property
+    def _app_exception_handler(self) -> "AsyncExceptionHandler | None":
+        app_handler: AsyncExceptionHandler | None = getattr(
+            self._outer_config.context.get("app"),
+            "_exception_handler",
+            None,
+        )
+        return app_handler
+
+    async def _handle_exception(
+        self,
+        _exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        _exc_tb: TracebackType | None,
+    ) -> bool:
+        if not isinstance(exc, Exception) or isinstance(exc, (StopConsume, SystemExit)):
+            return False
+
+        context = self._outer_config.context
+
+        for handler in (
+            self._exception_handler,
+            self._outer_config.broker_exception_handler,
+            self._app_exception_handler,
+        ):
+            if handler is not None and await handler(exc, context__=context):
+                return True
+
+        return False
+
     async def consume(self, msg: MsgType) -> Any:
         """Consume a message asynchronously."""
         if not self.running:
@@ -342,10 +374,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
             if app := self._outer_config.context.get("app"):
                 app.exit()
-
-        except Exception:  # nosec B110  # noqa: S110
-            # All other exceptions were logged by CriticalLogMiddleware
-            pass
 
     async def process_message(self, msg: MsgType) -> "Response":
         """Execute all message processing stages."""
@@ -369,6 +397,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             # reserve place for context scope under the middlewares __aexit__
             # because middlewares should be exited before context scope release
             message_scope = stack.enter_context(ExitStack())
+            stack.push_async_exit(self._handle_exception)
 
             # enter all middlewares
             middlewares: list[BaseMiddleware] = []

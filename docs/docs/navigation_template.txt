@@ -22,6 +22,7 @@ search:
     - [Routers](getting-started/routers/index.md)
     - [Dependencies](getting-started/dependencies/index.md)
     - [Context](getting-started/context.md)
+    - [Exception Handlers](getting-started/exception-handlers/index.md)
     - [Custom Serialization](getting-started/serialization/index.md)
         - [Parser](getting-started/serialization/parser.md)
         - [Decoder](getting-started/serialization/decoder.md)
