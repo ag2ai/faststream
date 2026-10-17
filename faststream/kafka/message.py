@@ -61,6 +61,23 @@ class KafkaMessage(
         self.consumer = consumer
         self.committed = AckStatus.ACKED
 
+    @property
+    def raw_headers(self) -> dict[str, bytes | None]:
+        """Original header bytes, or the first message's headers for a batch."""
+        raw_message = self.raw_message
+        if isinstance(raw_message, tuple):
+            if not raw_message:
+                return {}
+            raw_message = raw_message[0]
+        return dict(raw_message.headers)
+
+    @property
+    def batch_raw_headers(self) -> list[dict[str, bytes | None]]:
+        """Original header bytes for every batch message; empty for a single message."""
+        if isinstance(self.raw_message, tuple):
+            return [dict(message.headers) for message in self.raw_message]
+        return []
+
 
 class KafkaAckableMessage(KafkaMessage):
     def __init__(self, *args: Any, **kwargs: Any) -> None:

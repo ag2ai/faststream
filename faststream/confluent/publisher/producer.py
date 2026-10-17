@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.kafka import encode_headers
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
@@ -167,7 +168,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
-            headers=[(i, (j or "").encode()) for i, j in headers_to_send.items()],
+            headers=encode_headers(headers_to_send),
             no_confirm=cmd.no_confirm,
         )
 
@@ -200,7 +201,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
                 key=cmd.key_for(message_position),
                 value=message,
                 timestamp=cmd.timestamp_ms,
-                headers=[(i, j.encode()) for i, j in final_headers.items()],
+                headers=encode_headers(final_headers),
             )
 
         await self._producer.producer.send_batch(
