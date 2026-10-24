@@ -2,7 +2,7 @@ import json
 from collections.abc import Callable
 from typing import Any, TextIO
 
-import httpx
+import httpx2
 import pytest
 import yaml
 
@@ -217,7 +217,7 @@ def test_serve_asyncapi_docs_from_app(
         cli.wait_for_stderr("Please, do not use it in production.")
 
         try:
-            response = httpx.get("http://0.0.0.0:8000")
+            response = httpx2.get("http://0.0.0.0:8000")
         except Exception as e:
             raise RuntimeError(cli.stderr) from e
 
@@ -273,7 +273,7 @@ def test_serve_asyncapi_docs_from_file(
         cli.wait_for_stderr("Please, do not use it in production.")
 
         try:
-            response = httpx.get("http://0.0.0.0:8000")
+            response = httpx2.get("http://0.0.0.0:8000")
         except Exception as e:
             raise RuntimeError(cli.stderr) from e
 
