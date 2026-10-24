@@ -95,6 +95,9 @@ class BrokerUsecase(
         """Private method to change broker config state by outer application."""
         self.config.fd_config = config | self.config.fd_config
 
+        for subscriber in self.subscribers:
+            subscriber._setup_exception_handlers()
+
     async def start(self) -> None:
         # TODO: filter by already running handlers after TestClient refactor
         for sub in self.subscribers:

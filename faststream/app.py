@@ -85,6 +85,11 @@ class FastStream(Application):
 
         self._should_exit = False
 
+        # super().__init__ registers brokers before the application handler exists.
+        for broker in self.brokers:
+            for subscriber in broker.subscribers:
+                subscriber._setup_exception_handlers()
+
     async def run(
         self,
         log_level: int = logging.INFO,

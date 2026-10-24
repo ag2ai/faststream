@@ -27,9 +27,9 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream._internal.utils.functions import to_async
+from faststream._internal.utils import apply_types, to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
-from faststream.middlewares import AcknowledgementMiddleware
+from faststream.middlewares import AcknowledgementMiddleware, ExceptionMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
@@ -77,6 +77,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         "_call_decorators",
         "_call_options",
         "_decoder",
+        "_exception_handlers",
+        "_exception_middleware",
         "_no_reply",
         "_parser",
         "ack_policy",
@@ -85,6 +87,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         "running",
         "specification",
     )
+
+    _exception_handlers: tuple["AsyncExceptionHandler", ...]
 
     lock: "AbstractContextManager[Any]"
     graceful_timeout: float | None
@@ -120,6 +124,11 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         self.running = False
         self.lock = nullcontext()
+
+        self._setup_exception_handlers()
+        self._exception_middleware = ExceptionMiddleware(
+            handlers={Exception: self._handle_exception},
+        )
 
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
@@ -349,26 +358,29 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         )
         return app_handler
 
-    async def _handle_exception(
-        self,
-        _exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        _exc_tb: TracebackType | None,
-    ) -> bool:
-        if not isinstance(exc, Exception) or isinstance(exc, (StopConsume, SystemExit)):
-            return False
+    def _setup_exception_handlers(self) -> None:
+        config = self._outer_config.fd_config
+        self._exception_handlers = tuple(
+            apply_types(
+                handler,
+                serializer_cls=config._serializer,
+                dependency_provider=config.provider,
+                context__=config.context,
+            )
+            for handler in (
+                self._exception_handler,
+                self._outer_config.broker_exception_handler,
+                self._app_exception_handler,
+            )
+            if handler is not None
+        )
 
-        context = self._outer_config.context
+    async def _handle_exception(self, exc: Exception) -> None:
+        for handler in self._exception_handlers:
+            if await handler(exc):
+                return
 
-        for handler in (
-            self._exception_handler,
-            self._outer_config.broker_exception_handler,
-            self._app_exception_handler,
-        ):
-            if handler is not None and await handler(exc, context__=context):
-                return True
-
-        return False
+        raise exc
 
     async def consume(self, msg: MsgType) -> Any:
         """Consume a message asynchronously."""
@@ -411,7 +423,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             # reserve place for context scope under the middlewares __aexit__
             # because middlewares should be exited before context scope release
             message_scope = stack.enter_context(ExitStack())
-            stack.push_async_exit(self._handle_exception)
 
             # enter all middlewares
             middlewares: list[BaseMiddleware] = []
@@ -480,10 +491,12 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     def __build__middlewares_stack(self) -> tuple["BrokerMiddleware[MsgType]", ...]:
         logger_state = self._outer_config.logger
+        broker_middlewares: tuple[BrokerMiddleware[MsgType], ...]
 
         if self.__auto_ack_disabled:
             broker_middlewares = (
                 CriticalLogMiddleware(logger_state),
+                self._exception_middleware,
                 *self._broker_middlewares,
             )
 
@@ -495,6 +508,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     fallback_parser=self._parser,
                 ),
                 CriticalLogMiddleware(logger_state),
+                self._exception_middleware,
                 *self._broker_middlewares,
             )
 

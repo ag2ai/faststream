@@ -114,6 +114,9 @@ class Registrator(Generic[MsgType, BrokerConfigType_co]):
         router.config.add_config(self.config)
         self.routers.append(router)
 
+        for subscriber in router.subscribers:
+            subscriber._setup_exception_handlers()
+
     @property
     def parent(self) -> "Registrator[MsgType, Any] | None":
         return self.__parent
