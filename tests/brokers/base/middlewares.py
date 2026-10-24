@@ -407,7 +407,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
-        class mid(BaseMiddleware):  # noqa: N801
+        class mid(BaseMiddleware):  # ruff: ignore[invalid-class-name]
             async def on_receive(self) -> Any:
                 mock.start(self.msg)
                 return await super().on_receive()
@@ -453,7 +453,7 @@ class MiddlewareTestcase(LocalMiddlewareTestcase):
         event: asyncio.Event,
         event2: asyncio.Event,
     ) -> None:
-        class mid(BaseMiddleware):  # noqa: N801
+        class mid(BaseMiddleware):  # ruff: ignore[invalid-class-name]
             async def on_receive(self) -> Any:
                 mock.start(self.msg)
                 return await super().on_receive()

@@ -91,7 +91,7 @@ def test_sub_overrides_broker_and_router() -> None:
 @pytest.mark.mqtt()
 def test_mqtt_connect_timeout_threaded_to_client() -> None:
     broker = MQTTBroker(mqtt_connect_timeout=7.0)
-    assert broker._connection_kwargs["mqtt_connect_timeout"] == 7.0
+    assert broker._connection_kwargs["mqtt_connect_timeout"] == 7
 
 
 @pytest.mark.mqtt()
@@ -117,7 +117,7 @@ def test_session_replay_config_threaded_to_client() -> None:
     )
 
     assert broker._connection_kwargs["session_replay_buffer_size"] == 10
-    assert broker._connection_kwargs["session_replay_timeout"] == 20.0
+    assert broker._connection_kwargs["session_replay_timeout"] == 20
 
 
 @pytest.mark.mqtt()

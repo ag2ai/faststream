@@ -16,10 +16,10 @@ def test_list_records() -> None:
 
 @pytest.mark.redis()
 def test_stream_group() -> None:
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
         StreamSub("test", group="group")
 
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
         StreamSub("test", consumer="consumer")
 
     StreamSub("test", group="group", consumer="consumer")

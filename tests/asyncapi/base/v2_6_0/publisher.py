@@ -16,7 +16,7 @@ class PublisherTestcase(AsyncAPI260Factory):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
         assert schema["channels"][key]["description"] == "test description"
 
     def test_basic_publisher(self) -> None:
@@ -27,7 +27,7 @@ class PublisherTestcase(AsyncAPI260Factory):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
         assert schema["channels"][key].get("description") is None
         assert schema["channels"][key].get("subscribe") is not None
 

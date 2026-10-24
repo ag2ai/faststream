@@ -30,15 +30,15 @@ class JsInitOptions(TypedDict, total=False):
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from nats.aio.client import Client as ClientDriver  # noqa: PLC0415
-    from nats.js.client import JetStreamContext  # noqa: PLC0415
-    from nats.js.object_store import ObjectStore  # noqa: PLC0415
+    from nats.aio.client import Client as ClientDriver  # ruff: ignore[import-outside-top-level]
+    from nats.js.client import JetStreamContext  # ruff: ignore[import-outside-top-level]
+    from nats.js.object_store import ObjectStore  # ruff: ignore[import-outside-top-level]
 
-    from faststream.nats import annotations  # noqa: PLC0415
-    from faststream.nats.broker.broker import (  # noqa: PLC0415
+    from faststream.nats import annotations  # ruff: ignore[import-outside-top-level]
+    from faststream.nats.broker.broker import (  # ruff: ignore[import-outside-top-level]
         NatsBroker as NatsBrokerDriver,
     )
-    from faststream.nats.message import (  # noqa: PLC0415
+    from faststream.nats.message import (  # ruff: ignore[import-outside-top-level]
         NatsKvMessage as NatsKvMessageDriver,
         NatsMessage as NatsMessageDriver,
     )

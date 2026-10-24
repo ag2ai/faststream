@@ -85,7 +85,7 @@ class StartAbleApplication:
     def context(self) -> "ContextRepo":
         return self.config.context
 
-    def _init_setupable_(  # noqa: PLW3201
+    def _init_setupable_(  # ruff: ignore[bad-dunder-method-name]
         self,
         *brokers: "BrokerUsecase[Any, Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
@@ -249,7 +249,7 @@ class Application(StartAbleApplication):
             for func in self._on_startup_calling:
                 await func(**run_extra_options)
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         for func in self._after_startup_calling:
             await func()
@@ -265,7 +265,7 @@ class Application(StartAbleApplication):
             "FastStream app starting...",
         )
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         self._log(
             log_level,
@@ -292,7 +292,7 @@ class Application(StartAbleApplication):
         for func in self._on_shutdown_calling:
             await func()
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         for func in self._after_shutdown_calling:
             await func()
@@ -305,7 +305,7 @@ class Application(StartAbleApplication):
         """Separated startup logging."""
         self._log(log_level, "FastStream app shutting down...")
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         self._log(log_level, "FastStream app shut down gracefully.")
 

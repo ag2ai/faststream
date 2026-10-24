@@ -28,7 +28,7 @@ pydantic_v2 = pytest.mark.skipif(
 
 
 try:
-    from faststream.confluent import KafkaBroker as ConfluentBroker  # noqa: F401
+    from faststream.confluent import KafkaBroker as ConfluentBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_CONFLUENT = False
 else:
@@ -41,7 +41,7 @@ require_confluent = pytest.mark.skipif(
 
 
 try:
-    from faststream.kafka import KafkaBroker  # noqa: F401
+    from faststream.kafka import KafkaBroker  # ruff: ignore[unused-import]
     from faststream.kafka._compat import AIOKAFKA_V014
 except ImportError:
     HAS_AIOKAFKA = False
@@ -61,7 +61,7 @@ require_aiokafka_v014 = pytest.mark.skipif(
 
 
 try:
-    from faststream.rabbit import RabbitBroker  # noqa: F401
+    from faststream.rabbit import RabbitBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_AIOPIKA = False
 else:
@@ -74,7 +74,7 @@ require_aiopika = pytest.mark.skipif(
 
 
 try:
-    from faststream.redis import RedisBroker  # noqa: F401
+    from faststream.redis import RedisBroker  # ruff: ignore[unused-import]
     from faststream.redis._compat import REDIS_V710
 except ImportError:
     HAS_REDIS = False
@@ -94,7 +94,7 @@ require_redis_v710 = pytest.mark.skipif(
 
 
 try:
-    from faststream.nats import NatsBroker  # noqa: F401
+    from faststream.nats import NatsBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_NATS = False
 else:
@@ -107,7 +107,7 @@ require_nats = pytest.mark.skipif(
 
 
 try:
-    from faststream.mqtt import MQTTBroker  # noqa: F401
+    from faststream.mqtt import MQTTBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_MQTT = False
 else:
