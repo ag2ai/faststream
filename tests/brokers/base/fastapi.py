@@ -8,6 +8,7 @@ import pytest
 from fastapi import BackgroundTasks, Depends, FastAPI, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from faststream import (
     Context as FSContext,
@@ -19,6 +20,10 @@ from faststream._internal.fastapi.route import StreamMessage
 from faststream.exceptions import SetupError
 
 from .basic import BaseTestcaseConfig
+
+
+class _Foo(BaseModel):
+    x: int
 
 
 @pytest.mark.asyncio()
@@ -268,6 +273,40 @@ class FastAPITestcase(BaseTestcaseConfig[Any]):
             )
 
         mock.assert_called_once_with(True)
+
+
+# NOTE: kafka/confluent only - other brokers have no tombstone concept.
+@pytest.mark.asyncio()
+class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig):
+    router_class: type[StreamRouter[BrokerUsecase]]
+
+    async def test_optional_body_resolves_to_none_for_tombstone(
+        self,
+        queue: str,
+    ) -> None:
+        router = self.router_class()
+        received: list[_Foo | None] = []
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: _Foo | None = None) -> None:
+            received.append(msg)
+
+        app = FastAPI()
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker) as br:
+            with TestClient(app):
+                await br.publish(b'{"x": 5}', queue, key=b"k1")
+                await br.publish(None, queue, key=b"k2")
+
+                # an empty (non-null) body is not a tombstone and must
+                # still fail validation.
+                with pytest.raises(RequestValidationError):
+                    await br.publish(b"", queue, key=b"k3")
+
+        assert received == [_Foo(x=5), None]
 
 
 @pytest.mark.asyncio()
