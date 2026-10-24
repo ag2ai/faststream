@@ -14,7 +14,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 requires-python = ">=3.10"
-version = "0.7.7"
+version = "0.7.8"
 
 keywords = [
     "rabbitmq",
@@ -81,7 +81,7 @@ mqtt = ["zmqtt>=0.2.4,<0.3.0"]
 
 cli = [
     "typer>=0.9,!=0.12,<=0.27.1",
-    "watchfiles>=0.15.0,<1.2.0"
+    "watchfiles>=0.15.0,<1.4.0"
 ]
 
 otel = ["opentelemetry-sdk>=1.24.0,<2.0.0"]
@@ -94,7 +94,8 @@ optionals = ["faststream[rabbit,kafka,confluent,nats,redis,mqtt,otel,cli,prometh
 docs = [
     "mkdocs-material==9.7.7",
     "mdx-include==1.4.2",
-    "mkdocstrings[python]==1.0.2",
+    "mkdocstrings[python]==1.0.8",
+    "pymdown-extensions==12.3",
     "griffe==1.15.0",
     "mkdocs-literate-nav==0.6.2",
     "mkdocs-git-revision-date-localized-plugin==1.5.1",
@@ -182,6 +183,9 @@ faststream = "faststream.__main__:cli"
 [tool.uv.build-backend]
 module-root = "."
 module-name = "faststream"
+
+[tool.uv.dependency-groups]
+docs = {requires-python = ">=3.11"}
 
 [tool.mypy]
 files = ["faststream", "tests", "docs/docs_src"]

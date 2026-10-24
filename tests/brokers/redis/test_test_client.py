@@ -149,6 +149,19 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             with pytest.raises(SetupError, match="received a batch"):
                 await m.assert_called_once_with(headers={"key": "value"})
 
+    async def test_publish_batch_to_single_list(self, queue: str) -> None:
+        broker = self.get_broker()
+        received: list[Any] = []
+
+        @broker.subscriber(list=queue)
+        async def handler(msg: Any) -> None:
+            received.append(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(1, "hi", {"n": 2}, list=queue)
+
+        assert received == [1, "hi", {"n": 2}]
+
     async def test_batch_publisher_mock(
         self,
         queue: str,

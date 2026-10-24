@@ -246,6 +246,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 stream_message = await self._xreadgroup(
                     count=1,
                     block=math.ceil(timeout * 1000),
+                    noack=self.stream_sub.no_ack,
                 )
                 if not stream_message:
                     return None
@@ -323,6 +324,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     stream_message = await self._xreadgroup(
                         count=1,
                         block=math.ceil(timeout * 1000),
+                        noack=self.stream_sub.no_ack,
                     )
                     if not stream_message:
                         continue

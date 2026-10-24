@@ -104,7 +104,7 @@ class _ListHandlerMixin(LogicSubscriber):
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        if not raw_message:
+        if raw_message is None:
             return None
 
         redis_incoming_msg = DefaultListMessage(
@@ -146,7 +146,7 @@ class _ListHandlerMixin(LogicSubscriber):
                 ) is None:
                     await anyio.sleep(sleep_interval)
 
-            if not raw_message:
+            if raw_message is None:
                 continue
 
             redis_incoming_msg = DefaultListMessage(
