@@ -357,7 +357,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             if app := self._outer_config.context.get("app"):
                 app.exit()
 
-        except Exception:  # nosec B110  # noqa: S110
+        except Exception:  # nosec B110  # ruff: ignore[try-except-pass]
             # All other exceptions were logged by CriticalLogMiddleware
             pass
 
@@ -499,7 +499,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         # which the `async for` protocol does not accept.
         raise NotImplementedError
 
-    def get_log_context(  # noqa: PLR6301
+    def get_log_context(  # ruff: ignore[no-self-use]
         self,
         message: Optional["StreamMessage[MsgType]"],
     ) -> dict[str, str]:

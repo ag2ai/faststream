@@ -9,7 +9,7 @@ from faststream._internal.context import ContextRepo as CR
 from faststream._internal.context.resolve import resolve_context_by_name
 
 
-def Context(  # noqa: N802
+def Context(  # ruff: ignore[invalid-function-name]
     name: str,
     *,
     default: Any = EMPTY,

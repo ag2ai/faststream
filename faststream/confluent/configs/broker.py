@@ -29,17 +29,17 @@ if TYPE_CHECKING:
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from faststream.confluent import annotations  # noqa: PLC0415
-    from faststream.confluent.broker.broker import (  # noqa: PLC0415
+    from faststream.confluent import annotations  # ruff: ignore[import-outside-top-level]
+    from faststream.confluent.broker.broker import (  # ruff: ignore[import-outside-top-level]
         KafkaBroker as KafkaBrokerDriver,
     )
-    from faststream.confluent.helpers.client import (  # noqa: PLC0415
+    from faststream.confluent.helpers.client import (  # ruff: ignore[import-outside-top-level]
         AsyncConfluentConsumer,
     )
-    from faststream.confluent.message import (  # noqa: PLC0415
+    from faststream.confluent.message import (  # ruff: ignore[import-outside-top-level]
         KafkaMessage as KafkaMessageDriver,
     )
-    from faststream.confluent.publisher.producer import (  # noqa: PLC0415
+    from faststream.confluent.publisher.producer import (  # ruff: ignore[import-outside-top-level]
         AsyncConfluentFastProducer,
     )
 

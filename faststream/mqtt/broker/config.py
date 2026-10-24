@@ -29,13 +29,13 @@ MQTTVersionUnset = cast("str", object())
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from zmqtt.client import MQTTClient  # noqa: PLC0415
+    from zmqtt.client import MQTTClient  # ruff: ignore[import-outside-top-level]
 
-    from faststream.mqtt import annotations  # noqa: PLC0415
-    from faststream.mqtt.broker.broker import (  # noqa: PLC0415
+    from faststream.mqtt import annotations  # ruff: ignore[import-outside-top-level]
+    from faststream.mqtt.broker.broker import (  # ruff: ignore[import-outside-top-level]
         MQTTBroker as MQTTBrokerDriver,
     )
-    from faststream.mqtt.message import MQTTMessage as MQTTMessageDriver  # noqa: PLC0415
+    from faststream.mqtt.message import MQTTMessage as MQTTMessageDriver  # ruff: ignore[import-outside-top-level]
 
     return MappingProxyType(
         {

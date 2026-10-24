@@ -246,7 +246,7 @@ class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
 
     @require_aiopika
     async def test_kafka_fields_refuse_another_brokers_message(self, queue: str) -> None:
-        from faststream.rabbit import RabbitBroker, TestRabbitBroker  # noqa: PLC0415
+        from faststream.rabbit import RabbitBroker, TestRabbitBroker  # ruff: ignore[import-outside-top-level]
 
         broker = self.get_broker()
         rabbit = RabbitBroker()

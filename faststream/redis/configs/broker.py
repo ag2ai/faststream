@@ -26,16 +26,16 @@ if TYPE_CHECKING:
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from redis.asyncio.client import (  # noqa: PLC0415
+    from redis.asyncio.client import (  # ruff: ignore[import-outside-top-level]
         Pipeline as PipelineDriver,
         Redis as RedisDriver,
     )
 
-    from faststream.redis import annotations  # noqa: PLC0415
-    from faststream.redis.broker.broker import (  # noqa: PLC0415
+    from faststream.redis import annotations  # ruff: ignore[import-outside-top-level]
+    from faststream.redis.broker.broker import (  # ruff: ignore[import-outside-top-level]
         RedisBroker as RedisBrokerDriver,
     )
-    from faststream.redis.message import (  # noqa: PLC0415
+    from faststream.redis.message import (  # ruff: ignore[import-outside-top-level]
         RedisBatchStreamMessage as RedisBatchStreamMessageDriver,
         RedisChannelMessage as RedisChannelMessageDriver,
         RedisListMessage as RedisListMessageDriver,

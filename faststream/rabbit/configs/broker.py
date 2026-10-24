@@ -22,17 +22,17 @@ if TYPE_CHECKING:
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from aio_pika.robust_channel import RobustChannel  # noqa: PLC0415
-    from aio_pika.robust_connection import RobustConnection  # noqa: PLC0415
+    from aio_pika.robust_channel import RobustChannel  # ruff: ignore[import-outside-top-level]
+    from aio_pika.robust_connection import RobustConnection  # ruff: ignore[import-outside-top-level]
 
-    from faststream.rabbit import annotations  # noqa: PLC0415
-    from faststream.rabbit.broker.broker import (  # noqa: PLC0415
+    from faststream.rabbit import annotations  # ruff: ignore[import-outside-top-level]
+    from faststream.rabbit.broker.broker import (  # ruff: ignore[import-outside-top-level]
         RabbitBroker as RabbitBrokerDriver,
     )
-    from faststream.rabbit.message import (  # noqa: PLC0415
+    from faststream.rabbit.message import (  # ruff: ignore[import-outside-top-level]
         RabbitMessage as RabbitMessageDriver,
     )
-    from faststream.rabbit.publisher.producer import AioPikaFastProducer  # noqa: PLC0415
+    from faststream.rabbit.publisher.producer import AioPikaFastProducer  # ruff: ignore[import-outside-top-level]
 
     return MappingProxyType(
         {
