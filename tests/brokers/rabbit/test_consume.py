@@ -1,14 +1,14 @@
 import asyncio
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from aio_pika import IncomingMessage, Message
+from aio_pika import IncomingMessage, Message, RobustQueue
 from aiormq.abc import ConfirmationFrameType
 
 from faststream import AckPolicy
 from faststream.exceptions import AckMessage, NackMessage, RejectMessage, SkipMessage
-from faststream.rabbit import RabbitExchange, RabbitQueue
+from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue
 from faststream.rabbit.annotations import RabbitMessage
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
@@ -380,3 +380,81 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
                 m.mock.assert_not_called()
 
             assert event.is_set()
+
+    @pytest.mark.asyncio()
+    async def test_stop_leaves_new_messages_in_queue(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
+        consume_broker = self.get_broker(graceful_timeout=10.0)
+        release = asyncio.Event()
+
+        subscriber = consume_broker.subscriber(queue)
+
+        @subscriber
+        async def handler(msg: Any) -> None:
+            event.set()
+            await release.wait()
+
+        cancelled = asyncio.Event()
+        cancel = RobustQueue.cancel
+
+        async def cancel_spy(q: RobustQueue, *args: Any, **kwargs: Any) -> Any:
+            result = await cancel(q, *args, **kwargs)
+            cancelled.set()
+            return result
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            await br.publish("first", queue)
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+            with patch.object(RobustQueue, "cancel", cancel_spy):
+                stop_task = asyncio.create_task(subscriber.stop())
+                # "first" is still in flight while the consumer gets cancelled
+                await asyncio.wait_for(cancelled.wait(), timeout=self.timeout)
+
+            # without a consumer, "second" stays in the queue for the other consumers
+            await br.publish("second", queue)
+            q = await br.declare_queue(RabbitQueue(queue))
+            message = await q.get(no_ack=True, fail=False)
+
+            release.set()
+            await asyncio.wait_for(stop_task, timeout=self.timeout)
+
+        assert message is not None
+        assert message.body == b"second"
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    ("ack_policy", "requeued"),
+    (
+        pytest.param(AckPolicy.REJECT_ON_ERROR, True, id="acknowledged"),
+        pytest.param(AckPolicy.ACK_FIRST, False, id="no_ack"),
+    ),
+)
+async def test_consume_after_stop_requeues_message(
+    queue: str, ack_policy: AckPolicy, requeued: bool
+) -> None:
+    broker = RabbitBroker()
+    subscriber = broker.subscriber(queue, ack_policy=ack_policy)
+    handled: list[Any] = []
+
+    @subscriber
+    async def handler(msg: Any) -> None:
+        handled.append(msg)
+
+    message = MagicMock()
+    message.reject = AsyncMock()
+
+    # a subscriber that is not running gets a delivery, as while `stop`
+    # cancels the consumer
+    await subscriber.consume(message)
+
+    if requeued:
+        message.reject.assert_awaited_once_with(requeue=True)
+    else:
+        message.reject.assert_not_called()
+    assert not handled
