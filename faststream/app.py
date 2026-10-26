@@ -104,7 +104,7 @@ class FastStream(Application):
                 async with anyio.create_task_group() as tg:
                     _ = tg.start_soon(self._startup, log_level, run_extra_options)
 
-                    while not self._should_exit:  # noqa: ASYNC110 (requested by creator)
+                    while not self._should_exit:  # ruff: ignore[async-busy-wait] (requested by creator)
                         await anyio.sleep(sleep_time)
 
                     await self._shutdown(log_level)

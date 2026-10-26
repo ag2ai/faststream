@@ -120,7 +120,7 @@ class _StreamHandlerMixin(LogicSubscriber):
             try:
                 await self._get_msgs(*args)
 
-            except StreamClaimUnsupportedError as e:  # noqa: PERF203
+            except StreamClaimUnsupportedError as e:  # ruff: ignore[try-except-in-loop]
                 await self._stop_on_terminal_error(e, str(e))
                 return
 

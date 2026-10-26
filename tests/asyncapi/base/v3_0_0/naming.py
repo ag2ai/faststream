@@ -144,7 +144,7 @@ class MultibrokersSchema(BaseNaming):
         broker_second = self.broker_class(description="2")
 
         @broker_second.subscriber("test")  # type: ignore[no-redef]
-        async def handle_broker() -> None: ...  # noqa: F811
+        async def handle_broker() -> None: ...  # ruff: ignore[redefined-while-unused]
 
         with pytest.warns(RuntimeWarning, match=r"test[\w:]*:HandleBroke"):
             schema = self.get_spec(broker_first, broker_second).to_jsonable()
@@ -237,7 +237,7 @@ class SubscriberNaming(BaseNaming):
     def test_subscriber_naming_default(self) -> None:
         broker = self.broker_class()
 
-        sub = broker.subscriber("test")  # noqa: F841
+        sub = broker.subscriber("test")  # ruff: ignore[unused-variable]
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -256,7 +256,7 @@ class SubscriberNaming(BaseNaming):
     def test_subscriber_naming_default_with_title(self) -> None:
         broker = self.broker_class()
 
-        sub = broker.subscriber("test", title="custom")  # noqa: F841
+        sub = broker.subscriber("test", title="custom")  # ruff: ignore[unused-variable]
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -304,8 +304,8 @@ class SubscriberNaming(BaseNaming):
         @broker.subscriber("test")
         async def handle_user_created(msg: str) -> None: ...
 
-        sub1 = broker.subscriber("test2")  # noqa: F841
-        sub2 = broker.subscriber("test3")  # noqa: F841
+        sub1 = broker.subscriber("test2")  # ruff: ignore[unused-variable]
+        sub2 = broker.subscriber("test3")  # ruff: ignore[unused-variable]
 
         schema = self.get_spec(broker).to_jsonable()
 

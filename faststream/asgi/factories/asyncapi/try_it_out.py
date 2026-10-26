@@ -50,7 +50,7 @@ class TryItOutProcessor:
             tuple[BrokerUsecase[Any, Any, Any], type[TestBroker[Any, Any]]]
         ] = []
         # `unittest.mock` comes with the test brokers: keep it out of `import faststream`
-        from faststream._internal.testing.broker import find_test_broker  # noqa: PLC0415
+        from faststream._internal.testing.broker import find_test_broker  # ruff: ignore[import-outside-top-level]
 
         for broker in brokers:
             test_broker_cls = find_test_broker(broker)

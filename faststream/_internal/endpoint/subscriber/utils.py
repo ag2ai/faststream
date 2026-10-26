@@ -55,12 +55,12 @@ class MultiLock:
 
     @property
     def qsize(self) -> int:
-        """Return the size of the queue."""
+        """The size of the queue."""
         return self.queue.qsize()
 
     @property
     def empty(self) -> bool:
-        """Return whether the queue is empty."""
+        """Whether the queue is empty."""
         return self.queue.empty()
 
     async def wait_release(self, timeout: float | None = None) -> None:

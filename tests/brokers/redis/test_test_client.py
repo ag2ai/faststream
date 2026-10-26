@@ -336,7 +336,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         async with self.patch_broker(broker) as br:
-            with pytest.raises(ValueError):  # noqa: PT011
+            with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
                 await br.publish("hello")
 
     @pytest.mark.connected()

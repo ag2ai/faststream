@@ -25,16 +25,16 @@ from faststream.kafka.schemas.params import ConsumerConnectionParams
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
-    from aiokafka.consumer.consumer import AIOKafkaConsumer  # noqa: PLC0415
+    from aiokafka.consumer.consumer import AIOKafkaConsumer  # ruff: ignore[import-outside-top-level]
 
-    from faststream.kafka import annotations  # noqa: PLC0415
-    from faststream.kafka.broker.broker import (  # noqa: PLC0415
+    from faststream.kafka import annotations  # ruff: ignore[import-outside-top-level]
+    from faststream.kafka.broker.broker import (  # ruff: ignore[import-outside-top-level]
         KafkaBroker as KafkaBrokerDriver,
     )
-    from faststream.kafka.message import (  # noqa: PLC0415
+    from faststream.kafka.message import (  # ruff: ignore[import-outside-top-level]
         KafkaMessage as KafkaMessageDriver,
     )
-    from faststream.kafka.publisher.producer import AioKafkaFastProducer  # noqa: PLC0415
+    from faststream.kafka.publisher.producer import AioKafkaFastProducer  # ruff: ignore[import-outside-top-level]
 
     return MappingProxyType(
         {

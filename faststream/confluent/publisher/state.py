@@ -29,7 +29,7 @@ class EmptyProducerState:
         msg = "You can't use producer here, please connect broker first."
         raise IncorrectState(msg)
 
-    async def ping(self, timeout: float) -> bool:  # noqa: PLR6301
+    async def ping(self, timeout: float) -> bool:  # ruff: ignore[no-self-use]
         return False
 
     def __bool__(self) -> bool:
