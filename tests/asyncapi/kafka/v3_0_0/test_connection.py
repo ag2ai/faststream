@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.kafka import KafkaBroker
 from faststream.specification import Tag
@@ -6,7 +7,7 @@ from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
 @pytest.mark.kafka()
-def test_base() -> None:
+def test_base(snapshot_json: SnapshotAssertion) -> None:
     schema = get_3_0_0_schema(
         KafkaBroker(
             "kafka:9092",
@@ -17,56 +18,20 @@ def test_base() -> None:
         ),
     )
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "description": "Test description",
-                "protocol": "plaintext",
-                "protocolVersion": "0.9.0",
-                "tags": [{"description": "experimental", "name": "some-tag"}],
-                "host": "kafka:9092",
-                "pathname": "",
-            },
-        },
-    }
+    assert schema == snapshot_json
 
 
 @pytest.mark.kafka()
-def test_multi() -> None:
-    schema = get_3_0_0_schema(KafkaBroker(["kafka:9092", "kafka:9093"]))
+def test_multi(snapshot_json: SnapshotAssertion) -> None:
+    schema = get_3_0_0_schema(
+        KafkaBroker(["kafka:9092", "kafka:9093"]),
+    )
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "Server1": {
-                "protocol": "kafka",
-                "protocolVersion": "auto",
-                "host": "kafka:9092",
-                "pathname": "",
-            },
-            "Server2": {
-                "protocol": "kafka",
-                "protocolVersion": "auto",
-                "host": "kafka:9093",
-                "pathname": "",
-            },
-        },
-    }
+    assert schema == snapshot_json
 
 
 @pytest.mark.kafka()
-def test_custom() -> None:
+def test_custom(snapshot_json: SnapshotAssertion) -> None:
     schema = get_3_0_0_schema(
         KafkaBroker(
             ["kafka:9092", "kafka:9093"],
@@ -74,25 +39,4 @@ def test_custom() -> None:
         ),
     )
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "Server1": {
-                "protocol": "kafka",
-                "protocolVersion": "auto",
-                "host": "kafka:9094",
-                "pathname": "",
-            },
-            "Server2": {
-                "protocol": "kafka",
-                "protocolVersion": "auto",
-                "host": "kafka:9095",
-                "pathname": "",
-            },
-        },
-    }
+    assert schema == snapshot_json

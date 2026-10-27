@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.kafka import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
 from faststream.specification import Specification
@@ -16,7 +17,7 @@ class TestRouter(RouterTestcase):
     route_class = KafkaRoute
     publisher_class = KafkaPublisher
 
-    def test_prefix(self) -> None:
+    def test_prefix(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         router = self.router_class(prefix="test_")
@@ -28,47 +29,7 @@ class TestRouter(RouterTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "asyncapi": "2.6.0",
-            "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "servers": {
-                "development": {
-                    "url": "localhost",
-                    "protocol": "kafka",
-                    "protocolVersion": "auto",
-                },
-            },
-            "channels": {
-                "test_test:Handle": {
-                    "servers": ["development"],
-                    "bindings": {
-                        "kafka": {"topic": "test_test", "bindingVersion": "0.4.0"},
-                    },
-                    "publish": {
-                        "message": {
-                            "$ref": "#/components/messages/test_test:Handle:Message",
-                        },
-                    },
-                },
-            },
-            "components": {
-                "messages": {
-                    "test_test:Handle:Message": {
-                        "title": "test_test:Handle:Message",
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {
-                            "$ref": "#/components/schemas/Handle:Message:Payload",
-                        },
-                    },
-                },
-                "schemas": {
-                    "Handle:Message:Payload": {"title": "Handle:Message:Payload"},
-                },
-            },
-        }
+        assert schema == snapshot_json
 
 
 @pytest.mark.kafka()
