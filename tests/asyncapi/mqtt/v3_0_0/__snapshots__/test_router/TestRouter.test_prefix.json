@@ -1,0 +1,77 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "test_test:Handle": {
+      "address": "test_test",
+      "bindings": {
+        "mqtt": {
+          "bindingVersion": "0.2.0",
+          "qos": 0,
+          "retain": false,
+          "topic": "test_test"
+        }
+      },
+      "messages": {
+        "SubscribeMessage": {
+          "$ref": "#/components/messages/test_test:Handle:SubscribeMessage"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "test_test:Handle:SubscribeMessage": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/Handle:Message:Payload"
+        },
+        "title": "test_test:Handle:SubscribeMessage"
+      }
+    },
+    "schemas": {
+      "Handle:Message:Payload": {
+        "title": "Handle:Message:Payload"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "test_test:HandleSubscribe": {
+      "action": "receive",
+      "bindings": {
+        "mqtt": {
+          "bindingVersion": "0.2.0",
+          "qos": 0,
+          "retain": false
+        }
+      },
+      "channel": {
+        "$ref": "#/channels/test_test:Handle"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/test_test:Handle/messages/SubscribeMessage"
+        }
+      ]
+    }
+  },
+  "servers": {
+    "development": {
+      "host": "localhost:1883",
+      "pathname": "",
+      "protocol": "mqtt",
+      "protocolVersion": "5.0"
+    }
+  }
+}

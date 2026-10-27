@@ -1,0 +1,75 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "test:Publisher": {
+      "address": "test",
+      "bindings": {
+        "mqtt": {
+          "bindingVersion": "0.2.0",
+          "qos": 0,
+          "retain": false,
+          "topic": "test"
+        }
+      },
+      "messages": {
+        "Message": {
+          "$ref": "#/components/messages/test:Publisher:Message"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "test:Publisher:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/test:Publisher:Message:Payload"
+        },
+        "title": "test:Publisher:Message"
+      }
+    },
+    "schemas": {
+      "test:Publisher:Message:Payload": {}
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "test:Publisher": {
+      "action": "send",
+      "bindings": {
+        "mqtt": {
+          "bindingVersion": "0.2.0",
+          "qos": 0,
+          "retain": false
+        }
+      },
+      "channel": {
+        "$ref": "#/channels/test:Publisher"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/test:Publisher/messages/Message"
+        }
+      ]
+    }
+  },
+  "servers": {
+    "development": {
+      "host": "localhost:1883",
+      "pathname": "",
+      "protocol": "mqtt",
+      "protocolVersion": "5.0"
+    }
+  }
+}
