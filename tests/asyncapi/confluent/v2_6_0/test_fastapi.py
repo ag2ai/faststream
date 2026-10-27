@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.confluent.fastapi import KafkaRouter
 from faststream.confluent.testing import TestKafkaBroker
@@ -31,19 +32,11 @@ class TestRouterPublisher(PublisherTestcase):
 
 
 @pytest.mark.confluent()
-def test_fastapi_security_schema() -> None:
+def test_fastapi_security_schema(snapshot_json: SnapshotAssertion) -> None:
     security = SASLPlaintext(username="user", password="pass", use_ssl=False)
 
     router = KafkaRouter("localhost:9092", security=security)
 
     schema = get_2_6_0_schema(router.broker)
 
-    assert schema["servers"]["development"] == {
-        "protocol": "kafka",
-        "protocolVersion": "auto",
-        "security": [{"user-password": []}],
-        "url": "localhost:9092",
-    }
-    assert schema["components"]["securitySchemes"] == {
-        "user-password": {"type": "userPassword"},
-    }
+    assert schema == snapshot_json
