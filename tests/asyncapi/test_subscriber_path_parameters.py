@@ -1,7 +1,9 @@
 from types import SimpleNamespace
-from typing import Annotated
+from typing import Annotated, Any, cast
 
+from faststream._internal.configs import BrokerConfig, SubscriberSpecificationConfig
 from faststream._internal.constants import EMPTY, PATH_CONTEXT_PREFIX
+from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream._internal.endpoint.subscriber.specification import (
     SubscriberSpecification,
     _merge_parameter_schema,
@@ -9,7 +11,10 @@ from faststream._internal.endpoint.subscriber.specification import (
     _schema_enum,
     _schema_types,
 )
+from faststream.kafka.configs import KafkaBrokerConfig
+from faststream.kafka.subscriber.config import KafkaSubscriberSpecificationConfig
 from faststream.kafka.subscriber.specification import KafkaSubscriberSpecification
+from faststream.specification.schema import SubscriberSpec
 
 
 class ConcreteSubscriberSpecification(SubscriberSpecification):
@@ -17,7 +22,7 @@ class ConcreteSubscriberSpecification(SubscriberSpecification):
     def channel_labels(self) -> list[str]:
         return []
 
-    def get_schema(self) -> dict[str, object]:
+    def get_schema(self) -> dict[str, SubscriberSpec]:
         return {}
 
 
@@ -29,9 +34,9 @@ def _handler(declared_call: object, dependant: object = None) -> SimpleNamespace
 
 
 def test_path_parameter_schema_handles_missing_and_annotated_annotations() -> None:
-    def unannotated(value): ...
+    def unannotated(value): ...  # type: ignore[no-untyped-def]
 
-    def annotated(value: Annotated[int, "metadata"]): ...
+    def annotated(value: Annotated[int, "metadata"]) -> None: ...
 
     assert _path_parameter_schema(_handler(unannotated), "missing") == {}
     assert _path_parameter_schema(_handler(annotated), "value")["type"] == "integer"
@@ -91,7 +96,11 @@ def test_get_path_parameters_skips_unavailable_and_unmatched_handlers() -> None:
             ),
         ),
     ]
-    specification = ConcreteSubscriberSpecification(None, None, calls)
+    specification = ConcreteSubscriberSpecification(
+        BrokerConfig(),
+        SubscriberSpecificationConfig(title_=None, description_=None),
+        cast("CallsCollection[Any]", calls),
+    )
 
     assert specification.get_path_parameters(None) == {}
     assert specification.get_path_parameters("logs.{level}") == {"level": {}}
@@ -99,9 +108,13 @@ def test_get_path_parameters_skips_unavailable_and_unmatched_handlers() -> None:
 
 def test_kafka_path_parameters_ignore_non_pattern_channels() -> None:
     specification = KafkaSubscriberSpecification(
-        SimpleNamespace(prefix=""),
-        SimpleNamespace(pattern="logs.{level}"),
-        [],
+        KafkaBrokerConfig(),
+        KafkaSubscriberSpecificationConfig(
+            title_=None,
+            description_=None,
+            pattern="logs.{level}",
+        ),
+        CallsCollection(),
     )
 
     assert specification.get_path_parameters("logs.static") == {}
