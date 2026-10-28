@@ -25,7 +25,7 @@ async def test_fastapi_kafka_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
             {"response": "Hello, Kafka!"},
         )
 
@@ -44,7 +44,7 @@ async def test_fastapi_confluent_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
             {"response": "Hello, Kafka!"},
         )
 
@@ -63,7 +63,7 @@ async def test_fastapi_rabbit_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
             {"response": "Hello, Rabbit!"},
         )
 
@@ -82,7 +82,7 @@ async def test_fastapi_nats_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
             {"response": "Hello, NATS!"},
         )
 
@@ -101,7 +101,7 @@ async def test_fastapi_redis_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
             {"response": "Hello, Redis!"},
         )
 
@@ -120,6 +120,6 @@ async def test_fastapi_mqtt_base() -> None:
 
         hello.mock.assert_called_once_with({"m": {}})
 
-        list(br.publishers)[0].mock.assert_called_with(  # noqa: RUF015
+        list(br.publishers)[0].mock.assert_called_with(  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
             {"response": "Hello, MQTT!"},
         )

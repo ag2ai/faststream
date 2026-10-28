@@ -77,6 +77,7 @@ please move your row up from the table below, or add a new one.
 | [IdaProject](https://github.com/idaproject) | RabbitMQ, Kafka | Transport between microservices (EDA) | — | — | — |
 | [DNS Technologies](https://dns-shop.ru) | Kafka | Federal Financial Service, exchange of internal documents and banking transactions between systems | — | — | — |
 | [MTS Web Services](https://github.com/MTSWebServices) | Kafka | [Consumer](https://github.com/MTSWebServices/data-rentgen) for OpenLineage events | — | — | — |
+| [Wordfully](https://wordfully.ai) | — | — | — | — | — |
 
 ### Observed from public sources — please confirm
 

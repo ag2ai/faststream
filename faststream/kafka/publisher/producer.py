@@ -45,7 +45,7 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
     def closed(self) -> bool:
         return True
 
-    async def flush(self) -> None:  # noqa: PLR6301
+    async def flush(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
     @abstractmethod

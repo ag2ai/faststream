@@ -93,7 +93,7 @@ class RedisBatchListMessage(BrokerStreamMessage[BatchListMessage]):
 
 
 DATA_KEY = "__data__"
-bDATA_KEY = DATA_KEY.encode()  # noqa: N816
+bDATA_KEY = DATA_KEY.encode()  # ruff: ignore[mixed-case-variable-in-global-scope]
 
 
 class _StreamMessage(TypedDict):
@@ -146,7 +146,7 @@ class FakeConsumer(ConsumerProtocol):
     async def xdel(self, name: str, *ids: bytes) -> None:
         pass
 
-    async def xpending_range(  # noqa: PLR6301
+    async def xpending_range(  # ruff: ignore[no-self-use]
         self, name: str, groupname: str, min: bytes, max: bytes, count: int
     ) -> list[dict[str, Any]]:
         return []

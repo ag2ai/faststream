@@ -620,7 +620,7 @@ class TestListener(KafkaTestcaseConfig):
                 mock.on_partitions_assigned()
                 event.set()
 
-        sub = consume_broker.subscriber(  # noqa: F841
+        sub = consume_broker.subscriber(  # ruff: ignore[unused-variable]
             queue,
             ack_policy=AckPolicy.MANUAL,
             group_id="service_1",
@@ -646,7 +646,7 @@ class TestListener(KafkaTestcaseConfig):
             async def on_partitions_assigned(self, assigned: set[str]) -> None:
                 mock.on_partitions_assigned()
 
-        sub = consume_broker.subscriber(  # noqa: F841
+        sub = consume_broker.subscriber(  # ruff: ignore[unused-variable]
             queue,
             ack_policy=AckPolicy.MANUAL,
             group_id="service_1",

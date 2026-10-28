@@ -1,7 +1,7 @@
 import random
 import time
 
-import httpx
+import httpx2
 import psutil
 import pytest
 
@@ -59,17 +59,17 @@ def test_run(
         ),
     ):
         # Test liveness
-        response = httpx.get(f"http://127.0.0.1:{port}/liveness")
+        response = httpx2.get(f"http://127.0.0.1:{port}/liveness")
         assert response.text == "hello world"
         assert response.status_code == 200
 
         # Test documentation
-        response = httpx.get(f"http://127.0.0.1:{port}/docs")
+        response = httpx2.get(f"http://127.0.0.1:{port}/docs")
         assert response.text.strip().startswith("<!DOCTYPE html>")
         assert len(response.text) > 1200
 
         # Test extra context
-        response = httpx.get(f"http://127.0.0.1:{port}/context")
+        response = httpx2.get(f"http://127.0.0.1:{port}/context")
         assert response.json() == {"test": extra_param, "port": port}
         assert response.status_code == 200
 
@@ -101,7 +101,7 @@ def test_single_worker(
             "1",
         ),
     ):
-        response = httpx.get("http://127.0.0.1:8000/liveness")
+        response = httpx2.get("http://127.0.0.1:8000/liveness")
         assert response.text == "hello world"
         assert response.status_code == 200
 
@@ -172,6 +172,6 @@ def test_factory(
             "--factory",
         ),
     ):
-        response = httpx.get("http://127.0.0.1:8000/liveness")
+        response = httpx2.get("http://127.0.0.1:8000/liveness")
         assert response.text == "hello world"
         assert response.status_code == 200

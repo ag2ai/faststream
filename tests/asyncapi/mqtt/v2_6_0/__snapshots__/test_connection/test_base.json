@@ -1,0 +1,27 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {}
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "description": "Test description",
+      "protocol": "mqtt",
+      "protocolVersion": "3.1.1",
+      "tags": [
+        {
+          "description": "experimental",
+          "name": "some-tag"
+        }
+      ],
+      "url": "mqtt://mqtt:1884"
+    }
+  }
+}
