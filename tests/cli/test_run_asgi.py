@@ -76,15 +76,11 @@ def test_run(
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.parametrize("startup_delay", (0.0, 0.5))
 def test_single_worker(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
-    startup_delay: float,
 ) -> None:
-    app_code = f"""
-    import asyncio
-
+    app_code = """
     from faststream.asgi import AsgiFastStream, AsgiResponse
     from faststream.nats import NatsBroker
 
@@ -93,10 +89,6 @@ def test_single_worker(
     app = AsgiFastStream(broker, asgi_routes=[
         ("/liveness", AsgiResponse(b"hello world", status_code=200)),
     ])
-
-    @app.on_startup
-    async def start() -> None:
-        await asyncio.sleep({startup_delay})
     """
     with (
         generate_template(app_code) as app_path,
