@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Annotated, Any, Generic, TypeVar
 import pytest
 
 from faststream import Context, Depends, UnderlyingDriverAnnotation
-from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 
 from .basic import BaseTestcaseConfig

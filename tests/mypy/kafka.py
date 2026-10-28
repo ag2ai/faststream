@@ -5,7 +5,6 @@ from typing import Any, assert_type
 import prometheus_client
 
 from faststream._internal.basic_types import DecodedMessage
-from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka import (
     ConsumerRecord,
     KafkaBroker,
@@ -16,6 +15,7 @@ from faststream.kafka import (
     RecordMetadata,
     TestKafkaBroker,
 )
+from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 from faststream.kafka.publisher import BatchPublisher, DefaultPublisher

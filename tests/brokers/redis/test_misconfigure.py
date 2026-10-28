@@ -4,7 +4,6 @@ import pytest
 from redis.asyncio.client import Pipeline, Redis
 
 from faststream import AckPolicy
-from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from faststream.redis import (

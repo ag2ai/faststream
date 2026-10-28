@@ -922,7 +922,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             with pytest.warns(
                 DeprecationWarning, match=r"will be removed in 1\.0\.0"
             ) as warnings:
-                await msg.ack(legacy_client, "legacy-group")
+                await msg.ack()
             mock(len(warnings))
             event.set()
 

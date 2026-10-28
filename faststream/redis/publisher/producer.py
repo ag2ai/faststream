@@ -120,7 +120,7 @@ class RedisFastProducer(ProducerProto[RedisPublishCommand]):
                 while response_msg is None:
                     response_msg = await psub.get_message(
                         ignore_subscribe_messages=True,
-                        timeout=cmd.timeout,  # type: ignore[arg-type]
+                        timeout=cmd.timeout,
                     )
 
             if scope.cancel_called:

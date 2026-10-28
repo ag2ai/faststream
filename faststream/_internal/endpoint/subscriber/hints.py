@@ -2,7 +2,6 @@ from collections.abc import Iterator
 from types import UnionType
 from typing import TYPE_CHECKING, Annotated, Any, Union, get_args, get_origin
 
-from faststream._internal._compat import ExceptionGroup
 from faststream._internal.configs import (
     UnderlyingDriverAnnotation,
     UnderlyingDriverAnnotations,

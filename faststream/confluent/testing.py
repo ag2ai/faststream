@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
-from confluent_kafka import KafkaError, Message
+from confluent_kafka import KafkaError
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition

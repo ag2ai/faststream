@@ -65,7 +65,7 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RabbitBrokerConfig(BrokerConfig):
     channel_manager: "ChannelManager" = field(default_factory=FakeChannelManager)
     declarer: "RabbitDeclarer" = field(default_factory=FakeRabbitDeclarer)

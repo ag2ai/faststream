@@ -4,7 +4,6 @@ from typing import Any
 import anyio
 import pytest
 
-from faststream._internal._compat import ExceptionGroup
 from faststream._internal.broker.broker import BrokerUsecase
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream.message import StreamMessage
