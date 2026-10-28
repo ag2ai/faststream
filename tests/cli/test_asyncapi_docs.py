@@ -247,6 +247,7 @@ def test_serve_asyncapi_docs_from_app_with_reload(
 
 
 @skip_windows
+@skip_macos  # HTTPServer readiness times out on macOS runners.
 @require_aiokafka
 @pytest.mark.slow()
 @pytest.mark.parametrize(
