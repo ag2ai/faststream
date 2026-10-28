@@ -11,7 +11,6 @@ from tests.marks import skip_windows
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_run(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
@@ -56,6 +55,7 @@ def test_run(
             f"{port}",
             "--test",
             f"{extra_param}",
+            readiness_url=f"http://127.0.0.1:{port}/liveness",
         ),
     ):
         # Test liveness
@@ -76,12 +76,15 @@ def test_run(
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
+@pytest.mark.parametrize("startup_delay", (0.0, 0.5))
 def test_single_worker(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
+    startup_delay: float,
 ) -> None:
-    app_code = """
+    app_code = f"""
+    import asyncio
+
     from faststream.asgi import AsgiFastStream, AsgiResponse
     from faststream.nats import NatsBroker
 
@@ -90,6 +93,10 @@ def test_single_worker(
     app = AsgiFastStream(broker, asgi_routes=[
         ("/liveness", AsgiResponse(b"hello world", status_code=200)),
     ])
+
+    @app.on_startup
+    async def start() -> None:
+        await asyncio.sleep({startup_delay})
     """
     with (
         generate_template(app_code) as app_path,
@@ -99,6 +106,7 @@ def test_single_worker(
             f"{app_path.stem}:app",
             "--workers",
             "1",
+            readiness_url="http://127.0.0.1:8000/liveness",
         ),
     ):
         response = httpx2.get("http://127.0.0.1:8000/liveness")
@@ -146,7 +154,6 @@ def test_many_workers(
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_factory(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
@@ -170,6 +177,7 @@ def test_factory(
             "run",
             f"{app_path.stem}:app_factory",
             "--factory",
+            readiness_url="http://127.0.0.1:8000/liveness",
         ),
     ):
         response = httpx2.get("http://127.0.0.1:8000/liveness")
