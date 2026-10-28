@@ -117,6 +117,7 @@ These are not users but neighbouring projects that took on maintaining an integr
 Packages built on top of **FastStream** by the community:
 
 * [`stompman`](https://github.com/community-of-python/stompman){.external-link target="_blank"} - STOMP client with a pleasant API
+* [`faststream-azure-servicebus`](https://github.com/thomaslaich/faststream-azure-servicebus){.external-link target="_blank"} - community broker adapter for **Azure Service Bus** queues and topics
 * [`faststream-mq`](https://github.com/davzucky/faststream-mq){.external-link target="_blank"} - standalone IBM MQ adapter
 * [`zMQTT`](https://github.com/faststream-community/zMQTT){.external-link target="_blank"} - pure asyncio MQTT 3.1.1 and 5.0 client library, no **paho** dependency
 * [`faststream-schema-registry`](https://github.com/mlovretovich/faststream-schema-registry){.external-link target="_blank"} - connects **FastStream** to the **Confluent** Schema Registry
@@ -128,6 +129,9 @@ Packages built on top of **FastStream** by the community:
 * [`faststream-redis-timers`](https://github.com/modern-python/faststream-redis-timers){.external-link target="_blank"} - **Redis**-backed distributed timer scheduling
 * [`faststream-concurrent-aiokafka`](https://github.com/modern-python/faststream-concurrent-aiokafka){.external-link target="_blank"} - concurrent message processing for **aiokafka**
 * [`modern-di-faststream`](https://github.com/modern-python/modern-di-faststream){.external-link target="_blank"} - **modern-di** integration
+* [`neva-faststream`](https://pypi.org/project/neva-faststream/){.external-link target="_blank"} - **Neva** integration with **Dishka** dependency injection and broker lifecycle management
+* [`cliffracer-faststream`](https://pypi.org/project/cliffracer-faststream/){.external-link target="_blank"} - hosts **FastStream** brokers in **Cliffracer** services
+* [`superjobs`](https://github.com/vschroeter/superjobs){.external-link target="_blank"} - pre-alpha typed asynchronous jobs over **NATS JetStream**, built on **FastStream**
 * [`litestar-faststream`](https://github.com/hasansezertasan/litestar-faststream){.external-link target="_blank"} - **Litestar** integration for **FastStream** message brokers
 * [`fast-healthchecks`](https://github.com/ZYLVEXT/fast-healthchecks){.external-link target="_blank"} - framework-agnostic health checks
 * [`awesome-faststream`](https://github.com/lesnik512/awesome-faststream){.external-link target="_blank"} - curated list of libraries, tools, templates and resources
