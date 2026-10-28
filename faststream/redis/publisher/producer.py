@@ -178,17 +178,12 @@ class RedisFastProducer(BaseRedisFastProducer):
             await self.__publish(msg, cmd)
 
             with anyio.fail_after(cmd.timeout) as scope:
-                # skip subscribe message
-                await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-                # get real response
-                response_msg = await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
+                response_msg = None
+                while response_msg is None:
+                    response_msg = await psub.get_message(
+                        ignore_subscribe_messages=True,
+                        timeout=cmd.timeout,  # type: ignore[arg-type]
+                    )
 
             if scope.cancel_called:
                 raise TimeoutError
@@ -282,15 +277,12 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
                 raise UnreachablePathError
 
             with anyio.fail_after(cmd.timeout) as scope:
-                await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-                response_msg = await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
+                response_msg = None
+                while response_msg is None:
+                    response_msg = await psub.get_message(
+                        ignore_subscribe_messages=True,
+                        timeout=cmd.timeout,
+                    )
 
             if scope.cancel_called:
                 raise TimeoutError

@@ -102,7 +102,7 @@ class ChannelSubscriber(LogicSubscriber):
         raw_message: PubSubMessage | None = None
 
         with anyio.move_on_after(timeout):
-            while (raw_message := await self._get_message(self.subscription)) is None:  # noqa: ASYNC110
+            while (raw_message := await self._get_message(self.subscription)) is None:  # ruff: ignore[async-busy-wait]
                 await anyio.sleep(sleep_interval)
 
         context = self._outer_config.context
@@ -135,7 +135,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         while True:
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     raw_message := await self._get_message(self.subscription)
                 ) is None:
                     await anyio.sleep(sleep_interval)

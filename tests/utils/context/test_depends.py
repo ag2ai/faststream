@@ -58,7 +58,7 @@ async def test_async_with_sync_depends() -> None:
 
 @pytest.mark.asyncio()
 async def test_annotated_depends() -> None:
-    D = Annotated[int, Depends(sync_dep)]  # noqa: N806
+    D = Annotated[int, Depends(sync_dep)]  # ruff: ignore[non-lowercase-variable-in-function]
 
     key = 1000
 

@@ -13,12 +13,12 @@ from faststream.middlewares import AckPolicy
 if TYPE_CHECKING:
     from aiokafka.abc import ConsumerRebalanceListener
 
-    from faststream.kafka.schemas import TopicPartition
+    from faststream.kafka.schemas import Topic, TopicPartition
 
 
 @dataclass(kw_only=True)
 class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
-    topics: Sequence[str] = field(default_factory=list)
+    topics: Sequence["Topic"] = field(default_factory=list)
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
     pattern: str | None = None
 
@@ -27,7 +27,7 @@ class KafkaSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "KafkaBrokerConfig" = field(default_factory=KafkaBrokerConfig)
 
-    topics: Sequence[str] = field(default_factory=list)
+    topics: Sequence["Topic"] = field(default_factory=list)
     group_id: str | None = None
     connection_args: dict[str, Any] = field(default_factory=dict)
     listener: Optional["ConsumerRebalanceListener"] = None

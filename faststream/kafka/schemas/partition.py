@@ -1,24 +1,35 @@
-from typing import NamedTuple
+class TopicPartition:
+    """A Kafka topic partition with its creation setting."""
 
+    __slots__ = (
+        "declare",
+        "partition",
+        "topic",
+    )
 
-class TopicPartition(NamedTuple):
-    """A topic and partition pair, naming the assignment a Subscriber is declared with.
+    def __init__(
+        self,
+        topic: str,
+        partition: int = -1,
+        *,
+        declare: bool = True,
+    ) -> None:
+        """Initialize the Kafka topic partition.
 
-    FastStream's own rather than a re-export of `aiokafka.TopicPartition`, so the
-    type is ours to grow at the same import path. Still a `NamedTuple` with the
-    client library's two fields in the same order, because unpacking, indexing,
-    ordering, hashing and equality against the client library's tuple are what the
-    re-export gave users and none of them survive an ordinary class, or a third
-    field. What the consumer is assigned is the client library's tuple, rebuilt
-    where the assignment happens; this one is never handed to aiokafka.
+        Args:
+            topic: Kafka topic name.
+            partition: Partition number to assign.
+            declare: Whether to create the topic automatically or just connect to it.
+                Missing topics are not created and their absence is not reported,
+                so set it to `False` for topics provisioned by someone else.
+        """
+        self.topic = topic
+        self.partition = partition
+        self.declare = declare
 
-    Separate from `faststream.confluent.TopicPartition`, which carries `offset`,
-    `leader_epoch` and `metadata` — fields the aiokafka client has no equivalent
-    for, and so a promise this signature must not make.
-    """
-
-    topic: str
-    """A topic name."""
-
-    partition: int
-    """A partition id."""
+    def add_prefix(self, prefix: str) -> "TopicPartition":
+        return TopicPartition(
+            f"{prefix}{self.topic}",
+            self.partition,
+            declare=self.declare,
+        )

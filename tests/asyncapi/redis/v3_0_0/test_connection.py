@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.redis import RedisBroker
 from faststream.specification import Tag
@@ -6,7 +7,7 @@ from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
 
 @pytest.mark.redis()
-def test_base() -> None:
+def test_base(snapshot_json: SnapshotAssertion) -> None:
     schema = get_3_0_0_schema(
         RedisBroker(
             "redis://localhost:6379",
@@ -17,24 +18,7 @@ def test_base() -> None:
         ),
     )
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "description": "Test description",
-                "protocol": "plaintext",
-                "protocolVersion": "0.9.0",
-                "tags": [{"description": "experimental", "name": "some-tag"}],
-                "host": "localhost:6379",
-                "pathname": "",
-            },
-        },
-    }, schema
+    assert schema == snapshot_json
 
 
 @pytest.mark.redis()
@@ -65,7 +49,7 @@ def test_credentials_stripped_from_specification_only(url: str, expected: str) -
 
 
 @pytest.mark.redis()
-def test_custom() -> None:
+def test_custom(snapshot_json: SnapshotAssertion) -> None:
     schema = get_3_0_0_schema(
         RedisBroker(
             "redis://localhost:6379",
@@ -73,19 +57,4 @@ def test_custom() -> None:
         ),
     )
 
-    assert schema == {
-        "asyncapi": "3.0.0",
-        "channels": {},
-        "operations": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "rediss",
-                "protocolVersion": "custom",
-                "host": "127.0.0.1:8000",
-                "pathname": "",
-            },
-        },
-    }
+    assert schema == snapshot_json

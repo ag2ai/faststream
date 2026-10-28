@@ -44,7 +44,7 @@ async def measure(
 ) -> AsyncGenerator[MeasureResult, None]:
     async with case.start() as start_time:
         while (elapsed_time := (time.time() - start_time)) < measure_time:
-            yield MeasureResult(case.EVENTS_PROCESSED, elapsed_time)
+            yield MeasureResult(case.EVENTS_PROCESSED, elapsed_time)  # ruff: ignore[yield-in-context-manager-in-async-generator]
             await asyncio.sleep(1.0)
 
     yield MeasureResult(case.EVENTS_PROCESSED, time.time() - start_time)

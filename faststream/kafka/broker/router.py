@@ -26,12 +26,13 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
         CustomCallable,
     )
-    from faststream.kafka.schemas import TopicPartition
+    from faststream.kafka.schemas import Topic, TopicPartition
 
 
 class KafkaPublisher(ArgsContainer):
@@ -42,7 +43,7 @@ class KafkaPublisher(ArgsContainer):
 
     def __init__(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
@@ -111,7 +112,7 @@ class KafkaRoute(SubscriberRoute):
         self,
         call: Callable[..., "SendableMessage"]
         | Callable[..., Awaitable["SendableMessage"]],
-        *topics: str,
+        *topics: Union[str, "Topic"],
         publishers: Iterable[KafkaPublisher] = (),
         batch: bool = False,
         group_id: str | None = None,
@@ -164,7 +165,8 @@ class KafkaRoute(SubscriberRoute):
             call:
                 Message handler function
                 to wrap the same with `@broker.subscriber(...)` way.
-            *topics: "Kafka topics to consume messages from.
+            *topics: Kafka topics to consume messages from. Pass a `Topic` object
+                instead of a plain name to configure how the topic is created.
             publishers: Kafka publishers to broadcast the handler result.
             batch: Whether to consume messages in batches or not.
             group_id:
@@ -423,6 +425,7 @@ class KafkaRouter(
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: "AckPolicy" = EMPTY,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Initialize KafkaRouter.
 
@@ -438,6 +441,10 @@ class KafkaRouter(
             ack_policy:
                 Default acknowledgement policy for all subscribers in this router.
                 Can be overridden at the subscriber level.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         super().__init__(
             handlers=handlers,
@@ -449,6 +456,7 @@ class KafkaRouter(
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,
                 prefix=prefix,
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             routers=routers,
         )
