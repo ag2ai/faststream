@@ -4,11 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Redis XAUTOCLAIM in Python: Recover Pending Messages"
+description: >-
+  Recover pending Redis Stream messages in Python with XAUTOCLAIM and FastStream. Configure min_idle_time, a claiming worker and acknowledgements for consumer groups.
 search:
   boost: 10
 ---
 
-# Redis Stream Message Claiming
+# Redis XAUTOCLAIM in Python: Recover Pending Messages
+
+Use **Redis `XAUTOCLAIM` in Python** to recover consumer-group messages left pending after a worker fails. FastStream calls `redis-py` through `StreamSub(min_idle_time=...)`, which transfers idle pending entries to a claiming subscriber. This mode only reads pending entries: keep a regular `XREADGROUP` subscriber for new messages, or use the Redis 8.4+ `XREADGROUP CLAIM` mode described below.
 
 When working with Redis Stream Consumer Groups, there may be situations where messages remain in a pending state because a consumer failed to process them. FastStream provides a mechanism to automatically claim these pending messages using Redis's `XAUTOCLAIM` command through the `min_idle_time` parameter.
 
