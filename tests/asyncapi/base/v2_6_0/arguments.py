@@ -23,7 +23,7 @@ class ArgumentsTestcase(AsyncAPI260Factory):
         async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert key == "custom_name"
         assert schema["channels"][key]["description"] == "test description"
@@ -55,7 +55,7 @@ class ArgumentsTestcase(AsyncAPI260Factory):
             """Test description."""
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert key == "custom_name"
         assert schema["channels"][key]["description"] == "Test description.", schema[

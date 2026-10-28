@@ -1,8 +1,12 @@
+import warnings
 from typing import (
     TYPE_CHECKING,
+    Annotated,
+    Any,
     Literal,
     NotRequired,
     Optional,
+    Protocol,
     TypeAlias,
     TypeVar,
     Union,
@@ -10,6 +14,7 @@ from typing import (
 
 from typing_extensions import TypedDict, override
 
+from faststream._internal.constants import EMPTY
 from faststream.message import StreamMessage as BrokerStreamMessage
 
 if TYPE_CHECKING:
@@ -93,7 +98,7 @@ class RedisBatchListMessage(BrokerStreamMessage[BatchListMessage]):
 
 
 DATA_KEY = "__data__"
-bDATA_KEY = DATA_KEY.encode()  # noqa: N816
+bDATA_KEY = DATA_KEY.encode()  # ruff: ignore[mixed-case-variable-in-global-scope]
 
 
 class _StreamMessage(TypedDict):
@@ -118,65 +123,92 @@ class BatchStreamMessage(_StreamMessage):
 _StreamMsgType = TypeVar("_StreamMsgType", bound=_StreamMessage)
 
 
+class ConsumerProtocol(Protocol):
+    """A protocol for Redis consumers."""
+
+    __slots__ = ()
+
+    async def xack(self, name: str, groupname: str, *ids: bytes) -> None:
+        pass
+
+    async def xdel(self, name: str, *ids: bytes) -> None:
+        pass
+
+    async def xpending_range(
+        self, name: str, groupname: str, min: bytes, max: bytes, count: int
+    ) -> list[dict[str, Any]]:
+        pass
+
+
+class FakeConsumer(ConsumerProtocol):
+    """A fake Redis consumer."""
+
+    __slots__ = ()
+
+    async def xack(self, name: str, groupname: str, *ids: bytes) -> None:
+        pass
+
+    async def xdel(self, name: str, *ids: bytes) -> None:
+        pass
+
+    async def xpending_range(  # ruff: ignore[no-self-use]
+        self, name: str, groupname: str, min: bytes, max: bytes, count: int
+    ) -> list[dict[str, Any]]:
+        return []
+
+
+FAKE_CONSUMER = FakeConsumer()
+
+
 class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     __slots__ = ()
 
-    @override
-    async def ack(
-        self,
-        redis: Optional["Redis[bytes]"] = None,
-        group: str | None = None,
+    def __init__(
+        self, *args: Any, consumer: ConsumerProtocol, group: str | None, **kwargs: Any
     ) -> None:
-        if not self.committed and group is not None and redis is not None:
+        super().__init__(*args, **kwargs)
+        self.consumer = consumer
+        self.group = group
+
+    @override
+    async def ack(self) -> None:
+        if not self.committed and self.group is not None:
             ids = self.raw_message["message_ids"]
             channel = self.raw_message["channel"]
-            await redis.xack(channel, group, *ids)  # type: ignore[no-untyped-call]
+            await self.consumer.xack(channel, self.group, *ids)
         await super().ack()
 
     @override
-    async def nack(
-        self,
-        redis: Optional["Redis[bytes]"] = None,
-        group: str | None = None,
-    ) -> None:
+    async def nack(self) -> None:
         await super().nack()
 
     @override
-    async def reject(
-        self,
-        redis: Optional["Redis[bytes]"] = None,
-        group: str | None = None,
-    ) -> None:
+    async def reject(self) -> None:
         await super().reject()
 
-    async def delete(self, redis: Optional["Redis[bytes]"]) -> None:
-        if redis is not None:
-            ids = self.raw_message["message_ids"]
-            channel = self.raw_message["channel"]
-            await redis.xdel(channel, *ids)
+    async def delete(self,) -> None:
+        ids = self.raw_message["message_ids"]
+        channel = self.raw_message["channel"]
+        await self.consumer.xdel(channel, *ids)
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
     __slots__ = ()
 
-    async def get_delivery_count(
-        self,
-        redis: "Redis[bytes]",
-        group: str,
-    ) -> int:
+    async def get_delivery_count(self) -> int:
         """Return this message's current delivery count from the Redis PEL.
 
         The count is queried on every call. Messages without an ID or a pending
         entry, including acknowledged messages, return ``1``.
         """
         message_ids = self.raw_message["message_ids"]
-        if not message_ids:
+        if not message_ids or self.group is None:
             return 1
 
         message_id = message_ids[0]
-        entries = await redis.xpending_range(
+        entries = await self.consumer.xpending_range(
             name=self.raw_message["channel"],
-            groupname=group,
+            groupname=self.group,
             min=message_id,
             max=message_id,
             count=1,

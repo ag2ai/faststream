@@ -82,6 +82,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.configs.broker import JsInitOptions
@@ -439,6 +440,7 @@ class NatsBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Initialize the NatsBroker object.
 
@@ -552,6 +554,10 @@ class NatsBroker(
                 Provider for FastDepends.
             context:
                 Context for FastDepends.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         servers = [servers] if isinstance(servers, str) else list(servers)
 
@@ -566,6 +572,10 @@ class NatsBroker(
             nkeys_seed_str=nkeys_seed_str,
         )
 
+        parsed_servers = [
+            urlparse(server if "://" in server else f"//{server}") for server in servers
+        ]
+
         if (
             security is not None
             and type(security)
@@ -573,10 +583,7 @@ class NatsBroker(
                 BaseSecurity,
                 NatsSecurity,
             }
-            and any(
-                urlparse(url if "://" in url else f"//{url}").username is not None
-                for url in servers
-            )
+            and any(parsed.username is not None for parsed in parsed_servers)
         ):
             msg = "URL credentials conflict with `security`."
             raise SetupError(msg)
@@ -591,7 +598,10 @@ class NatsBroker(
             else:
                 specification_url = list(specification_url)
         else:
-            specification_url = servers
+            specification_url = [
+                server.replace(parsed.netloc, parsed.netloc.rpartition("@")[-1], 1)
+                for server, parsed in zip(servers, parsed_servers, strict=True)
+            ]
 
         js_producer = NatsJSFastProducer(
             parser=parser,
@@ -661,6 +671,7 @@ class NatsBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,
@@ -707,7 +718,7 @@ class NatsBroker(
                     subjects=list(subjects),
                 )
 
-            except BadRequestError as e:
+            except BadRequestError as e:  # ruff: ignore[try-except-in-loop]
                 self._setup_logger()
 
                 log_context = LogicSubscriber.build_log_context(

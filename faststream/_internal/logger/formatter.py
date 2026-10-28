@@ -43,7 +43,7 @@ class ColourizedFormatter(logging.Formatter):
             self.use_colors = sys.stdout.isatty()
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
-    def formatMessage(self, record: logging.LogRecord) -> str:  # noqa: N802
+    def formatMessage(self, record: logging.LogRecord) -> str:  # ruff: ignore[invalid-function-name]
         """Formats the log message.
 
         Args:

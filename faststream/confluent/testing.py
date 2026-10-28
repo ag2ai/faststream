@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
+from confluent_kafka import KafkaError, Message
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
@@ -312,12 +313,12 @@ class MockConfluentMessage:
         raw_msg: bytes | None,
         topic: str,
         key: bytes | str,
-        headers: list[tuple[str, bytes]],
+        headers: list[tuple[str, str | bytes | None]],
         offset: int,
         partition: int,
         timestamp_type: int,
         timestamp_ms: int,
-        error: str | None = None,
+        error: KafkaError | None = None,
     ) -> None:
         self._raw_msg = raw_msg
         self._topic = topic
@@ -336,10 +337,14 @@ class MockConfluentMessage:
     def len(self) -> int:
         return 0 if self._raw_msg is None else len(self._raw_msg)
 
-    def error(self) -> str | None:
+    # `Message.__len__` reads the C-level value this mock never sets
+    def __len__(self) -> int:
+        return self.len()
+
+    def error(self) -> KafkaError | None:
         return self._error
 
-    def headers(self) -> list[tuple[str, bytes]]:
+    def headers(self) -> list[tuple[str, str | bytes | None]]:
         return self._headers
 
     def key(self) -> bytes:

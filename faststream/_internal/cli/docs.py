@@ -12,10 +12,10 @@ from faststream._internal._compat import json_dumps
 from faststream._internal.cli.utils.imports import import_from_string
 from faststream.exceptions import INSTALL_WATCHFILES, INSTALL_YAML, SCHEMA_NOT_SUPPORTED
 from faststream.specification.asyncapi.site import serve_app
-from faststream.specification.asyncapi.v2_6_0.schema import (  # noqa: TID253
+from faststream.specification.asyncapi.v2_6_0.schema import (  # ruff: ignore[banned-module-level-imports]
     ApplicationSchema as SchemaV2_6,
 )
-from faststream.specification.asyncapi.v3_0_0.schema import (  # noqa: TID253
+from faststream.specification.asyncapi.v3_0_0.schema import (  # ruff: ignore[banned-module-level-imports]
     ApplicationSchema as SchemaV3,
 )
 

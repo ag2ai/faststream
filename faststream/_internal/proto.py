@@ -1,7 +1,7 @@
 from typing import Any, Self, overload
 
 
-class NameRequired:  # noqa: PLW1641 - each subclass decides whether it is hashable
+class NameRequired:  # ruff: ignore[eq-without-hash] - each subclass decides whether it is hashable
     """Required name option object."""
 
     __slots__ = ("name",)

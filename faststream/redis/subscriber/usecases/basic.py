@@ -97,7 +97,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             try:
                 await self._get_msgs(*args)
 
-            except Exception as e:
+            except Exception as e:  # ruff: ignore[try-except-in-loop]
                 self._log(
                     log_level=logging.ERROR,
                     message="Message fetch error",

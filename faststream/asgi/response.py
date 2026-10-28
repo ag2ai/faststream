@@ -52,7 +52,7 @@ class AsgiResponse:
         )
 
 
-def JSONResponse(  # noqa: N802
+def JSONResponse(  # ruff: ignore[invalid-function-name]
     data: Any,
     status_code: int = 200,
     headers: Mapping[str, str] | None = None,

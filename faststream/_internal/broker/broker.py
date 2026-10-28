@@ -2,8 +2,10 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Optional, Self
 
+import anyio
 from fast_depends import Provider
 
+from faststream._internal._compat import ExceptionGroup
 from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import (
     BrokerMiddleware,
@@ -19,6 +21,7 @@ if TYPE_CHECKING:
 
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.di import FastDependsConfig
+    from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream._internal.producer import ProducerProto
     from faststream.specification.schema import BrokerSpec
 
@@ -126,10 +129,23 @@ class BrokerUsecase(
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Closes the object."""
-        for sub in self.subscribers:
-            await sub.stop()
+        errors: list[Exception] = []
+
+        async def stop_subscriber(sub: "SubscriberUsecase[MsgType]") -> None:
+            try:
+                await sub.stop()
+            except Exception as e:
+                errors.append(e)
+
+        async with anyio.create_task_group() as tg:
+            for sub in self.subscribers:
+                _ = tg.start_soon(stop_subscriber, sub)
 
         self.running = False
+
+        if errors:
+            msg = "Failed to stop subscribers"
+            raise ExceptionGroup(msg, errors)
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

@@ -69,7 +69,7 @@ class Context(CustomField):
         """
         name = f"{self.prefix}{self.name or self.param_name}"
 
-        if EMPTY != (  # noqa: SIM300
+        if EMPTY != (  # ruff: ignore[yoda-conditions]
             v := resolve_context_by_name(
                 name=name,
                 default=self.default,

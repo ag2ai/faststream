@@ -3,7 +3,7 @@ from pprint import pformat
 from typing import Any
 
 
-class FastStreamException(Exception):  # noqa: N818
+class FastStreamException(Exception):  # ruff: ignore[error-suffix-on-exception-name]
     """Basic FastStream exception class."""
 
 
@@ -115,7 +115,7 @@ class StartupValidationError(FastStreamException, ValueError):
         )
 
 
-class FeatureNotSupportedException(FastStreamException, NotImplementedError):  # noqa: N818
+class FeatureNotSupportedException(FastStreamException, NotImplementedError):  # ruff: ignore[error-suffix-on-exception-name]
     """Raises at planned NotImplemented operation call."""
 
 

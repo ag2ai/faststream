@@ -95,7 +95,7 @@ class HandlerItem(Generic[MsgType]):
 
     @property
     def name(self) -> str:
-        """Returns the name of the original call."""
+        """The name of the original call."""
         if self.handler is None:
             return ""
 
@@ -104,7 +104,7 @@ class HandlerItem(Generic[MsgType]):
 
     @property
     def description(self) -> str | None:
-        """Returns the description of original call."""
+        """The description of original call."""
         if self.handler is None:
             return None
 
@@ -168,7 +168,7 @@ class CallsCollection(UserList[HandlerItem[MsgType]]):
 
     @property
     def name(self) -> str | None:
-        """Returns the name of the handler call."""
+        """The name of the handler call."""
         if not self.data:
             return None
 

@@ -1,7 +1,27 @@
+from typing import Any
+
 import pytest
 
 from faststream import AckPolicy
 from faststream.mqtt import MQTTBroker, MQTTRouter, QoS, Will
+
+
+@pytest.mark.mqtt()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "options",
+    (
+        {"receive_maximum": 10},
+        {"maximum_packet_size": 4096},
+        {"user_properties": (("role", "worker"),)},
+        {"request_response_information": False},
+        {"request_problem_information": False},
+    ),
+)
+async def test_broker_connect_properties_reject_v311(options: dict[str, Any]) -> None:
+    broker = MQTTBroker(version="3.1.1", **options)
+    with pytest.raises(RuntimeError, match=r"MQTT 5\.0 is required"):
+        await broker.connect()
 
 
 @pytest.mark.mqtt()
@@ -71,7 +91,7 @@ def test_sub_overrides_broker_and_router() -> None:
 @pytest.mark.mqtt()
 def test_mqtt_connect_timeout_threaded_to_client() -> None:
     broker = MQTTBroker(mqtt_connect_timeout=7.0)
-    assert broker._connection_kwargs["mqtt_connect_timeout"] == 7.0
+    assert broker._connection_kwargs["mqtt_connect_timeout"] == 7
 
 
 @pytest.mark.mqtt()
@@ -97,7 +117,7 @@ def test_session_replay_config_threaded_to_client() -> None:
     )
 
     assert broker._connection_kwargs["session_replay_buffer_size"] == 10
-    assert broker._connection_kwargs["session_replay_timeout"] == 20.0
+    assert broker._connection_kwargs["session_replay_timeout"] == 20
 
 
 @pytest.mark.mqtt()

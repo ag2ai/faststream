@@ -53,6 +53,10 @@ JsonSchemaValue = Mapping[str, Any]
 def dump_json(data: Any) -> bytes:
     return json_dumps(to_jsonable_python(data))
 
+if sys.version_info >= (3, 11):
+    ExceptionGroup = ExceptionGroup  # ruff: ignore[undefined-name, self-assigning-variable]
+else:
+    from exceptiongroup import ExceptionGroup
 
 try:
     import email_validator
@@ -139,7 +143,7 @@ except ImportError:
 opentelemetry: Any
 
 try:
-    import opentelemetry
+    import opentelemetry.semconv
 except ImportError:
     opentelemetry = None
     HAS_OPENTELEMETRY = False

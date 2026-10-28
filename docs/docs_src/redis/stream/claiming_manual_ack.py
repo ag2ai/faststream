@@ -1,5 +1,5 @@
 from faststream import AckPolicy, FastStream, Logger
-from faststream.redis import RedisBroker, RedisStreamMessage, StreamSub, Redis
+from faststream.redis import RedisBroker, RedisStreamMessage, StreamSub
 
 broker = RedisBroker()
 app = FastStream(broker)
@@ -14,12 +14,12 @@ app = FastStream(broker)
     ),
     ack_policy=AckPolicy.MANUAL,
 )
-async def handle(msg: RedisStreamMessage, logger: Logger, redis: Redis):
+async def handle(msg: RedisStreamMessage, logger: Logger):
     try:
         # Process the claimed message
         logger.info(f"Processing: {msg.body!r}")
         # Explicitly acknowledge after successful processing
-        await msg.ack(redis=redis, group="critical-tasks")
+        await msg.ack()
     except Exception as e:
         # Don't acknowledge - let it be claimed by another consumer
         logger.error(f"Failed to process: {e}")

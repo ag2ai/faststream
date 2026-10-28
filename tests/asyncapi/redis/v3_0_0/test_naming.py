@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.redis import RedisBroker
 from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
@@ -10,7 +11,7 @@ from tests.asyncapi.base.v3_0_0.naming import NamingTestCase
 class TestNaming(NamingTestCase):
     broker_class = RedisBroker
 
-    def test_base(self) -> None:
+    def test_base(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test")
@@ -18,60 +19,7 @@ class TestNaming(NamingTestCase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "asyncapi": "3.0.0",
-            "channels": {
-                "test:Handle": {
-                    "address": "test",
-                    "bindings": {
-                        "redis": {
-                            "bindingVersion": "custom",
-                            "channel": "test",
-                            "method": "subscribe",
-                        },
-                    },
-                    "servers": [{"$ref": "#/servers/development"}],
-                    "messages": {
-                        "SubscribeMessage": {
-                            "$ref": "#/components/messages/test:Handle:SubscribeMessage",
-                        },
-                    },
-                },
-            },
-            "operations": {
-                "test:HandleSubscribe": {
-                    "action": "receive",
-                    "channel": {
-                        "$ref": "#/channels/test:Handle",
-                    },
-                    "messages": [
-                        {"$ref": "#/channels/test:Handle/messages/SubscribeMessage"},
-                    ],
-                },
-            },
-            "components": {
-                "messages": {
-                    "test:Handle:SubscribeMessage": {
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {"$ref": "#/components/schemas/EmptyPayload"},
-                        "title": "test:Handle:SubscribeMessage",
-                    },
-                },
-                "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"}},
-            },
-            "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "servers": {
-                "development": {
-                    "protocol": "redis",
-                    "protocolVersion": "custom",
-                    "host": "localhost:6379",
-                    "pathname": "",
-                },
-            },
-        }, schema
+        assert schema == snapshot_json
 
     @pytest.mark.parametrize(
         "args",
@@ -81,14 +29,19 @@ class TestNaming(NamingTestCase):
             pytest.param({"stream": "test"}, id="stream"),
         ),
     )
-    def test_subscribers_variations(self, args: dict[str, Any]) -> None:
+    def test_subscribers_variations(
+        self,
+        args: dict[str, Any],
+        snapshot_json: SnapshotAssertion,
+    ) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(**args)  # type: ignore[untyped-decorator]
         async def handle() -> None: ...
 
-        schema = self.get_spec(broker)
-        assert list(schema.to_jsonable()["channels"].keys()) == ["test:Handle"]
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert schema == snapshot_json
 
     @pytest.mark.parametrize(
         "args",
@@ -98,11 +51,16 @@ class TestNaming(NamingTestCase):
             pytest.param({"stream": "test"}, id="stream"),
         ),
     )
-    def test_publisher_variations(self, args: dict[str, Any]) -> None:
+    def test_publisher_variations(
+        self,
+        args: dict[str, Any],
+        snapshot_json: SnapshotAssertion,
+    ) -> None:
         broker = self.broker_class()
 
         @broker.publisher(**args)  # type: ignore[untyped-decorator]
         async def handle() -> None: ...
 
-        schema = self.get_spec(broker)
-        assert list(schema.to_jsonable()["channels"].keys()) == ["test:Publisher"]
+        schema = self.get_spec(broker).to_jsonable()
+
+        assert schema == snapshot_json

@@ -51,8 +51,10 @@ def change_producer(
     producer: Any,
 ) -> Generator[None, None, None]:
     old_producer, config.producer = config.producer, producer
-    yield
-    config.producer = old_producer
+    try:
+        yield
+    finally:
+        config.producer = old_producer
 
 
 class TestBroker(Generic[Broker, EnterType]):
@@ -144,10 +146,11 @@ class TestBroker(Generic[Broker, EnterType]):
                     await stack.enter_async_context(self._do_start(broker))
                 )
 
-            yield started_brokers
-
-            for sub, was_running in saved_running.items():
-                sub.running = was_running
+            try:
+                yield started_brokers
+            finally:
+                for sub, was_running in saved_running.items():
+                    sub.running = was_running
 
     @asynccontextmanager
     async def _do_start(self, broker: Broker) -> AsyncGenerator[Broker, None]:

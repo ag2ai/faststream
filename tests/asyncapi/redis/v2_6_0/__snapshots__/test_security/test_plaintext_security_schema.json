@@ -1,0 +1,30 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {},
+    "securitySchemes": {
+      "user-password": {
+        "type": "userPassword"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "redis",
+      "protocolVersion": "custom",
+      "security": [
+        {
+          "user-password": []
+        }
+      ],
+      "url": "redis://localhost:6379/"
+    }
+  }
+}

@@ -85,7 +85,7 @@ class ContextRepoComposition(ContextRepo):
         for context in self._contexts:
             try:
                 return context.resolve(argument)
-            except ContextError:
+            except ContextError:  # ruff: ignore[try-except-in-loop]
                 pass
 
         raise ContextError(self.context, first)
