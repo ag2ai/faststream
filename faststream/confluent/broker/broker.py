@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -348,7 +348,7 @@ class KafkaBroker(
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
@@ -363,7 +363,7 @@ class KafkaBroker(
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
@@ -378,7 +378,7 @@ class KafkaBroker(
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -393,7 +393,7 @@ class KafkaBroker(
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -445,7 +445,7 @@ class KafkaBroker(
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
@@ -474,7 +474,7 @@ class KafkaBroker(
         topic: str,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,

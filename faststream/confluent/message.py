@@ -59,6 +59,23 @@ class KafkaMessage(
         if not is_manual:
             self.committed = AckStatus.ACKED
 
+    @property
+    def raw_headers(self) -> dict[str, bytes | None]:
+        """Original header bytes, or the first message's headers for a batch."""
+        raw_message = self.raw_message
+        if isinstance(raw_message, tuple):
+            if not raw_message:
+                return {}
+            raw_message = raw_message[0]
+        return _get_raw_headers(raw_message)
+
+    @property
+    def batch_raw_headers(self) -> list[dict[str, bytes | None]]:
+        """Original header bytes for every batch message; empty for a single message."""
+        if isinstance(self.raw_message, tuple):
+            return [_get_raw_headers(message) for message in self.raw_message]
+        return []
+
     async def ack(self) -> None:
         """Acknowledge the Kafka message."""
         if self.is_manual and not self.committed:
@@ -95,3 +112,11 @@ class KafkaMessage(
                     offset=offset,
                 )
         await super().nack()
+
+
+def _get_raw_headers(message: Message) -> dict[str, bytes | None]:
+    headers = dict(message.headers() or ())
+    return {
+        key: value.encode() if isinstance(value, str) else value
+        for key, value in headers.items()
+    }
