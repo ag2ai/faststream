@@ -1,3 +1,4 @@
+import asyncio
 from itertools import starmap
 from typing import Any
 from unittest.mock import MagicMock
@@ -41,21 +42,26 @@ def _snapshot(
 
 
 @pytest.mark.asyncio()
-class BinaryHeadersTestcase(BaseTestcaseConfig[Any]):
-    async def test_publish_binary_headers(self, queue: str, mock: MagicMock) -> None:
+class BinaryHeadersPublishTestcase(BaseTestcaseConfig[Any]):
+    async def test_publish_binary_headers(self, queue: str) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2214."""
         broker = self.get_broker(apply_types=True)
         args, kwargs = self.get_subscriber_params(queue)
+        received: asyncio.Queue[HeaderSnapshot] = asyncio.Queue()
 
         @broker.subscriber(*args, **kwargs)
         async def handle(message: Any = Context("message")) -> None:
-            mock(_snapshot(message.headers, message.raw_headers))
+            await received.put(_snapshot(message.headers, message.raw_headers))
 
         async with self.patch_broker(broker) as br:
+            await br.start()
             await br.publish("body", queue, headers=INPUT_HEADERS)
+            result = await asyncio.wait_for(received.get(), timeout=self.timeout)
 
-        mock.assert_called_once_with((DECODED_HEADERS, RAW_HEADERS))
+        assert result == (DECODED_HEADERS, RAW_HEADERS)
 
+
+class BinaryHeadersTestcase(BinaryHeadersPublishTestcase):
     async def test_publish_batch_binary_headers(
         self, queue: str, mock: MagicMock
     ) -> None:
