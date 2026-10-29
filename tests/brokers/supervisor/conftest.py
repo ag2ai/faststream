@@ -4,8 +4,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from faststream._internal.endpoint.subscriber.mixins import TasksSupervisor
-from faststream._internal.endpoint.subscriber.supervisor import TaskCallbackSupervisor
+from faststream._internal.endpoint.subscriber.supervisor import (
+    TaskCallbackSupervisor,
+    TasksSupervisor,
+)
 
 
 @pytest.fixture()

@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from faststream import AckPolicy
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentDispatcher
+from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream.confluent import KafkaBroker, TopicPartition, annotations
 from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.helpers import AsyncConfluentConsumer

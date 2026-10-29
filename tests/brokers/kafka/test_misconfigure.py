@@ -4,7 +4,7 @@ import pytest
 from aiokafka import AIOKafkaConsumer
 
 from faststream import AckPolicy
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentDispatcher
+from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream.exceptions import SetupError
 from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition, annotations
 from faststream.kafka.subscriber.usecase import ConcurrentBetweenPartitionsSubscriber

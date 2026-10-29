@@ -5,7 +5,7 @@ from redis.asyncio.client import Pipeline, Redis
 
 from faststream import AckPolicy
 from faststream._internal._compat import ExceptionGroup
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentDispatcher
+from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from faststream.redis import (

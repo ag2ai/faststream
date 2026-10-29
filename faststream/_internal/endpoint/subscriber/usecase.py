@@ -38,12 +38,12 @@ from .call_item import (
     CallsCollection,
     HandlerItem,
 )
-from .mixins import (
+from .dispatcher import (
     ConcurrentDispatcher,
     ConsumeDispatcherProto,
     DirectDispatcher,
-    TasksSupervisor,
 )
+from .supervisor import TasksSupervisor
 from .utils import MultiLock, default_filter
 
 if TYPE_CHECKING:

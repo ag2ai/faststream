@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import time
@@ -11,7 +12,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
     from faststream._internal.configs import BrokerConfig
-    from faststream._internal.endpoint.subscriber.mixins import TasksSupervisor
 
 
 class _SupervisorCache(UserDict[int, float]):
@@ -139,3 +139,41 @@ class TaskCallbackSupervisor:
 
             if self.restart_on_failure:
                 self.tasks_supervisor.add_task(self.func, self.args, self.kwargs)
+
+
+class TasksSupervisor:
+    __slots__ = ("broker_config", "tasks")
+
+    def __init__(self, broker_config: BrokerConfig) -> None:
+        self.tasks: list[asyncio.Task[Any]] = []
+        self.broker_config = broker_config
+
+    def add_task(
+        self,
+        func: Callable[..., Coroutine[Any, Any, Any]],
+        func_args: tuple[Any, ...] | None = None,
+        func_kwargs: dict[str, Any] | None = None,
+        *,
+        restart_on_failure: bool = True,
+    ) -> None:
+        args = func_args or ()
+        kwargs = func_kwargs or {}
+        task = asyncio.create_task(func(*args, **kwargs))
+        callback = TaskCallbackSupervisor(
+            func,
+            func_args,
+            func_kwargs,
+            self,
+            self.broker_config,
+            restart_on_failure=restart_on_failure,
+        )
+        task.add_done_callback(callback)
+        self.tasks.append(task)
+
+    async def stop(self) -> None:
+        """Clean up handler subscription, cancel consume task in graceful mode."""
+        for task in self.tasks:
+            if not task.done():
+                task.cancel()
+
+        self.tasks.clear()

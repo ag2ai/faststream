@@ -1,5 +1,4 @@
-import asyncio
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Protocol
 
 import anyio
@@ -7,50 +6,10 @@ from typing_extensions import override
 
 from faststream._internal.types import AnyMsg_contra, MsgType
 
-from .supervisor import TaskCallbackSupervisor
+from .supervisor import TasksSupervisor
 
 if TYPE_CHECKING:
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
-
-    from faststream._internal.configs import BrokerConfig
-
-
-class TasksSupervisor:
-    __slots__ = ("broker_config", "tasks")
-
-    def __init__(self, broker_config: "BrokerConfig") -> None:
-        self.tasks: list[asyncio.Task[Any]] = []
-        self.broker_config = broker_config
-
-    def add_task(
-        self,
-        func: Callable[..., Coroutine[Any, Any, Any]],
-        func_args: tuple[Any, ...] | None = None,
-        func_kwargs: dict[str, Any] | None = None,
-        *,
-        restart_on_failure: bool = True,
-    ) -> None:
-        args = func_args or ()
-        kwargs = func_kwargs or {}
-        task = asyncio.create_task(func(*args, **kwargs))
-        callback = TaskCallbackSupervisor(
-            func,
-            func_args,
-            func_kwargs,
-            self,
-            self.broker_config,
-            restart_on_failure=restart_on_failure,
-        )
-        task.add_done_callback(callback)
-        self.tasks.append(task)
-
-    async def stop(self) -> None:
-        """Clean up handler subscription, cancel consume task in graceful mode."""
-        for task in self.tasks:
-            if not task.done():
-                task.cancel()
-
-        self.tasks.clear()
 
 
 class ConsumeDispatcherProto(Protocol[AnyMsg_contra]):
