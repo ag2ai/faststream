@@ -209,7 +209,7 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
                 timeout=self.timeout,
             )
             with anyio.fail_after(self.timeout):
-                while sub.running:  # noqa: ASYNC110
+                while sub.running:  # ruff: ignore[async-busy-wait]
                     await asyncio.sleep(0.01)
             await broker.publish("hello2", channel=f"stop-channel-{queue}")
             await asyncio.sleep(0.5)

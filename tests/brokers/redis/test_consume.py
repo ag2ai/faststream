@@ -2,6 +2,7 @@ import asyncio
 from typing import Any
 from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
 
+import anyio
 import pytest
 from dirty_equals import IsPartialDict
 from pydantic import BaseModel
@@ -373,6 +374,28 @@ class TestConsumeList(RedisTestcaseConfig):
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
 
+    async def test_get_one_preserves_empty_message(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(list=queue)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            client = await br.connect()
+            await client.rpush(queue, b"", b"payload")
+
+            received: list[bytes] = []
+            for _ in range(2):
+                message = await subscriber.get_one(timeout=1)
+                assert message is not None
+                received.append(message.body)
+
+            assert received == [b"", b"payload"]
+            assert await client.llen(queue) == 0
+
     async def test_concurrent_consume_list(
         self,
         queue: str,
@@ -436,6 +459,29 @@ class TestConsumeList(RedisTestcaseConfig):
                 index_message += 1
                 if index_message >= len(expected_messages):
                     break
+
+    async def test_iterator_preserves_empty_message(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker()
+        subscriber = broker.subscriber(list=queue)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+
+            client = await br.connect()
+            await client.rpush(queue, b"", b"payload")
+
+            received: list[bytes] = []
+            with anyio.fail_after(3):
+                async for message in subscriber:
+                    received.append(message.body)
+                    if len(received) == 2:
+                        break
+
+            assert received == [b"", b"payload"]
+            assert await client.llen(queue) == 0
 
 
 @pytest.mark.connected()
@@ -1006,40 +1052,70 @@ class TestConsumeStream(RedisTestcaseConfig):
             mock(await subscriber.get_one(timeout=1e-24))
             mock.assert_called_once_with(None)
 
-    @pytest.mark.flaky(reruns=3, reruns_delay=1)
+    @pytest.mark.parametrize("no_ack", (False, True))
+    async def test_get_one_respects_no_ack(
+        self,
+        queue: str,
+        no_ack: bool,
+    ) -> None:
+        broker = self.get_broker()
+        sub = broker.subscriber(
+            stream=StreamSub(queue, group=queue, consumer="reader", no_ack=no_ack),
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", stream=queue)
+
+            message = await sub.get_one(timeout=3)
+
+            assert message is not None
+            assert await message.decode() == "hello"
+
+            client = await br.connect()
+            pending = await client.xpending(queue, queue)  # type: ignore[no-untyped-call]
+            assert pending["pending"] == (0 if no_ack else 1)
+
     async def test_concurrent_consume_stream(
         self,
         queue: str,
-        mock: MagicMock,
-        event: asyncio.Event,
-        event2: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker()
+        workers = 2
+        message_count = 5
+        active = peak = 0
+        received: list[int] = []
+        workers_started = asyncio.Event()
+        release_workers = asyncio.Event()
+        all_processed = asyncio.Event()
 
-        @consume_broker.subscriber(stream=StreamSub(queue), max_workers=2)
-        async def handler(msg: RedisStreamMessage) -> None:
-            mock()
-            if event.is_set():
-                event2.set()
-            else:
-                event.set()
-            await asyncio.sleep(0.1)
+        @consume_broker.subscriber(stream=StreamSub(queue), max_workers=workers)
+        async def handler(msg: int) -> None:
+            nonlocal active, peak
+            active += 1
+            peak = max(peak, active)
+            if active == workers:
+                workers_started.set()
+
+            await release_workers.wait()
+            active -= 1
+            received.append(msg)
+            if len(received) == message_count:
+                all_processed.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
-            for i in range(5):
-                await br.publish(i, stream=queue)
+            try:
+                for i in range(message_count):
+                    await br.publish(i, stream=queue)
+                await asyncio.wait_for(workers_started.wait(), self.timeout)
+            finally:
+                release_workers.set()
 
-        await asyncio.wait(
-            (
-                asyncio.create_task(event.wait()),
-                asyncio.create_task(event2.wait()),
-            ),
-            timeout=3,
-        )
+            await asyncio.wait_for(all_processed.wait(), self.timeout)
 
-        assert mock.call_count == 2, mock.call_count
+        assert (peak, sorted(received)) == (workers, list(range(message_count)))
 
     async def test_iterator(
         self,
@@ -1080,6 +1156,30 @@ class TestConsumeStream(RedisTestcaseConfig):
 
             calls = [call(msg) for msg in expected_messages]
             mock.assert_has_calls(calls=calls)
+
+    @pytest.mark.parametrize("no_ack", (False, True))
+    async def test_iterator_respects_no_ack(
+        self,
+        queue: str,
+        no_ack: bool,
+    ) -> None:
+        broker = self.get_broker()
+        sub = broker.subscriber(
+            stream=StreamSub(queue, group=queue, consumer="reader", no_ack=no_ack),
+        )
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", stream=queue)
+
+            with anyio.fail_after(3):
+                message = await anext(aiter(sub))
+
+            assert await message.decode() == "hello"
+
+            client = await br.connect()
+            pending = await client.xpending(queue, queue)  # type: ignore[no-untyped-call]
+            assert pending["pending"] == (0 if no_ack else 1)
 
     async def test_get_one_group_cursor_advances(
         self,

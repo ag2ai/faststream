@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 from unittest.mock import Mock
@@ -357,9 +357,8 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app.include_router(router)
 
         async with self.patch_broker(router.broker) as br:
-            with TestClient(app):
-                with pytest.raises(RequestValidationError):
-                    await br.publish("hi", queue)
+            with TestClient(app), pytest.raises(RequestValidationError):
+                await br.publish("hi", queue)
 
     async def test_headers(self, queue: str) -> None:
         router = self.router_class()
@@ -445,7 +444,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -463,7 +462,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -498,7 +497,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -514,7 +513,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -663,10 +662,12 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
 
     async def test_existed_lifespan_startup(self, mock: Mock) -> None:
         @asynccontextmanager
-        async def lifespan(app: Any) -> AsyncIterator[Any]:
+        async def lifespan(app: Any) -> AsyncGenerator[Any, None]:
             mock.start()
-            yield {"lifespan": True}
-            mock.close()
+            try:
+                yield {"lifespan": True}
+            finally:
+                mock.close()
 
         router = self.router_class(lifespan=lifespan)
 

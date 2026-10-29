@@ -96,7 +96,7 @@ class LogicSubscriber(SubscriberUsecase[Any]):
             try:
                 await self._get_msgs(*args)
 
-            except Exception as e:  # noqa: PERF203
+            except Exception as e:  # ruff: ignore[try-except-in-loop]
                 self._log(
                     log_level=logging.ERROR,
                     message="Message fetch error",

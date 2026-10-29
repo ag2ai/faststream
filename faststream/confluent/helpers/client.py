@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     class _SendKwargs(TypedDict):
         value: bytes | str | None
         key: bytes | str | None
-        headers: list[tuple[str, str | bytes]] | None
+        headers: Sequence[tuple[str, str | bytes | None]] | None
         partition: NotRequired[int]
         timestamp: NotRequired[int]
         on_delivery: NotRequired[Callable[..., None]]
@@ -101,7 +101,7 @@ class AsyncConfluentProducer:
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: list[tuple[str, str | bytes]] | None = None,
+        headers: Sequence[tuple[str, str | bytes | None]] | None = None,
         no_confirm: bool = False,
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Sends a single message to a Kafka topic."""
@@ -143,9 +143,9 @@ class AsyncConfluentProducer:
             if isinstance(kwargs["key"], (bytes, type(None)))
             else kwargs["key"].encode()
         )
-        produce_headers: (
-            dict[str, str | bytes | None] | list[tuple[str, str | bytes | None]] | None
-        ) = cast("Any", kwargs["headers"]) if kwargs.get("headers") is not None else None
+        produce_headers = (
+            list(kwargs["headers"]) if kwargs["headers"] is not None else None
+        )
         produce_kwargs: dict[str, Any] = {
             "value": produce_value,
             "key": produce_key,
@@ -162,7 +162,7 @@ class AsyncConfluentProducer:
             return result_future
         return await result_future
 
-    def create_batch(self) -> "BatchBuilder":  # noqa: PLR6301
+    def create_batch(self) -> "BatchBuilder":  # ruff: ignore[no-self-use]
         """Creates a batch for sending multiple messages."""
         return BatchBuilder()
 
@@ -466,7 +466,7 @@ class BatchBuilder:
         value: bytes | str | None = None,
         key: bytes | str | None = None,
         timestamp: int | None = None,
-        headers: list[tuple[str, bytes]] | None = None,
+        headers: Sequence[tuple[str, bytes | None]] | None = None,
     ) -> None:
         """Appends a message to the batch with optional timestamp, key, value, and headers."""
         if key is None and value is None:

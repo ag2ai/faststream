@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -860,7 +860,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[False] = False,
         # basic args
@@ -878,7 +878,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[True] = ...,
         # basic args
@@ -896,7 +896,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args
@@ -914,7 +914,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args

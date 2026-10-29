@@ -1,9 +1,14 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from faststream.__about__ import SERVICE_NAME
-from faststream._internal.configs import BrokerConfig
+from faststream._internal.configs import (
+    BrokerConfig,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from faststream._internal.parser import DefaultCodec
 from faststream.confluent.helpers import (
     AdminService,
@@ -19,6 +24,49 @@ from faststream.confluent.publisher.producer import (
 if TYPE_CHECKING:
     from faststream._internal.logger import LoggerState
     from faststream.confluent.schemas import Topic
+
+
+def _context_annotations_factory() -> UnderlyingDriverAnnotations:
+    # `annotations` reaches this module through the broker, so the
+    # objects a row needs only exist once the package is built.
+    from faststream.confluent import annotations  # ruff: ignore[import-outside-top-level]
+    from faststream.confluent.broker.broker import (  # ruff: ignore[import-outside-top-level]
+        KafkaBroker as KafkaBrokerDriver,
+    )
+    from faststream.confluent.helpers.client import (  # ruff: ignore[import-outside-top-level]
+        AsyncConfluentConsumer,
+    )
+    from faststream.confluent.message import (  # ruff: ignore[import-outside-top-level]
+        KafkaMessage as KafkaMessageDriver,
+    )
+    from faststream.confluent.publisher.producer import (  # ruff: ignore[import-outside-top-level]
+        AsyncConfluentFastProducer,
+    )
+
+    return MappingProxyType(
+        {
+            AsyncConfluentConsumer: UnderlyingDriverAnnotation(
+                type_hint=annotations.Consumer,
+                module="faststream.confluent.annotations",
+                name="Consumer",
+            ),
+            KafkaBrokerDriver: UnderlyingDriverAnnotation(
+                type_hint=annotations.KafkaBroker,
+                module="faststream.confluent.annotations",
+                name="KafkaBroker",
+            ),
+            KafkaMessageDriver: UnderlyingDriverAnnotation(
+                type_hint=annotations.KafkaMessage,
+                module="faststream.confluent.annotations",
+                name="KafkaMessage",
+            ),
+            AsyncConfluentFastProducer: UnderlyingDriverAnnotation(
+                type_hint=annotations.KafkaProducer,
+                module="faststream.confluent.annotations",
+                name="KafkaProducer",
+            ),
+        },
+    )
 
 
 @dataclass
@@ -49,6 +97,10 @@ class KafkaBrokerConfig(BrokerConfig):
     builder: Callable[..., AsyncConfluentConsumer] = field(init=False)
     producer: "AsyncConfluentFastProducer" = field(
         default_factory=FakeConfluentFastProducer,
+    )
+
+    default_driver_annotations: UnderlyingDriverAnnotations = field(
+        default_factory=_context_annotations_factory,
     )
 
     def __post_init__(self) -> None:

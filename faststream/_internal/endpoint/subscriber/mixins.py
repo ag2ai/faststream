@@ -58,10 +58,10 @@ class ConsumeDispatcherProto(Protocol[AnyMsg_contra]):
 
     async def dispatch(self, msg: AnyMsg_contra) -> Any: ...
 
-    async def start(self) -> None:  # noqa: PLR6301
+    async def start(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
-    async def stop(self) -> None:  # noqa: PLR6301
+    async def stop(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
 

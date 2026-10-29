@@ -93,7 +93,7 @@ plugins:
           - https://docs.python.org/3/objects.inv
           options:
             preload_modules:
-            - httpx
+            - httpx2
             - starlette
             - fastapi
             filters:

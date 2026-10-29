@@ -46,9 +46,10 @@ class TestNatsTestCase:
                 "children": [{"name": "Mike", "age": 8, "fullname": "LongString" * 8}],
             }).encode("utf-8"),
         )
-        yield start_time
-
-        await nc.close()
+        try:
+            yield start_time
+        finally:
+            await nc.close()
 
     async def test_consume_message(self) -> None:
         async with self.start():

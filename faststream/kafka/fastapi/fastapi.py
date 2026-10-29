@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Collection, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +14,7 @@ from typing import (
 from aiokafka import ConsumerRecord
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 from aiokafka.partitioner import DefaultPartitioner
-from aiokafka.producer.producer import _missing  # noqa: PLC2701
+from aiokafka.producer.producer import _missing  # ruff: ignore[import-private-name]
 from fastapi.datastructures import Default
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
@@ -95,7 +95,7 @@ class KafkaRouter(
         partitioner: Callable[
             [bytes, list[Partition], list[Partition]],
             Partition,
-        ] = DefaultPartitioner(),  # noqa: B008
+        ] = DefaultPartitioner(),  # ruff: ignore[function-call-in-default-argument]
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
         enable_idempotence: bool = False,
@@ -995,7 +995,7 @@ class KafkaRouter(
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[False] = False,
         # basic args
@@ -1014,7 +1014,7 @@ class KafkaRouter(
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[True] = ...,
         # basic args
@@ -1032,7 +1032,7 @@ class KafkaRouter(
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args
@@ -1054,7 +1054,7 @@ class KafkaRouter(
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args

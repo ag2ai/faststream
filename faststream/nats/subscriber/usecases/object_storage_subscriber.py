@@ -82,7 +82,7 @@ class ObjStoreWatchSubscriber(
         msg = None
         sleep_interval = timeout / 10
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
             ) is None:
                 await anyio.sleep(sleep_interval)
@@ -132,7 +132,7 @@ class ObjStoreWatchSubscriber(
         while True:
             msg = None
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
                 ) is None:
                     await anyio.sleep(sleep_interval)

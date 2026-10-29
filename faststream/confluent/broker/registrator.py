@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -409,7 +409,7 @@ class KafkaRegistrator(
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[False] = False,
         # basic args
@@ -429,7 +429,7 @@ class KafkaRegistrator(
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[True] = ...,
         # basic args
@@ -449,7 +449,7 @@ class KafkaRegistrator(
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args
@@ -472,7 +472,7 @@ class KafkaRegistrator(
         *,
         key: bytes | str | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args

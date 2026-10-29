@@ -22,5 +22,5 @@ async def test_global_broker_kafka() -> None:
             },
         )
 
-        with pytest.raises(ValueError):  # noqa: PT011
+        with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
             await broker.publish({"name": "Ted", "user_id": 1}, "test-topic")

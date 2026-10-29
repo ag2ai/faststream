@@ -345,7 +345,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
             try:
                 msg = await self.get_msg(consumer)
 
-            except UnsupportedCodecError as e:  # noqa: PERF203
+            except UnsupportedCodecError as e:  # ruff: ignore[try-except-in-loop]
                 self._log(
                     logging.ERROR,
                     "There is no suitable compression library available. Please refer to the Kafka "

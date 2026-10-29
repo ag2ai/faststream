@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
@@ -24,7 +25,7 @@ def create_publisher(
     key: bytes | None,
     topic: Union[str, "Topic"],
     partition: int | None,
-    headers: dict[str, str] | None,
+    headers: Mapping[str, str | bytes | None] | None,
     reply_to: str,
     # Publisher args
     config: "KafkaBrokerConfig",

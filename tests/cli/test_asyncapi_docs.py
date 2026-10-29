@@ -2,7 +2,7 @@ import json
 from collections.abc import Callable
 from typing import Any, TextIO
 
-import httpx
+import httpx2
 import pytest
 import yaml
 
@@ -217,7 +217,7 @@ def test_serve_asyncapi_docs_from_app(
         cli.wait_for_stderr("Please, do not use it in production.")
 
         try:
-            response = httpx.get("http://0.0.0.0:8000")
+            response = httpx2.get("http://0.0.0.0:8000")
         except Exception as e:
             raise RuntimeError(cli.stderr) from e
 
@@ -247,10 +247,9 @@ def test_serve_asyncapi_docs_from_app_with_reload(
 
 
 @skip_windows
-@skip_macos  # MacOS GHA runner doesn't allow to run 0.0.0.0 process
+@skip_macos  # HTTPServer readiness times out on macOS runners.
 @require_aiokafka
 @pytest.mark.slow()
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize(
     ("doc_filename", "doc"),
     (
@@ -267,15 +266,16 @@ def test_serve_asyncapi_docs_from_file(
     with (
         generate_template(doc, filename=doc_filename) as doc_path,
         faststream_cli(
-            "faststream", "docs", "serve", "--host", "0.0.0.0", str(doc_path)
-        ) as cli,
+            "faststream",
+            "docs",
+            "serve",
+            "--host",
+            "127.0.0.1",
+            str(doc_path),
+            readiness_url="http://127.0.0.1:8000/",
+        ),
     ):
-        cli.wait_for_stderr("Please, do not use it in production.")
-
-        try:
-            response = httpx.get("http://0.0.0.0:8000")
-        except Exception as e:
-            raise RuntimeError(cli.stderr) from e
+        response = httpx2.get("http://127.0.0.1:8000/")
 
         assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200

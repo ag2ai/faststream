@@ -98,12 +98,12 @@ class _ListHandlerMixin(LogicSubscriber):
         raw_message = None
 
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 raw_message := await self._client.lpop(name=self.list_sub.name)
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        if not raw_message:
+        if raw_message is None:
             return None
 
         redis_incoming_msg = DefaultListMessage(
@@ -140,12 +140,12 @@ class _ListHandlerMixin(LogicSubscriber):
 
         while True:
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     raw_message := await self._client.lpop(name=self.list_sub.name)
                 ) is None:
                     await anyio.sleep(sleep_interval)
 
-            if not raw_message:
+            if raw_message is None:
                 continue
 
             redis_incoming_msg = DefaultListMessage(

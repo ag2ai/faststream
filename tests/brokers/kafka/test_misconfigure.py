@@ -1,14 +1,18 @@
 from typing import Any
 
 import pytest
+from aiokafka import AIOKafkaConsumer
 
 from faststream import AckPolicy
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentDispatcher
 from faststream.exceptions import SetupError
-from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition
+from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition, annotations
 from faststream.kafka.subscriber.usecase import ConcurrentBetweenPartitionsSubscriber
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
+from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
+
+from .basic import KafkaMemoryTestcaseConfig
 
 
 @pytest.mark.kafka()
@@ -112,3 +116,11 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
     # the warning points at the line that registered the subscriber
     assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
+
+
+@pytest.mark.kafka()
+class TestDriverAnnotations(KafkaMemoryTestcaseConfig, DriverAnnotationTestcase):
+    driver_class = AIOKafkaConsumer
+    driver_path = "aiokafka.consumer.consumer.AIOKafkaConsumer"
+    context_annotation = annotations.Consumer
+    annotation_import = "from faststream.kafka.annotations import Consumer"

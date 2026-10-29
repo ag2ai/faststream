@@ -246,7 +246,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
             try:
                 msg = await self.get_msg()
 
-            except KafkaException as e:  # pragma: no cover  # noqa: PERF203
+            except KafkaException as e:  # pragma: no cover  # ruff: ignore[try-except-in-loop]
                 self._log(
                     logging.ERROR,
                     message="Message fetch error",
