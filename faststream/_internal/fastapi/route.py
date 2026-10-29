@@ -1,4 +1,3 @@
-import asyncio
 import inspect
 from collections.abc import Awaitable, Callable, Iterable
 from contextlib import AsyncExitStack
@@ -215,7 +214,7 @@ def make_fastapi_execution(
     Awaitable[Response],
 ]:
     """Creates a FastAPI application."""
-    is_coroutine = asyncio.iscoroutinefunction(dependent.call)
+    is_coroutine = inspect.iscoroutinefunction(dependent.call)
 
     async def app(
         request: "StreamMessage",
