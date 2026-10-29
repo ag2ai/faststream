@@ -4,14 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Redis in Python: Pub/Sub, Streams and Queues"
 description: >-
-  FastStream Redis support: Pub/Sub channels, Streams with consumer groups and List queues
-  behind one asynchronous Python broker API.
+  Use Redis from async Python with redis-py and FastStream. Choose Pub/Sub channels, Stream consumer groups or List queues, and connect publishers and subscribers.
 search:
   boost: 10
 ---
 
-# Redis Broker
+# Redis in Python: Pub/Sub, Streams and Queues
+
+Connect Python applications to Redis using **redis-py** through FastStream. `RedisBroker` provides asynchronous subscribers and publishers for three messaging mechanisms: [Pub/Sub channels](pubsub/index.md), [Streams](streams/index.md) and [List queues](list/index.md). Choose the mechanism based on whether you need live broadcasts, replayable messages or a work queue.
 
 ## Redis Overview
 

@@ -22,6 +22,8 @@ exclude = [
     '^https?://(localhost|127\.0\.0\.1)',
     # answers 403 to anything that is not a browser
     '^https://sentry\.io/?$',
+    # Medium returns 403 to the CI link checker; this case study was verified manually.
+    '^https://medium\.com/architecture-without-the-hype/how-we-scaled-our-architecture-10-lessons-from-skan-ai-67371cd9002d$',
     # redirects to the latest coverage report and answers 400 while there is
     # none, which depends on the CI runs, not on the docs
     '^https://coverage-badge\.samuelcolvin\.workers\.dev/redirect/',
