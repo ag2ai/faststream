@@ -111,16 +111,15 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         if self.calls:
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
-                self.consume,  # type: ignore[arg-type]
+                self.consume_dispatcher.dispatch,  # type: ignore[arg-type]
                 no_ack=self.__no_ack,
                 arguments=self.consume_args,
             )
 
         self._post_start()
 
-    async def stop(self) -> None:
-        await super().stop()
-
+    @override
+    async def _stop_receiving(self) -> None:
         if self._queue_obj is not None:
             if self._consumer_tag is not None:  # pragma: no branch
                 if not self._queue_obj.channel.is_closed:

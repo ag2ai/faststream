@@ -6,6 +6,8 @@ from typing import (
     Optional,
 )
 
+from typing_extensions import override
+
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.types import MsgType
 from faststream._internal.utils.path import Address
@@ -28,12 +30,9 @@ if TYPE_CHECKING:
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
-    """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream).
+    """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream)."""
 
-    Unslotted on purpose: `ConcurrentCoreSubscriber` mixes `ConcurrentMixin` into this,
-    and `TasksMixin` under it already extends `SubscriberUsecase`'s lay-out. NATS is the
-    one broker whose subscribers do not inherit `TasksMixin` in a straight line.
-    """
+    __slots__ = ("_fetch_sub", "_subject", "config", "extra_options", "subscription")
 
     subscription: Unsubscriptable | None
     _fetch_sub: Unsubscriptable | None
@@ -84,10 +83,9 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
         self._post_start()
 
-    async def stop(self) -> None:
+    @override
+    async def _close_transport(self) -> None:
         """Clean up handler subscription, cancel consume task in graceful mode."""
-        await super().stop()
-
         if self.subscription is not None:
             await self.subscription.unsubscribe()
             self.subscription = None

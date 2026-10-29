@@ -48,7 +48,6 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic, TopicPartition
     from faststream.confluent.subscriber.usecase import (
         BatchSubscriber,
-        ConcurrentDefaultSubscriber,
         DefaultSubscriber,
     )
     from faststream.security import BaseSecurity
@@ -435,7 +434,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        max_workers: None = None,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -451,56 +450,6 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
     ) -> "DefaultSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        *topics: Union[str, "Topic"],
-        partitions: Sequence["TopicPartition"] = (),
-        polling_interval: float = 0.1,
-        group_id: str | None = None,
-        group_instance_id: str | None = None,
-        fetch_max_wait_ms: int = 500,
-        fetch_max_bytes: int = 50 * 1024 * 1024,
-        fetch_min_bytes: int = 1,
-        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
-        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit_interval_ms: int = 5 * 1000,
-        check_crcs: bool = True,
-        partition_assignment_strategy: Sequence[str] = ("roundrobin",),
-        max_poll_interval_ms: int = 5 * 60 * 1000,
-        session_timeout_ms: int = 10 * 1000,
-        heartbeat_interval_ms: int = 3 * 1000,
-        isolation_level: Literal[
-            "read_uncommitted",
-            "read_committed",
-        ] = "read_uncommitted",
-        # rebalance callbacks
-        on_assign: Callable[..., None] | None = None,
-        on_revoke: Callable[..., None] | None = None,
-        on_lost: Callable[..., None] | None = None,
-        batch: Literal[False] = False,
-        max_records: int | None = None,
-        # broker args
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # Specification args
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-    ) -> "ConcurrentDefaultSubscriber": ...
 
     @overload
     def subscriber(
@@ -598,11 +547,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-    ) -> Union[
-        "BatchSubscriber",
-        "DefaultSubscriber",
-        "ConcurrentDefaultSubscriber",
-    ]: ...
+    ) -> Union["BatchSubscriber", "DefaultSubscriber"]: ...
 
     @override
     def subscriber(
@@ -652,7 +597,7 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-    ) -> Union["BatchSubscriber", "DefaultSubscriber", "ConcurrentDefaultSubscriber"]:
+    ) -> Union["BatchSubscriber", "DefaultSubscriber"]:
         """Create a subscriber for Kafka topics.
 
         Args:
@@ -904,12 +849,8 @@ class KafkaRouter(StreamRouter[Message | tuple[Message, ...]]):
             response_model_exclude_none=response_model_exclude_none,
         )
 
-        workers = max_workers or 1
-
         if batch:
             return cast("BatchSubscriber", subscriber)
-        if workers > 1:
-            return cast("ConcurrentDefaultSubscriber", subscriber)
         return cast("DefaultSubscriber", subscriber)
 
     @overload  # type: ignore[override]

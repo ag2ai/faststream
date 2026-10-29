@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class StreamSubscriber(DefaultSubscriber["Msg"]):
-    __slots__ = ()
+    __slots__ = ("queue", "stream")
 
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
 

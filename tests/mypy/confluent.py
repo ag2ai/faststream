@@ -19,7 +19,6 @@ from faststream.confluent.publisher.usecase import (
 )
 from faststream.confluent.subscriber.usecase import (
     BatchSubscriber,
-    ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
 
@@ -149,7 +148,7 @@ def check_subscriber_instance_type(
     assert_type(sub2, BatchSubscriber)
 
     sub3 = broker.subscriber("test", max_workers=2)
-    assert_type(sub3, ConcurrentDefaultSubscriber)
+    assert_type(sub3, DefaultSubscriber)
 
 
 async def check_call_assertions_take_the_kafka_fields(

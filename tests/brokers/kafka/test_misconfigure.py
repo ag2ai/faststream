@@ -3,12 +3,10 @@ from typing import Any
 import pytest
 
 from faststream import AckPolicy
+from faststream._internal.endpoint.subscriber.mixins import ConcurrentDispatcher
 from faststream.exceptions import SetupError
 from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition
-from faststream.kafka.subscriber.usecase import (
-    ConcurrentBetweenPartitionsSubscriber,
-    ConcurrentDefaultSubscriber,
-)
+from faststream.kafka.subscriber.usecase import ConcurrentBetweenPartitionsSubscriber
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
 
@@ -75,7 +73,7 @@ def test_max_workers_configuration(queue: str) -> None:
     broker = KafkaBroker()
 
     sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.ACK_FIRST)
-    assert isinstance(sub, ConcurrentDefaultSubscriber)
+    assert isinstance(sub.consume_dispatcher, ConcurrentDispatcher)
 
     with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
         sub = broker.subscriber(

@@ -24,7 +24,6 @@ from faststream.kafka.publisher import BatchPublisher, DefaultPublisher
 from faststream.kafka.subscriber.usecase import (
     BatchSubscriber,
     ConcurrentBetweenPartitionsSubscriber,
-    ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
 
@@ -419,7 +418,7 @@ def check_subscriber_instance_type(
     assert_type(sub2, BatchSubscriber)
 
     sub3 = broker.subscriber("test", max_workers=2)
-    assert_type(sub3, ConcurrentDefaultSubscriber)
+    assert_type(sub3, DefaultSubscriber)
 
     sub4 = broker.subscriber("test", group_id="test", max_workers=2)
     assert_type(sub4, ConcurrentBetweenPartitionsSubscriber)

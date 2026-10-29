@@ -578,8 +578,9 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
         consume_broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
+        sub = consume_broker.subscriber(*args, **kwargs)
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @sub
         def subscriber(m: Any) -> None:
             mock()
             event.set()
@@ -594,7 +595,9 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
                 ),
                 timeout=self.timeout,
             )
-            await asyncio.sleep(0.5)
+            with anyio.fail_after(self.timeout):
+                while sub.running:  # noqa: ASYNC110
+                    await asyncio.sleep(0.01)
             await br.publish("hello", queue)
             await asyncio.sleep(0.5)
 

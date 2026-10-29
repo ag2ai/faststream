@@ -2,6 +2,7 @@ import asyncio
 from typing import Any
 from unittest.mock import MagicMock
 
+import anyio
 import pytest
 
 from faststream import Context
@@ -192,7 +193,9 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
     ) -> None:
         broker = self.get_broker(startup_nodes=settings_cluster.startup_nodes)
 
-        @broker.subscriber(channel=f"stop-channel-{queue}")
+        sub = broker.subscriber(channel=f"stop-channel-{queue}")
+
+        @sub
         async def handler(msg: str) -> None:
             mock(msg)
             event.set()
@@ -205,7 +208,9 @@ class TestClusterPubSubMore(RedisClusterTestcaseConfig):
                 (asyncio.create_task(event.wait()),),
                 timeout=self.timeout,
             )
-            await asyncio.sleep(0.5)
+            with anyio.fail_after(self.timeout):
+                while sub.running:  # noqa: ASYNC110
+                    await asyncio.sleep(0.01)
             await broker.publish("hello2", channel=f"stop-channel-{queue}")
             await asyncio.sleep(0.5)
 

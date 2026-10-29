@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
-    from faststream._internal.endpoint.subscriber.mixins import TasksMixin
+    from faststream._internal.configs import BrokerConfig
+    from faststream._internal.endpoint.subscriber.mixins import TasksSupervisor
 
 
 class _SupervisorCache(UserDict[int, float]):
@@ -52,11 +53,12 @@ class TaskCallbackSupervisor:
 
     __slots__ = (
         "args",
+        "broker_config",
         "func",
         "ignored_exceptions",
         "kwargs",
         "restart_on_failure",
-        "subscriber",
+        "tasks_supervisor",
     )
 
     # stores hash identifier of exceptions which whose info was printed
@@ -67,12 +69,14 @@ class TaskCallbackSupervisor:
         func: Callable[..., Coroutine[Any, Any, Any]],
         func_args: tuple[Any] | None,
         func_kwargs: dict[str, Any] | None,
-        subscriber: TasksMixin,
+        tasks_supervisor: TasksSupervisor,
+        broker_config: BrokerConfig,
         *,
         ignored_exceptions: tuple[type[BaseException], ...] = (CancelledError,),
         restart_on_failure: bool = True,
     ) -> None:
-        self.subscriber = subscriber
+        self.tasks_supervisor = tasks_supervisor
+        self.broker_config = broker_config
         self.func = func
         self.args = func_args or ()
         self.kwargs = func_kwargs or {}
@@ -99,9 +103,7 @@ class TaskCallbackSupervisor:
         return bool(int(os.getenv("FASTSTREAM_SUPERVISOR_DISABLED", "0")))
 
     def __call__(self, task: Task[Any]) -> None:
-        logger = self.subscriber._outer_config.logger
-
-        logger.log(
+        self.broker_config.logger.log(
             f"callback for {task.get_name()} is being executed...",
             log_level=logging.INFO,
         )
@@ -110,7 +112,7 @@ class TaskCallbackSupervisor:
             return
 
         # `stop()` forgot this task: a restart would outlive the subscriber
-        if task not in self.subscriber.tasks:
+        if task not in self.tasks_supervisor.tasks:
             return
 
         if (exc := task.exception()) and not isinstance(exc, self.ignored_exceptions):
@@ -131,7 +133,9 @@ class TaskCallbackSupervisor:
                         f"{task.get_name()} raised an exception and won't be restarted."
                     )
 
-                logger.log(message, exc_info=exc, log_level=logging.ERROR)
+                self.broker_config.logger.log(
+                    message, exc_info=exc, log_level=logging.ERROR
+                )
 
             if self.restart_on_failure:
-                self.subscriber.add_task(self.func, self.args, self.kwargs)
+                self.tasks_supervisor.add_task(self.func, self.args, self.kwargs)
