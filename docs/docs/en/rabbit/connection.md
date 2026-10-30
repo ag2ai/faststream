@@ -52,7 +52,7 @@ The `virtualhost` argument sets the same thing and wins over the URL path, so `#
     An AMQP connection belongs to exactly one virtual host, and a `RabbitBroker` owns exactly one connection. To work with several virtual hosts, create a broker per virtual host and pass all of them to the application:
 
     ```python linenums="1" hl_lines="4-5 7"
-    {! docs_src/rabbit/connection/multiple_vhosts.py !}
+    {!> docs_src/rabbit/connection/multiple_vhosts.py !}
     ```
 
     Each broker keeps its own subscribers and publishers. The [Multiple Brokers](../getting-started/multiple_brokers.md){.internal-link} page covers how such an application starts, stops and is tested.
