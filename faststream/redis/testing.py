@@ -63,7 +63,7 @@ __all__ = (
 
 @dataclass(kw_only=True)
 class Entry:
-    handler: "LogicSubscriber"
+    handler: "LogicSubscriber[Any, Any]"
     msg: Any
 
 
@@ -82,7 +82,7 @@ class PEL:
     def _put(
         self,
         msg: Any,
-        handler: "LogicSubscriber",
+        handler: "LogicSubscriber[Any, Any]",
         correlation_id: PELKey,
     ) -> None:
         self.entries.update({correlation_id: Entry(msg=msg, handler=handler)})
@@ -176,8 +176,8 @@ class TestRedisBroker(
         self,
         broker: RedisBroker,
         publisher: "LogicPublisher",
-    ) -> tuple["LogicSubscriber", bool]:
-        sub: LogicSubscriber | None = None
+    ) -> tuple["LogicSubscriber[Any, Any]", bool]:
+        sub: LogicSubscriber[Any, Any] | None = None
 
         named_property = publisher.subscriber_property(name_only=True)
         visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
@@ -185,7 +185,7 @@ class TestRedisBroker(
         for handler in (
             s for b in self.brokers for s in b.subscribers
         ):  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
+            handler = cast("LogicSubscriber[Any, Any]", handler)
             for visitor in visitors:
                 if visitor.visit(**named_property, sub=handler):
                     sub = handler
@@ -255,8 +255,12 @@ class FakeProducer(RedisFastProducer):
         self.pel = pel or PEL()
 
     @property
-    def subscribers(self) -> "Iterable[LogicSubscriber]":
-        return (cast("LogicSubscriber", s) for b in self.brokers for s in b.subscribers)
+    def subscribers(self) -> "Iterable[LogicSubscriber[Any, Any]]":
+        return (
+            cast("LogicSubscriber[Any, Any]", s)
+            for b in self.brokers
+            for s in b.subscribers
+        )
 
     @override
     def _build_child(self, **kwargs: Any) -> "FakeProducer":
@@ -349,7 +353,7 @@ class FakeProducer(RedisFastProducer):
             cmd=cmd,
             session_id=session_id,
         ):
-            casted_handler = cast("_ListHandlerMixin", handler)
+            casted_handler = cast("_ListHandlerMixin[Any, Any]", handler)
 
             messages = [data_to_send] if casted_handler.list_sub.batch else data_to_send
             for body in messages:
@@ -366,7 +370,7 @@ class FakeProducer(RedisFastProducer):
     async def _execute_handler(
         self,
         msg: Any,
-        handler: "LogicSubscriber",
+        handler: "LogicSubscriber[Any, Any]",
         session_id: uuid.UUID,
     ) -> "PubSubMessage":
         result = await handler.process_message(msg)
@@ -391,7 +395,7 @@ class FakeProducer(RedisFastProducer):
         visitors: "Sequence[Visitor]",
         cmd: "RedisPublishCommand",
         session_id: uuid.UUID,
-    ) -> "Iterator[tuple[Visitor, str, LogicSubscriber]]":
+    ) -> "Iterator[tuple[Visitor, str, LogicSubscriber[Any, Any]]]":
         published_groups: set[tuple[str, str]] = set()
 
         for handler in self.subscribers:  # pragma: no branch
@@ -412,7 +416,7 @@ class FakeProducer(RedisFastProducer):
 
     def _return_handlers(
         self,
-        handler: "LogicSubscriber",
+        handler: "LogicSubscriber[Any, Any]",
         visited_ch: str,
         published_groups: set[tuple[str, str]],
         cmd: "RedisPublishCommand",
@@ -435,7 +439,7 @@ class FakeProducer(RedisFastProducer):
 
     def _check_pel(
         self,
-        handler: "LogicSubscriber",
+        handler: "LogicSubscriber[Any, Any]",
         cmd: "RedisPublishCommand",
         session_id: uuid.UUID,
     ) -> Optional["Entry"]:
@@ -449,7 +453,7 @@ class FakeProducer(RedisFastProducer):
 
     def _put_pel(
         self,
-        handler: "LogicSubscriber",
+        handler: "LogicSubscriber[Any, Any]",
         msg: Any,
         cmd: "RedisPublishCommand",
         session_id: uuid.UUID,
@@ -468,7 +472,7 @@ class FakeProducer(RedisFastProducer):
     def _remove_pel(
         self,
         result: "Response",
-        handler: "LogicSubscriber",
+        handler: "LogicSubscriber[Any, Any]",
         session_id: uuid.UUID,
     ) -> None:
         if result.correlation_id and not _handler_no_ack(handler):
@@ -508,10 +512,12 @@ class Visitor(Protocol):
         channel: str | None,
         list: str | None,
         stream: str | None,
-        sub: "LogicSubscriber",
+        sub: "LogicSubscriber[Any, Any]",
     ) -> str | None: ...
 
-    def get_message(self, channel: str, body: Any, sub: "LogicSubscriber") -> Any: ...
+    def get_message(
+        self, channel: str, body: Any, sub: "LogicSubscriber[Any, Any]"
+    ) -> Any: ...
 
 
 class ChannelVisitor(Visitor):
@@ -519,7 +525,7 @@ class ChannelVisitor(Visitor):
     def visit(
         self,
         *,
-        sub: "LogicSubscriber",
+        sub: "LogicSubscriber[Any, Any]",
         channel: str | None = None,
         list: str | None = None,
         stream: str | None = None,
@@ -570,7 +576,7 @@ class ListVisitor(Visitor):
     def visit(
         self,
         *,
-        sub: "LogicSubscriber",
+        sub: "LogicSubscriber[Any, Any]",
         channel: str | None = None,
         list: str | None = None,
         stream: str | None = None,
@@ -588,7 +594,7 @@ class ListVisitor(Visitor):
         self,
         channel: str,
         body: Any,
-        sub: "_ListHandlerMixin",
+        sub: "_ListHandlerMixin[Any, Any]",
     ) -> Any:
         if sub.list_sub.batch:
             return BatchListMessage(
@@ -609,7 +615,7 @@ class StreamVisitor(Visitor):
     def visit(
         self,
         *,
-        sub: "LogicSubscriber",
+        sub: "LogicSubscriber[Any, Any]",
         channel: str | None = None,
         list: str | None = None,
         stream: str | None = None,
@@ -627,7 +633,7 @@ class StreamVisitor(Visitor):
         self,
         channel: str,
         body: Any,
-        sub: "_StreamHandlerMixin",
+        sub: "_StreamHandlerMixin[Any, Any]",
     ) -> Any:
         message: BatchStreamMessage | DefaultStreamMessage
         if sub.stream_sub.batch:
@@ -675,17 +681,17 @@ def _make_destination_kwargs(cmd: RedisPublishCommand) -> _DestinationKwargs:
     return destination
 
 
-def _handler_group(handler: "LogicSubscriber") -> str | None:
+def _handler_group(handler: "LogicSubscriber[Any, Any]") -> str | None:
     if isinstance(handler, _StreamHandlerMixin):
         return handler.stream_sub.group
     return None
 
 
-def _handler_no_ack(handler: "LogicSubscriber") -> bool:
+def _handler_no_ack(handler: "LogicSubscriber[Any, Any]") -> bool:
     return isinstance(handler, _StreamHandlerMixin) and handler.stream_sub.no_ack
 
 
-def _handler_min_idle_time(handler: "LogicSubscriber") -> int | None:
+def _handler_min_idle_time(handler: "LogicSubscriber[Any, Any]") -> int | None:
     if isinstance(handler, _StreamHandlerMixin):
         return handler.stream_sub.min_idle_time
     return None

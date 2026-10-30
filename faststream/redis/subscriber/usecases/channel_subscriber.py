@@ -33,14 +33,14 @@ TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
 
-class ChannelSubscriber(LogicSubscriber):
+class ChannelSubscriber(LogicSubscriber[PubSubMessage, RedisChannelMessage]):
     __slots__ = ()
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[PubSubMessage, RedisChannelMessage]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[PubSubMessage, RedisChannelMessage]",
     ) -> None:
         assert config.channel_sub
         parser = RedisPubSubParser(config, pattern=config.channel_sub.path_regex)
@@ -108,7 +108,7 @@ class ChannelSubscriber(LogicSubscriber):
         context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
-        msg: RedisChannelMessage | None = await process_msg(  # type: ignore[assignment]
+        msg: RedisChannelMessage | None = await process_msg(
             msg=raw_message,
             middlewares=(
                 m(raw_message, context=context) for m in self._broker_middlewares
@@ -175,7 +175,7 @@ class ChannelSubscriber(LogicSubscriber):
 
 
 class ChannelConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage[Any]"],
+    ConcurrentMixin[PubSubMessage, RedisChannelMessage],
     ChannelSubscriber,
 ):
     __slots__ = ()
@@ -184,5 +184,5 @@ class ChannelConcurrentSubscriber(
         await super().start()
         self.start_consume_task()
 
-    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
+    async def consume_one(self, msg: PubSubMessage) -> None:
         await self._put_msg(msg)

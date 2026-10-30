@@ -22,9 +22,11 @@ from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto
 from faststream._internal.types import (
-    AsyncCallable,
+    Decoder,
     MsgType,
     P_HandlerParams,
+    Parser,
+    StreamMsgType,
     T_HandlerReturn,
 )
 from faststream._internal.utils.functions import to_async
@@ -53,7 +55,6 @@ if TYPE_CHECKING:
         CustomCallable,
         Filter,
     )
-    from faststream.message import StreamMessage
     from faststream.middlewares import BaseMiddleware
     from faststream.response import Response
     from faststream.specification.schema import SubscriberSpec
@@ -68,7 +69,7 @@ class _CallOptions(NamedTuple):
     codec: Optional["CodecProto"] = None
 
 
-class SubscriberUsecase(Endpoint, Generic[MsgType]):
+class SubscriberUsecase(Endpoint, Generic[MsgType, StreamMsgType]):
     """A class representing an asynchronous handler."""
 
     __slots__ = (
@@ -90,9 +91,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     def __init__(
         self,
-        config: "SubscriberUsecaseConfig",
+        config: "SubscriberUsecaseConfig[MsgType, StreamMsgType]",
         specification: "SubscriberSpecification",
-        calls: "CallsCollection[MsgType]",
+        calls: "CallsCollection[MsgType, StreamMsgType]",
     ) -> None:
         """Initialize a new instance of the class."""
         super().__init__(config._outer_config)
@@ -150,7 +151,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self,
         item_parser: Optional["CustomCallable"] = None,
         item_decoder: Optional["CustomCallable"] = None,
-    ) -> tuple[AsyncCallable, AsyncCallable]:
+    ) -> tuple[Parser[MsgType, StreamMsgType], Decoder[StreamMsgType]]:
         """Method to resolve parsers with priority.
 
         First priority
@@ -172,7 +173,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         if parser := (
             item_parser or self._call_options.parser or self._outer_config.broker_parser
         ):
-            async_parser: AsyncCallable = ParserComposition(parser, self._parser)
+            async_parser: Parser[MsgType, StreamMsgType] = ParserComposition(
+                parser, self._parser
+            )
         else:
             async_parser = self._parser
 
@@ -194,7 +197,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         if codec:
             if is_batch:
                 if isinstance(codec, BatchCodecProto):
-                    async_decoder: AsyncCallable = codec.decode_batch
+                    async_decoder: Decoder[StreamMsgType] = codec.decode_batch
                 else:
                     msg = (
                         "Batch subscriber requires a codec implementing BatchCodecProto."
@@ -311,7 +314,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     ]:
         total_deps = (*self._call_options.dependencies, *dependencies)
         async_filter = cast(
-            "AsyncFilter[StreamMessage[MsgType]]",
+            "AsyncFilter[StreamMsgType]",
             to_async(filter),
         )
 
@@ -322,7 +325,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             handler._subscribers.append(self)
 
             self.calls.add_call(
-                HandlerItem[MsgType](
+                HandlerItem[MsgType, StreamMsgType](
                     handler=handler,
                     filter=async_filter,
                     item_parser=parser,
@@ -473,7 +476,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     def __get_response_publisher(
         self,
-        message: "StreamMessage[MsgType]",
+        message: StreamMsgType,
     ) -> Iterable["PublisherProto"]:
         if not message.reply_to or self._no_reply:
             return ()
@@ -483,16 +486,16 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     @abstractmethod
     def _make_response_publisher(
         self,
-        message: "StreamMessage[MsgType]",
+        message: StreamMsgType,
     ) -> Iterable["PublisherProto"]:
         raise NotImplementedError
 
     @abstractmethod
-    async def get_one(self, *, timeout: float = 5) -> Optional["StreamMessage[MsgType]"]:
+    async def get_one(self, *, timeout: float = 5) -> StreamMsgType | None:
         raise NotImplementedError
 
     @abstractmethod
-    def __aiter__(self) -> AsyncIterator["StreamMessage[MsgType]"]:
+    def __aiter__(self) -> AsyncIterator[StreamMsgType]:
         # NOTE: not `async def` on purpose. Implementations are async generators,
         # so calling `__aiter__()` returns the iterator itself, not a coroutine.
         # Declaring it `async` here would type it as `Coroutine[..., AsyncIterator]`,
@@ -501,7 +504,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     def get_log_context(  # ruff: ignore[no-self-use]
         self,
-        message: Optional["StreamMessage[MsgType]"],
+        message: StreamMsgType | None,
     ) -> dict[str, str]:
         """Generate log context."""
         return {

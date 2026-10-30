@@ -56,7 +56,7 @@ class HandlerCallWrapper(CallAssertions, Generic[P_HandlerParams, T_HandlerRetur
 
     # we have to store subscribers here
     # to protect them from garbage collection
-    _subscribers: list["SubscriberUsecase[Any]"]
+    _subscribers: list["SubscriberUsecase[Any, Any]"]
 
     __slots__ = (
         "_composed_call",

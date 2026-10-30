@@ -30,6 +30,8 @@ BaseMessage: TypeAlias = Union[
     "BatchStreamMessage",
 ]
 
+BaseRedisMsgType = TypeVar("BaseRedisMsgType", bound=BaseMessage)
+
 
 class UnifyRedisDict(TypedDict):
     type: Literal[

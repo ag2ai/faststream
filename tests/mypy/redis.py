@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import prometheus_client
 from typing_extensions import assert_type
@@ -505,8 +506,8 @@ def check_destination_is_required(broker: RedisBroker, router: FastAPIRouter) ->
 
 
 def check_runtime_destination_type(broker: RedisBroker, name: str | None) -> None:
-    assert_type(broker.subscriber(list=name), LogicSubscriber)
-    assert_type(broker.subscriber(stream=name), LogicSubscriber)
+    assert_type(broker.subscriber(list=name), LogicSubscriber[Any, Any])
+    assert_type(broker.subscriber(stream=name), LogicSubscriber[Any, Any])
 
     assert_type(broker.publisher(list=name), LogicPublisher)
     assert_type(broker.publisher(stream=name), LogicPublisher)

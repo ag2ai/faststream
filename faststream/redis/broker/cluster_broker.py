@@ -76,7 +76,7 @@ class RedisClusterBroker(RedisBroker):
         list: Union["ListSub", str, None] = None,
         stream: Union["StreamSub", str, None] = None,
         **kwargs: Any,
-    ) -> "LogicSubscriber":
+    ) -> "LogicSubscriber[Any, Any]":
         if channel is not None:
             return self._make_channel_subscriber(channel, **kwargs)
         return super().subscriber(

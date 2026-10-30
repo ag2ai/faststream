@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from nats.errors import TimeoutError
 from typing_extensions import override
@@ -73,15 +73,17 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
 
         async_parser, async_decoder = self._get_parser_and_decoder()
 
-        msg: NatsMessage = await process_msg(  # type: ignore[assignment]
-            msg=raw_message,
-            middlewares=(
-                m(raw_message, context=context) for m in self._broker_middlewares
+        return cast(
+            "NatsMessage",
+            await process_msg(
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=async_parser,
+                decoder=async_decoder,
             ),
-            parser=async_parser,
-            decoder=async_decoder,
         )
-        return msg
 
     @override
     async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
@@ -102,13 +104,16 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async for raw_message in fetch_sub.messages:
-            msg: NatsMessage = await process_msg(  # type: ignore[assignment]
-                msg=raw_message,
-                middlewares=(
-                    m(raw_message, context=context) for m in self._broker_middlewares
+            msg = cast(
+                "NatsMessage",
+                await process_msg(
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context) for m in self._broker_middlewares
+                    ),
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
-                parser=async_parser,
-                decoder=async_decoder,
             )
             yield msg
 
