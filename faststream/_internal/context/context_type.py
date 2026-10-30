@@ -29,6 +29,8 @@ class Context(CustomField):
         initial: Callable[..., Any] | None = None,
         cast: bool = False,
         prefix: str = "",
+        description: str | None = None,
+        examples: list[Any] | None = None,
     ) -> None:
         """Initialize the object.
 
@@ -38,6 +40,8 @@ class Context(CustomField):
             initial: The initial value builder.
             cast: Whether to cast the object.
             prefix: The prefix to be added to the name of the object.
+            description: AsyncAPI path-parameter description.
+            examples: AsyncAPI path-parameter examples.
 
         Raises:
             TypeError: If the default value is not provided.
@@ -46,6 +50,8 @@ class Context(CustomField):
         self.default = default
         self.prefix = prefix
         self.initial = initial
+        self.description = description
+        self.examples = examples
         super().__init__(
             cast=cast,
             required=(default is EMPTY),

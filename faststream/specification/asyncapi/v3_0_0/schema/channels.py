@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -31,8 +33,7 @@ class Channel(BaseModel):
     messages: dict[str, Message | Reference]
     bindings: ChannelBinding | None = None
 
-    # TODO:
-    # parameters: Optional[Parameter] = None
+    parameters: dict[str, dict[str, Any]] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -47,6 +48,7 @@ class Channel(BaseModel):
         cls,
         subscriber: SubscriberSpec,
         servers: list[dict[str, str]] | None = None,
+        parameters: dict[str, dict[str, Any]] | None = None,
     ) -> Self:
         message = subscriber.operation.message
         assert message.title
@@ -62,6 +64,18 @@ class Channel(BaseModel):
             },
             bindings=ChannelBinding.from_sub(subscriber.bindings),
             servers=servers,
+            parameters=(
+                {
+                    name: {
+                        key: metadata[key]
+                        for key in ("enum", "default", "description", "examples")
+                        if key in metadata
+                    }
+                    for name, metadata in parameters.items()
+                }
+                if parameters
+                else None
+            ),
         )
 
     @classmethod

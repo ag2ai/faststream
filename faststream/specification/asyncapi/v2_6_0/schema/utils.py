@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -12,6 +14,7 @@ class Reference(BaseModel):
 
 
 class Parameter(BaseModel):
-    """A class to represent a parameter."""
+    """A class to represent an AsyncAPI 2.6 channel parameter."""
 
-    # TODO
+    description: str | None = None
+    schema_: dict[str, Any] | None = Field(default=None, alias="schema")
