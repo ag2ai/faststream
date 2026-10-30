@@ -12,11 +12,11 @@ stream = JStream(name="stream")
     stream=stream,
     deliver_policy=DeliverPolicy.NEW,
 )
-async def handler(msg: str, logger: Logger):
+async def handler(msg: str, logger: Logger) -> None:
     logger.info(msg)
 
 @app.after_startup
-async def test_send():
+async def test_send() -> None:
     await broker.publish("Hi!", "js-subject")
     # publish with stream verification
-    await broker.publish("Hi!", "js-subject", stream="stream")
+    await broker.publish("Hi!", "js-subject", stream=stream)
