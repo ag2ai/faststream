@@ -104,3 +104,24 @@ Publishing messages in batches offers several advantages when working with **Kaf
 2. **Reduced Network and Broker Load**: Sending messages in batches reduces the number of network calls and broker interactions. This optimization minimizes the load on the **Kafka** brokers and network resources, making your **Kafka** cluster more efficient.
 
 3. **Enhanced Scalability**: With batch publishing, you can efficiently scale your **Kafka** applications to handle high message volumes. By sending messages in larger chunks, you can make the most of **Kafka**'s parallelism and partitioning capabilities.
+
+## Handling Producer Queue Overflow
+
+Very large batches can overflow the local **librdkafka** produce queue, which is limited both by message count (`queue.buffering.max.messages`, `100000` by default) and by total size (`queue.buffering.max.kbytes`). When that happens, the producer raises a `#!python BufferError` and the batch fails.
+
+By default, `#!python publish_batch(...)` **fails fast**: the `#!python BufferError` is raised immediately (inside an `#!python ExceptionGroup`, as the messages of a batch are sent concurrently), and it is up to your application to retry.
+
+If you prefer the producer to wait for the queue to drain instead, pass `#!python retry_on_buffer_error=True`:
+
+```python
+await broker.publish_batch(
+    *messages,
+    topic="output_data",
+    retry_on_buffer_error=True,
+)
+```
+
+With this flag enabled, the batch is sent in `queue.buffering.max.messages`-sized chunks, and any message rejected with a `#!python BufferError` (for example, due to the size-based `queue.buffering.max.kbytes` limit, which count-based chunking cannot account for) is retried while the queue drains.
+
+!!! warning
+    A retried publish may block for up to `message.timeout.ms` (also known as `delivery.timeout.ms`, **5 minutes** by default) while waiting for the queue to drain. If the timeout expires before the message can be enqueued, the `#!python BufferError` is raised anyway. Setting it to `#!python 0` (no delivery timeout) makes the retry wait indefinitely.
