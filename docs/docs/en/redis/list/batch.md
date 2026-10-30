@@ -21,7 +21,7 @@ To consume messages in batches from a Redis list, follow these steps:
 In your FastStream application, define the subscriber using the `#!python @broker.subscriber(...)` decorator. Ensure that you pass a `ListSub` object with the `batch` parameter set to `True`. This configuration tells the subscriber to handle message consumption in batches from the specified Redis list.
 
 ```python linenums="1"
-{! docs_src/redis/list/sub_batch.py [ln:8] !}
+{! docs_src/redis/list/sub_batch.py [ln:6-9] !}
 ```
 
 ### Step 2: Implement Your Consuming Function
@@ -29,7 +29,7 @@ In your FastStream application, define the subscriber using the `#!python @broke
 Create a consuming function that accepts the list of messages. The `#!python @broker.subscriber(...)` decorator will take care of collecting and grouping messages into batches.
 
 ```python linenums="1"
-{! docs_src/redis/list/sub_batch.py [ln:8-10] !}
+{! docs_src/redis/list/sub_batch.py [ln:9-11] !}
 ```
 
 ## Example of Consuming in Batches
@@ -50,3 +50,11 @@ Also, **Redis List** is the only data structure supporting publishing in batches
 
 * Call `#!python broker.publish_batch("msg1", "msg2", list="test-list")`
 * Or create a publisher with `#!python broker.publisher(list=ListSub("test-list", batch=True))`
+
+You can also pass the same `ListSub` object used by the subscriber to `broker.publish_batch(list=...)`:
+
+```python linenums="1"
+{! docs_src/redis/list/sub_batch.py [ln:16.5] !}
+```
+
+`ListSub.batch` controls how the subscriber receives messages. Use `broker.publish_batch()` to send multiple messages together.

@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream.redis.message import RedisChannelMessage
     from faststream.redis.publisher.producer import RedisClusterFastProducer
+    from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.redis.schemas.types import RedisBrokerParams
     from faststream.security import BaseSecurity
 
@@ -199,12 +200,12 @@ class RedisBroker(
     async def publish(
         self,
         message: "SendableMessage" = None,
-        channel: str | None = None,
+        channel: "str | PubSub | None" = None,
         *,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
-        list: str | None = None,
+        list: "str | ListSub[bool] | None" = None,
         stream: None = None,
         maxlen: int | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
@@ -214,13 +215,13 @@ class RedisBroker(
     async def publish(
         self,
         message: "SendableMessage" = None,
-        channel: str | None = None,
+        channel: "str | PubSub | None" = None,
         *,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
-        list: str | None = None,
-        stream: str = ...,
+        list: "str | ListSub[bool] | None" = None,
+        stream: "str | StreamSub[bool]" = ...,
         maxlen: int | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> bytes: ...
@@ -229,13 +230,13 @@ class RedisBroker(
     async def publish(
         self,
         message: "SendableMessage" = None,
-        channel: str | None = None,
+        channel: "str | PubSub | None" = None,
         *,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
-        list: str | None = None,
-        stream: str | None = None,
+        list: "str | ListSub[bool] | None" = None,
+        stream: "str | StreamSub[bool] | None" = None,
         maxlen: int | None = None,
         pipeline: Optional["Pipeline[bytes]"] = None,
     ) -> int | bytes:
@@ -248,7 +249,7 @@ class RedisBroker(
             message:
                 Message body to send.
             channel:
-                Redis PubSub object name to send message.
+                Redis channel name or PubSub object defining the destination.
             reply_to:
                 Reply message destination PubSub object name.
             headers:
@@ -256,11 +257,13 @@ class RedisBroker(
             correlation_id:
                 Manual message correlation_id setter. correlation_id is a useful option to trace messages.
             list:
-                Redis List object name to send message.
+                Redis list name or ListSub object defining the destination.
             stream:
-                Redis Stream object name to send message.
+                Redis stream name or StreamSub object defining the destination.
             maxlen:
                 Redis Stream maxlen publish option. Remove eldest message if maxlen exceeded.
+                If None and stream is a StreamSub, use its maxlen.
+                An explicit number, including 0, takes precedence.
             pipeline:
                 Redis pipeline to use for publishing messages.
 
@@ -291,15 +294,20 @@ class RedisBroker(
     async def request(  # type: ignore[override]
         self,
         message: "SendableMessage",
-        channel: str | None = None,
+        channel: "str | PubSub | None" = None,
         *,
-        list: str | None = None,
-        stream: str | None = None,
+        list: "str | ListSub[bool] | None" = None,
+        stream: "str | StreamSub[bool] | None" = None,
         maxlen: int | None = None,
         correlation_id: str | None = None,
         headers: dict[str, Any] | None = None,
         timeout: float | None = 30.0,
     ) -> "RedisChannelMessage":
+        """Send a request using a destination name or subscription object.
+
+        For a StreamSub, maxlen=None uses the object's maxlen.
+        An explicit number, including 0, takes precedence.
+        """
         cmd = RedisPublishCommand(
             message,
             correlation_id=correlation_id or self.config.id_generator(),
@@ -322,7 +330,7 @@ class RedisBroker(
     async def publish_batch(  # type: ignore[override]
         self,
         *messages: "SendableMessage",
-        list: str,
+        list: "str | ListSub[bool]",
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
@@ -332,7 +340,7 @@ class RedisBroker(
 
         Args:
             *messages: Messages bodies to send.
-            list: Redis List object name to send messages.
+            list: Redis list name or ListSub object defining the destination.
             correlation_id: Manual message **correlation_id** setter. **correlation_id** is a useful option to trace messages.
             reply_to: Reply message destination PubSub object name.
             headers: Message headers to store metainformation.
