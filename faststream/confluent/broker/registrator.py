@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from faststream.confluent.schemas import Topic, TopicPartition
     from faststream.confluent.subscriber.usecase import (
         BatchSubscriber,
-        ConcurrentDefaultSubscriber,
         DefaultSubscriber,
     )
 
@@ -80,7 +79,7 @@ class KafkaRegistrator(
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
-        max_workers: None = None,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -160,50 +159,6 @@ class KafkaRegistrator(
         on_assign: Callable[..., None] | None = None,
         on_revoke: Callable[..., None] | None = None,
         on_lost: Callable[..., None] | None = None,
-        batch: Literal[False] = False,
-        max_records: int | None = None,
-        # broker args
-        persistent: bool = True,
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # Specification args
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> "ConcurrentDefaultSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        *topics: Union[str, "Topic"],
-        partitions: Sequence["TopicPartition"] = (),
-        polling_interval: float = 0.1,
-        group_id: str | None = None,
-        group_instance_id: str | None = None,
-        fetch_max_wait_ms: int = 500,
-        fetch_max_bytes: int = 50 * 1024 * 1024,
-        fetch_min_bytes: int = 1,
-        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
-        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit_interval_ms: int = 5 * 1000,
-        check_crcs: bool = True,
-        partition_assignment_strategy: Sequence[str] = ("roundrobin",),
-        max_poll_interval_ms: int = 5 * 60 * 1000,
-        session_timeout_ms: int = 10 * 1000,
-        heartbeat_interval_ms: int = 3 * 1000,
-        isolation_level: Literal[
-            "read_uncommitted",
-            "read_committed",
-        ] = "read_uncommitted",
-        # rebalance callbacks
-        on_assign: Callable[..., None] | None = None,
-        on_revoke: Callable[..., None] | None = None,
-        on_lost: Callable[..., None] | None = None,
         batch: bool = False,
         max_records: int | None = None,
         # broker args
@@ -219,11 +174,7 @@ class KafkaRegistrator(
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-    ) -> Union[
-        "DefaultSubscriber",
-        "BatchSubscriber",
-        "ConcurrentDefaultSubscriber",
-    ]: ...
+    ) -> Union["DefaultSubscriber", "BatchSubscriber"]: ...
 
     @override
     def subscriber(
@@ -267,11 +218,7 @@ class KafkaRegistrator(
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> Union[
-        "DefaultSubscriber",
-        "BatchSubscriber",
-        "ConcurrentDefaultSubscriber",
-    ]:
+    ) -> Union["DefaultSubscriber", "BatchSubscriber"]:
         """Create a subscriber for Kafka topics.
 
         Args:
@@ -404,14 +351,11 @@ class KafkaRegistrator(
             persistent: Whether to make the subscriber persistent or not.
 
         Returns:
-            Union of DefaultSubscriber, BatchSubscriber, or ConcurrentDefaultSubscriber
-                depending on the configuration.
+            DefaultSubscriber or BatchSubscriber depending on the configuration.
         """
-        workers = max_workers or 1
-
         subscriber = create_subscriber(
             *topics,
-            max_workers=workers,
+            max_workers=max_workers or 1,
             polling_interval=polling_interval,
             partitions=partitions,
             batch=batch,
@@ -446,8 +390,6 @@ class KafkaRegistrator(
 
         if batch:
             subscriber = cast("BatchSubscriber", subscriber)
-        elif workers > 1:
-            subscriber = cast("ConcurrentDefaultSubscriber", subscriber)
         else:
             subscriber = cast("DefaultSubscriber", subscriber)
 

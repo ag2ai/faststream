@@ -21,9 +21,6 @@ from faststream.nats.publisher.usecase import LogicPublisher
 from faststream.nats.schemas import ObjWatch, PullSub
 from faststream.nats.subscriber.usecases import (
     BatchPullStreamSubscriber,
-    ConcurrentCoreSubscriber,
-    ConcurrentPullStreamSubscriber,
-    ConcurrentPushStreamSubscriber,
     CoreSubscriber,
     KeyValueWatchSubscriber,
     ObjStoreWatchSubscriber,
@@ -483,19 +480,19 @@ def check_subscriber_instance_type(
     assert_type(sub3_unknown, BatchPullStreamSubscriber | PullStreamSubscriber)
 
     sub4 = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=2)
-    assert_type(sub4, ConcurrentPullStreamSubscriber)
+    assert_type(sub4, PullStreamSubscriber)
 
     sub5 = broker.subscriber("test", stream="stream", pull_sub=True)
     assert_type(sub5, PullStreamSubscriber)
 
     sub6 = broker.subscriber("test", stream="stream", max_workers=2)
-    assert_type(sub6, ConcurrentPushStreamSubscriber)
+    assert_type(sub6, PushStreamSubscriber)
 
     sub7 = broker.subscriber("test", stream="stream")
     assert_type(sub7, PushStreamSubscriber)
 
     sub8 = broker.subscriber("test", max_workers=2)
-    assert_type(sub8, ConcurrentCoreSubscriber)
+    assert_type(sub8, CoreSubscriber)
 
     sub9 = broker.subscriber("test")
     assert_type(sub9, CoreSubscriber)
