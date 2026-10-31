@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from faststream._internal.configs import (
@@ -19,5 +20,5 @@ class KafkaPublisherConfig(PublisherUsecaseConfig):
     key: bytes | str | None
     topic: str
     partition: int | None
-    headers: dict[str, str] | None
+    headers: Mapping[str, str | bytes | None] | None
     reply_to: str

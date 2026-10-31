@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from typing_extensions import override
 
+from faststream.nats.schemas import JStream
 from faststream.response.publish_type import PublishType
 from faststream.response.response import PublishCommand, Response
 
@@ -51,7 +52,7 @@ class NatsPublishCommand(PublishCommand):
         correlation_id: str | None = None,
         headers: dict[str, str] | None = None,
         reply_to: str = "",
-        stream: str | None = None,
+        stream: str | JStream | None = None,
         timeout: float = 0.5,
         schedule: Optional["Schedule"] = None,
         _publish_type: PublishType,
@@ -65,7 +66,7 @@ class NatsPublishCommand(PublishCommand):
             _publish_type=_publish_type,
         )
 
-        self.stream = stream
+        self.stream = stream.name if isinstance(stream, JStream) else stream
         self.timeout = timeout
         self.schedule = schedule
 

@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -47,7 +47,7 @@ class KafkaPublisher(ArgsContainer):
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # AsyncAPI args

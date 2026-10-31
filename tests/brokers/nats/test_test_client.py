@@ -34,17 +34,24 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
                 await m.assert_called_once_with(path={})
 
     @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        "use_stream_object", (False, True), ids=("string", "jstream")
+    )
     async def test_stream_publish(
         self,
         queue: str,
+        use_stream_object: bool,
     ) -> None:
         pub_broker = self.get_broker(apply_types=False)
+        stream = JStream(f"{queue}st")
 
-        @pub_broker.subscriber(queue, stream="test")
-        async def m(msg: Any) -> None: ...
+        @pub_broker.subscriber(queue, stream=stream)
+        async def m(msg: str) -> None: ...
 
         async with self.patch_broker(pub_broker) as br:
-            await br.publish("Hi!", queue, stream="test")
+            await br.publish(
+                "Hi!", queue, stream=stream if use_stream_object else stream.name
+            )
             m.mock.assert_called_once_with("Hi!")
 
     @pytest.mark.asyncio()

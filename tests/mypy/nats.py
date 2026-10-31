@@ -6,6 +6,7 @@ from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.nats import (
+    JStream,
     NatsBroker,
     NatsMessage,
     NatsRoute,
@@ -314,11 +315,14 @@ NatsBroker().add_middleware(prometheus_middleware)
 NatsBroker(middlewares=[prometheus_middleware])
 
 
-async def check_broker_publish_result_type() -> None:
+async def check_broker_publish_result_type(stream: str | JStream | None) -> None:
     broker = NatsBroker()
 
     assert_type(await broker.publish(None, "test"), None)
+    assert_type(await broker.publish(None, "test", stream=None), None)
     assert_type(await broker.publish(None, "test", stream="stream"), PubAck)
+    assert_type(await broker.publish(None, "test", stream=JStream("stream")), PubAck)
+    assert_type(await broker.publish(None, "test", stream=stream), PubAck | None)
 
 
 async def check_publisher_publish_result_type() -> None:
@@ -330,11 +334,15 @@ async def check_publisher_publish_result_type() -> None:
     assert_type(await publisher.publish(None, "test", stream="stream"), PubAck)
 
 
-async def check_request_response_type() -> None:
+async def check_request_response_type(stream: str | JStream | None) -> None:
     broker = NatsBroker()
 
     broker_response = await broker.request(None, "test")
     assert_type(broker_response, NatsMessage)
+    assert_type(await broker.request(None, "test", stream=None), NatsMessage)
+    assert_type(await broker.request(None, "test", stream="stream"), NatsMessage)
+    assert_type(await broker.request(None, "test", stream=JStream("stream")), NatsMessage)
+    assert_type(await broker.request(None, "test", stream=stream), NatsMessage)
 
     publisher = broker.publisher("test")
     assert_type(await publisher.request(None, "test"), NatsMessage)

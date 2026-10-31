@@ -87,7 +87,7 @@ if TYPE_CHECKING:
     from faststream.nats.configs.broker import JsInitOptions
     from faststream.nats.helpers import KVBucketDeclarer, OSBucketDeclarer
     from faststream.nats.message import NatsMessage
-    from faststream.nats.schemas import PubAck, Schedule
+    from faststream.nats.schemas import JStream, PubAck, Schedule
     from faststream.specification.schema.extra import Tag, TagDict
 
     class NatsInitKwargs(TypedDict, total=False):
@@ -778,10 +778,23 @@ class NatsBroker(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
-        stream: str | None = None,
+        stream: Union[str, "JStream"] = ...,
         timeout: float | None = None,
         schedule: Optional["Schedule"] = None,
     ) -> "PubAck": ...
+
+    @overload
+    async def publish(
+        self,
+        message: "SendableMessage",
+        subject: str,
+        headers: dict[str, str] | None = None,
+        reply_to: str = "",
+        correlation_id: str | None = None,
+        stream: Union[str, "JStream", None] = None,
+        timeout: float | None = None,
+        schedule: Optional["Schedule"] = None,
+    ) -> Optional["PubAck"]: ...
 
     @override
     async def publish(
@@ -791,7 +804,7 @@ class NatsBroker(
         headers: dict[str, str] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
-        stream: str | None = None,
+        stream: Union[str, "JStream", None] = None,
         timeout: float | None = None,
         schedule: Optional["Schedule"] = None,
     ) -> Optional["PubAck"]:
@@ -817,7 +830,8 @@ class NatsBroker(
                 Manual message **correlation_id** setter.
                 **correlation_id** is a useful option to trace messages.
             stream:
-                This option validates that the target subject is in presented stream.
+                JetStream name or JStream object.
+                Validates that the target subject is in the stream.
                 Can be omitted without any effect if you doesn't want PubAck frame.
             timeout:
                 Timeout to send message to NATS.
@@ -841,7 +855,7 @@ class NatsBroker(
         )
 
         result: PubAck | None
-        if stream:
+        if cmd.stream:
             result = await super()._basic_publish(cmd, producer=self.config.js_producer)
         else:
             result = await super()._basic_publish(cmd, producer=self.config.producer)
@@ -854,7 +868,7 @@ class NatsBroker(
         subject: str,
         headers: dict[str, str] | None = None,
         correlation_id: str | None = None,
-        stream: str | None = None,
+        stream: Union[str, "JStream", None] = None,
         timeout: float = 0.5,
     ) -> "NatsMessage":
         """Make a synchronous request to outer subscriber.
@@ -875,7 +889,8 @@ class NatsBroker(
                 Manual message **correlation_id** setter.
                 **correlation_id** is a useful option to trace messages.
             stream:
-                JetStream name. This option is required if your target subscriber listens for events using JetStream.
+                JetStream name or JStream object.
+                Required if the target subscriber uses JetStream.
             timeout:
                 Timeout to send message to NATS.
 
@@ -892,7 +907,9 @@ class NatsBroker(
             _publish_type=PublishType.REQUEST,
         )
 
-        producer = self.config.js_producer if stream is not None else self.config.producer
+        producer = (
+            self.config.js_producer if cmd.stream is not None else self.config.producer
+        )
 
         msg: NatsMessage = await super()._basic_request(cmd, producer=producer)
         return msg

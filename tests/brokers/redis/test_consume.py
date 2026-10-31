@@ -1076,40 +1076,46 @@ class TestConsumeStream(RedisTestcaseConfig):
             pending = await client.xpending(queue, queue)  # type: ignore[no-untyped-call]
             assert pending["pending"] == (0 if no_ack else 1)
 
-    @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_concurrent_consume_stream(
         self,
         queue: str,
-        mock: MagicMock,
-        event: asyncio.Event,
-        event2: asyncio.Event,
     ) -> None:
         consume_broker = self.get_broker()
+        workers = 2
+        message_count = 5
+        active = peak = 0
+        received: list[int] = []
+        workers_started = asyncio.Event()
+        release_workers = asyncio.Event()
+        all_processed = asyncio.Event()
 
-        @consume_broker.subscriber(stream=StreamSub(queue), max_workers=2)
-        async def handler(msg: RedisStreamMessage) -> None:
-            mock()
-            if event.is_set():
-                event2.set()
-            else:
-                event.set()
-            await asyncio.sleep(0.1)
+        @consume_broker.subscriber(stream=StreamSub(queue), max_workers=workers)
+        async def handler(msg: int) -> None:
+            nonlocal active, peak
+            active += 1
+            peak = max(peak, active)
+            if active == workers:
+                workers_started.set()
+
+            await release_workers.wait()
+            active -= 1
+            received.append(msg)
+            if len(received) == message_count:
+                all_processed.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
-            for i in range(5):
-                await br.publish(i, stream=queue)
+            try:
+                for i in range(message_count):
+                    await br.publish(i, stream=queue)
+                await asyncio.wait_for(workers_started.wait(), self.timeout)
+            finally:
+                release_workers.set()
 
-        await asyncio.wait(
-            (
-                asyncio.create_task(event.wait()),
-                asyncio.create_task(event2.wait()),
-            ),
-            timeout=3,
-        )
+            await asyncio.wait_for(all_processed.wait(), self.timeout)
 
-        assert mock.call_count == 2, mock.call_count
+        assert (peak, sorted(received)) == (workers, list(range(message_count)))
 
     async def test_iterator(
         self,

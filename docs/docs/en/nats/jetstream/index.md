@@ -4,11 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "NATS JetStream in Python: Streams and Consumers"
+description: >-
+  Use NATS JetStream in Python with nats-py and FastStream. Declare a stream, subscribe to stored messages and explore pull consumers, acknowledgements and retention.
 search:
   boost: 10
 ---
 
-# NATS JetStream
+# NATS JetStream in Python: Streams and Consumers
+
+Use **NATS JetStream in Python** when messages must be stored for subscribers that are offline or need to acknowledge processing. FastStream uses the JetStream APIs in **nats-py** and lets you declare a stream with `JStream`. The example below connects a subscriber to a stream; see [pull consumers](pull.md) and [acknowledgements](ack.md) for delivery and processing options.
 
 The default *NATS* usage is suitable for scenarios where:
 
@@ -35,9 +40,13 @@ Also, **NATS JetStream** has built-in `key-value` (similar to **Redis**) and `ob
 
 **FastStream** provides access to them via `#!python broker.key_value()` and `#!python broker.object_storage()` — see the [Key-Value Storage](key-value.md){.internal-link} and [Object Storage](object.md){.internal-link} pages. To consume from a stream, pass a `JStream` object to the subscriber:
 
-```python linenums="1" hl_lines="2 8 12 22"
+The same `JStream` object can be reused in `broker.subscriber()`, `broker.publish()`, and `broker.request()`. Pass the target subject separately; a stream can contain multiple subjects.
+
+```python linenums="1" hl_lines="2 8 13 24"
 {! docs_src/nats/js/main.py !}
 ```
 
 !!! tip
-    Using a `JStream` object, **FastStream** tries to create/update the stream with the object settings. To prevent this behavior and *just get already created stream*, please use `#!python JStream(..., declare=False)` option.
+    When a stream is registered with a subscriber or publisher, **FastStream** tries to create or update it at broker startup using its settings. Use `#!python JStream(..., declare=False)` to work with an existing stream without declaring it.
+
+    Passing a `JStream` to `broker.publish()` or `broker.request()` uses only its name. These calls do not register or declare the stream and do not modify the object.

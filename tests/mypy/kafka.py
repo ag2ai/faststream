@@ -1,5 +1,6 @@
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
+from types import MappingProxyType
 from typing import Any
 
 import prometheus_client
@@ -11,6 +12,7 @@ from faststream.kafka import (
     KafkaBroker,
     KafkaMessage,
     KafkaPublishMessage,
+    KafkaPublisher,
     KafkaRoute,
     KafkaRouter,
     RecordMetadata,
@@ -395,6 +397,45 @@ async def check_request_response_type() -> None:
     publisher = broker.publisher("test")
     publisher_response = await publisher.request(None, "test")
     assert_type(publisher_response, KafkaMessage)
+
+
+async def check_publish_headers() -> None:
+    broker = KafkaBroker()
+    text_headers: dict[str, str] = {"text": "value"}
+    binary_headers: dict[str, bytes] = {"binary": b"\xff\x00"}
+    headers: Mapping[str, str | bytes | None] = MappingProxyType({
+        "text": "value",
+        "binary": b"\xff\x00",
+        "null": None,
+    })
+
+    await broker.publish("body", "test", headers=text_headers)
+    await broker.publish("body", "test", headers=binary_headers)
+    await broker.publish("body", "test", headers=headers)
+    await broker.publish_batch("one", "two", topic="test", headers=headers)
+    await broker.request("body", "test", headers=headers)
+    KafkaPublishMessage("body", headers=binary_headers)
+
+
+async def check_publisher_headers(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    headers: Mapping[str, str | bytes | None] = MappingProxyType({
+        "binary": b"\xff\x00",
+        "null": None,
+    })
+    publisher = broker.publisher("test", headers=headers)
+    await publisher.publish("body", headers=headers)
+    await publisher.request("body", headers=headers)
+    await broker.publisher("test", batch=True, headers=headers).publish(
+        "one", "two", headers=headers
+    )
+    KafkaPublisher("test", headers=headers)
+
+
+def check_raw_header_types(message: KafkaMessage) -> None:
+    assert_type(message.raw_headers, dict[str, bytes | None])
+    assert_type(message.batch_raw_headers, list[dict[str, bytes | None]])
 
 
 async def check_subscriber_message_type(
