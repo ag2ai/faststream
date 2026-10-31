@@ -292,6 +292,9 @@ class AsyncConfluentConsumer:
             "fetch.error.backoff.ms": retry_backoff_ms,
             "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": enable_auto_commit,
+            # Manual ack paths must store offsets explicitly on ack; letting
+            # librdkafka auto-store would also store nacked offsets.
+            "enable.auto.offset.store": enable_auto_commit,
             "auto.commit.interval.ms": auto_commit_interval_ms,
             "check.crcs": check_crcs,
             "metadata.max.age.ms": metadata_max_age_ms,
@@ -440,6 +443,19 @@ class AsyncConfluentConsumer:
             self._thread_pool,
             self.consumer.seek,
             topic_partition.to_confluent(),
+        )
+
+    async def store_offsets(self, topic: str, partition: int, offset: int) -> None:
+        """Stores the offset to commit for the specified topic and partition."""
+        topic_partition = TopicPartition(
+            topic=topic,
+            partition=partition,
+            offset=offset,
+        )
+        await run_in_executor(
+            self._thread_pool,
+            self.consumer.store_offsets,
+            offsets=[topic_partition.to_confluent()],
         )
 
 

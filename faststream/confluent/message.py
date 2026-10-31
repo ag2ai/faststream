@@ -17,6 +17,13 @@ class ConsumerProtocol(Protocol):
         offset: int,
     ) -> None: ...
 
+    async def store_offsets(
+        self,
+        topic: str,
+        partition: int,
+        offset: int,
+    ) -> None: ...
+
 
 class FakeConsumer:
     """A fake Kafka consumer."""
@@ -25,6 +32,14 @@ class FakeConsumer:
         pass
 
     async def seek(
+        self,
+        topic: str | None,
+        partition: int | None,
+        offset: int | None,
+    ) -> None:
+        pass
+
+    async def store_offsets(
         self,
         topic: str | None,
         partition: int | None,
@@ -79,6 +94,29 @@ class KafkaMessage(
     async def ack(self) -> None:
         """Acknowledge the Kafka message."""
         if self.is_manual and not self.committed:
+            # Manual ack paths disable librdkafka auto offset store, so the
+            # processed offset has to be stored explicitly before committing.
+            records: tuple[Message, ...] = (
+                self.raw_message
+                if isinstance(self.raw_message, tuple)
+                else (self.raw_message,)
+            )
+            latest: dict[tuple[str, int], int] = {}
+            for record in records:
+                topic = record.topic()
+                partition = record.partition()
+                offset = record.offset()
+                if topic is None or partition is None or offset is None:
+                    continue
+                known = latest.get((topic, partition))
+                if known is None or offset > known:
+                    latest[topic, partition] = offset
+            for (topic, partition), offset in latest.items():
+                await self.consumer.store_offsets(
+                    topic=topic,
+                    partition=partition,
+                    offset=offset + 1,
+                )
             await self.consumer.commit()
         await super().ack()
 
@@ -88,6 +126,8 @@ class KafkaMessage(
     async def nack(self) -> None:
         """Reject the Kafka message."""
         if self.is_manual and not self.committed:
+            # Seek only: auto offset store is disabled for manual-ack paths, and
+            # storing the failed record here would let a later commit skip it.
             # A batch may span several partitions: rewind each one to its earliest
             # record, so none of them is committed past an unprocessed message.
             records: tuple[Message, ...] = (
