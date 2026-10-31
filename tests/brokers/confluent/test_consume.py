@@ -9,7 +9,7 @@ from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.helpers.client import AsyncConfluentConsumer
 from faststream.exceptions import AckMessage
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
-from tests.tools import spy_decorator
+from tests.tools import spy_decorator, wait_for_mock_call
 
 from .basic import ConfluentTestcaseConfig
 
@@ -114,6 +114,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                     ),
                     timeout=self.timeout,
                 )
+                await wait_for_mock_call(m.mock)
                 m.mock.assert_called_once()
 
         assert event.is_set()
@@ -188,6 +189,7 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                     ),
                     timeout=self.timeout,
                 )
+                await wait_for_mock_call(m.mock)
                 m.mock.assert_called_once()
 
         assert event.is_set()
