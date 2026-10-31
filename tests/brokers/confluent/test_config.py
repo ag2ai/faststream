@@ -1,3 +1,4 @@
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -132,10 +133,12 @@ def test_auto_offset_store_follows_auto_commit(
 async def test_store_offsets_delegates_to_native_consumer() -> None:
     consumer = build_consumer(enable_auto_commit=False)
 
+    store_offsets = cast("MagicMock", consumer.consumer.store_offsets)
+
     await consumer.store_offsets("topic", 2, 7)
 
-    consumer.consumer.store_offsets.assert_called_once()
-    (offsets,) = consumer.consumer.store_offsets.call_args.kwargs["offsets"]
+    store_offsets.assert_called_once()
+    (offsets,) = store_offsets.call_args.kwargs["offsets"]
     assert offsets.topic == "topic"
     assert offsets.partition == 2
     assert offsets.offset == 7
