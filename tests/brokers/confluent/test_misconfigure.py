@@ -3,10 +3,10 @@ from typing import Any
 import pytest
 
 from faststream import AckPolicy
+from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream.confluent import KafkaBroker, TopicPartition, annotations
 from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.helpers import AsyncConfluentConsumer
-from faststream.confluent.subscriber.usecase import ConcurrentDefaultSubscriber
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
@@ -19,7 +19,7 @@ def test_max_workers_with_ack_policy(queue: str) -> None:
     broker = KafkaBroker()
 
     sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.ACK_FIRST)
-    assert isinstance(sub, ConcurrentDefaultSubscriber)
+    assert isinstance(sub.consume_dispatcher, ConcurrentDispatcher)
 
     with (
         pytest.raises(SetupError),

@@ -31,14 +31,11 @@ from faststream.redis.publisher.usecase import (
     StreamPublisher,
 )
 from faststream.redis.subscriber.usecases import (
-    ChannelConcurrentSubscriber,
     ChannelSubscriber,
     ListBatchSubscriber,
-    ListConcurrentSubscriber,
     ListSubscriber,
     LogicSubscriber,
     StreamBatchSubscriber,
-    StreamConcurrentSubscriber,
     StreamSubscriber,
 )
 from faststream.redis.testing import PEL
@@ -453,7 +450,7 @@ def check_channel_subscriber_instance_type(
     assert_type(sub1, ChannelSubscriber)
 
     sub2 = broker.subscriber(channel="test", max_workers=2)
-    assert_type(sub2, ChannelConcurrentSubscriber)
+    assert_type(sub2, ChannelSubscriber)
 
 
 def check_stream_subscriber_instance_type(
@@ -472,7 +469,7 @@ def check_stream_subscriber_instance_type(
     assert_type(sub2_unknown, StreamSubscriber | StreamBatchSubscriber)
 
     sub3 = broker.subscriber(stream="test", max_workers=2)
-    assert_type(sub3, StreamConcurrentSubscriber)
+    assert_type(sub3, StreamSubscriber)
 
 
 def check_list_subscriber_instance_type(
@@ -493,7 +490,7 @@ def check_list_subscriber_instance_type(
     assert_type(sub2_unknown, ListSubscriber | ListBatchSubscriber)
 
     sub3 = broker.subscriber(list="test", max_workers=2)
-    assert_type(sub3, ListConcurrentSubscriber)
+    assert_type(sub3, ListSubscriber)
 
 
 def check_destination_is_required(broker: RedisBroker, router: FastAPIRouter) -> None:

@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
-from typing_extensions import overload, override
+from typing_extensions import override
 from zmqtt import QoS
 
 from faststream._internal.broker.registrator import Registrator
@@ -21,61 +21,14 @@ if TYPE_CHECKING:
         CustomCallable,
     )
     from faststream.mqtt.publisher.usecase import MQTTPublisher
-    from faststream.mqtt.subscriber.usecase import (
-        MQTTConcurrentSubscriber,
-        MQTTDefaultSubscriber,
-    )
+    from faststream.mqtt.subscriber.usecase import MQTTSubscriber
 
 
 class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
     """Includable to MQTTBroker router."""
 
-    @overload  # type: ignore[override]
-    def subscriber(
-        self,
-        topic: str,
-        *,
-        qos: QoS = QoS.AT_MOST_ONCE,
-        shared: str | None = None,
-        # broker arguments
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        max_workers: Literal[1] = 1,
-        persistent: bool = True,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> "MQTTDefaultSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        topic: str,
-        *,
-        qos: QoS = QoS.AT_MOST_ONCE,
-        shared: str | None = None,
-        # broker arguments
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        max_workers: int = ...,
-        persistent: bool = True,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> "MQTTConcurrentSubscriber": ...
-
     @override
-    def subscriber(
+    def subscriber(  # type: ignore[override]
         self,
         topic: str,
         *,
@@ -94,7 +47,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-    ) -> "MQTTDefaultSubscriber | MQTTConcurrentSubscriber":
+    ) -> "MQTTSubscriber":
         """Subscribe a handler to an MQTT topic.
 
         Args:

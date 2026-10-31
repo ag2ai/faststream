@@ -7,7 +7,6 @@ from redis.asyncio.client import (
 )
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.redis.message import (
     PubSubMessage,
@@ -78,11 +77,14 @@ class ChannelSubscriber(LogicSubscriber):
 
         await super().start(psub)
 
-    async def stop(self) -> None:
-        await super().stop()
-
+    @override
+    async def _stop_receiving(self) -> None:
         if self.subscription is not None:
             await self.subscription.unsubscribe()
+
+    @override
+    async def _close_transport(self) -> None:
+        if self.subscription is not None:
             await self.subscription.aclose()  # type: ignore[attr-defined]
             self.subscription = None
 
@@ -171,18 +173,4 @@ class ChannelSubscriber(LogicSubscriber):
 
     async def _get_msgs(self, psub: RPubSub) -> None:
         if msg := await self._get_message(psub):
-            await self.consume_one(msg)
-
-
-class ChannelConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage[Any]"],
-    ChannelSubscriber,
-):
-    __slots__ = ()
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
-        await self._put_msg(msg)
+            await self.consume_dispatcher.dispatch(msg)

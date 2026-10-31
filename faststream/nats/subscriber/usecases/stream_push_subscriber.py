@@ -1,9 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from nats.aio.msg import Msg
 from typing_extensions import override
-
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 
 from .stream_basic import StreamSubscriber
 
@@ -25,29 +22,7 @@ class PushStreamSubscriber(StreamSubscriber):
         self.subscription = await self.jetstream.subscribe(
             subject=self.subject.broker_address,
             queue=self.queue,
-            cb=self.consume,
-            config=self.config,
-            **self.extra_options,
-        )
-
-
-class ConcurrentPushStreamSubscriber(ConcurrentMixin[Msg], StreamSubscriber):
-    __slots__ = ()
-
-    subscription: Optional["JetStreamContext.PushSubscription"]
-
-    @override
-    async def _create_subscription(self) -> None:
-        """Create NATS subscription and start consume task."""
-        if self.subscription:
-            return
-
-        self.start_consume_task()
-
-        self.subscription = await self.jetstream.subscribe(
-            subject=self.subject.broker_address,
-            queue=self.queue,
-            cb=self._put_msg,
+            cb=self.consume_dispatcher.dispatch,
             config=self.config,
             **self.extra_options,
         )

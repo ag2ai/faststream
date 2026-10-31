@@ -1,3 +1,4 @@
+import asyncio
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
 from contextlib import AbstractContextManager, AsyncExitStack, ExitStack, nullcontext
@@ -37,6 +38,12 @@ from .call_item import (
     CallsCollection,
     HandlerItem,
 )
+from .dispatcher import (
+    ConcurrentDispatcher,
+    ConsumeDispatcherProto,
+    DirectDispatcher,
+)
+from .supervisor import TasksSupervisor
 from .utils import MultiLock, default_filter
 
 if TYPE_CHECKING:
@@ -78,11 +85,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         "_decoder",
         "_no_reply",
         "_parser",
+        "_stop_task",
         "ack_policy",
         "calls",
+        "consume_dispatcher",
         "lock",
         "running",
         "specification",
+        "tasks_supervisor",
     )
 
     lock: "AbstractContextManager[Any]"
@@ -116,8 +126,18 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         self._call_decorators: tuple[Decorator, ...] = ()
 
+        self.tasks_supervisor = TasksSupervisor(self._outer_config)
+        self.consume_dispatcher: ConsumeDispatcherProto[MsgType] = (
+            DirectDispatcher(self.consume)
+            if config.max_workers <= 1
+            else ConcurrentDispatcher(
+                self.tasks_supervisor, config.max_workers, self.consume
+            )
+        )
+
         self.running = False
         self.lock = nullcontext()
+        self._stop_task: asyncio.Task[None] | None = None
 
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
@@ -138,9 +158,10 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
         self.lock = MultiLock()
+        self._stop_task = None
 
         self._build_fastdepends_model()
-
+        await self.consume_dispatcher.start()
         self._outer_config.logger.log(
             f"`{self.specification.call_name}` waiting for messages",
             extra=self.get_log_context(None),
@@ -239,18 +260,37 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def _post_start(self) -> None:
         self.running = True
 
-    @abstractmethod
-    async def stop(self) -> None:
+    async def stop(self, blocking: bool = True) -> None:
         """Stop message consuming.
 
         Blocks event loop up to graceful_timeout seconds.
         """
-        # set running false before releasing to stop new message reading
-        self.running = False
+        if self._stop_task is None:
+            self._stop_task = asyncio.create_task(self._stop())
+        if blocking:
+            await asyncio.shield(self._stop_task)
 
-        # Wait for already consumed messages to be processed
-        if isinstance(self.lock, MultiLock):
-            await self.lock.wait_release(self._outer_config.graceful_timeout)
+    async def _stop(self) -> None:
+        try:
+            await self._stop_receiving()
+        finally:
+            # set running false before releasing to stop new message reading
+            self.running = False
+
+            # Wait for already consumed messages to be processed
+            if isinstance(self.lock, MultiLock):
+                await self.lock.wait_release(self._outer_config.graceful_timeout)
+
+            await self.consume_dispatcher.stop()
+            await self.tasks_supervisor.stop()
+
+            await self._close_transport()
+
+    async def _stop_receiving(self) -> None:
+        """Hook on stop to stop receiving new messages before `consume` starts skipping them."""
+
+    async def _close_transport(self) -> None:
+        """Hook on stop to free resources after all tasks are done."""
 
     def add_call(
         self,
@@ -347,12 +387,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             return await self.process_message(msg)
 
         except StopConsume:
-            # Stop handler at StopConsume exception
-            await self.stop()
+            # Stop handler at StopConsume exception. Non-blocking because if block it
+            # always returns with CancellationError since _stop cancels all tasks including this one
+            await self.stop(blocking=False)
 
         except SystemExit:
             # Stop handler at `exit()` call
-            await self.stop()
+            await self.stop(blocking=False)
 
             if app := self._outer_config.context.get("app"):
                 app.exit()

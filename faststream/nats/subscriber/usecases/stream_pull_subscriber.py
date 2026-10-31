@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Callable, Coroutine
+from collections.abc import AsyncIterator
 from contextlib import suppress
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Optional, cast
@@ -8,7 +8,6 @@ from nats.errors import ConnectionClosedError, TimeoutError
 from nats.js.errors import ServiceUnavailableError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import (
     BatchParser,
@@ -21,7 +20,6 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.nats.message import NatsMessage
@@ -30,10 +28,9 @@ if TYPE_CHECKING:
 
 
 class PullStreamSubscriber(
-    TasksMixin,
     StreamSubscriber,
 ):
-    __slots__ = ()
+    __slots__ = ("pull_sub",)
 
     subscription: Optional["JetStreamContext.PullSubscription"]
 
@@ -69,12 +66,9 @@ class PullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self.consume})
+        self.tasks_supervisor.add_task(self._consume_pull)
 
-    async def _consume_pull(
-        self,
-        cb: Callable[["Msg"], Coroutine[Any, Any, "SendableMessage"]],
-    ) -> None:
+    async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription
 
@@ -89,35 +83,15 @@ class PullStreamSubscriber(
             if messages:
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
-                        _ = tg.start_soon(cb, msg)
-
-
-class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
-    __slots__ = ()
-
-    @override
-    async def _create_subscription(self) -> None:
-        """Create NATS subscription and start consume task."""
-        if self.subscription:
-            return
-
-        self.start_consume_task()
-
-        self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.subject.broker_address,
-            config=self.config,
-            **self.extra_options,
-        )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
+                        _ = tg.start_soon(self.consume_dispatcher.dispatch, msg)
 
 
 class BatchPullStreamSubscriber(
-    TasksMixin,
     DefaultSubscriber[list["Msg"]],
 ):
     """Batch-message consumer class."""
 
-    __slots__ = ()
+    __slots__ = ("pull_sub", "stream")
 
     subscription: Optional["JetStreamContext.PullSubscription"]
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
@@ -140,7 +114,7 @@ class BatchPullStreamSubscriber(
         self.pull_sub = pull_sub
 
     @override
-    async def get_one(
+    async def get_one(  # type: ignore[override]
         self,
         *,
         timeout: float = 5,
@@ -182,7 +156,7 @@ class BatchPullStreamSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
@@ -225,7 +199,7 @@ class BatchPullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull)
+        self.tasks_supervisor.add_task(self._consume_pull)
 
     async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
@@ -261,4 +235,4 @@ class BatchPullStreamSubscriber(
                 remaining = None if deadline is None else deadline - monotonic()
 
             if messages and self.running:
-                await self.consume(messages)
+                await self.consume_dispatcher.dispatch(messages)

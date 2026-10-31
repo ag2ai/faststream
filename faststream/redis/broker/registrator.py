@@ -30,14 +30,11 @@ if TYPE_CHECKING:
     )
     from faststream.redis.schemas import ListSub, PubSub, StreamSub
     from faststream.redis.subscriber.usecases import (
-        ChannelConcurrentSubscriber,
         ChannelSubscriber,
         ListBatchSubscriber,
-        ListConcurrentSubscriber,
         ListSubscriber,
         LogicSubscriber,
         StreamBatchSubscriber,
-        StreamConcurrentSubscriber,
         StreamSubscriber,
     )
 
@@ -65,31 +62,8 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "ChannelSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        channel: Union["PubSub", str],
-        *,
-        list: None = None,
-        stream: None = None,
-        # broker arguments
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        message_format: type["MessageFormat"] | None = None,
-        persistent: bool = True,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        max_workers: int,
-    ) -> "ChannelConcurrentSubscriber": ...
 
     @overload
     def subscriber(
@@ -111,7 +85,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "ListSubscriber": ...
 
     @overload
@@ -134,7 +108,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "ListBatchSubscriber": ...
 
     @overload
@@ -157,31 +131,8 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> Union["ListSubscriber", "ListBatchSubscriber"]: ...
-
-    @overload
-    def subscriber(
-        self,
-        channel: None = None,
-        *,
-        list: Union["ListSub", str],
-        stream: None = None,
-        # broker arguments
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        message_format: type["MessageFormat"] | None = None,
-        persistent: bool = True,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        max_workers: int,
-    ) -> "ListConcurrentSubscriber": ...
 
     @overload
     def subscriber(
@@ -203,7 +154,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "StreamSubscriber": ...
 
     @overload
@@ -226,7 +177,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "StreamBatchSubscriber": ...
 
     @overload
@@ -249,31 +200,8 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> Union["StreamSubscriber", "StreamBatchSubscriber"]: ...
-
-    @overload
-    def subscriber(
-        self,
-        channel: None = None,
-        *,
-        list: None = None,
-        stream: Union["StreamSub", str],
-        # broker arguments
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        message_format: type["MessageFormat"] | None = None,
-        persistent: bool = True,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        max_workers: int,
-    ) -> "StreamConcurrentSubscriber": ...
 
     # Destinations known only at runtime. Each form still names one of them:
     # a call without any raises `SetupError`, so no overload accepts it.

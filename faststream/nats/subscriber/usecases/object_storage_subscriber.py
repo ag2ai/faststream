@@ -7,7 +7,6 @@ from nats.errors import TimeoutError
 from nats.js.api import ObjectInfo
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import (
     ObjParser,
@@ -34,10 +33,9 @@ OBJECT_STORAGE_CONTEXT_KEY = "__object_storage"
 
 
 class ObjStoreWatchSubscriber(
-    TasksMixin,
     LogicSubscriber[ObjectInfo],
 ):
-    __slots__ = ()
+    __slots__ = ("bucket", "obj_watch", "obj_watch_conn")
 
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
     _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
@@ -164,7 +162,7 @@ class ObjStoreWatchSubscriber(
             declare=self.obj_watch.declare,
         )
 
-        self.add_task(self.__consume_watch)
+        self.tasks_supervisor.add_task(self.__consume_watch)
 
     async def __consume_watch(self) -> None:
         # Should be created inside task to avoid nats-py lock
@@ -187,7 +185,7 @@ class ObjStoreWatchSubscriber(
 
                 if message:
                     with context.scope(OBJECT_STORAGE_CONTEXT_KEY, self.bucket):
-                        await self.consume(message)
+                        await self.consume_dispatcher.dispatch(message)
 
     @override
     def _make_response_publisher(
