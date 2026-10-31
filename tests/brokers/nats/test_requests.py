@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 
 from faststream import BaseMiddleware
+from faststream.nats import JStream, NatsBroker
 from tests.brokers.base.requests import RequestsTestcase
 
 from .basic import NatsMemoryTestcaseConfig, NatsTestcaseConfig
@@ -26,15 +27,17 @@ class NatsRequestsTestcase(RequestsTestcase):
     def get_middleware(self, **kwargs: Any) -> Any:
         return Mid
 
-    async def test_broker_stream_request(self, queue: str) -> None:
-        broker = self.get_broker()
+    @pytest.mark.parametrize(
+        "use_stream_object", (False, True), ids=("string", "jstream")
+    )
+    async def test_broker_stream_request(
+        self, queue: str, use_stream_object: bool
+    ) -> None:
+        broker: NatsBroker = self.get_broker()
+        stream = JStream(f"{queue}st")
 
-        stream_name = f"{queue}st"
-
-        args, kwargs = self.get_subscriber_params(queue, stream=stream_name)
-
-        @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        async def handler(msg: Any) -> str:
+        @broker.subscriber(queue, stream=stream)
+        async def handler(msg: None) -> str:
             return "Response"
 
         async with self.patch_broker(broker):
@@ -44,12 +47,11 @@ class NatsRequestsTestcase(RequestsTestcase):
                 None,
                 queue,
                 correlation_id="1",
-                stream=stream_name,
+                stream=stream if use_stream_object else stream.name,
                 timeout=self.timeout,
             )
 
-        assert await response.decode() == "Response"
-        assert response.correlation_id == "1"
+        assert (await response.decode(), response.correlation_id) == ("Response", "1")
 
     async def test_publisher_stream_request(self, queue: str) -> None:
         broker = self.get_broker()

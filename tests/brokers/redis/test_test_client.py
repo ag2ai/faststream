@@ -1,11 +1,18 @@
 import asyncio
-from typing import Any
+from collections.abc import Awaitable, Callable
+from typing import Any, Literal
 
 import pytest
 
 from faststream import BaseMiddleware
 from faststream.exceptions import SetupError
-from faststream.redis import ListSub, StreamSub
+from faststream.redis import (
+    ListSub,
+    PubSub,
+    RedisBroker,
+    RedisPublishCommand,
+    StreamSub,
+)
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 
@@ -81,6 +88,25 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert len(routes) == 2
 
+    async def test_publish_to_channel_subscription(self, queue: str) -> None:
+        broker: RedisBroker = self.get_broker()
+        channel = PubSub(queue, pattern=True, polling_interval=0.5)
+
+        @broker.subscriber(channel=channel)
+        async def handler(msg: str) -> None: ...
+
+        async with self.patch_broker(broker):
+            await broker.publish("hello", channel=channel)
+
+            handler.mock.assert_called_once_with("hello")
+
+        assert (
+            channel.name,
+            channel.address.template,
+            channel.pattern,
+            channel.polling_interval,
+        ) == (queue, queue, True, 0.5)
+
     async def test_pub_sub_pattern(self) -> None:
         broker = self.get_broker()
 
@@ -92,47 +118,61 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert await (await br.request(1, "test.name.useless")).decode() == 1
             handler.mock.assert_called_once_with(1)
 
-    async def test_list(
-        self,
-        queue: str,
-    ) -> None:
-        broker = self.get_broker()
-
-        @broker.subscriber(list=queue)
-        async def handler(msg: Any) -> Any:
-            return msg
-
-        async with self.patch_broker(broker) as br:
-            assert await (await br.request(1, list=queue)).decode() == 1
-            handler.mock.assert_called_once_with(1)
-
+    @pytest.mark.parametrize(
+        "use_object",
+        (False, True),
+        ids=("string", "subscription"),
+    )
     async def test_batch_pub_by_default_pub(
         self,
         queue: str,
+        use_object: bool,
     ) -> None:
-        broker = self.get_broker()
+        broker: RedisBroker = self.get_broker()
+        list_sub = ListSub(queue, batch=True)
+        destination = list_sub if use_object else queue
 
-        @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg: Any) -> None:
-            pass
+        @broker.subscriber(list=list_sub)
+        async def handler(msg: list[str]) -> None: ...
 
-        async with self.patch_broker(broker) as br:
-            await br.publish("hello", list=queue)
-            m.mock.assert_called_once_with(["hello"])
+        async with self.patch_broker(broker):
+            await broker.publish("hello", list=destination)
 
+            handler.mock.assert_called_once_with(["hello"])
+
+    @pytest.mark.parametrize(
+        "use_object",
+        (False, True),
+        ids=("string", "subscription"),
+    )
     async def test_batch_pub_by_pub_batch(
         self,
         queue: str,
+        use_object: bool,
     ) -> None:
-        broker = self.get_broker()
+        broker: RedisBroker = self.get_broker()
+        list_sub = ListSub(
+            queue,
+            batch=True,
+            max_records=5,
+            polling_interval=0.2,
+        )
+        destination = list_sub if use_object else queue
 
-        @broker.subscriber(list=ListSub(queue, batch=True))
-        async def m(msg: Any) -> None:
-            pass
+        @broker.subscriber(list=list_sub)
+        async def handler(msg: list[str]) -> None: ...
 
-        async with self.patch_broker(broker) as br:
-            await br.publish_batch("hello", list=queue)
-            m.mock.assert_called_once_with(["hello"])
+        async with self.patch_broker(broker):
+            await broker.publish_batch("hello", "again", list=destination)
+
+            handler.mock.assert_called_once_with(["hello", "again"])
+
+        assert (
+            list_sub.name,
+            list_sub.batch,
+            list_sub.max_records,
+            list_sub.polling_interval,
+        ) == (queue, True, 5, 0.2)
 
     async def test_batch_assert_called_once_with(self, queue: str) -> None:
         broker = self.get_broker()
@@ -219,33 +259,93 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             # empty message on the wire is observed as `""` rather than `b""`.
             batch_publisher.mock.assert_called_once_with([""])
 
-    async def test_stream(
-        self,
-        queue: str,
-    ) -> None:
-        broker = self.get_broker()
-
-        @broker.subscriber(stream=queue)
-        async def handler(msg: Any) -> Any:
-            return msg
-
-        async with self.patch_broker(broker) as br:
-            assert await (await br.request(1, stream=queue)).decode() == 1
-            handler.mock.assert_called_once_with(1)
-
+    @pytest.mark.parametrize(
+        "use_object",
+        (False, True),
+        ids=("string", "subscription"),
+    )
     async def test_stream_batch_pub_by_default_pub(
         self,
         queue: str,
+        use_object: bool,
     ) -> None:
-        broker = self.get_broker()
+        broker: RedisBroker = self.get_broker()
+        stream = StreamSub(
+            queue,
+            group="test-group",
+            consumer="consumer",
+            batch=True,
+        )
+        destination = stream if use_object else queue
 
-        @broker.subscriber(stream=StreamSub(queue, batch=True))
-        async def m(msg: Any) -> None:
-            pass
+        @broker.subscriber(stream=stream)
+        async def handler(msg: list[str]) -> None: ...
 
-        async with self.patch_broker(broker) as br:
-            await br.publish("hello", stream=queue)
-            m.mock.assert_called_once_with(["hello"])
+        async with self.patch_broker(broker):
+            await broker.publish("hello", stream=destination)
+
+            handler.mock.assert_called_once_with(["hello"])
+
+    @pytest.mark.parametrize("method", ("publish", "request"))
+    @pytest.mark.parametrize(
+        ("maxlen", "expected_maxlen"),
+        (
+            pytest.param(None, 100, id="subscription-default"),
+            pytest.param(10, 10, id="explicit-value"),
+            pytest.param(0, 0, id="explicit-zero"),
+        ),
+    )
+    async def test_stream_subscription_maxlen(
+        self,
+        queue: str,
+        method: Literal["publish", "request"],
+        maxlen: int | None,
+        expected_maxlen: int,
+    ) -> None:
+        observed: list[tuple[str, int | None]] = []
+
+        class CaptureMiddleware(BaseMiddleware[RedisPublishCommand]):
+            async def publish_scope(
+                self,
+                call_next: Callable[[RedisPublishCommand], Awaitable[Any]],
+                cmd: RedisPublishCommand,
+            ) -> Any:
+                observed.append((cmd.destination, cmd.maxlen))
+                return await call_next(cmd)
+
+        broker: RedisBroker = self.get_broker(
+            middlewares=(CaptureMiddleware,),
+        )
+        stream = StreamSub(
+            queue,
+            group="workers",
+            consumer="consumer",
+            maxlen=100,
+        )
+
+        @broker.subscriber(stream=stream)
+        async def handler(msg: str) -> str:
+            return msg
+
+        async with self.patch_broker(broker):
+            if method == "publish":
+                await broker.publish("hello", stream=stream, maxlen=maxlen)
+            else:
+                _ = await broker.request(
+                    "hello",
+                    stream=stream,
+                    maxlen=maxlen,
+                    timeout=self.timeout,
+                )
+
+        assert observed == [(queue, expected_maxlen)]
+        assert (
+            stream.name,
+            stream.group,
+            stream.consumer,
+            stream.maxlen,
+            stream.last_id,
+        ) == (queue, "workers", "consumer", 100, ">")
 
     async def test_stream_publisher(
         self,

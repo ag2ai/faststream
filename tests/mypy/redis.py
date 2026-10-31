@@ -353,6 +353,58 @@ async def check_broker_publish_result_type(optional_stream: str | None = "test")
     assert_type(publish_with_confirm, int)
 
 
+async def check_broker_subscription_objects(
+    broker: RedisBroker,
+    optional_stream: StreamSub[bool] | None,
+) -> None:
+    channel = PubSub("test")
+
+    assert_type(await broker.publish(None, channel=channel), int)
+    assert_type(
+        await broker.request(None, channel=channel),
+        RedisChannelMessage,
+    )
+
+    for list_sub in (ListSub("test"), ListSub("test", batch=True)):
+        assert_type(await broker.publish(None, list=list_sub), int)
+        assert_type(await broker.publish_batch(None, list=list_sub), int)
+        assert_type(
+            await broker.request(None, list=list_sub),
+            RedisChannelMessage,
+        )
+
+    for stream_sub in (StreamSub("test"), StreamSub("test", batch=True)):
+        assert_type(await broker.publish(None, stream=stream_sub), bytes)
+        assert_type(
+            await broker.request(None, stream=stream_sub),
+            RedisChannelMessage,
+        )
+
+    assert_type(
+        await broker.publish(None, stream=optional_stream),
+        int | bytes,
+    )
+
+
+async def check_cluster_subscription_objects(
+    broker: RedisClusterBroker,
+) -> None:
+    assert_type(
+        await broker.publish(None, channel=PubSub("test")),
+        int | bytes,
+    )
+
+    for list_sub in (ListSub("test"), ListSub("test", batch=True)):
+        assert_type(await broker.publish(None, list=list_sub), int | bytes)
+        assert_type(await broker.publish_batch(None, list=list_sub), int)
+
+    for stream_sub in (StreamSub("test"), StreamSub("test", batch=True)):
+        assert_type(
+            await broker.publish(None, stream=stream_sub),
+            int | bytes,
+        )
+
+
 def fake_bool() -> bool:
     return True
 

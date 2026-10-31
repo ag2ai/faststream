@@ -40,9 +40,13 @@ Also, **NATS JetStream** has built-in `key-value` (similar to **Redis**) and `ob
 
 **FastStream** provides access to them via `#!python broker.key_value()` and `#!python broker.object_storage()` — see the [Key-Value Storage](key-value.md){.internal-link} and [Object Storage](object.md){.internal-link} pages. To consume from a stream, pass a `JStream` object to the subscriber:
 
-```python linenums="1" hl_lines="2 8 12 22"
+The same `JStream` object can be reused in `broker.subscriber()`, `broker.publish()`, and `broker.request()`. Pass the target subject separately; a stream can contain multiple subjects.
+
+```python linenums="1" hl_lines="2 8 13 24"
 {! docs_src/nats/js/main.py !}
 ```
 
 !!! tip
-    Using a `JStream` object, **FastStream** tries to create/update the stream with the object settings. To prevent this behavior and *just get already created stream*, please use `#!python JStream(..., declare=False)` option.
+    When a stream is registered with a subscriber or publisher, **FastStream** tries to create or update it at broker startup using its settings. Use `#!python JStream(..., declare=False)` to work with an existing stream without declaring it.
+
+    Passing a `JStream` to `broker.publish()` or `broker.request()` uses only its name. These calls do not register or declare the stream and do not modify the object.

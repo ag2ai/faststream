@@ -47,17 +47,21 @@ To establish a connection to Redis, instantiate a `RedisBroker` object and pass 
 
 Define a subscription to a Redis stream with a specific Consumer Group using the `StreamSub` object and the `#!python @broker.subscriber(...)` decorator. Then, define a function that will be triggered when new messages are sent to the `#!python "test-stream"` Redis stream. This function is decorated with `#!python @broker.subscriber(...)` and will process the messages as part of the `#!python "test-group"` consumer group.
 
+Keep the `StreamSub` object to reuse the same destination when publishing messages.
+
 ```python linenums="1"
-{! docs_src/redis/stream/group.py [ln:8-10] !}
+{! docs_src/redis/stream/group.py [ln:6-16] !}
 ```
 
 ## Publishing a message
 
-Publishing a message is the same as what's defined on [Stream Publishing](./publishing.md).
+Pass the same `StreamSub` object to `broker.publish(stream=...)`. Publication uses its `name`; `group` and `consumer` configure consumption.
 
 ```python linenums="1"
-{! docs_src/redis/stream/group.py [ln:15.5] !}
+{! docs_src/redis/stream/group.py [ln:21.5] !}
 ```
+
+For `broker.publish()` and `broker.request()`, `maxlen=None` uses the `StreamSub` object's `maxlen`. An explicit number, including `0`, takes precedence. Publishing does not modify the subscription object.
 
 By following the steps and code examples provided above, you can create a FastStream application that consumes messages from a Redis stream using a Consumer Group for distributed message processing.
 
