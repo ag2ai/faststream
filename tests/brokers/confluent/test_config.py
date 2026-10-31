@@ -1,10 +1,13 @@
-from unittest.mock import MagicMock
+from typing import cast
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from faststream import AckPolicy
 from faststream.confluent import KafkaBroker, KafkaRouter
 from faststream.confluent.configs import KafkaBrokerConfig
+from faststream.confluent.helpers.client import AsyncConfluentConsumer
+from faststream.confluent.helpers.config import ConfluentFastConfig
 from faststream.confluent.subscriber.config import KafkaSubscriberConfig
 
 
@@ -94,3 +97,48 @@ def test_sub_overrides_broker_and_router() -> None:
     broker.include_router(router)
     sub = router.subscriber("test", group_id="g", ack_policy=AckPolicy.ACK)
     assert sub.ack_policy is AckPolicy.ACK
+
+
+def build_consumer(*, enable_auto_commit: bool) -> AsyncConfluentConsumer:
+    with patch("faststream.confluent.helpers.client.Consumer"):
+        return AsyncConfluentConsumer(
+            config=ConfluentFastConfig(),
+            logger=MagicMock(),
+            admin_service=MagicMock(),
+            partitions=(),
+            enable_auto_commit=enable_auto_commit,
+        )
+
+
+@pytest.mark.confluent()
+@pytest.mark.parametrize(
+    ("enable_auto_commit", "expected"),
+    (
+        pytest.param(True, True, id="ack-first"),
+        pytest.param(False, False, id="manual-ack"),
+    ),
+)
+def test_auto_offset_store_follows_auto_commit(
+    enable_auto_commit: bool,
+    expected: bool,
+) -> None:
+    consumer = build_consumer(enable_auto_commit=enable_auto_commit)
+
+    assert consumer.config["enable.auto.commit"] is expected
+    assert consumer.config["enable.auto.offset.store"] is expected
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_store_offsets_delegates_to_native_consumer() -> None:
+    consumer = build_consumer(enable_auto_commit=False)
+
+    store_offsets = cast("MagicMock", consumer.consumer.store_offsets)
+
+    await consumer.store_offsets("topic", 2, 7)
+
+    store_offsets.assert_called_once()
+    (offsets,) = store_offsets.call_args.kwargs["offsets"]
+    assert offsets.topic == "topic"
+    assert offsets.partition == 2
+    assert offsets.offset == 7

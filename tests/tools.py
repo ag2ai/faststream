@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
 from functools import wraps
@@ -41,3 +42,14 @@ def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
     )
     wrapper.mock = mock
     return wrapper
+
+
+async def wait_for_mock_call(mock: Any, timeout: float = 10) -> None:
+    """Wait until an AsyncMock/MagicMock has been called at least once."""
+
+    async def _wait() -> None:
+        # polling is the only way to observe an arbitrary mock's call count
+        while not (getattr(mock, "await_count", 0) or mock.call_count):  # ruff: ignore[async-busy-wait]
+            await asyncio.sleep(0.01)
+
+    await asyncio.wait_for(_wait(), timeout)
