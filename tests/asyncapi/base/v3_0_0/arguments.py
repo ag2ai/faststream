@@ -9,7 +9,7 @@ from dirty_equals import IsDict, IsPartialDict, IsStr
 from fast_depends import Depends
 from fastapi import Depends as APIDepends
 
-from faststream import Context
+from faststream import Context, Path
 from faststream._internal._compat import PYDANTIC_V2
 from tests.marks import pydantic_v2
 
@@ -839,3 +839,59 @@ class ArgumentsTestcase(FastAPICompatible):
             "title": key,
             "type": "object",
         }
+
+    def test_path_parameter_metadata_merges_filtered_handlers(self) -> None:
+        broker = self.broker_class()
+        module = self.broker_class.__module__
+
+        if ".confluent." in module:
+
+            @broker.subscriber("logs.{level}")
+            async def literal_topic() -> None: ...
+
+            schema = self.get_spec(broker).to_jsonable()
+            assert "parameters" not in next(iter(schema["channels"].values()))
+            return
+        if ".kafka." in module:
+            sub = broker.subscriber(pattern="logs.{level}")
+        elif ".rabbit." in module:
+            from faststream.rabbit import (  # noqa: PLC0415
+                ExchangeType,
+                RabbitExchange,
+                RabbitQueue,
+            )
+
+            sub = broker.subscriber(
+                RabbitQueue("path-parameters", routing_key="logs.{level}"),
+                RabbitExchange("path-parameters", type=ExchangeType.TOPIC),
+            )
+        elif ".mqtt." in module:
+            sub = broker.subscriber("logs/{level}")
+        else:
+            sub = broker.subscriber("logs.{level}")
+
+        @sub(filter=lambda _: True)
+        async def handle_info(
+            level: Literal["info"] = Path(
+                default="info",
+                description="Primary description",
+                examples=["info"],
+            ),
+        ) -> None: ...
+
+        @sub
+        async def handle_error(
+            level: Literal["error"] = Path(
+                default="error",
+                description="Secondary description",
+                examples=["error"],
+            ),
+        ) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()
+        parameter = next(iter(schema["channels"].values()))["parameters"]["level"]
+
+        assert parameter["description"] == "Primary description"
+        assert parameter["enum"] == ["info", "error"]
+        assert parameter["default"] == "info"
+        assert parameter["examples"] == ["info"]

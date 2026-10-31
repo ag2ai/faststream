@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -6,6 +8,7 @@ from faststream.specification.schema import PublisherSpec, SubscriberSpec
 
 from .bindings import ChannelBinding
 from .operations import Operation
+from .utils import Parameter
 
 
 class Channel(BaseModel):
@@ -29,8 +32,7 @@ class Channel(BaseModel):
     subscribe: Operation | None = None
     publish: Operation | None = None
 
-    # TODO:
-    # parameters: Optional[Parameter] = None
+    parameters: dict[str, Parameter] | None = None
 
     if PYDANTIC_V2:
         model_config = {"extra": "allow"}
@@ -42,14 +44,34 @@ class Channel(BaseModel):
 
     @classmethod
     def from_sub(
-        cls, subscriber: SubscriberSpec, servers: list[str] | None = None
+        cls,
+        subscriber: SubscriberSpec,
+        servers: list[str] | None = None,
+        parameters: dict[str, dict[str, Any]] | None = None,
     ) -> Self:
+        channel_parameters: dict[str, Parameter] | None = None
+        if parameters:
+            channel_parameters = {}
+            for name, metadata in parameters.items():
+                parameter: dict[str, Any] = {}
+                if description := metadata.get("description"):
+                    parameter["description"] = description
+
+                schema = dict(metadata.get("schema", {}))
+                if "default" in metadata:
+                    schema.setdefault("default", metadata["default"])
+                if schema:
+                    parameter["schema"] = schema
+
+                channel_parameters[name] = Parameter(**parameter)
+
         return cls(
             description=subscriber.description,
             servers=servers,
             bindings=ChannelBinding.from_sub(subscriber.bindings),
             subscribe=None,
             publish=Operation.from_sub(subscriber.operation),
+            parameters=channel_parameters,
         )
 
     @classmethod
