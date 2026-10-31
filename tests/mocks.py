@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Any
 from unittest.mock import Mock
 
-from pytest import MonkeyPatch  # noqa: PT013
+from pytest import MonkeyPatch  # ruff: ignore[pytest-incorrect-pytest-import]
 
 
 @contextmanager

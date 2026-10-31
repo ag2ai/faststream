@@ -34,7 +34,7 @@ class NatsBaseParser:
         path_re, _ = compile_nats_wildcard(pattern)
         self._path_re = path_re
 
-    async def decode_message(  # noqa: PLR6301
+    async def decode_message(  # ruff: ignore[no-self-use]
         self,
         msg: "StreamMessage[Any]",
     ) -> "DecodedMessage":
@@ -161,7 +161,7 @@ class KvParser(NatsBaseParser):
 class ObjParser(NatsBaseParser):
     __slots__ = ()
 
-    async def parse_message(self, msg: "ObjectInfo") -> StreamMessage["ObjectInfo"]:  # noqa: PLR6301
+    async def parse_message(self, msg: "ObjectInfo") -> StreamMessage["ObjectInfo"]:  # ruff: ignore[no-self-use]
         return NatsObjMessage(
             raw_message=msg,
             body=msg.name,

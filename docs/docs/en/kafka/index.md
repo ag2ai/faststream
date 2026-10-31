@@ -4,14 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Async Kafka in Python with aiokafka"
 description: >-
-  FastStream Kafka support built on aiokafka: subscriber and publisher decorators, batching,
-  consumer groups and in-memory testing.
+  Build async Kafka producers and consumers in Python with aiokafka and FastStream. Connect to a broker and route messages between topics with a complete code example.
 search:
   boost: 10
 ---
 
-# AIOKafka Routing
+# Async Kafka in Python with aiokafka
+
+Use **aiokafka** to publish and consume Kafka messages from asynchronous Python applications. FastStream builds on this native client and adds subscriber and publisher decorators, dependency injection, message validation and in-memory testing. This guide connects to Kafka and routes messages from an input topic to an output topic.
 
 ## AIOKafka library
 

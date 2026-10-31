@@ -25,7 +25,7 @@ class RouterTestcase(AsyncAPI300Factory):
         schema = self.get_spec(broker).to_jsonable()
 
         payload = schema["components"]["schemas"]
-        key = list(payload.keys())[0]  # noqa: RUF015
+        key = list(payload.keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
         assert payload[key]["title"] == key == "Handle:Message:Payload"
 
     def test_delay_publisher(self) -> None:

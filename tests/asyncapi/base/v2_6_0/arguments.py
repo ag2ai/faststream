@@ -28,7 +28,7 @@ class FastAPICompatible(AsyncAPI260Factory):
         async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert key == "custom_name"
         assert schema["channels"][key]["description"] == "test description"
@@ -60,7 +60,7 @@ class FastAPICompatible(AsyncAPI260Factory):
             """Test description."""
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert key == "custom_name"
         assert schema["channels"][key]["description"] == "Test description.", schema[
@@ -511,7 +511,7 @@ class FastAPICompatible(AsyncAPI260Factory):
             else:
 
                 class Config:
-                    schema_extra = {"examples": [{"name": "john", "id": 1}]}  # noqa: RUF012
+                    schema_extra = {"examples": [{"name": "john", "id": 1}]}  # ruff: ignore[mutable-class-default]
 
         broker = self.broker_class()
 

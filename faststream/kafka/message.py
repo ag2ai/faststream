@@ -61,6 +61,23 @@ class KafkaMessage(
         self.consumer = consumer
         self.committed = AckStatus.ACKED
 
+    @property
+    def raw_headers(self) -> dict[str, bytes | None]:
+        """Original header bytes, or the first message's headers for a batch."""
+        raw_message = self.raw_message
+        if isinstance(raw_message, tuple):
+            if not raw_message:
+                return {}
+            raw_message = raw_message[0]
+        return dict(raw_message.headers)
+
+    @property
+    def batch_raw_headers(self) -> list[dict[str, bytes | None]]:
+        """Original header bytes for every batch message; empty for a single message."""
+        if isinstance(self.raw_message, tuple):
+            return [dict(message.headers) for message in self.raw_message]
+        return []
+
 
 class KafkaAckableMessage(KafkaMessage):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -77,17 +94,19 @@ class KafkaAckableMessage(KafkaMessage):
 
     async def nack(self) -> None:
         if not self.committed:
-            raw_message = (
-                self.raw_message[0]
+            # A batch may span several partitions: rewind each one to its earliest
+            # record, so none of them is committed past an unprocessed message.
+            records = (
+                self.raw_message
                 if isinstance(self.raw_message, tuple)
-                else self.raw_message
+                else (self.raw_message,)
             )
-            topic_partition = AIOKafkaTopicPartition(
-                raw_message.topic,
-                raw_message.partition,
-            )
-            self.consumer.seek(
-                partition=topic_partition,
-                offset=raw_message.offset,
-            )
+            earliest: dict[AIOKafkaTopicPartition, int] = {}
+            for record in records:
+                topic_partition = AIOKafkaTopicPartition(record.topic, record.partition)
+                offset = earliest.get(topic_partition)
+                if offset is None or record.offset < offset:
+                    earliest[topic_partition] = record.offset
+            for topic_partition, offset in earliest.items():
+                self.consumer.seek(partition=topic_partition, offset=offset)
         await super().nack()
