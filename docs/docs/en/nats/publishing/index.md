@@ -16,7 +16,7 @@ However, if you wish to further customize the publishing logic, you should take 
 
 ## NATS Publishing
 
-`NatsBroker` also uses the unified `publish` method (from a `publisher` object) to send messages.
+Use `NatsBroker.publish()` to send messages directly.
 
 ```python
 import asyncio
@@ -47,6 +47,8 @@ The `publish` method accepts the following arguments:
 
 ## NatsJS Parameters
 
-* `#!python stream: str | None = None` - validate that the subject is in the stream.
+* `#!python stream: str | JStream | None = None` - stream name or object used to validate that the subject is in the stream.
 * `#!python timeout: float | None = None` - wait for the NATS server response.
 * `#!python schedule: Optional[Schedule] = None` - Schedule to publish message at a specific time.
+
+See the [JetStream example](../jetstream/index.md){.internal-link} for reusing the same `JStream` object in a subscriber and `broker.publish()`.

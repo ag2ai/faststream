@@ -6,7 +6,7 @@ import pytest
 from redis.asyncio import Redis
 
 from faststream import Context
-from faststream.redis import ListSub, Pipeline, RedisResponse, StreamSub
+from faststream.redis import ListSub, Pipeline, PubSub, RedisResponse, StreamSub
 from tests.brokers.base.publish import BrokerPublishTestcase
 from tests.tools import spy_decorator
 
@@ -46,22 +46,30 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         assert event.is_set()
         mock.assert_called_once_with("")
 
+    @pytest.mark.parametrize(
+        "use_object",
+        (False, True),
+        ids=("string", "subscription"),
+    )
     async def test_list_publish_batch(
         self,
         queue: str,
+        use_object: bool,
     ) -> None:
         pub_broker = self.get_broker()
+        list_sub = ListSub(queue)
+        destination = list_sub if use_object else queue
 
         msgs_queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=2)
 
-        @pub_broker.subscriber(list=queue)
+        @pub_broker.subscriber(list=list_sub)
         async def handler(msg: Any) -> None:
             await msgs_queue.put(msg)
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
 
-            await br.publish_batch(1, "hi", list=queue)
+            await br.publish_batch(1, "hi", list=destination)
 
             result, _ = await asyncio.wait(
                 (
@@ -192,6 +200,11 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(
+        "use_object",
+        (False, True),
+        ids=("string", "subscription"),
+    )
+    @pytest.mark.parametrize(
         "type_queue",
         (
             pytest.param("channel"),
@@ -205,11 +218,24 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         type_queue: str,
         queue: str,
         mock: MagicMock,
+        use_object: bool,
     ) -> None:
         broker = self.get_broker(apply_types=True)
 
         source: dict[str, Any] = {type_queue: queue}
         destination: dict[str, Any] = {type_queue: queue + "resp"}
+        if use_object:
+            if type_queue == "channel":
+                destination[type_queue] = PubSub(queue + "resp")
+            elif type_queue == "list":
+                destination[type_queue] = ListSub(queue + "resp")
+            else:
+                destination[type_queue] = StreamSub(
+                    queue + "resp",
+                    group="workers",
+                    consumer="consumer",
+                )
+
         publisher = broker.publisher(**destination)
 
         @broker.subscriber(**source)  # type: ignore[untyped-decorator]
@@ -241,20 +267,28 @@ class TestPublish(RedisTestcaseConfig, BrokerPublishTestcase):
         assert mock.call_count == 10
 
     @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        "use_object",
+        (False, True),
+        ids=("string", "subscription"),
+    )
     async def test_publish_batch_with_pipeline(
         self,
         event: asyncio.Event,
         queue: str,
         mock: MagicMock,
+        use_object: bool,
     ) -> None:
         broker = self.get_broker(apply_types=True)
+        list_sub = ListSub(queue + "resp", batch=True, max_records=5)
+        destination = list_sub if use_object else list_sub.name
 
         @broker.subscriber(channel=queue)
         async def m(msg: str, pipe: Pipeline) -> None:
-            await broker.publish_batch(*range(5), list=queue + "resp", pipeline=pipe)
+            await broker.publish_batch(*range(5), list=destination, pipeline=pipe)
             await pipe.execute()
 
-        @broker.subscriber(list=ListSub(queue + "resp", batch=True, max_records=5))
+        @broker.subscriber(list=list_sub)
         async def resp(msgs: list[int]) -> None:
             mock(msgs)
             event.set()

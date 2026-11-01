@@ -21,6 +21,16 @@ In a traditional publish/subscribe setup, the publishing party sends messages wi
 
 **FastStream** allows you to perform RPC-style communication over channels, lists, or streams by using the `RedisBroker`'s `request()` method instead of `publish()`.
 
+The destination parameters accept either strings or subscription objects. You can reuse the same object for subscribing, publishing, and making requests:
+
+| Destination parameter | Accepted object | Broker methods |
+| --- | --- | --- |
+| `channel` | `PubSub` | `publish()`, `request()` |
+| `list` | `ListSub` | `publish()`, `request()`, `publish_batch()` |
+| `stream` | `StreamSub` | `publish()`, `request()` |
+
+Existing string arguments remain supported. `publish_batch()` supports Redis lists only.
+
 ## Implementing Redis RPC in FastStream
 
 To implement **Redis** RPC with `RedisBroker` in **FastStream**, follow the steps below:
@@ -28,13 +38,13 @@ To implement **Redis** RPC with `RedisBroker` in **FastStream**, follow the step
 1. Initiate your **FastStream** application with **RedisBroker**
 
     ```python linenums="1"
-    {!> docs_src/redis/rpc/app.py [ln:4-5] !}
+    {!> docs_src/redis/rpc/app.py [ln:4-8] !}
     ```
 
 2. Define subscriber handlers for various **Redis** data types (e.g., channel, list, stream) that can process incoming messages and return responses.
 
     ```python linenums="1"
-    {!> docs_src/redis/rpc/app.py [ln:8-23] !}
+    {!> docs_src/redis/rpc/app.py [ln:11-26] !}
     ```
 
 3. Send RPC messages through `RedisBroker` and await responses on the correct data type.
@@ -42,7 +52,7 @@ To implement **Redis** RPC with `RedisBroker` in **FastStream**, follow the step
     Additionally, you can set a `timeout` to decide how long the publisher should wait for a response before timing out.
 
     ```python linenums="1" hl_lines="5 12 19"
-    {!> docs_src/redis/rpc/app.py [ln:26-49] !}
+    {!> docs_src/redis/rpc/app.py [ln:29-52] !}
     ```
 
 In this example, we assert that the `msg` sent is the same as the response received from the subscriber, demonstrating an operational RPC pattern over three different **Redis** data types.

@@ -115,13 +115,13 @@ class RedisClusterBroker(RedisBroker):
     async def publish(  # type: ignore[override]
         self,
         message: "SendableMessage" = None,
-        channel: str | None = None,
+        channel: "str | PubSub | None" = None,
         *,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
-        list: str | None = None,
-        stream: str | None = None,
+        list: "str | ListSub[bool] | None" = None,
+        stream: "str | StreamSub[bool] | None" = None,
         maxlen: int | None = None,
         pipeline: Optional["Pipeline[bytes]"] = EMPTY,
     ) -> int | bytes:
@@ -172,7 +172,7 @@ class RedisClusterBroker(RedisBroker):
     async def publish_batch(  # type: ignore[override]
         self,
         *messages: "SendableMessage",
-        list: str,
+        list: "str | ListSub[bool]",
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,

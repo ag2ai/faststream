@@ -5,7 +5,7 @@ from typing_extensions import override
 
 from faststream.exceptions import SetupError
 from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
-from faststream.redis.schemas import INCORRECT_SETUP_MSG
+from faststream.redis.schemas import INCORRECT_SETUP_MSG, ListSub, PubSub, StreamSub
 from faststream.response.publish_type import PublishType
 from faststream.response.response import BatchPublishCommand, PublishCommand, Response
 
@@ -62,9 +62,9 @@ class RedisPublishCommand(BatchPublishCommand):
         *messages: "SendableMessage",
         _publish_type: "PublishType",
         correlation_id: str | None = None,
-        channel: str | None = None,
-        list: str | None = None,
-        stream: str | None = None,
+        channel: str | PubSub | None = None,
+        list: str | ListSub[bool] | None = None,
+        stream: str | StreamSub[bool] | None = None,
         maxlen: int | None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
@@ -83,7 +83,6 @@ class RedisPublishCommand(BatchPublishCommand):
         )
 
         self.pipeline = pipeline
-
         self.message_format = message_format
 
         self.set_destination(
@@ -92,28 +91,32 @@ class RedisPublishCommand(BatchPublishCommand):
             stream=stream,
         )
 
-        # Stream option
         self.maxlen = maxlen
+        if (
+            self.destination_type is DestinationType.Stream
+            and isinstance(stream, StreamSub)
+            and maxlen is None
+        ):
+            self.maxlen = stream.maxlen
 
-        # Request option
         self.timeout = timeout
 
     def set_destination(
         self,
         *,
-        channel: str | None = None,
-        list: str | None = None,
-        stream: str | None = None,
+        channel: str | PubSub | None = None,
+        list: str | ListSub[bool] | None = None,
+        stream: str | StreamSub[bool] | None = None,
     ) -> None:
         if channel is not None:
             self.destination_type = DestinationType.Channel
-            self.destination = channel
+            self.destination = channel.name if isinstance(channel, PubSub) else channel
         elif list is not None:
             self.destination_type = DestinationType.List
-            self.destination = list
+            self.destination = list.name if isinstance(list, ListSub) else list
         elif stream is not None:
             self.destination_type = DestinationType.Stream
-            self.destination = stream
+            self.destination = stream.name if isinstance(stream, StreamSub) else stream
         else:
             raise SetupError(INCORRECT_SETUP_MSG)
 

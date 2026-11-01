@@ -90,29 +90,37 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
 
+    @pytest.mark.parametrize(
+        "use_stream_object", (False, True), ids=("string", "jstream")
+    )
     async def test_consume_js(
-        self, queue: str, stream: JStream, event: asyncio.Event
+        self,
+        queue: str,
+        stream: JStream,
+        event: asyncio.Event,
+        use_stream_object: bool,
     ) -> None:
         consume_broker = self.get_broker()
+        received: list[str] = []
 
-        args, kwargs = self.get_subscriber_params(queue, stream=stream)
-
-        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        def subscriber(m: Any) -> None:
+        @consume_broker.subscriber(queue, stream=stream)
+        async def subscriber(m: str) -> None:
+            received.append(m)
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
-            result = await br.publish("hello", queue, stream=stream.name)
-
-            await asyncio.wait(
-                (asyncio.create_task(event.wait()),),
-                timeout=3,
+            result = await br.publish(
+                "hello", queue, stream=stream if use_stream_object else stream.name
             )
 
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
             assert isinstance(result, PubAck), result
-        assert event.is_set()
+            assert result.stream == stream.name
+
+        assert received == ["hello"]
 
     async def test_consume_with_filter(  # type: ignore[override]
         self, queue: str, mock: MagicMock, event: asyncio.Event

@@ -13,7 +13,8 @@ search:
 Because **NATS** has zero cost for creating new subjects, we can easily set up a new subject consumer just for the one response message. This way, your request message will be published to one topic, and the response message will be consumed from another one (temporary subject), which allows you to use regular **FastStream RPC** syntax in the **NATS** case too.
 
 !!! tip
-    **FastStream RPC** over **NATS** works in both the *NATS-Core* and *NATS-JS* cases as well, but in the *NATS-JS* case, you have to specify the expected `stream` as a publish argument.
+    **FastStream RPC** over **NATS** works with both *NATS-Core* and *NATS-JS*.
+    For JetStream requests, pass the expected stream name or a `JStream` object as the `stream` argument to `broker.request()`. You can reuse the object registered with the subscriber; the target subject is still passed separately.
 
 ## Blocking Request
 
