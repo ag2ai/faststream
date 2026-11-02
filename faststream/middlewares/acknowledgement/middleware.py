@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class AcknowledgementMiddleware:
-    __slots__ = ("ack_policy", "extra_options", "logger")
+    __slots__ = ("ack_policy", "extra_options", "fallback_parser", "logger")
 
     def __init__(
         self,

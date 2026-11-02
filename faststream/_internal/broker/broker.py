@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, Self
 import anyio
 from fast_depends import Provider
 
-from faststream._internal._compat import ExceptionGroup
 from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import (
     BrokerMiddleware,

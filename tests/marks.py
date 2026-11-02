@@ -62,7 +62,7 @@ require_aiopika = pytest.mark.skipif(
 
 
 try:
-    from faststream.redis import RedisBroker  # noqa: F401
+    from faststream.redis import RedisBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_REDIS = False
 else:

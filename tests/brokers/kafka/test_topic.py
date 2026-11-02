@@ -347,7 +347,6 @@ def test_route_accepts_topic() -> None:
     assert subscriber.topics == [Topic("test", num_partitions=3)]  # type: ignore[attr-defined]
 
 
-
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_consume_topic_object(queue: str, mock: MagicMock) -> None:

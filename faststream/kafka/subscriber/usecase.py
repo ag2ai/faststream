@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
 import anyio
 from aiokafka import (
@@ -10,7 +10,7 @@ from aiokafka import (
     TopicPartition as AIOKafkaTopicPartition,
 )
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
-from typing_extensions import overload, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
@@ -347,7 +347,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             try:
                 msg = await self.get_msg(consumer)
 
-            except UnsupportedCodecError as e:  # ruff: ignore[try-except-in-loop]
+            except UnsupportedCodecError as e:
                 self._log(
                     logging.ERROR,
                     "There is no suitable compression library available. Please refer to the Kafka "

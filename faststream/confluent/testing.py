@@ -296,7 +296,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         )
 
 
-class MockConfluentMessage:
+class MockConfluentMessage(Message):
     __slots__ = (
         "_error",
         "_headers",

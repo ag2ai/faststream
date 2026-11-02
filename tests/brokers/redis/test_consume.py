@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
+from unittest.mock import MagicMock, call, patch
 
 import anyio
 import pytest
@@ -904,35 +904,6 @@ class TestConsumeStream(RedisTestcaseConfig):
                 await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         ack.mock.assert_awaited_once()
-
-    async def test_consume_ack_with_deprecated_args(
-        self,
-        queue: str,
-        event: asyncio.Event,
-        mock: MagicMock,
-    ) -> None:
-        consume_broker = self.get_broker(apply_types=True)
-        legacy_client = MagicMock(xack=AsyncMock())
-
-        @consume_broker.subscriber(
-            stream=StreamSub(queue, group="group", consumer=queue),
-            ack_policy=AckPolicy.MANUAL,
-        )
-        async def handler(msg: RedisStreamMessage) -> None:
-            with pytest.warns(
-                DeprecationWarning, match=r"will be removed in 1\.0\.0"
-            ) as warnings:
-                await msg.ack(legacy_client, "legacy-group")
-            mock(len(warnings))
-            event.set()
-
-        async with self.patch_broker(consume_broker) as br:
-            await br.start()
-            await br.publish("hello", stream=queue)
-            await asyncio.wait_for(event.wait(), timeout=self.timeout)
-
-        mock.assert_called_once_with(1)
-        legacy_client.xack.assert_awaited_once_with(queue, "legacy-group", ANY)
 
     @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_and_delete_acked(

@@ -58,7 +58,7 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class MQTTBrokerConfig(BrokerConfig):
     version: MQTTVersion | Literal["unset"] = "unset"
 
@@ -96,10 +96,14 @@ class MQTTBrokerConfig(BrokerConfig):
 
     def add_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
         self._validate_middleware(middleware)
+        # `slots=True` rebuilds the class, and below 3.13 a bare `super()` still
+        # points at the class from before the rebuild
         return super(MQTTBrokerConfig, self).add_middleware(middleware)
 
     def insert_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:
         self._validate_middleware(middleware)
+        # `slots=True` rebuilds the class, and below 3.13 a bare `super()` still
+        # points at the class from before the rebuild
         return super(MQTTBrokerConfig, self).insert_middleware(middleware)
 
     def _validate_middleware(self, middleware: "BrokerMiddleware[Any]") -> None:

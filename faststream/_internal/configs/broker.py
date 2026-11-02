@@ -38,7 +38,7 @@ class UnderlyingDriverAnnotation:
 UnderlyingDriverAnnotations: TypeAlias = Mapping[Any, UnderlyingDriverAnnotation | Any]
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class BrokerConfig:
     prefix: str = ""
     include_in_schema: bool | None = True

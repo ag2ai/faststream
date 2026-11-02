@@ -718,7 +718,7 @@ class NatsBroker(
                     subjects=list(subjects),
                 )
 
-            except BadRequestError as e:  # ruff: ignore[try-except-in-loop]
+            except BadRequestError as e:
                 self._setup_logger()
 
                 log_context = LogicSubscriber.build_log_context(

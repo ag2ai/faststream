@@ -7,11 +7,12 @@ from typing import (
     Optional,
     Union,
     cast,
+    overload,
 )
 
 import anyio
 from confluent_kafka import KafkaException, Message
-from typing_extensions import overload, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
@@ -250,7 +251,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             try:
                 msg = await self.get_msg()
 
-            except KafkaException as e:  # pragma: no cover  # ruff: ignore[try-except-in-loop]
+            except KafkaException as e:  # pragma: no cover
                 self._log(
                     logging.ERROR,
                     message="Message fetch error",

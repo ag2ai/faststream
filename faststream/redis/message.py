@@ -1,11 +1,8 @@
-import warnings
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     Literal,
     NotRequired,
-    Optional,
     Protocol,
     TypeAlias,
     TypeVar,
@@ -14,12 +11,9 @@ from typing import (
 
 from typing_extensions import TypedDict, override
 
-from faststream._internal.constants import EMPTY
 from faststream.message import StreamMessage as BrokerStreamMessage
 
 if TYPE_CHECKING:
-    from redis.asyncio import Redis
-
     from faststream._internal.basic_types import DecodedMessage
 
 
@@ -161,7 +155,7 @@ FAKE_CONSUMER = FakeConsumer()
 
 
 class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
-    __slots__ = ()
+    __slots__ = ("consumer", "group")
 
     def __init__(
         self, *args: Any, consumer: ConsumerProtocol, group: str | None, **kwargs: Any
@@ -186,7 +180,9 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     async def reject(self) -> None:
         await super().reject()
 
-    async def delete(self,) -> None:
+    async def delete(
+        self,
+    ) -> None:
         ids = self.raw_message["message_ids"]
         channel = self.raw_message["channel"]
         await self.consumer.xdel(channel, *ids)

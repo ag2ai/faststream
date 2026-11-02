@@ -27,9 +27,6 @@ class JsInitOptions(TypedDict, total=False):
     publish_async_max_pending: int
 
 
-<<<<<<< HEAD
-@dataclass(kw_only=True, slots=True)
-=======
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     # `annotations` reaches this module through the broker, so the
     # objects a row needs only exist once the package is built.
@@ -82,8 +79,7 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     )
 
 
-@dataclass(kw_only=True)
->>>>>>> a2addc97eb8665980c617cb0e6c6d722c709b30c
+@dataclass(kw_only=True, slots=True)
 class NatsBrokerConfig(BrokerConfig):
     js_options: JsInitOptions | dict[str, Any] = field(default_factory=dict)
 

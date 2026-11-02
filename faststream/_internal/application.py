@@ -2,9 +2,9 @@ import logging
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, Self, TypeVar
 
-from typing_extensions import ParamSpec, Self
+from typing_extensions import ParamSpec
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
