@@ -1,7 +1,7 @@
 ---
 description: >-
   FastAPI-style dependency injection for FastStream handlers, powered by FastDepends: type
-  casting, nested dependencies and per-subscriber overrides.
+  casting, nested and yield dependencies, and dependency overrides in tests.
 search:
   boost: 10
 ---
@@ -261,6 +261,48 @@ Dependencies can also contain other dependencies. This works in a very predictab
     To prevent this behavior, just use `#!python Depends(..., use_cache=False)`. In this case, the dependency will be used for each function
     in the call stack where it is used.
 
+## Dependencies with `yield`
+
+A dependency can be a generator. The code before `yield` runs before the handler, the yielded value is injected into it,
+and the code after `yield` runs when the handler has finished, before its result is published.
+This is the way to open a resource for a message and release it afterwards, like a database session.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="13-18"
+    {!> docs_src/getting_started/dependencies/basic/kafka/yield_depends.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="13-18"
+    {!> docs_src/getting_started/dependencies/basic/confluent/yield_depends.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="13-18"
+    {!> docs_src/getting_started/dependencies/basic/rabbit/yield_depends.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="13-18"
+    {!> docs_src/getting_started/dependencies/basic/nats/yield_depends.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="13-18"
+    {!> docs_src/getting_started/dependencies/basic/redis/yield_depends.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="13-18"
+    {!> docs_src/getting_started/dependencies/basic/mqtt/yield_depends.py !}
+    ```
+
+If the handler raises, the exception is raised inside the dependency at `yield`, so put the cleanup in `finally` to run it anyway.
+If the dependency catches the exception, it must re-raise it: suppressing the handler's exception is not supported.
+
+Both generators and async generators work.
+For a real-world example, see the [In-Progress sender](../../howto/nats/in-progress.md){.internal-link} for NATS.
+
 ## Use with Regular Functions
 
 You can use the decorator `#!python @apply_types` not only with `#!python @broker.subscriber(...)`, but also with regular functions, both synchronous and asynchronous.
@@ -363,3 +405,49 @@ Or specifically for a particular broker
     ```python
     broker = MQTTBroker(provider=provider)
     ```
+
+### Overriding Dependencies in Tests
+
+The main use case for overrides is tests: replace a database client or an external service while the handler runs under the test broker.
+`#!python broker.provider.override(original, override)` replaces a dependency until `#!python broker.provider.clear()` removes all overrides.
+Clear them in `finally` or in a fixture teardown, so that a failing test does not leave its overrides to the next ones.
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="15-16 20 25-26"
+    {!> docs_src/getting_started/dependencies/basic/kafka/overrides.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="15-16 20 25-26"
+    {!> docs_src/getting_started/dependencies/basic/confluent/overrides.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="15-16 20 25-26"
+    {!> docs_src/getting_started/dependencies/basic/rabbit/overrides.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="15-16 20 25-26"
+    {!> docs_src/getting_started/dependencies/basic/nats/overrides.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="15-16 20 25-26"
+    {!> docs_src/getting_started/dependencies/basic/redis/overrides.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="15-16 20 25-26"
+    {!> docs_src/getting_started/dependencies/basic/mqtt/overrides.py !}
+    ```
+
+`#!python with broker.provider.scope(original, override):` overrides a dependency for the block, but removes the override only if the block exits without an exception.
+An override on a broker also applies to the handlers of the routers included in it.
+
+!!! warning
+    A broker created without `provider` uses the global provider of **FastDepends**, which is shared by every such broker.
+    An override made through one of them applies to all of them, and `clear()` removes overrides made through any of them.
+    Pass a separate `#!python Provider()` to the broker to keep its overrides to itself.
+
+Handlers of the **FastAPI** integration resolve dependencies with **FastAPI** itself, so override them with its [`dependency_overrides`](https://fastapi.tiangolo.com/advanced/testing-dependencies/){.external-link target="_blank"}.
