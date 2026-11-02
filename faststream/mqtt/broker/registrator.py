@@ -12,7 +12,7 @@ from faststream.mqtt.publisher.factory import create_publisher
 from faststream.mqtt.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
-    import zmqtt  # noqa: F401
+    import zmqtt  # ruff: ignore[unused-import]
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.parser import CodecProto

@@ -40,7 +40,7 @@ class MQTTBaseParser:
     async def parse_message(self, msg: zmqtt.Message) -> MQTTMessage:
         raise NotImplementedError
 
-    async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # noqa: PLR6301
+    async def decode_message(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # ruff: ignore[no-self-use]
         return decode_message(msg)
 
 

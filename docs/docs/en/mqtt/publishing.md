@@ -51,3 +51,17 @@ Decorated subscriber return values are published to the configured topic, the sa
 ## Batching
 
 MQTT has no batch publish in FastStream — calling batch APIs raises `FeatureNotSupportedException`.
+
+## Publish failures
+
+FastStream propagates zmqtt's publish exceptions to callers of `broker.publish()`
+and publisher objects:
+
+- `zmqtt.MQTTPublishError` reports a rejected QoS 1/2 PUBACK or PUBREC. Its
+  `reason_code`, `reason_name`, and optional `reason_string` describe the rejection.
+- `zmqtt.MQTTQoSExceededError` means the requested publish QoS exceeds the server's
+  MQTT 5.0 Maximum QoS. The driver rejects the publish before sending it; it does
+  not silently lower QoS. The exception exposes `requested_qos` and `maximum_qos`.
+
+The raw server limit is available as `broker.connection_info.properties.maximum_qos`
+when CONNACK properties are present. An omitted Maximum QoS means QoS 2 is allowed.

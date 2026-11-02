@@ -87,7 +87,9 @@ ignore = [
 
     "FBT", # FIXME
     "BLE001", # FIXME
-    "PLR0917"  # FIXME
+    "PLR0917",  # FIXME
+
+    "too-many-statements-in-try-clause",
 ]
 
 [lint.per-file-ignores]
@@ -135,6 +137,7 @@ ignore = [
     "PLR0914",
     "PLC1901",
     "RUF045",
+    "pytest-fixture-autouse",  # pytest.fixture(autouse=True)
 ]
 
 # these files mix brokers under require_* marks, and docs_src modules build a broker on import

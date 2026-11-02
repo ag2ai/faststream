@@ -1,6 +1,7 @@
 import ssl
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.redis import RedisBroker
 from faststream.security import (
@@ -11,7 +12,7 @@ from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 @pytest.mark.redis()
-def test_base_security_schema() -> None:
+def test_base_security_schema(snapshot_json: SnapshotAssertion) -> None:
     ssl_context = ssl.create_default_context()
     security = BaseSecurity(ssl_context=ssl_context)
 
@@ -21,25 +22,11 @@ def test_base_security_schema() -> None:
 
     schema = get_2_6_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "2.6.0",
-        "channels": {},
-        "components": {"messages": {}, "schemas": {}, "securitySchemes": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "rediss",
-                "protocolVersion": "custom",
-                "security": [],
-                "url": "rediss://localhost:6379/",
-            },
-        },
-    }
+    assert schema == snapshot_json
 
 
 @pytest.mark.redis()
-def test_plaintext_security_schema() -> None:
+def test_plaintext_security_schema(snapshot_json: SnapshotAssertion) -> None:
     ssl_context = ssl.create_default_context()
 
     security = SASLPlaintext(
@@ -54,29 +41,13 @@ def test_plaintext_security_schema() -> None:
 
     schema = get_2_6_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "2.6.0",
-        "channels": {},
-        "components": {
-            "messages": {},
-            "schemas": {},
-            "securitySchemes": {"user-password": {"type": "userPassword"}},
-        },
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "redis",
-                "protocolVersion": "custom",
-                "security": [{"user-password": []}],
-                "url": "redis://localhost:6379/",
-            },
-        },
-    }
+    assert schema == snapshot_json
 
 
 @pytest.mark.redis()
-def test_plaintext_security_schema_without_ssl() -> None:
+def test_plaintext_security_schema_without_ssl(
+    snapshot_json: SnapshotAssertion,
+) -> None:
     security = SASLPlaintext(
         username="admin",
         password="password",
@@ -88,22 +59,4 @@ def test_plaintext_security_schema_without_ssl() -> None:
 
     schema = get_2_6_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "2.6.0",
-        "channels": {},
-        "components": {
-            "messages": {},
-            "schemas": {},
-            "securitySchemes": {"user-password": {"type": "userPassword"}},
-        },
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "redis",
-                "protocolVersion": "custom",
-                "security": [{"user-password": []}],
-                "url": "redis://localhost:6379/",
-            },
-        },
-    }
+    assert schema == snapshot_json

@@ -38,10 +38,10 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     def __bool__(self) -> bool:
         return False
 
-    async def disconnect(self) -> None:  # noqa: PLR6301
+    async def disconnect(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
-    async def flush(self) -> None:  # noqa: PLR6301
+    async def flush(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
     @abstractmethod

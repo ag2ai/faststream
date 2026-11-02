@@ -308,3 +308,58 @@ this cached result will be converted to type `N` times (at the input to the func
 
 To avoid problems with this, use [mypy](https://www.mypy-lang.org){.external-link target="_blank"} or just be careful with the annotation
 of types in your project.
+
+## Dependency overrides
+
+To override your dependencies, you need to use a `Provider` from [**FastDepends**](https://lancetnik.github.io/FastDepends/tutorial/overrides/){.external-link target="_blank"}
+
+You can override them either at the application level by passing a `Provider` to `FastStream`
+
+```python
+class Service(ABC):
+    @abstractmethod
+    def action(self) -> None:
+        raise NotImplementedError
+
+class ServiceImpl(Service):
+    @override
+    def action(self) -> None:
+        pass
+
+provider = Provider()
+provider.override(Service, ServiceImpl)
+
+app = FastStream(provider=provider)
+```
+
+Or specifically for a particular broker
+
+=== "AIOKafka"
+    ```python
+    broker = KafkaBroker(provider=provider)
+    ```
+
+=== "Confluent"
+    ```python
+    broker = KafkaBroker(provider=provider)
+    ```
+
+=== "RabbitMQ"
+    ```python
+    broker = RabbitBroker(provider=provider)
+    ```
+
+=== "NATS"
+    ```python
+    broker = NatsBroker(provider=provider)
+    ```
+
+=== "Redis"
+    ```python
+    broker = RedisBroker(provider=provider)
+    ```
+
+=== "MQTT"
+    ```python
+    broker = MQTTBroker(provider=provider)
+    ```

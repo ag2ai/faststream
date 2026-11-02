@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.redis import RedisBroker, RedisPublisher, RedisRoute, RedisRouter
 from faststream.specification import Specification
@@ -16,7 +17,7 @@ class TestRouter(RouterTestcase):
     route_class = RedisRoute
     publisher_class = RedisPublisher
 
-    def test_prefix(self) -> None:
+    def test_prefix(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         router = self.router_class(prefix="test_")
@@ -28,64 +29,7 @@ class TestRouter(RouterTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "asyncapi": "3.0.0",
-            "defaultContentType": "application/json",
-            "servers": {
-                "development": {
-                    "host": "localhost:6379",
-                    "pathname": "",
-                    "protocol": "redis",
-                    "protocolVersion": "custom",
-                },
-            },
-            "channels": {
-                "test_test:Handle": {
-                    "address": "test_test",
-                    "servers": [{"$ref": "#/servers/development"}],
-                    "messages": {
-                        "SubscribeMessage": {
-                            "$ref": "#/components/messages/test_test:Handle:SubscribeMessage",
-                        },
-                    },
-                    "bindings": {
-                        "redis": {
-                            "channel": "test_test",
-                            "method": "subscribe",
-                            "bindingVersion": "custom",
-                        },
-                    },
-                },
-            },
-            "operations": {
-                "test_test:HandleSubscribe": {
-                    "action": "receive",
-                    "messages": [
-                        {
-                            "$ref": "#/channels/test_test:Handle/messages/SubscribeMessage",
-                        },
-                    ],
-                    "channel": {"$ref": "#/channels/test_test:Handle"},
-                },
-            },
-            "components": {
-                "messages": {
-                    "test_test:Handle:SubscribeMessage": {
-                        "title": "test_test:Handle:SubscribeMessage",
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {
-                            "$ref": "#/components/schemas/Handle:Message:Payload",
-                        },
-                    },
-                },
-                "schemas": {
-                    "Handle:Message:Payload": {"title": "Handle:Message:Payload"},
-                },
-            },
-        }
+        assert schema == snapshot_json
 
 
 @pytest.mark.redis()

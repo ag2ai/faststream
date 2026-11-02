@@ -252,7 +252,7 @@ def create_subscriber(
     )
 
 
-def _validate_input_for_misconfigure(  # noqa: PLR0915
+def _validate_input_for_misconfigure(  # ruff: ignore[too-many-statements]
     subject: str,
     queue: str,  # default ""
     pending_msgs_limit: int | None,

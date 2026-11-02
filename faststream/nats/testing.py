@@ -45,9 +45,11 @@ def change_producer(
         config.broker_config.js_producer,
         producer,
     )
-    yield
-    config.broker_config.producer = old_producer
-    config.broker_config.js_producer = old_js_producer
+    try:
+        yield
+    finally:
+        config.broker_config.producer = old_producer
+        config.broker_config.js_producer = old_js_producer
 
 
 class TestNatsBroker(

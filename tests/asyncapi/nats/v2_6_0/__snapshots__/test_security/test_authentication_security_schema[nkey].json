@@ -1,0 +1,33 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {},
+    "securitySchemes": {
+      "nats-nkey": {
+        "description": "NATS NKey challenge-response authentication using an Ed25519 signature.",
+        "type": "asymmetricEncryption",
+        "x-nats-algorithm": "ed25519",
+        "x-nats-auth": "nkey"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "nats",
+      "protocolVersion": "custom",
+      "security": [
+        {
+          "nats-nkey": []
+        }
+      ],
+      "url": "nats://localhost:4222"
+    }
+  }
+}

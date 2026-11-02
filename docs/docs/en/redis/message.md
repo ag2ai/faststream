@@ -59,17 +59,17 @@ The `Context` object lets you reference message attributes directly, making your
 ## Redis Stream Delivery Count
 
 For a single stream message consumed through a consumer group, call
-`await message.get_delivery_count(redis, group)` on `RedisStreamMessage` to read
+`await message.get_delivery_count()` on `RedisStreamMessage` to read
 its current delivery count from the Redis [Pending Entries List](https://redis.io/docs/latest/develop/data-types/streams/#viewing-pending-messages){.external-link target="_blank"}.
 
 ```python
-from faststream.redis import Redis, RedisStreamMessage, StreamSub
+from faststream.redis import RedisStreamMessage, StreamSub
 
 @broker.subscriber(
     stream=StreamSub("orders", group="workers", consumer="worker-1")
 )
-async def handle_order(message: RedisStreamMessage, redis: Redis) -> None:
-    delivery_count = await message.get_delivery_count(redis, "workers")
+async def handle_order(message: RedisStreamMessage) -> None:
+    delivery_count = await message.get_delivery_count()
 ```
 
 Each call performs an exact-ID `XPENDING RANGE` query, so the value is a live

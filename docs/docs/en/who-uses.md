@@ -5,12 +5,13 @@ search:
 
 # Projects using FastStream
 
-Below are open-source projects and organizations whose public repositories or published packages
-declare **FastStream** as a dependency, together with tools that ship a **FastStream** integration
-of their own.
+Below are projects and organizations with public evidence involving **FastStream**: repository
+and package dependencies, employer job postings, and individual team members' reports. Each section
+identifies the evidence and its scope. Tools with a **FastStream** integration are listed separately.
 
 !!! note "About this list"
-    This list is compiled from public repositories and package metadata. Inclusion does not imply
+    This list is compiled from public sources. Job requirements and personal accounts are not
+    organization confirmations or proof of current production use. Inclusion does not imply
     endorsement, support, or any affiliation with the **FastStream** project. If your organization
     is listed and you would prefer not to be, [open an issue](https://github.com/ag2ai/faststream/issues/new){.external-link target="_blank"}
     and we will remove the entry.
@@ -55,6 +56,46 @@ of their own.
 | **TogetherCrew** | open-source community tooling | [hivemind-bot](https://github.com/TogetherCrew/hivemind-bot){.external-link target="_blank"} — their LLM bot |
 | **TL;DR.tv** | TL;DR.tv platform team | [tldr-common](https://pypi.org/project/tldr-common/){.external-link target="_blank"} — shared utilities and models |
 
+## Organizations Naming FastStream in Job Postings
+
+These employer postings and their mirrors name FastStream in the team's stack, development
+responsibilities, requirements or desirable skills. The distinction is recorded in each row:
+requirements and alternative tools show demand for skills, but do not establish adoption.
+Some roles involve client projects; unidentified clients are not counted as adopters.
+
+All posting links below are archived snapshots from **2026-10-06**. These include closed and
+historical postings, which describe the stated technologies at the time rather than current
+hiring or confirmed production deployments. Locations refer to the vacancy's market or work location.
+
+| Organization / vacancy market | What the posting says | Archived posting |
+| --- | --- | --- |
+| **AI Implementation Group — Tashkent, Uzbekistan** | **Requirements:** Python backend role accepts knowledge of one or more frameworks, including Django/Flask, FastAPI or FastStream; it does not identify an established FastStream stack. | [LinkedIn](https://web.archive.org/web/20261006052446/https://uz.linkedin.com/jobs/view/python-backend-at-ai-implementation-group-4249783780){.external-link target="_blank"}, archived 2026-10-06 |
+| **Arnia Software — Romania** | **Requirements:** Senior Python developer for energy trading and risk management; experience with Python, FastAPI and FastStream. The end client is not identified. | [LinkedIn](https://web.archive.org/web/20261006052216/https://ro.linkedin.com/jobs/view/senior-python-developer-at-arnia-software-4348649393){.external-link target="_blank"}, archived 2026-10-06 |
+| **Code Metal — United States, remote** | **Nice to have:** Senior backend engineer; event-driven architecture experience with tools such as Celery, FastStream or Kafka. FastStream is an example, not a declared dependency. | [Built In Boston](https://web.archive.org/web/20261006052101/https://www.builtinboston.com/job/senior-backend-engineer/8269424){.external-link target="_blank"}, archived 2026-10-06 |
+| **Global Changer — Berlin, Germany** | **Team stack:** Senior Ruby backend role lists Python, FastAPI and FastStream under AI & Services, with NATS for messaging. | [Built In](https://web.archive.org/web/20261006054136/https://builtin.com/job/senior-backend-engineer-ruby-rails-m-f-d/9413156){.external-link target="_blank"}, archived 2026-10-06 |
+| **HUDstats — Bulgaria, remote** | **Development responsibilities:** Backend engineer building Python services with FastAPI/FastStream for real-time esports computer vision and data processing. | [LinkedIn](https://web.archive.org/web/20261006053751/https://bg.linkedin.com/jobs/view/backend-engineer-at-hudstats-4438640236){.external-link target="_blank"}, archived 2026-10-06 |
+| **mylantech GmbH — Bulgaria, remote** | **Development responsibilities:** Python application engineer building event-driven microservices with FastAPI and FastStream, alongside Kafka and Azure/Kubernetes. The end client is not identified. | [LinkedIn](https://web.archive.org/web/20261006053906/https://bg.linkedin.com/jobs/view/python-application-engineer-fastapi-streamlit-azure-%E2%80%93-bulgaria-remote-first-at-mylantech-gmbh-4406063518){.external-link target="_blank"}, archived 2026-10-06 |
+| **Next Kraftwerke — Cologne, Germany** | **Team technologies:** Python developer for balancing energy and redispatch; Django, FastAPI and FastStream, with RabbitMQ and Azure. | [Employer career site](https://web.archive.org/web/20261006051827/https://www.next-kraftwerke.de/job/python-software-developer-balancing-energy-market-de){.external-link target="_blank"}, archived 2026-10-06 |
+| **Octopus Energy Trading — London, UK** | **Team stack:** Software engineer; FastStream for streaming microservices supporting energy trading, alongside Redis, FastAPI and Airflow. | [Work in Green](https://web.archive.org/web/20261006053547/https://workingreen.jobs/offers/software-engineer-at-octopus-energy-london-gb){.external-link target="_blank"}, archived 2026-10-06 |
+| **Partoo — Paris, France** | **Team stack:** Senior backend developer; FastStream alongside Python, FastAPI, Celery and SQLAlchemy. | [HubMub](https://web.archive.org/web/20261006054311/https://www.hubmub.com/jobs/1045650/senior-back-end-developer-cdi-paris-hfx){.external-link target="_blank"}, archived 2026-10-06 |
+| **TripleTen / Nebius Academy — remote** | **Team stack and responsibilities:** Full-stack developer in the upskilling team; FastStream in the Python backend and Kafka/FastStream data-flow orchestration. | [Neo Remote Jobs](https://web.archive.org/web/20261006054406/https://neoremotejobs.com/jobs/full-stack-developer-upskilling-team-at-tripleten-1928){.external-link target="_blank"}, archived 2026-10-06 |
+| **Unumbio — remote LATAM** | **Desirable skills:** Python PDF, scraping and ETL role; FastStream is one of the task-orchestration tools listed alongside Celery and RQ. | [LinkedIn](https://web.archive.org/web/20261006052331/https://co.linkedin.com/jobs/view/desarrolladoress-python-pdfs-scraping-etl-%E2%80%93-remoto-latam-at-unumbio-4364527617){.external-link target="_blank"}, archived 2026-10-06 |
+| **Yolk — Tel Aviv District, Israel** | **Team stack:** Senior backend engineer for an AI sales-coaching platform; RabbitMQ and FastStream for messaging. | [LinkedIn](https://web.archive.org/web/20261006053707/https://il.linkedin.com/jobs/view/senior-back-end-developer-at-yolk-4370385045){.external-link target="_blank"}, archived 2026-10-06 |
+
+Additional postings and organization-confirmed deployments are listed in
+[ADOPTERS.md](https://github.com/ag2ai/faststream/blob/main/ADOPTERS.md){.external-link target="_blank"}.
+
+## Usage Reported by Individual Team Members
+
+These authors describe their work on specific products. Their accounts are attributed to them,
+not presented as organization confirmations. They do not establish current organization-wide
+or production use; the Magalu Cloud account refers to the employment period shown below.
+
+| Organization | Reported use | Source |
+| --- | --- | --- |
+| **Magalu Cloud — Brazil** | Lucas França reports working on the first Load Balancing as a Service (LBaaS) product as a senior software developer, December 2023–June 2024. His project technologies include FastStream, RabbitMQ, FastAPI and OpenStack. This is a historical account of one team. | [Lucas França’s public CV, p. 2](https://web.archive.org/web/20261006053249/https://www.lucasfrancaid.com/CV_Lucas_Franca.pdf){.external-link target="_blank"}, archived 2026-10-06 |
+| **Tektome — Tokyo, Japan** | Pumidol Leelerdsakulvong reports designing and implementing an ingestion, conversion and extraction queue for 3D models and large PDFs using RabbitMQ and FastStream. Tektome’s team page confirms his role as Technical Product Lead. | [Technical lead’s personal site](https://web.archive.org/web/20261006053419/https://pumidol.com/){.external-link target="_blank"}, archived 2026-10-06; [official team page](https://tektome.com/leadership-and-team/){.external-link target="_blank"} |
+
 ## Tools Shipping a FastStream Integration
 
 These are not users but neighbouring projects that took on maintaining an integration of their own.
@@ -95,15 +136,16 @@ Packages built on top of **FastStream** by the community:
 
 Using **FastStream** in production? There are two lists, and they serve different purposes.
 
-**[`ADOPTERS.md`](https://github.com/ag2ai/faststream/blob/main/ADOPTERS.md){.external-link target="_blank"} — maintained by adopters themselves.**
+**[`ADOPTERS.md`](https://github.com/ag2ai/faststream/blob/main/ADOPTERS.md){.external-link target="_blank"} — organization confirmations maintained by adopters themselves.**
 Add your organization along with the brokers you run, your use case and your scale. That last part
 is what other teams are really looking for, and only you can supply it. The quickest route is
 [editing the file in the browser](https://github.com/ag2ai/faststream/edit/main/ADOPTERS.md){.external-link target="_blank"} —
 GitHub opens the pull request for you. If you would rather not open one, comment on
 [issue #3143](https://github.com/ag2ai/faststream/issues/3143){.external-link target="_blank"} and we will add the row for you.
 
-**This page — compiled by us** from public repositories and package metadata. If we have missed a
-project, open a pull request against
+**This page — compiled by us** from public repositories, package metadata, job postings and
+attributed team-member reports. Include a public source and distinguish a dependency, a stated
+team stack, a skill requirement or a personal account. If we have missed a project, open a pull request against
 [`docs/docs/en/who-uses.md`](https://github.com/ag2ai/faststream/blob/main/docs/docs/en/who-uses.md){.external-link target="_blank"},
 or comment on [issue #3143](https://github.com/ag2ai/faststream/issues/3143){.external-link target="_blank"}.
 

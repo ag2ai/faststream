@@ -7,16 +7,14 @@ from faststream.rabbit import TestApp, TestRabbitBroker
 def test_url() -> None:
     from docs.docs_src.rabbit.connection.url import broker
 
-    assert broker.specification.url == ["amqp://guest:guest@localhost:5672/my_vhost"]
+    assert broker.specification.url == ["amqp://localhost:5672/my_vhost"]
 
 
 @pytest.mark.rabbit()
 def test_params() -> None:
     from docs.docs_src.rabbit.connection.params import broker
 
-    assert broker.specification.url == [
-        "amqp://app:secret@rabbit.internal:5673/my_vhost"  # pragma: allowlist secret
-    ]
+    assert broker.specification.url == ["amqp://rabbit.internal:5673/my_vhost"]
 
 
 @pytest.mark.rabbit()
@@ -30,8 +28,8 @@ async def test_multiple_vhosts() -> None:
     )
 
     assert [orders_broker.specification.url, billing_broker.specification.url] == [
-        ["amqp://guest:guest@localhost:5672/orders"],
-        ["amqp://guest:guest@localhost:5672/billing"],
+        ["amqp://localhost:5672/orders"],
+        ["amqp://localhost:5672/billing"],
     ]
 
     async with TestRabbitBroker(orders_broker, billing_broker), TestApp(app):

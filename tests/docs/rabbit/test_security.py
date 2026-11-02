@@ -26,7 +26,7 @@ async def test_base_security() -> None:
                 "protocol": "amqps",
                 "protocolVersion": "0.9.1",
                 "security": [],
-                "url": "amqps://guest:guest@localhost:5672/",
+                "url": "amqps://localhost:5672/",
             },
         },
     }
@@ -58,7 +58,7 @@ async def test_plaintext_security() -> None:
                 "protocol": "amqps",
                 "protocolVersion": "0.9.1",
                 "security": [{"user-password": []}],
-                "url": "amqps://admin:password@localhost:5672/",
+                "url": "amqps://localhost:5672/",
             },
         },
     }

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from faststream.redis import Redis, RedisStreamMessage, StreamSub
+from faststream.redis import RedisStreamMessage, StreamSub
 
 from .basic import RedisTestcaseConfig
 
@@ -22,8 +22,8 @@ class TestDeliveryCount(RedisTestcaseConfig):
         broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(stream=StreamSub(queue, group=group, consumer="worker-1"))
-        async def handler(message: RedisStreamMessage, redis: Redis) -> None:
-            mock(await message.get_delivery_count(redis, group))
+        async def handler(message: RedisStreamMessage) -> None:
+            mock(await message.get_delivery_count())
             event.set()
 
         async with self.patch_broker(broker) as br:
@@ -51,10 +51,10 @@ class TestDeliveryCount(RedisTestcaseConfig):
                 min_idle_time=0,
             )
         )
-        async def handler(message: RedisStreamMessage, redis: Redis) -> None:
-            mock(await message.get_delivery_count(redis, group))
-            await message.ack(redis=redis, group=group)
-            mock2(await message.get_delivery_count(redis, group))
+        async def handler(message: RedisStreamMessage) -> None:
+            mock(await message.get_delivery_count())
+            await message.ack()
+            mock2(await message.get_delivery_count())
             event.set()
 
         async with self.patch_broker(broker) as br:

@@ -29,7 +29,7 @@ def test_kwargs() -> None:
     )
 
     assert broker.specification.url == [
-        "amqp://guest:guest@127.0.0.1:5672/?heartbeat=300",
+        "amqp://127.0.0.1:5672/?heartbeat=300",
     ]
 
 
@@ -40,7 +40,7 @@ def test_custom(snapshot_json: SnapshotAssertion) -> None:
         specification_url="amqp://guest:guest@127.0.0.1:5672/vh",
     )
 
-    pub = broker.publisher("test")  # noqa: F841
+    pub = broker.publisher("test")  # ruff: ignore[unused-variable]
     schema = get_3_0_0_schema(broker)
 
     assert schema == snapshot_json

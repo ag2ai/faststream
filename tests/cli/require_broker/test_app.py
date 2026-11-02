@@ -283,8 +283,10 @@ async def test_running_lifespan_contextmanager(
     @asynccontextmanager
     async def lifespan(env: str) -> AsyncGenerator[None, None]:
         mock.on(env)
-        yield
-        mock.off()
+        try:
+            yield
+        finally:
+            mock.off()
 
     broker = AsyncMock(spec=RabbitBroker)
     app = FastStream(broker, lifespan=lifespan)
@@ -314,13 +316,42 @@ async def test_test_app(mock: MagicMock) -> None:
 
 
 @pytest.mark.asyncio()
+async def test_application_async_context_manager(mock: MagicMock) -> None:
+    app = FastStream(AsyncMock(spec=RabbitBroker))
+
+    app.on_startup(mock.on)
+    app.on_shutdown(mock.off)
+
+    async with app as context_app:
+        assert context_app is app
+
+    mock.on.assert_called_once()
+    mock.off.assert_called_once()
+
+
+@pytest.mark.asyncio()
+async def test_application_async_context_manager_stops_on_exception(
+    mock: MagicMock,
+) -> None:
+    app = FastStream(AsyncMock(spec=RabbitBroker))
+    app.on_shutdown(mock.off)
+    error = ValueError("expected")
+
+    with pytest.raises(ValueError, match="expected"):
+        async with app:
+            raise error
+
+    mock.off.assert_called_once()
+
+
+@pytest.mark.asyncio()
 async def test_test_app_with_excp(mock: MagicMock) -> None:
     app = FastStream(AsyncMock(spec=RabbitBroker))
 
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
 
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
         async with TestApp(app):
             raise ValueError
 
@@ -347,7 +378,7 @@ def test_sync_test_app_with_excp(mock: MagicMock) -> None:
     app.on_startup(mock.on)
     app.on_shutdown(mock.off)
 
-    with pytest.raises(ValueError), TestApp(app):  # noqa: PT011
+    with pytest.raises(ValueError), TestApp(app):  # ruff: ignore[pytest-raises-too-broad]
         raise ValueError
 
     mock.on.assert_called_once()
@@ -359,8 +390,10 @@ async def test_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) -
     @asynccontextmanager
     async def lifespan(env: str) -> AsyncGenerator[None, None]:
         await async_mock.on(env)
-        yield
-        await async_mock.off()
+        try:
+            yield
+        finally:
+            await async_mock.off()
 
     assert app.broker
     app = FastStream(app.broker, lifespan=lifespan)
@@ -382,8 +415,10 @@ def test_sync_lifespan_contextmanager(async_mock: AsyncMock, app: FastStream) ->
     @asynccontextmanager
     async def lifespan(env: str) -> AsyncGenerator[None, None]:
         await async_mock.on(env)
-        yield
-        await async_mock.off()
+        try:
+            yield
+        finally:
+            await async_mock.off()
 
     assert app.broker
     app = FastStream(app.broker, lifespan=lifespan)

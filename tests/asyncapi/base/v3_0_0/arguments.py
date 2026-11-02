@@ -24,8 +24,8 @@ class ArgumentsTestcase(AsyncAPI300Factory):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
-        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
+        channel_key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
+        operation_key = tuple(schema["operations"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert channel_key == IsStr(regex=r"test[\w:]*:Handle"), channel_key
         assert operation_key == IsStr(regex=r"test[\w:]*:HandleSubscribe"), operation_key
@@ -38,8 +38,8 @@ class ArgumentsTestcase(AsyncAPI300Factory):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
-        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
+        channel_key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
+        operation_key = tuple(schema["operations"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert channel_key == "custom_name"
         assert operation_key == "custom_name"
@@ -54,8 +54,8 @@ class ArgumentsTestcase(AsyncAPI300Factory):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        channel_key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
-        operation_key = tuple(schema["operations"].keys())[0]  # noqa: RUF015
+        channel_key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
+        operation_key = tuple(schema["operations"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert channel_key == "."
         # the title names the channel; `address` stays the address subscribed to
@@ -83,7 +83,7 @@ class ArgumentsTestcase(AsyncAPI300Factory):
             """Test description."""
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert key == "custom_name"
         assert schema["channels"][key]["description"] == "Test description.", schema[

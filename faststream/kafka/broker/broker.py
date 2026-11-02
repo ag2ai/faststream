@@ -15,7 +15,7 @@ from typing import (
 import aiokafka
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
-from aiokafka.producer.producer import _missing  # noqa: PLC2701
+from aiokafka.producer.producer import _missing  # ruff: ignore[import-private-name]
 from aiokafka.structs import RecordMetadata
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
@@ -28,6 +28,7 @@ from faststream._internal.di import FastDependsConfig
 from faststream._internal.types import IdGenerator
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
+from faststream.kafka._compat import AIOKAFKA_V013, validate_client_rack
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
 from faststream.kafka.response import KafkaPublishCommand
@@ -55,6 +56,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -168,6 +170,7 @@ if TYPE_CHECKING:
         # consumer args
         client_rack: str | None
         consumer_only: bool
+        allow_auto_create_topics: bool
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object
         key_serializer: Callable[[Any], bytes] | None
@@ -212,6 +215,7 @@ class KafkaBroker(
         # consumer args
         client_rack: str | None = None,
         consumer_only: bool = False,
+        allow_auto_create_topics: bool = True,
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object = _missing,
         key_serializer: Callable[[Any], bytes] | None = None,
@@ -221,7 +225,7 @@ class KafkaBroker(
         partitioner: Callable[
             [bytes, list[Partition], list[Partition]],
             Partition,
-        ] = DefaultPartitioner(),  # noqa: B008
+        ] = DefaultPartitioner(),  # ruff: ignore[function-call-in-default-argument]
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
         enable_idempotence: bool = False,
@@ -252,6 +256,7 @@ class KafkaBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Kafka broker constructor.
 
@@ -289,6 +294,12 @@ class KafkaBroker(
             consumer_only (bool):
                 When True the broker skips creating the producer and admin clients during ``start()``, letting deployments use
                 Kafka credentials scoped to read-only ACLs. Defaults to False.
+            allow_auto_create_topics (bool):
+                Allow FastStream to create topics through the admin client when a subscriber starts.
+                Unlike ``faststream.confluent``, this flag is FastStream-side only: aiokafka has no
+                ``allow.auto.create.topics`` consumer option, so the cluster's own
+                ``auto.create.topics.enable`` is a separate switch. Defaults to True.
+                Set to False when topics are provisioned elsewhere.
             acks (Union[Literal[0, 1, -1, "all"], object]):
                 One of ``0``, ``1``, ``all``. The number of acknowledgments the producer requires the leader to have received before considering a
                 request complete. This controls the durability of records that are sent. The following settings are common:
@@ -378,6 +389,10 @@ class KafkaBroker(
                 Provider for FastDepends.
             context (Optional[ContextRepo]):
                 Context for FastDepends.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         if protocol is None:
             if security is not None and security.use_ssl:
@@ -426,8 +441,11 @@ class KafkaBroker(
             **parse_security(security),
         )
 
-        if protocol_version:
+        # aiokafka 0.13.0 raises `TypeError` on `api_version`, 0.14.0 ignores it
+        if protocol_version and not AIOKAFKA_V013:
             connection_params["api_version"] = protocol_version
+
+        validate_client_rack(client_rack)
 
         consumer_options, _ = filter_by_dict(
             ConsumerConnectionParams,
@@ -446,6 +464,7 @@ class KafkaBroker(
                 client_id=client_id,
                 client_rack=client_rack,
                 consumer_only=consumer_only,
+                allow_auto_create_topics=allow_auto_create_topics,
                 builder=builder,
                 producer=AioKafkaFastProducerImpl(
                     parser=parser,
@@ -474,6 +493,7 @@ class KafkaBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,

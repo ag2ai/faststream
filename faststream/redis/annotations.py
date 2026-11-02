@@ -50,7 +50,7 @@ Redis = Annotated[RedisClient, Context("broker._connection")]
 
 async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
     async with redis.pipeline() as pipe:
-        yield pipe
+        yield pipe  # ruff: ignore[yield-in-context-manager-in-async-generator]
 
 
 Pipeline = Annotated[RedisPipeline, Depends(get_pipe, cast=False)]

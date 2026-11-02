@@ -5,7 +5,7 @@ from faststream._internal.constants import EMPTY, PATH_CONTEXT_PREFIX
 from faststream._internal.context import Context as Context_
 
 
-def Context(  # noqa: N802
+def Context(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = False,
@@ -20,7 +20,7 @@ def Context(  # noqa: N802
     )
 
 
-def Header(  # noqa: N802
+def Header(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = True,
@@ -34,7 +34,7 @@ def Header(  # noqa: N802
     )
 
 
-def Path(  # noqa: N802
+def Path(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = True,

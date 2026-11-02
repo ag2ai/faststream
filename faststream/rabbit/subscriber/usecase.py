@@ -148,7 +148,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             contextlib.suppress(asyncio.exceptions.CancelledError),
             anyio.move_on_after(timeout),
         ):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 raw_message := await self._queue_obj.get(
                     fail=False,
                     no_ack=no_ack,
@@ -192,7 +192,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                     parser=async_parser,
                     decoder=async_decoder,
                 )
-                yield msg
+                yield msg  # ruff: ignore[yield-in-context-manager-in-async-generator]
 
     def _make_response_publisher(
         self,

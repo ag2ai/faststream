@@ -43,7 +43,7 @@ class NUID:
     )
 
     def __init__(self) -> None:
-        self._prand = Random(randbelow(max_int))  # nosec B311  # noqa: S311
+        self._prand = Random(randbelow(max_int))  # nosec B311  # ruff: ignore[suspicious-non-cryptographic-random-usage]
         self._seq = self._prand.randint(0, MAX_SEQ)
         self._inc = MIN_INC + self._prand.randint(BASE + 1, INC)
         self._prefix = bytearray()

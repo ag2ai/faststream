@@ -363,10 +363,11 @@ class FakeProducer(RedisFastProducer):
         ):
             casted_handler = cast("_ListHandlerMixin", handler)
 
-            if casted_handler.list_sub.batch:
+            messages = [data_to_send] if casted_handler.list_sub.batch else data_to_send
+            for body in messages:
                 msg = visitor.get_message(
                     visited_ch,
-                    data_to_send,
+                    body,
                     casted_handler,
                 )
                 self._put_pel(msg=msg, cmd=cmd, handler=handler, session_id=session_id)

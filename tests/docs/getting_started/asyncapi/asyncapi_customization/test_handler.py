@@ -24,7 +24,7 @@ def test_handler_customization() -> None:
         },
     }), subscriber_value
     desc = subscriber_value["description"]
-    assert (  # noqa: PT018
+    assert (  # ruff: ignore[pytest-composite-assertion]
         "Consumer function\n\n" in desc
         and "Args:\n" in desc
         and "    msg: input msg" in desc

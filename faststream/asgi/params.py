@@ -4,7 +4,7 @@ from faststream._internal.constants import EMPTY
 from faststream._internal.context import Context as Context_
 
 
-def Header(  # noqa: N802
+def Header(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = False,
@@ -18,7 +18,7 @@ def Header(  # noqa: N802
     )
 
 
-def Query(  # noqa: N802
+def Query(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = False,

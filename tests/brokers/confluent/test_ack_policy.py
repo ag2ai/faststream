@@ -198,7 +198,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
-            raise Exception  # noqa: TRY002
+            raise Exception  # ruff: ignore[raise-vanilla-class]
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
@@ -241,7 +241,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
-            raise Exception  # noqa: TRY002
+            raise Exception  # ruff: ignore[raise-vanilla-class]
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()

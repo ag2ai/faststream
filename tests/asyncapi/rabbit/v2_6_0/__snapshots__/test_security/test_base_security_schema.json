@@ -16,7 +16,7 @@
       "protocol": "amqps",
       "protocolVersion": "0.9.1",
       "security": [],
-      "url": "amqps://guest:guest@localhost:5672/"
+      "url": "amqps://localhost:5672/"
     }
   }
 }

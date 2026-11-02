@@ -139,7 +139,7 @@ except ImportError:
 opentelemetry: Any
 
 try:
-    import opentelemetry
+    import opentelemetry.semconv
 except ImportError:
     opentelemetry = None
     HAS_OPENTELEMETRY = False

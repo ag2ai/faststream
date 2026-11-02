@@ -1,11 +1,12 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.nats import NatsBroker
 from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 @pytest.mark.nats()
-def test_kv_schema() -> None:
+def test_kv_schema(snapshot_json: SnapshotAssertion) -> None:
     broker = NatsBroker()
 
     @broker.subscriber("test", kv_watch="test")
@@ -13,4 +14,4 @@ def test_kv_schema() -> None:
 
     schema = get_2_6_0_schema(broker)
 
-    assert schema["channels"] == {}
+    assert schema == snapshot_json

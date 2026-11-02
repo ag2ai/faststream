@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Iterable, Sequence
-from contextlib import AbstractContextManager, AsyncExitStack
+from contextlib import AbstractContextManager, AsyncExitStack, ExitStack, nullcontext
 from itertools import chain
 from types import TracebackType
 from typing import (
@@ -17,6 +17,9 @@ from typing import (
 
 from typing_extensions import override
 
+from faststream._internal.endpoint.subscriber.hints import (
+    check_context_annotations,
+)
 from faststream._internal.endpoint.usecase import Endpoint
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.parser import BatchCodecProto
@@ -26,7 +29,7 @@ from faststream._internal.types import (
     P_HandlerParams,
     T_HandlerReturn,
 )
-from faststream._internal.utils.functions import FakeContext, to_async
+from faststream._internal.utils.functions import to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
 from faststream.middlewares import AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
@@ -79,14 +82,12 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         "_parser",
         "ack_policy",
         "calls",
-        "extra_watcher_options",
         "lock",
         "running",
         "specification",
     )
 
     lock: "AbstractContextManager[Any]"
-    extra_watcher_options: dict[str, Any]
     graceful_timeout: float | None
 
     def __init__(
@@ -118,9 +119,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._call_decorators: tuple[Decorator, ...] = ()
 
         self.running = False
-        self.lock = FakeContext()
-
-        self.extra_watcher_options = {}
+        self.lock = nullcontext()
 
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
@@ -213,6 +212,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return async_parser, async_decoder
 
     def _build_fastdepends_model(self) -> None:
+        fd_config = self._outer_config.fd_config
+        # nothing is injected without FastDepends, and FastAPI builds its own model
+        driver_annotations = (
+            self._outer_config.resolved_underlying_driver_annotations
+            if fd_config.use_fastdepends and not fd_config.get_dependent
+            else {}
+        )
+
         for call in self.calls:
             async_parser, async_decoder = self._get_parser_and_decoder(
                 call.item_parser, call.item_decoder
@@ -221,10 +228,13 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             call._setup(
                 parser=async_parser,
                 decoder=async_decoder,
-                config=self._outer_config.fd_config,
+                config=fd_config,
                 broker_dependencies=self._outer_config.broker_dependencies,
                 _call_decorators=self._call_decorators,
             )
+
+            if driver_annotations and call.dependant is not None:
+                check_context_annotations(call.dependant, driver_annotations)
 
             call.handler.refresh(with_mock=False)
 
@@ -349,7 +359,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             if app := self._outer_config.context.get("app"):
                 app.exit()
 
-        except Exception:  # nosec B110  # noqa: S110
+        except Exception:  # nosec B110  # ruff: ignore[try-except-pass]
             # All other exceptions were logged by CriticalLogMiddleware
             pass
 
@@ -372,12 +382,16 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 ),
             )
 
+            # reserve place for context scope under the middlewares __aexit__
+            # because middlewares should be exited before context scope release
+            message_scope = stack.enter_context(ExitStack())
+
             # enter all middlewares
             middlewares: list[BaseMiddleware] = []
             for base_m in self.__build__middlewares_stack():
                 middleware = base_m(msg, context=context)
                 middlewares.append(middleware)
-                await middleware.__aenter__()
+                await stack.enter_async_context(middleware)
 
             cache: dict[Any, Any] = {}
             parsing_error: Exception | None = None
@@ -389,7 +403,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     break
 
                 if message is not None:
-                    stack.enter_context(
+                    message_scope.enter_context(
                         context.scopes(
                             (
                                 ("log_context", self.get_log_context(message)),
@@ -397,10 +411,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                             ),
                         ),
                     )
-
-                    # Middlewares should be exited before scope release
-                    for m in middlewares:
-                        stack.push_async_exit(m.__aexit__)
 
                     result_msg = ensure_response(
                         await h.call(
@@ -430,10 +440,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                     return result_msg
 
             # Suitable handler was not found or
-            # parsing/decoding exception occurred
-            for m in middlewares:
-                stack.push_async_exit(m.__aexit__)
-
+            # parsing/decoding exception occurred.
             # Reraise it to catch in tests
             if parsing_error:
                 raise parsing_error
@@ -458,7 +465,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
                 AcknowledgementMiddleware(
                     logger=logger_state,
                     ack_policy=self.ack_policy,
-                    extra_options=self.extra_watcher_options,
+                    fallback_parser=self._parser,
                 ),
                 CriticalLogMiddleware(logger_state),
                 *self._broker_middlewares,
@@ -494,7 +501,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         # which the `async for` protocol does not accept.
         raise NotImplementedError
 
-    def get_log_context(  # noqa: PLR6301
+    def get_log_context(  # ruff: ignore[no-self-use]
         self,
         message: Optional["StreamMessage[MsgType]"],
     ) -> dict[str, str]:

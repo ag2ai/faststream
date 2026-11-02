@@ -140,7 +140,7 @@ class AsgiFastStream(Application):
             if asyncapi_route.asyncapi_json_path:
 
                 @get(include_in_schema=asyncapi_route.include_in_schema)
-                async def json_handler(scope: "Scope") -> AsgiResponse:  # noqa: ARG001
+                async def json_handler(scope: "Scope") -> AsgiResponse:  # ruff: ignore[unused-function-argument]
                     return JSONResponse(self.schema.to_specification().to_jsonable())
 
                 self.routes.append((asyncapi_route.asyncapi_json_path, json_handler))
@@ -163,7 +163,7 @@ class AsgiFastStream(Application):
         self._log_level: int = logging.INFO
         self._run_extra_options: dict[str, SettingField] = {}
 
-    def _init_setupable_(  # noqa: PLW3201
+    def _init_setupable_(  # ruff: ignore[bad-dunder-method-name]
         self,
         *brokers: "BrokerUsecase[Any, Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
@@ -330,7 +330,7 @@ class AsgiFastStream(Application):
         else:
             await send({"type": "lifespan.shutdown.complete"})
 
-    async def not_found(self, scope: "Scope", receive: "Receive", send: "Send") -> None:  # noqa: PLR6301
+    async def not_found(self, scope: "Scope", receive: "Receive", send: "Send") -> None:  # ruff: ignore[no-self-use]
         not_found_msg = "Application doesn't support regular HTTP protocol."
 
         if scope["type"] == "websocket":
