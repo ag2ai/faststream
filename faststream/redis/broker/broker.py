@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 
 class RedisBroker(
     RedisRegistrator,
-    BrokerUsecase[UnifyRedisDict, "Redis[bytes]", RedisBrokerConfig],
+    BrokerUsecase[UnifyRedisDict, "Redis", RedisBrokerConfig],
 ):
     """Redis broker."""
 
@@ -177,9 +177,9 @@ class RedisBroker(
         )
 
     @override
-    async def _connect(self) -> "Redis[bytes]":
+    async def _connect(self) -> "Redis":
         await self.config.connect()
-        return cast("Redis[bytes]", self.config.broker_config.connection.client)
+        return cast("Redis", self.config.broker_config.connection.client)
 
     async def stop(
         self,
@@ -207,7 +207,7 @@ class RedisBroker(
         list: str | None = None,
         stream: None = None,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> int: ...
 
     @overload
@@ -222,7 +222,7 @@ class RedisBroker(
         list: str | None = None,
         stream: str = ...,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> bytes: ...
 
     @override
@@ -237,7 +237,7 @@ class RedisBroker(
         list: str | None = None,
         stream: str | None = None,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> int | bytes:
         """Publish message directly.
 
@@ -326,7 +326,7 @@ class RedisBroker(
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> int:
         """Publish multiple messages to Redis List by one request.
 

@@ -89,7 +89,7 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
 @dataclass(kw_only=True, slots=True)
 class RedisBrokerConfig(BrokerConfig):
     producer: "RedisFastProducer"
-    connection: "ConnectionState[Redis[bytes]] | ConnectionState[RedisCluster[bytes]]"
+    connection: "ConnectionState[Redis] | ConnectionState[RedisCluster]"
 
     message_format: type["MessageFormat"]
 

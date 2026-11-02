@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import math
-from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional, TypeAlias
+from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, TypeAlias, cast
 
 import anyio
 from redis.exceptions import ResponseError
@@ -16,6 +16,7 @@ from faststream.redis.exceptions import (
 )
 from faststream.redis.message import (
     BatchStreamMessage,
+    ConsumerProtocol,
     DefaultStreamMessage,
     RedisStreamMessage,
 )
@@ -56,7 +57,7 @@ ReadResponse = tuple[
     ],
     ...,
 ]
-ReadCallable = Callable[[str], Awaitable[ReadResponse]]
+ReadCallable = Callable[[str], Coroutine[None, None, ReadResponse]]
 
 
 class ClaimMeta(NamedTuple):
@@ -163,18 +164,21 @@ class _StreamHandlerMixin(LogicSubscriber):
         client = self._client
 
         stream = self.stream_sub
+        stream_group = stream.group
+        stream_consumer = stream.consumer
+        stream_min_idle_time = stream.min_idle_time
 
-        self.parser._setup(client, stream.group)
+        self.parser._setup(cast("ConsumerProtocol", client), stream_group)
 
         read: ReadCallable
 
-        if stream.group and stream.consumer:
+        if stream_group and stream_consumer:
             group_create_id = "$" if self.last_id == ">" else self.last_id
             try:
                 await client.xgroup_create(
                     name=stream.name,
                     id=group_create_id,
-                    groupname=stream.group,
+                    groupname=stream_group,
                     mkstream=stream.declare,
                 )
             except ResponseError as e:
@@ -185,28 +189,31 @@ class _StreamHandlerMixin(LogicSubscriber):
 
             self.last_id = self.read_id
 
-            if stream.min_idle_time is None:
+            if stream_min_idle_time is None:
 
-                def read(_: str) -> Awaitable[ReadResponse]:
-                    return self._xreadgroup(
+                async def read(_: str) -> ReadResponse:
+                    return await self._xreadgroup(
                         count=stream.max_records,
                         block=stream.polling_interval,
                         noack=stream.no_ack,
+                        group=stream_group,
+                        stream=stream.name,
+                        consumer=stream_consumer,
                     )
 
             else:
 
                 async def read(_: str) -> ReadResponse:
                     stream_message = await client.xautoclaim(
-                        name=self.stream_sub.name,
-                        groupname=self.stream_sub.group,
-                        consumername=self.stream_sub.consumer,
-                        min_idle_time=self.min_idle_time,
+                        name=stream.name,
+                        groupname=stream_group,
+                        consumername=stream_consumer,
+                        min_idle_time=stream_min_idle_time,
                         start_id=self.autoclaim_start_id,
                         count=1,
                     )
-                    stream_name = self.stream_sub.name.encode()
-                    (next_id, messages, *_) = stream_message
+                    stream_name = stream.name.encode()
+                    (next_id, messages, *_) = stream_message  # type: ignore[assignment]
 
                     # Update start_id for next call
                     self.autoclaim_start_id = next_id
@@ -219,19 +226,22 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         else:
 
-            def read(
+            async def read(
                 last_id: str,
-            ) -> Awaitable[ReadResponse]:
-                return client.xread(
-                    {stream.name: last_id},
-                    block=stream.polling_interval,
-                    count=stream.max_records,
+            ) -> ReadResponse:
+                return cast(
+                    "ReadResponse",
+                    await client.xread(
+                        {stream.name: last_id},
+                        block=stream.polling_interval,
+                        count=stream.max_records,
+                    ),
                 )
 
         await super().start(read)
 
     @override
-    async def get_one(
+    async def get_one(  # ruff: ignore[too-many-locals]
         self,
         *,
         timeout: float = 5.0,
@@ -239,46 +249,53 @@ class _StreamHandlerMixin(LogicSubscriber):
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
+        stream = self.stream_sub
         claim_meta: ClaimMeta | None = None
 
-        if self.stream_sub.group and self.stream_sub.consumer:
+        if stream.group and stream.consumer:
             if self.min_idle_time is None:
-                stream_message = await self._xreadgroup(
+                xreadgroup_message = await self._xreadgroup(
                     count=1,
                     block=math.ceil(timeout * 1000),
-                    noack=self.stream_sub.no_ack,
+                    noack=stream.no_ack,
+                    group=stream.group,
+                    stream=stream.name,
+                    consumer=stream.consumer,
                 )
-                if not stream_message:
+                if not xreadgroup_message:
                     return None
 
-                ((stream_name, (entry,)),) = stream_message
+                ((stream_name, (entry,)),) = xreadgroup_message
                 message_id, raw_message, claim_meta = self._parse_stream_entry(entry)
             else:
-                stream_message = await self._client.xautoclaim(
-                    name=self.stream_sub.name,
-                    groupname=self.stream_sub.group,
-                    consumername=self.stream_sub.consumer,
+                xautoclaim_message = await self._client.xautoclaim(
+                    name=stream.name,
+                    groupname=stream.group,
+                    consumername=stream.consumer,
                     min_idle_time=self.min_idle_time,
                     start_id=self.autoclaim_start_id,
                     count=1,
                 )
-                (next_id, messages, *_) = stream_message
+                (next_id, messages, *_) = xautoclaim_message
                 # Update start_id for next call
                 self.autoclaim_start_id = next_id
                 if not messages:
                     return None
-                stream_name = self.stream_sub.name.encode()
+                stream_name = stream.name.encode()
                 ((message_id, raw_message),) = messages
         else:
-            stream_message = await self._client.xread(
-                {self.stream_sub.name: self.last_id},
-                block=math.ceil(timeout * 1000),
-                count=1,
+            xread_message = cast(
+                "ReadResponse",
+                await self._client.xread(
+                    {stream.name: self.last_id},
+                    block=math.ceil(timeout * 1000),
+                    count=1,
+                ),
             )
-            if not stream_message:
+            if not xread_message:
                 return None
 
-            ((stream_name, ((message_id, raw_message),)),) = stream_message
+            ((stream_name, ((message_id, raw_message, *_),)),) = xread_message
 
         self.last_id = message_id.decode()
 
@@ -304,13 +321,14 @@ class _StreamHandlerMixin(LogicSubscriber):
         return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:
+    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:  # ruff: ignore[too-many-locals]
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
 
         timeout = 5
 
+        stream = self.stream_sub
         context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
@@ -319,46 +337,52 @@ class _StreamHandlerMixin(LogicSubscriber):
         while True:
             claim_meta = None
 
-            if self.stream_sub.group and self.stream_sub.consumer:
+            if stream.group and stream.consumer:
                 if self.min_idle_time is None:
-                    stream_message = await self._xreadgroup(
+                    xreadgroup_message = await self._xreadgroup(
                         count=1,
                         block=math.ceil(timeout * 1000),
-                        noack=self.stream_sub.no_ack,
+                        noack=stream.no_ack,
+                        group=stream.group,
+                        stream=stream.name,
+                        consumer=stream.consumer,
                     )
-                    if not stream_message:
+                    if not xreadgroup_message:
                         continue
 
-                    ((stream_name, (entry,)),) = stream_message
+                    ((stream_name, (entry,)),) = xreadgroup_message
                     message_id, raw_message, claim_meta = self._parse_stream_entry(
                         entry,
                     )
                 else:
-                    stream_message = await self._client.xautoclaim(
-                        name=self.stream_sub.name,
-                        groupname=self.stream_sub.group,
-                        consumername=self.stream_sub.consumer,
+                    xautoclaim_message = await self._client.xautoclaim(
+                        name=stream.name,
+                        groupname=stream.group,
+                        consumername=stream.consumer,
                         min_idle_time=self.min_idle_time,
                         start_id=self.autoclaim_start_id,
                         count=1,
                     )
-                    (next_id, messages, *_) = stream_message
+                    (next_id, messages, *_) = xautoclaim_message
                     # Update start_id for next call
                     self.autoclaim_start_id = next_id
                     if not messages:
                         continue
-                    stream_name = self.stream_sub.name.encode()
+                    stream_name = stream.name.encode()
                     ((message_id, raw_message),) = messages
             else:
-                stream_message = await self._client.xread(
-                    {self.stream_sub.name: self.last_id},
-                    block=math.ceil(timeout * 1000),
-                    count=1,
+                xread_message = cast(
+                    "ReadResponse",
+                    await self._client.xread(
+                        {stream.name: self.last_id},
+                        block=math.ceil(timeout * 1000),
+                        count=1,
+                    ),
                 )
-                if not stream_message:
+                if not xread_message:
                     continue
 
-                ((stream_name, ((message_id, raw_message),)),) = stream_message
+                ((stream_name, ((message_id, raw_message, *_),)),) = xread_message
 
             self.last_id = message_id.decode()
 
@@ -387,33 +411,37 @@ class _StreamHandlerMixin(LogicSubscriber):
         count: int | None,
         block: int | None,
         noack: bool = False,
+        group: str,
+        stream: str,
+        consumer: str,
     ) -> ReadResponse:
-        stream = self.stream_sub
-
-        response: ReadResponse
-
         if self.claim_min_idle_time is None:
-            response = await self._client.xreadgroup(
-                groupname=stream.group,
-                consumername=stream.consumer,
-                streams={stream.name: self.read_id},
-                count=count,
-                block=block,
-                noack=noack,
+            return cast(
+                "ReadResponse",
+                await self._client.xreadgroup(
+                    groupname=group,
+                    consumername=consumer,
+                    streams={stream: self.read_id},
+                    count=count,
+                    block=block,
+                    noack=noack,
+                ),
             )
-            return response
 
         try:
             # types-redis stubs predate `claim_min_idle_time`; StreamSub validation
             # guarantees redis-py 7.1.0+ (which accepts it) whenever it is set.
-            response = await self._client.xreadgroup(  # type: ignore[call-arg]
-                groupname=stream.group,
-                consumername=stream.consumer,
-                streams={stream.name: self.read_id},
-                count=count,
-                block=block,
-                noack=noack,
-                claim_min_idle_time=self.claim_min_idle_time,
+            return cast(
+                "ReadResponse",
+                await self._client.xreadgroup(
+                    groupname=group,
+                    consumername=consumer,
+                    streams={stream: self.read_id},
+                    count=count,
+                    block=block,
+                    noack=noack,
+                    claim_min_idle_time=self.claim_min_idle_time,
+                ),
             )
         except ResponseError as e:
             if "syntax error" not in str(e).lower():
@@ -421,12 +449,10 @@ class _StreamHandlerMixin(LogicSubscriber):
 
             msg = (
                 "Redis server rejected the XREADGROUP CLAIM option for "
-                f"stream `{stream.name}`. `claim_min_idle_time` "
+                f"stream `{stream}`. `claim_min_idle_time` "
                 "requires Redis server 8.4+."
             )
             raise StreamClaimUnsupportedError(msg) from e
-
-        return response
 
     def _parse_stream_entry(
         self,

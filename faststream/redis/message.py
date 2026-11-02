@@ -9,6 +9,7 @@ from typing import (
     Union,
 )
 
+from redis.typing import GroupT, KeyT, StreamIdT, XPendingRangeResponse
 from typing_extensions import TypedDict, override
 
 from faststream.message import StreamMessage as BrokerStreamMessage
@@ -67,14 +68,14 @@ class DefaultListMessage(_ListMessage):
     """A class to represent a single List message."""
 
     type: Literal["list"]
-    data: bytes
+    data: bytes | str | list[bytes | str] | None
 
 
 class BatchListMessage(_ListMessage):
     """A class to represent a List messages batch."""
 
     type: Literal["blist"]
-    data: list[bytes]
+    data: bytes | str | list[bytes | str] | None
 
 
 class RedisListMessage(BrokerStreamMessage[DefaultListMessage]):
@@ -122,16 +123,13 @@ class ConsumerProtocol(Protocol):
 
     __slots__ = ()
 
-    async def xack(self, name: str, groupname: str, *ids: bytes) -> None:
-        pass
+    async def xack(self, name: KeyT, groupname: GroupT, *ids: StreamIdT) -> int: ...
 
-    async def xdel(self, name: str, *ids: bytes) -> None:
-        pass
+    async def xdel(self, name: KeyT, *ids: StreamIdT) -> int: ...
 
     async def xpending_range(
         self, name: str, groupname: str, min: bytes, max: bytes, count: int
-    ) -> list[dict[str, Any]]:
-        pass
+    ) -> XPendingRangeResponse: ...
 
 
 class FakeConsumer(ConsumerProtocol):
@@ -139,15 +137,15 @@ class FakeConsumer(ConsumerProtocol):
 
     __slots__ = ()
 
-    async def xack(self, name: str, groupname: str, *ids: bytes) -> None:
-        pass
+    async def xack(self, name: KeyT, groupname: GroupT, *ids: StreamIdT) -> int:  # ruff: ignore[no-self-use]
+        return 1
 
-    async def xdel(self, name: str, *ids: bytes) -> None:
-        pass
+    async def xdel(self, name: KeyT, *ids: StreamIdT) -> int:  # ruff: ignore[no-self-use]
+        return 1
 
     async def xpending_range(  # ruff: ignore[no-self-use]
         self, name: str, groupname: str, min: bytes, max: bytes, count: int
-    ) -> list[dict[str, Any]]:
+    ) -> XPendingRangeResponse:
         return []
 
 
