@@ -94,6 +94,7 @@ or production use; the Magalu Cloud account refers to the employment period show
 | Organization | Reported use | Source |
 | --- | --- | --- |
 | **Magalu Cloud — Brazil** | Lucas França reports working on the first Load Balancing as a Service (LBaaS) product as a senior software developer, December 2023–June 2024. His project technologies include FastStream, RabbitMQ, FastAPI and OpenStack. This is a historical account of one team. | [Lucas França’s public CV, p. 2](https://web.archive.org/web/20261006053249/https://www.lucasfrancaid.com/CV_Lucas_Franca.pdf){.external-link target="_blank"}, archived 2026-10-06 |
+| **Skan.ai** | Mubarak Abdulla (author bio: Chief Architect) describes using FastStream to decouple Skan.ai's event-processing application logic from RabbitMQ and enable future migration to Kafka or NATS. The article does not establish deployments on those other brokers. | [Architecture case study by Mubarak Abdulla](https://medium.com/architecture-without-the-hype/how-we-scaled-our-architecture-10-lessons-from-skan-ai-67371cd9002d){.external-link target="_blank"}, published 2026-01-06 |
 | **Tektome — Tokyo, Japan** | Pumidol Leelerdsakulvong reports designing and implementing an ingestion, conversion and extraction queue for 3D models and large PDFs using RabbitMQ and FastStream. Tektome’s team page confirms his role as Technical Product Lead. | [Technical lead’s personal site](https://web.archive.org/web/20261006053419/https://pumidol.com/){.external-link target="_blank"}, archived 2026-10-06; [official team page](https://tektome.com/leadership-and-team/){.external-link target="_blank"} |
 
 ## Tools Shipping a FastStream Integration
@@ -116,6 +117,7 @@ These are not users but neighbouring projects that took on maintaining an integr
 Packages built on top of **FastStream** by the community:
 
 * [`stompman`](https://github.com/community-of-python/stompman){.external-link target="_blank"} - STOMP client with a pleasant API
+* [`faststream-azure-servicebus`](https://github.com/thomaslaich/faststream-azure-servicebus){.external-link target="_blank"} - community broker adapter for **Azure Service Bus** queues and topics
 * [`faststream-mq`](https://github.com/davzucky/faststream-mq){.external-link target="_blank"} - standalone IBM MQ adapter
 * [`zMQTT`](https://github.com/faststream-community/zMQTT){.external-link target="_blank"} - pure asyncio MQTT 3.1.1 and 5.0 client library, no **paho** dependency
 * [`faststream-schema-registry`](https://github.com/mlovretovich/faststream-schema-registry){.external-link target="_blank"} - connects **FastStream** to the **Confluent** Schema Registry
@@ -127,6 +129,9 @@ Packages built on top of **FastStream** by the community:
 * [`faststream-redis-timers`](https://github.com/modern-python/faststream-redis-timers){.external-link target="_blank"} - **Redis**-backed distributed timer scheduling
 * [`faststream-concurrent-aiokafka`](https://github.com/modern-python/faststream-concurrent-aiokafka){.external-link target="_blank"} - concurrent message processing for **aiokafka**
 * [`modern-di-faststream`](https://github.com/modern-python/modern-di-faststream){.external-link target="_blank"} - **modern-di** integration
+* [`neva-faststream`](https://pypi.org/project/neva-faststream/){.external-link target="_blank"} - **Neva** integration with **Dishka** dependency injection and broker lifecycle management
+* [`cliffracer-faststream`](https://pypi.org/project/cliffracer-faststream/){.external-link target="_blank"} - hosts **FastStream** brokers in **Cliffracer** services
+* [`superjobs`](https://github.com/vschroeter/superjobs){.external-link target="_blank"} - pre-alpha typed asynchronous jobs over **NATS JetStream**, built on **FastStream**
 * [`litestar-faststream`](https://github.com/hasansezertasan/litestar-faststream){.external-link target="_blank"} - **Litestar** integration for **FastStream** message brokers
 * [`fast-healthchecks`](https://github.com/ZYLVEXT/fast-healthchecks){.external-link target="_blank"} - framework-agnostic health checks
 * [`awesome-faststream`](https://github.com/lesnik512/awesome-faststream){.external-link target="_blank"} - curated list of libraries, tools, templates and resources

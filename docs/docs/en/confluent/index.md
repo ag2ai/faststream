@@ -4,14 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Kafka in Python with confluent-kafka"
 description: >-
-  FastStream Kafka support built on confluent-kafka-python, the client from the creators of
-  Kafka, with Schema Registry and Avro compatibility.
+  Build Kafka producers and consumers in Python with confluent-kafka and FastStream. Install the backend, connect to a broker and route messages between topics.
 search:
   boost: 10
 ---
 
-# Confluent Kafka Routing
+# Kafka in Python with confluent-kafka
+
+Use **confluent-kafka**, Confluent's Python client for Apache Kafka, through FastStream to publish and consume messages with subscriber and publisher decorators. FastStream adds message validation, dependency injection and in-memory testing. This guide installs the backend and routes messages from an input topic to an output topic.
 
 ## Confluent's Python Client for Apache Kafka
 

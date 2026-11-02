@@ -109,8 +109,13 @@ class AsyncConfluentParser:
 
 
 def _parse_msg_headers(headers: "_HeadersInput") -> dict[str, str]:
+    """Decode header values into a text view without changing the native message."""
     if isinstance(headers, dict):
         seq: Sequence[tuple[str, bytes | str | None]] = list(headers.items())
     else:
         seq = headers
-    return {i: (j if isinstance(j, str) else j.decode()) for i, j in seq if j is not None}
+    return {
+        key: (value if isinstance(value, str) else value.decode(errors="replace"))
+        for key, value in seq
+        if value is not None
+    }
