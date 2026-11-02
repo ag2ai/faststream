@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 
 from typing_extensions import override
@@ -49,7 +49,7 @@ class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
         self._topic = config.topic
         self.partition = config.partition
         self.reply_to = config.reply_to
-        self.headers = config.headers or {}
+        self.headers = dict(config.headers or {})
 
     @override
     def __call__(
@@ -75,7 +75,7 @@ class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
@@ -108,7 +108,7 @@ class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
             topic=topic or self.topic,
             key=key,
             partition=partition if partition is not None else self.partition,
-            headers=self.headers | (headers or {}),
+            headers=self.headers | dict(headers or {}),
             correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             timeout=timeout,
@@ -147,7 +147,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
@@ -162,7 +162,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
@@ -177,7 +177,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -192,7 +192,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -238,7 +238,7 @@ class DefaultPublisher(LogicPublisher):
             key=key or self.key,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
-            headers=self.headers | (headers or {}),
+            headers=self.headers | dict(headers or {}),
             correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
@@ -282,7 +282,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
@@ -341,7 +341,7 @@ class BatchPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[False] = False,
@@ -355,7 +355,7 @@ class BatchPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[True] = ...,
@@ -369,7 +369,7 @@ class BatchPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
@@ -383,7 +383,7 @@ class BatchPublisher(LogicPublisher):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
@@ -428,7 +428,7 @@ class BatchPublisher(LogicPublisher):
             topic=topic or self.topic,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
-            headers=self.headers | (headers or {}),
+            headers=self.headers | dict(headers or {}),
             correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,

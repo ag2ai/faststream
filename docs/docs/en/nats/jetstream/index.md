@@ -4,11 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "NATS JetStream in Python: Streams and Consumers"
+description: >-
+  Use NATS JetStream in Python with nats-py and FastStream. Declare a stream, subscribe to stored messages and explore pull consumers, acknowledgements and retention.
 search:
   boost: 10
 ---
 
-# NATS JetStream
+# NATS JetStream in Python: Streams and Consumers
+
+Use **NATS JetStream in Python** when messages must be stored for subscribers that are offline or need to acknowledge processing. FastStream uses the JetStream APIs in **nats-py** and lets you declare a stream with `JStream`. The example below connects a subscriber to a stream; see [pull consumers](pull.md) and [acknowledgements](ack.md) for delivery and processing options.
 
 The default *NATS* usage is suitable for scenarios where:
 

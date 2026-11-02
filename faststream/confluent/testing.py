@@ -1,4 +1,4 @@
-from collections.abc import Callable, Generator, Iterable, Sequence
+from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
@@ -9,6 +9,7 @@ from confluent_kafka import KafkaError, Message
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.kafka import encode_headers
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
@@ -202,7 +203,9 @@ class FakeProducer(AsyncConfluentFastProducer):
             cmd.destination,
             cmd.partition,
         ):
-            msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
+            msg_to_send = (
+                (incoming,) if isinstance(handler, BatchSubscriber) else incoming
+            )
 
             await self._execute_handler(msg_to_send, cmd.destination, handler)
 
@@ -240,7 +243,7 @@ class FakeProducer(AsyncConfluentFastProducer):
             ]
 
             if isinstance(handler, BatchSubscriber):
-                await self._execute_handler(list(messages), cmd.destination, handler)
+                await self._execute_handler(tuple(messages), cmd.destination, handler)
 
             else:
                 for m in messages:
@@ -266,7 +269,9 @@ class FakeProducer(AsyncConfluentFastProducer):
             cmd.destination,
             cmd.partition,
         ):
-            msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
+            msg_to_send = (
+                (incoming,) if isinstance(handler, BatchSubscriber) else incoming
+            )
 
             with anyio.fail_after(cmd.timeout):
                 return await self._execute_handler(
@@ -313,7 +318,7 @@ class MockConfluentMessage(Message):
         raw_msg: bytes | None,
         topic: str,
         key: bytes | str,
-        headers: list[tuple[str, str | bytes | None]],
+        headers: Sequence[tuple[str, str | bytes | None]],
         offset: int,
         partition: int,
         timestamp_type: int,
@@ -328,7 +333,7 @@ class MockConfluentMessage(Message):
         else:
             self._key = key
 
-        self._headers = headers
+        self._headers = list(headers)
         self._error = error
         self._offset = offset
         self._partition = partition
@@ -374,7 +379,7 @@ async def build_message(
     partition: int | None = None,
     timestamp_ms: int | None = None,
     key: bytes | str | None = None,
-    headers: dict[str, str] | None = None,
+    headers: Mapping[str, str | bytes | None] | None = None,
     reply_to: str = "",
     serializer: Optional["SerializerProto"] = None,
     codec: Optional["CodecProto"] = None,
@@ -400,7 +405,7 @@ async def build_message(
         raw_msg=msg,
         topic=topic,
         key=k,
-        headers=[(i, j.encode()) for i, j in headers.items()],
+        headers=encode_headers(headers),
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
@@ -415,7 +420,7 @@ def _build_mock_message(
     partition: int | None = None,
     timestamp_ms: int | None = None,
     key: bytes | str | None = None,
-    headers: dict[str, str] | None = None,
+    headers: Mapping[str, str | bytes | None] | None = None,
     correlation_id: str | None = None,
     reply_to: str = "",
     id_generator: IdGenerator = gen_cor_id,
@@ -431,7 +436,7 @@ def _build_mock_message(
         raw_msg=body,
         topic=topic,
         key=k,
-        headers=[(i, j.encode()) for i, j in h.items()],
+        headers=encode_headers(h),
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
