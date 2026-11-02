@@ -1,5 +1,5 @@
 import asyncio
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import pytest
 from dirty_equals import IsList, IsPositiveFloat, IsStr
@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 
 
 class PrometheusTestcaseConfig(BaseTestcaseConfig[Any]):
+    nack_kwargs: ClassVar[dict[str, Any]] = {}
+
     def get_middleware(self, **kwargs: Any) -> PrometheusMiddleware[Any, Any]:
         raise NotImplementedError
 
@@ -113,7 +115,7 @@ class LocalPrometheusTestcase(PrometheusTestcaseConfig):
             if status == AckStatus.ACKED:
                 await message.ack()
             elif status == AckStatus.NACKED:
-                await message.nack()
+                await message.nack(**self.nack_kwargs)
             elif status == AckStatus.REJECTED:
                 await message.reject()
 

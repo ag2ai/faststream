@@ -28,7 +28,7 @@ from faststream.mqtt.publisher.producer import (
 )
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.mqtt.security import parse_security
-from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
+from faststream.mqtt.subscriber.usecase import MQTTSubscriber
 from faststream.mqtt.utils import build_mqtt_url, parse_mqtt_url
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
@@ -238,7 +238,7 @@ class MQTTBroker(
     @override
     async def start(self) -> None:
         await self.connect()
-        c = MQTTBaseSubscriber.build_log_context(None, "")
+        c = MQTTSubscriber.build_log_context(None, "")
         self.config.logger.log("Connection established", logging.INFO, c)
         await super().start()
 
