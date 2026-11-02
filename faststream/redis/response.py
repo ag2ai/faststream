@@ -82,7 +82,7 @@ class RedisPublishCommand(BatchPublishCommand):
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
         timeout: float | None = 30.0,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
         message_format: type["MessageFormat"] = BinaryMessageFormatV1,
     ) -> None:
         super().__init__(

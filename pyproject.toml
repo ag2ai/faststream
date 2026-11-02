@@ -121,7 +121,6 @@ lint = [
     "pyrefly==1.4.0",
     # type checkers extensions
     "types-PyYAML",
-    "types-redis",
     "types-Pygments",
     "types-docutils",
     "types-aiofiles",

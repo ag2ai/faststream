@@ -66,7 +66,7 @@ class _ListHandlerMixin(LogicSubscriber):
     @override
     async def _consume(  # type: ignore[override]
         self,
-        client: "Redis[bytes]",
+        client: "Redis",
         *,
         start_signal: "anyio.Event",
     ) -> None:
@@ -180,7 +180,7 @@ class ListSubscriber(_ListHandlerMixin):
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
 
-    async def _get_msgs(self, client: "Redis[bytes]") -> None:
+    async def _get_msgs(self, client: "Redis") -> None:
         async with self._read_lock:
             if not self.running:
                 return
@@ -215,7 +215,7 @@ class ListBatchSubscriber(_ListHandlerMixin):
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
 
-    async def _get_msgs(self, client: "Redis[bytes]") -> None:
+    async def _get_msgs(self, client: "Redis") -> None:
         async with self._read_lock:
             if not self.running:
                 return

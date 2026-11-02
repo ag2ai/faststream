@@ -52,8 +52,8 @@ class LogicSubscriber(SubscriberUsecase[Any]):
         self.config = config
 
     @property
-    def _client(self) -> "Redis[bytes]":
-        return cast("Redis[bytes]", self._outer_config.connection.client)
+    def _client(self) -> "Redis":
+        return cast("Redis", self._outer_config.connection.client)
 
     def _make_response_publisher(
         self,

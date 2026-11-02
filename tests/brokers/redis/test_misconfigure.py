@@ -110,7 +110,9 @@ async def test_every_driver_class_argument_is_reported() -> None:
     broker = RedisBroker()
 
     @broker.subscriber("test")
-    async def handler(redis: Redis, pipe: Pipeline) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
+    async def handler(
+        redis: Redis, pipe: Pipeline
+    ) -> None: ...  # the bare driver generic is the mistake under test
 
     with pytest.raises(ExceptionGroup) as excinfo:
         async with TestRedisBroker(broker):

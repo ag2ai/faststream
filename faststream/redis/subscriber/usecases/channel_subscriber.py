@@ -85,7 +85,7 @@ class ChannelSubscriber(LogicSubscriber):
     @override
     async def _close_transport(self) -> None:
         if self.subscription is not None:
-            await self.subscription.aclose()  # type: ignore[attr-defined]
+            await self.subscription.aclose()  # type: ignore[no-untyped-call]
             self.subscription = None
 
     @override
