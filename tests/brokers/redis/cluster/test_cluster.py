@@ -3,7 +3,6 @@ import warnings
 from typing import Any
 
 import pytest
-from redis._parsers import Encoder
 from redis.asyncio.connection import DefaultParser
 
 from faststream._internal.configs import ConfigComposition
@@ -12,6 +11,7 @@ from faststream.redis import RedisBroker, RedisClusterBroker, RedisRouter
 from faststream.redis.broker import RedisClusterBroker as SubpackageRedisClusterBroker
 from faststream.redis.configs.state import RedisClusterConnectionState
 from faststream.redis.parser import BinaryMessageFormatV1
+from faststream.redis.parser._compat import Encoder
 from faststream.security import BaseSecurity, SASLPlaintext
 
 from .settings import SettingsCluster
