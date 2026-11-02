@@ -181,6 +181,7 @@ account or ask us to remove it.
 | Organization | Reported use | Source |
 | --- | --- | --- |
 | Magalu Cloud — Brazil | Lucas França reports working on the first Load Balancing as a Service (LBaaS) product as a senior software developer, December 2023–June 2024. His project technologies include FastStream, RabbitMQ, FastAPI and OpenStack. This is a historical account of one team. | [Lucas França’s public CV, p. 2](https://web.archive.org/web/20261006053249/https://www.lucasfrancaid.com/CV_Lucas_Franca.pdf), archived 2026-10-06 |
+| Skan.ai | Mubarak Abdulla (author bio: Chief Architect) describes using FastStream to decouple Skan.ai's event-processing application logic from RabbitMQ and enable future migration to Kafka or NATS. The article does not establish deployments on those other brokers. | [Architecture case study by Mubarak Abdulla](https://medium.com/architecture-without-the-hype/how-we-scaled-our-architecture-10-lessons-from-skan-ai-67371cd9002d), published 2026-01-06 |
 | Tektome — Tokyo, Japan | Pumidol Leelerdsakulvong reports designing and implementing an ingestion, conversion and extraction queue for 3D models and large PDFs using RabbitMQ and FastStream. Tektome’s team page confirms his role as Technical Product Lead. | [Technical lead’s personal site](https://web.archive.org/web/20261006053419/https://pumidol.com/), archived 2026-10-06; [official team page](https://tektome.com/leadership-and-team/) |
 
 More public examples and tools that ship a FastStream integration of their own are collected on the
