@@ -111,7 +111,7 @@ ruff-check *params:
   just _linter ruff check --exit-non-zero-on-fix {{params}}
 
 _codespell:
-  just _linter codespell -L Dependant,dependant --skip "./docs/site"
+  just _linter codespell -L Dependant,dependant,GroupT --skip "./docs/site"
 
 [doc("Check typos")]
 [group("linter")]

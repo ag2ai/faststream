@@ -55,7 +55,7 @@ class RedisClusterBroker(RedisBroker):
         list: str | None = None,
         stream: str | None = None,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = EMPTY,
+        pipeline: Optional["Pipeline"] = EMPTY,
     ) -> int | bytes:
         if pipeline is not EMPTY:
             warnings.warn(
@@ -108,7 +108,7 @@ class RedisClusterBroker(RedisBroker):
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = EMPTY,
+        pipeline: Optional["Pipeline"] = EMPTY,
     ) -> int:
         if pipeline is not EMPTY:
             warnings.warn(

@@ -1,9 +1,9 @@
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from redis.asyncio.client import (
-    Pipeline as _RedisPipeline,
-    Redis as _RedisClient,
+    Pipeline as RedisPipeline,
+    Redis as RedisClient,
 )
 
 from faststream import Depends
@@ -18,13 +18,6 @@ from faststream.redis.message import (
     RedisMessage as Rm,
     RedisStreamMessage as Rsm,
 )
-
-if TYPE_CHECKING:
-    RedisClient = _RedisClient[bytes]
-    RedisPipeline = _RedisPipeline[bytes]
-else:
-    RedisClient = _RedisClient
-    RedisPipeline = _RedisPipeline
 
 __all__ = (
     "ContextRepo",

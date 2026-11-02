@@ -41,3 +41,7 @@ def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
     )
     wrapper.mock = mock
     return wrapper
+
+
+async def awaitable_to_coro(awaitable: Awaitable[T]) -> T:
+    return await awaitable
