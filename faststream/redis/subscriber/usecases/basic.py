@@ -11,10 +11,6 @@ from faststream._internal.endpoint.subscriber import (
     SubscriberSpecification,
     SubscriberUsecase,
 )
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream.redis.message import (
-    UnifyRedisDict,
-)
 from faststream.redis.publisher.fake import RedisFakePublisher
 
 if TYPE_CHECKING:
@@ -26,6 +22,7 @@ if TYPE_CHECKING:
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisBrokerConfig
+    from faststream.redis.message import UnifyRedisDict
     from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -38,7 +35,7 @@ Offset: TypeAlias = bytes
 CONSUME_ERROR_BACKOFF_SECONDS = 5
 
 
-class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
+class LogicSubscriber(SubscriberUsecase[Any]):
     """A class to represent a Redis handler."""
 
     __slots__ = ("config",)
@@ -82,7 +79,9 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
         start_signal = anyio.Event()
 
         if self.calls:
-            self.add_task(self._consume, args, {"start_signal": start_signal})
+            self.tasks_supervisor.add_task(
+                self._consume, args, {"start_signal": start_signal}
+            )
 
             with anyio.fail_after(3.0):
                 await start_signal.wait()
@@ -131,29 +130,3 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             "channel": channel,
             "message_id": getattr(message, "message_id", ""),
         }
-
-    async def consume_one(self, msg: Any) -> None:
-        await self.consume(msg)
-
-
-class ConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage[Any]"],
-    LogicSubscriber,
-):
-    __slots__ = ()
-
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
-        max_workers: int,
-    ) -> None:
-        super().__init__(config, specification, calls, max_workers=max_workers)
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
-        await self._put_msg(msg)

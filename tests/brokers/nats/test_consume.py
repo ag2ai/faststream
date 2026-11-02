@@ -48,7 +48,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             await br.start()
 
         with pytest.raises(anyio.ClosedResourceError):
-            subscriber.receive_stream.receive_nowait()
+            subscriber.consume_dispatcher.receive_stream.receive_nowait()
 
     async def test_concurrent_subscriber(
         self,

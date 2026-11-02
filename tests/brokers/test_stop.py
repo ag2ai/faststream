@@ -13,7 +13,7 @@ class _RecordingSubscriber(SubscriberUsecase[Any]):
     def __init__(self, events: list[str]) -> None:
         self.events = events
 
-    async def stop(self) -> None:
+    async def stop(self, blocking: bool = True) -> None:
         self.events.append("enter")
         # a shutdown that awaits one subscriber at a time has nothing else to run here
         await anyio.lowlevel.checkpoint()
@@ -69,7 +69,7 @@ async def test_subscribers_stop_together() -> None:
 
 
 class _FailingSubscriber(_RecordingSubscriber):
-    async def stop(self) -> None:
+    async def stop(self, blocking: bool = True) -> None:
         self.events.append("fail")
         msg = "stop failed"
         raise RuntimeError(msg)

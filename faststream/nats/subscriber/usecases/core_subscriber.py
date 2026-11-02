@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Optional
 from nats.errors import TimeoutError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import NatsParser
 
@@ -22,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class CoreSubscriber(DefaultSubscriber["Msg"]):
-    __slots__ = ()
+    __slots__ = ("queue",)
 
     subscription: Optional["Subscription"]
     _fetch_sub: Optional["Subscription"]
@@ -120,7 +119,7 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
         self.subscription = await self.connection.subscribe(
             subject=self.subject.broker_address,
             queue=self.queue,
-            cb=self.consume,
+            cb=self.consume_dispatcher.dispatch,
             **self.extra_options,
         )
 
@@ -137,23 +136,4 @@ class CoreSubscriber(DefaultSubscriber["Msg"]):
             message=message,
             subject=self.subject.template,
             queue=self.queue,
-        )
-
-
-class ConcurrentCoreSubscriber(ConcurrentMixin["Msg"], CoreSubscriber):
-    __slots__ = ()
-
-    @override
-    async def _create_subscription(self) -> None:
-        """Create NATS subscription and start consume task."""
-        if self.subscription:
-            return
-
-        self.start_consume_task()
-
-        self.subscription = await self.connection.subscribe(
-            subject=self.subject.broker_address,
-            queue=self.queue,
-            cb=self._put_msg,
-            **self.extra_options,
         )

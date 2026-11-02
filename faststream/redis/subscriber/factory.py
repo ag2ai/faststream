@@ -16,14 +16,11 @@ from .specification import (
     StreamSubscriberSpecification,
 )
 from .usecases import (
-    ChannelConcurrentSubscriber,
     ChannelSubscriber,
     ListBatchSubscriber,
-    ListConcurrentSubscriber,
     ListSubscriber,
     LogicSubscriber,
     StreamBatchSubscriber,
-    StreamConcurrentSubscriber,
     StreamSubscriber,
 )
 
@@ -63,6 +60,7 @@ def create_subscriber(
         list_sub=ListSub.validate(list),
         stream_sub=StreamSub.validate(stream),
         no_reply=no_reply,
+        max_workers=max_workers,
         _outer_config=config,
         _ack_policy=ack_policy,
         _message_format=message_format,
@@ -86,15 +84,6 @@ def create_subscriber(
         )
 
         subscriber_config._ack_policy = AckPolicy.MANUAL
-
-        if max_workers > 1:
-            return ChannelConcurrentSubscriber(
-                subscriber_config,
-                specification,
-                calls,
-                max_workers=max_workers,
-            )
-
         return ChannelSubscriber(subscriber_config, specification, calls)
 
     if subscriber_config.stream_sub:
@@ -106,15 +95,8 @@ def create_subscriber(
         )
 
         if subscriber_config.stream_sub.batch:
+            subscriber_config.max_workers = 1
             return StreamBatchSubscriber(subscriber_config, specification, calls)
-
-        if max_workers > 1:
-            return StreamConcurrentSubscriber(
-                subscriber_config,
-                specification,
-                calls,
-                max_workers=max_workers,
-            )
 
         return StreamSubscriber(subscriber_config, specification, calls)
 
@@ -127,15 +109,8 @@ def create_subscriber(
         )
 
         if subscriber_config.list_sub.batch:
+            subscriber_config.max_workers = 1
             return ListBatchSubscriber(subscriber_config, specification, calls)
-
-        if max_workers > 1:
-            return ListConcurrentSubscriber(
-                subscriber_config,
-                specification,
-                calls,
-                max_workers=max_workers,
-            )
 
         return ListSubscriber(subscriber_config, specification, calls)
 

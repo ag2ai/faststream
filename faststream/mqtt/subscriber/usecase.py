@@ -1,5 +1,4 @@
 import warnings
-from abc import abstractmethod
 from collections.abc import AsyncIterator, Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Literal
@@ -9,7 +8,6 @@ import zmqtt
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.parser import MQTTBaseParser, MQTTVersion, parser_for
@@ -26,7 +24,7 @@ if TYPE_CHECKING:
     from faststream.mqtt.subscriber.config import MQTTSubscriberConfig
 
 
-class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
+class MQTTSubscriber(SubscriberUsecase[zmqtt.Message]):
     """Base class for all MQTT subscribers."""
 
     __slots__ = (
@@ -127,23 +125,17 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 
         if self.calls:
             await self._create_subscription()
-            self.add_task(self._consume_loop, restart_on_failure=False)
+            self.tasks_supervisor.add_task(self._consume_loop, restart_on_failure=False)
 
         self._post_start()
 
     @override
-    async def stop(self) -> None:
-        # Stop receiving before TasksMixin cancels the consume task. In particular,
-        # StopConsume calls this method from that task, so cancelling it first would
-        # also cancel an in-flight UNSUBSCRIBE.
-        self.running = False
+    async def _stop_receiving(self) -> None:
         if self._subscription is not None:
             self.last_unsubscribe_result = None
             with suppress(Exception):
                 self.last_unsubscribe_result = await self._subscription.stop()
             self._subscription = None
-
-        await super().stop()
 
     async def _create_subscription(self) -> None:
         auto_ack = self.ack_policy is AckPolicy.ACK_FIRST
@@ -207,33 +199,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
             )
             yield msg
 
-    @abstractmethod
-    async def _consume_loop(self) -> None:
-        raise NotImplementedError
-
-
-class MQTTDefaultSubscriber(MQTTBaseSubscriber):
-    """Sequential MQTT subscriber — processes one message at a time."""
-
-    __slots__ = ()
-
     async def _consume_loop(self) -> None:
         assert self._subscription is not None
         async for msg in self._subscription:
-            await self.consume(msg)
-
-
-class MQTTConcurrentSubscriber(ConcurrentMixin[zmqtt.Message], MQTTBaseSubscriber):
-    """Concurrent MQTT subscriber — processes up to max_workers messages in parallel."""
-
-    __slots__ = ()
-
-    @override
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def _consume_loop(self) -> None:
-        assert self._subscription is not None
-        async for msg in self._subscription:
-            await self._put_msg(msg)
+            await self.consume_dispatcher.dispatch(msg)

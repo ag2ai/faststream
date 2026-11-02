@@ -47,10 +47,10 @@ async def test_terminal_subscription_failure_is_not_restarted(
     monkeypatch.setattr(subscriber, "_create_subscription", create_subscription)
 
     await subscriber.start()
-    await asyncio.gather(*subscriber.tasks, return_exceptions=True)
+    await asyncio.gather(*subscriber.tasks_supervisor.tasks, return_exceptions=True)
     await asyncio.sleep(0)
 
-    assert len(subscriber.tasks) == 1
+    assert len(subscriber.tasks_supervisor.tasks) == 1
     await subscriber.stop()
 
 
