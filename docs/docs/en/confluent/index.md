@@ -53,3 +53,12 @@ Here's a simplified code example demonstrating how to establish a connection to 
 This minimal example illustrates how FastStream simplifies the process of connecting to Kafka and performing basic message processing from the **in-topic** to the **out-topic**. Depending on your specific use case and requirements, you can further customize your Kafka integration with FastStream to build robust and efficient streaming applications.
 
 For more advanced configuration options and detailed usage instructions, please refer to the FastStream Kafka documentation and the [official Kafka documentation](https://kafka.apache.org/){.external-link target="_blank"}.
+
+## Consumer defaults
+
+`faststream.confluent.KafkaBroker` defaults to `client_id="faststream-{version}"`, where `{version}` is the installed FastStream version. Its subscribers default to `auto_offset_reset="latest"` and `group_id=None`.
+
+!!! warning "Default consumer group"
+    When `group_id` is omitted, the Confluent backend uses `"faststream-consumer-group"` internally. Subscribers to the same topic using that group share its partitions. Set an explicit `group_id` to control which subscribers share work and which applications consume independently.
+
+See [Consumer defaults](../kafka/index.md#consumer-defaults){.internal-link} for the comparison with aiokafka, when `auto_offset_reset` applies, and how `client_id` differs from `group_id`.
