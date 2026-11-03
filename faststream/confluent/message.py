@@ -41,9 +41,9 @@ class FakeConsumer:
 
     async def store_offsets(
         self,
-        topic: str | None,
-        partition: int | None,
-        offset: int | None,
+        topic: str,
+        partition: int,
+        offset: int,
     ) -> None:
         pass
 

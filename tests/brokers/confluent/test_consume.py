@@ -9,7 +9,7 @@ from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.helpers.client import AsyncConfluentConsumer
 from faststream.exceptions import AckMessage
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
-from tests.tools import spy_decorator, wait_for_mock_call
+from tests.tools import spy_decorator
 
 from .basic import ConfluentTestcaseConfig
 
@@ -97,10 +97,11 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            commit_event = asyncio.Event()
             with patch.object(
                 AsyncConfluentConsumer,
                 "commit",
-                spy_decorator(AsyncConfluentConsumer.commit),
+                spy_decorator(AsyncConfluentConsumer.commit, commit_event),
             ) as m:
                 await asyncio.wait(
                     (
@@ -111,13 +112,14 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                             ),
                         ),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(commit_event.wait()),
                     ),
                     timeout=self.timeout,
                 )
-                await wait_for_mock_call(m.mock)
                 m.mock.assert_called_once()
 
         assert event.is_set()
+        assert commit_event.is_set()
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
@@ -177,22 +179,24 @@ class TestConsume(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            commit_event = asyncio.Event()
             with patch.object(
                 AsyncConfluentConsumer,
                 "commit",
-                spy_decorator(AsyncConfluentConsumer.commit),
+                spy_decorator(AsyncConfluentConsumer.commit, commit_event),
             ) as m:
                 await asyncio.wait(
                     (
                         asyncio.create_task(br.publish("hello", queue)),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(commit_event.wait()),
                     ),
                     timeout=self.timeout,
                 )
-                await wait_for_mock_call(m.mock)
                 m.mock.assert_called_once()
 
         assert event.is_set()
+        assert commit_event.is_set()
 
     @pytest.mark.asyncio()
     @pytest.mark.slow()
