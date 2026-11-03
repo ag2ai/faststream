@@ -8,7 +8,7 @@ from faststream import AckPolicy
 from faststream.confluent import KafkaMessage
 from faststream.confluent.helpers.client import AsyncConfluentConsumer
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
-from tests.tools import spy_decorator, wait_for_mock_call
+from tests.tools import spy_decorator
 
 from .basic import ConfluentTestcaseConfig
 
@@ -144,10 +144,11 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            commit_event = asyncio.Event()
             with patch.object(
                 AsyncConfluentConsumer,
                 "commit",
-                spy_decorator(AsyncConfluentConsumer.commit),
+                spy_decorator(AsyncConfluentConsumer.commit, commit_event),
             ) as commit:
                 await asyncio.wait(
                     (
@@ -158,13 +159,14 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                             ),
                         ),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(commit_event.wait()),
                     ),
                     timeout=self._TIMEOUT,
                 )
-                await wait_for_mock_call(commit.mock)
                 commit.mock.assert_awaited_once()
 
         assert event.is_set()
+        assert commit_event.is_set()
 
     @pytest.mark.slow()
     @pytest.mark.parametrize(
@@ -204,10 +206,11 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            commit_event = asyncio.Event()
             with patch.object(
                 AsyncConfluentConsumer,
                 "commit",
-                spy_decorator(AsyncConfluentConsumer.commit),
+                spy_decorator(AsyncConfluentConsumer.commit, commit_event),
             ) as commit:
                 await asyncio.wait(
                     (
@@ -218,13 +221,14 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                             ),
                         ),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(commit_event.wait()),
                     ),
                     timeout=self._TIMEOUT,
                 )
-                await wait_for_mock_call(commit.mock)
                 commit.mock.assert_awaited_once()
 
         assert event.is_set()
+        assert commit_event.is_set()
 
     @pytest.mark.slow()
     async def test_seek_called_on_nack_on_error(
@@ -248,6 +252,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            seek_event = asyncio.Event()
             with (
                 patch.object(
                     AsyncConfluentConsumer,
@@ -257,7 +262,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                 patch.object(
                     AsyncConfluentConsumer,
                     "seek",
-                    spy_decorator(AsyncConfluentConsumer.seek),
+                    spy_decorator(AsyncConfluentConsumer.seek, seek_event),
                 ) as seek,
             ):
                 await asyncio.wait(
@@ -269,14 +274,15 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                             ),
                         ),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(seek_event.wait()),
                     ),
                     timeout=self._TIMEOUT,
                 )
-                await wait_for_mock_call(seek.mock)
                 seek.mock.assert_awaited_once()
                 commit.mock.assert_not_called()
 
         assert event.is_set()
+        assert seek_event.is_set()
 
     async def test_reject_on_error_warning(self, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)

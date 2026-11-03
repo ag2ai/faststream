@@ -19,12 +19,17 @@ class SmartMock(Protocol[P, T_co]):
     def __call__(self, *args: P.args, **kwds: P.kwargs) -> T_co: ...
 
 
-def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
+def spy_decorator(
+    method: Callable[P, T],
+    event: asyncio.Event | None = None,
+) -> SmartMock[P, T]:
     mock = AsyncMock()
 
     @wraps(method)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
         await mock(*args, **kwargs)
+        if event is not None:
+            event.set()
         return await cast("Callable[P, Awaitable[Any]]", method)(*args, **kwargs)
 
     @wraps(method)
@@ -34,6 +39,8 @@ def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
             match="coroutine 'AsyncMockMixin._execute_mock_call' was never awaited",
         ):
             mock(*args, **kwargs)
+        if event is not None:
+            event.set()
         return method(*args, **kwargs)
 
     wrapper = cast(
@@ -42,14 +49,3 @@ def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
     )
     wrapper.mock = mock
     return wrapper
-
-
-async def wait_for_mock_call(mock: Any, timeout: float = 10) -> None:
-    """Wait until an AsyncMock/MagicMock has been called at least once."""
-
-    async def _wait() -> None:
-        # polling is the only way to observe an arbitrary mock's call count
-        while not (getattr(mock, "await_count", 0) or mock.call_count):  # ruff: ignore[async-busy-wait]
-            await asyncio.sleep(0.01)
-
-    await asyncio.wait_for(_wait(), timeout)
