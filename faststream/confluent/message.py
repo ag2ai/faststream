@@ -17,7 +17,7 @@ class ConsumerProtocol(Protocol):
         offset: int,
     ) -> None: ...
 
-    async def store_offsets(
+    async def store_offset(
         self,
         topic: str,
         partition: int,
@@ -39,7 +39,7 @@ class FakeConsumer:
     ) -> None:
         pass
 
-    async def store_offsets(
+    async def store_offset(
         self,
         topic: str,
         partition: int,
@@ -112,7 +112,7 @@ class KafkaMessage(
                 if known is None or offset > known:
                     latest[topic, partition] = offset
             for (topic, partition), offset in latest.items():
-                await self.consumer.store_offsets(
+                await self.consumer.store_offset(
                     topic=topic,
                     partition=partition,
                     offset=offset + 1,
