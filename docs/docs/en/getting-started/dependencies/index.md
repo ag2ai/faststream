@@ -297,11 +297,13 @@ This is the way to open a resource for a message and release it afterwards, like
     {!> docs_src/getting_started/dependencies/basic/mqtt/yield_depends.py !}
     ```
 
-If the handler raises, the exception is raised inside the dependency at `yield`, so put the cleanup in `finally` to run it anyway.
-If the dependency catches the exception, it must re-raise it: suppressing the handler's exception is not supported.
+!!! note
+    If the handler raises, the exception is raised inside the dependency at `yield`, so put the cleanup in `finally` to run it anyway.
+    If the dependency catches the exception, it must re-raise it: suppressing the handler's exception is not supported.
 
-Both generators and async generators work.
-For a real-world example, see the [In-Progress sender](../../howto/nats/in-progress.md){.internal-link} for NATS.
+!!! note
+    Both generators and async generators work.
+    For a real-world example, see the [In-Progress sender](../../howto/nats/in-progress.md){.internal-link} for NATS.
 
 ## Use with Regular Functions
 
@@ -409,40 +411,40 @@ Or specifically for a particular broker
 ### Overriding Dependencies in Tests
 
 The main use case for overrides is tests: replace a database client or an external service while the handler runs under the test broker.
-`#!python broker.provider.override(original, override)` replaces a dependency until `#!python broker.provider.clear()` removes all overrides.
-Clear them in `finally` or in a fixture teardown, so that a failing test does not leave its overrides to the next ones.
+`#!python broker.provider.scope(original, override)` overrides a dependency inside the `with` block and removes the override on exit.
 
 === "AIOKafka"
-    ```python linenums="1" hl_lines="15-16 20 25-26"
+    ```python linenums="1" hl_lines="15-16 20"
     {!> docs_src/getting_started/dependencies/basic/kafka/overrides.py !}
     ```
 
 === "Confluent"
-    ```python linenums="1" hl_lines="15-16 20 25-26"
+    ```python linenums="1" hl_lines="15-16 20"
     {!> docs_src/getting_started/dependencies/basic/confluent/overrides.py !}
     ```
 
 === "RabbitMQ"
-    ```python linenums="1" hl_lines="15-16 20 25-26"
+    ```python linenums="1" hl_lines="15-16 20"
     {!> docs_src/getting_started/dependencies/basic/rabbit/overrides.py !}
     ```
 
 === "NATS"
-    ```python linenums="1" hl_lines="15-16 20 25-26"
+    ```python linenums="1" hl_lines="15-16 20"
     {!> docs_src/getting_started/dependencies/basic/nats/overrides.py !}
     ```
 
 === "Redis"
-    ```python linenums="1" hl_lines="15-16 20 25-26"
+    ```python linenums="1" hl_lines="15-16 20"
     {!> docs_src/getting_started/dependencies/basic/redis/overrides.py !}
     ```
 
 === "MQTT"
-    ```python linenums="1" hl_lines="15-16 20 25-26"
+    ```python linenums="1" hl_lines="15-16 20"
     {!> docs_src/getting_started/dependencies/basic/mqtt/overrides.py !}
     ```
 
-`#!python with broker.provider.scope(original, override):` overrides a dependency for the block, but removes the override only if the block exits without an exception.
+If the block raises, for example on a failed assertion, `scope` keeps the override.
+In fixtures, prefer `#!python broker.provider.override(original, override)` and remove overrides with `#!python broker.provider.clear()` in the teardown.
 An override on a broker also applies to the handlers of the routers included in it.
 
 !!! warning

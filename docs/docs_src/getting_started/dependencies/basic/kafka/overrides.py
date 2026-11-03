@@ -17,10 +17,7 @@ def get_fake_client() -> str:
 
 @pytest.mark.asyncio
 async def test_handler() -> None:
-    broker.provider.override(get_client, get_fake_client)
-    try:
+    with broker.provider.scope(get_client, get_fake_client):
         async with TestKafkaBroker(broker) as br:
             response = await br.request({}, "test")
             assert await response.decode() == "fake client"
-    finally:
-        broker.provider.clear()
