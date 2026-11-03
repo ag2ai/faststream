@@ -443,8 +443,6 @@ The main use case for overrides is tests: replace a database client or an extern
     {!> docs_src/getting_started/dependencies/basic/mqtt/overrides.py !}
     ```
 
-If the block raises, for example on a failed assertion, `scope` keeps the override.
-In fixtures, prefer `#!python broker.provider.override(original, override)` and remove overrides with `#!python broker.provider.clear()` in the teardown.
 An override on a broker also applies to the handlers of the routers included in it.
 
 !!! warning
