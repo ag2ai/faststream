@@ -7,8 +7,9 @@ from faststream import AckPolicy
 from faststream.confluent import KafkaBroker, KafkaRouter
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.helpers.client import AsyncConfluentConsumer
-from faststream.confluent.helpers.config import ConfluentFastConfig
+from faststream.confluent.helpers.config import ConfluentConfig, ConfluentFastConfig
 from faststream.confluent.subscriber.config import KafkaSubscriberConfig
+from faststream.exceptions import SetupError
 
 
 @pytest.mark.confluent()
@@ -99,10 +100,14 @@ def test_sub_overrides_broker_and_router() -> None:
     assert sub.ack_policy is AckPolicy.ACK
 
 
-def build_consumer(*, enable_auto_commit: bool) -> AsyncConfluentConsumer:
+def build_consumer(
+    *,
+    enable_auto_commit: bool,
+    config: ConfluentConfig | None = None,
+) -> AsyncConfluentConsumer:
     with patch("faststream.confluent.helpers.client.Consumer"):
         return AsyncConfluentConsumer(
-            config=ConfluentFastConfig(),
+            config=ConfluentFastConfig(config=config),
             logger=MagicMock(),
             admin_service=MagicMock(),
             partitions=(),
@@ -129,13 +134,32 @@ def test_auto_offset_store_follows_auto_commit(
 
 
 @pytest.mark.confluent()
+def test_manual_ack_rejects_auto_offset_store_override() -> None:
+    with pytest.raises(SetupError, match=r"enable\.auto\.offset\.store"):
+        build_consumer(
+            enable_auto_commit=False,
+            config=cast("ConfluentConfig", {"enable.auto.offset.store": True}),
+        )
+
+
+@pytest.mark.confluent()
+def test_manual_ack_allows_disabled_auto_offset_store_override() -> None:
+    consumer = build_consumer(
+        enable_auto_commit=False,
+        config=cast("ConfluentConfig", {"enable.auto.offset.store": False}),
+    )
+
+    assert consumer.config["enable.auto.offset.store"] is False
+
+
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
-async def test_store_offsets_delegates_to_native_consumer() -> None:
+async def test_store_offset_delegates_to_native_consumer() -> None:
     consumer = build_consumer(enable_auto_commit=False)
 
     store_offsets = cast("MagicMock", consumer.consumer.store_offsets)
 
-    await consumer.store_offsets("topic", 2, 7)
+    await consumer.store_offset("topic", 2, 7)
 
     store_offsets.assert_called_once()
     (offsets,) = store_offsets.call_args.kwargs["offsets"]

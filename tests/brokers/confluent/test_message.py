@@ -18,7 +18,7 @@ class RecordingConsumer:
         self.seeks.append((topic, partition, offset))
         self.events.append("seek")
 
-    async def store_offsets(self, topic: str, partition: int, offset: int) -> None:
+    async def store_offset(self, topic: str, partition: int, offset: int) -> None:
         self.stores.append((topic, partition, offset))
         self.events.append("store")
 

@@ -292,8 +292,8 @@ class AsyncConfluentConsumer:
             "fetch.error.backoff.ms": retry_backoff_ms,
             "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": enable_auto_commit,
-            # Manual ack paths must store offsets explicitly on ack; letting
-            # librdkafka auto-store would also store nacked offsets.
+            # FastStream enables auto commit only for ACK_FIRST. Other ack
+            # policies must store offsets on ack, not when records are polled.
             "enable.auto.offset.store": enable_auto_commit,
             "auto.commit.interval.ms": auto_commit_interval_ms,
             "check.crcs": check_crcs,
@@ -316,6 +316,10 @@ class AsyncConfluentConsumer:
                 "heartbeat.interval.ms",
             ):
                 config_from_params.pop(classic_only, None)
+
+        if not enable_auto_commit and config_from_params["enable.auto.offset.store"]:
+            msg = "Manual acknowledgement requires `enable.auto.offset.store=False`."
+            raise SetupError(msg)
 
         self.config = config_from_params
         self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
@@ -455,7 +459,7 @@ class AsyncConfluentConsumer:
             topic_partition.to_confluent(),
         )
 
-    async def store_offsets(self, topic: str, partition: int, offset: int) -> None:
+    async def store_offset(self, topic: str, partition: int, offset: int) -> None:
         """Stores the offset to commit for the specified topic and partition."""
         topic_partition = TopicPartition(
             topic=topic,
