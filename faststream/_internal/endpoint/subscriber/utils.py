@@ -1,9 +1,8 @@
 import asyncio
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Self
 
 import anyio
-from typing_extensions import Self
 
 if TYPE_CHECKING:
     from types import TracebackType

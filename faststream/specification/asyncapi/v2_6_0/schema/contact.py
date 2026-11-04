@@ -1,9 +1,8 @@
-from typing import Any, cast, overload
+from typing import Any, Self, cast, overload
 
 from pydantic import AnyHttpUrl, BaseModel
-from typing_extensions import Self
 
-from faststream._internal._compat import PYDANTIC_V2, EmailStr
+from faststream._internal._compat import EmailStr
 from faststream._internal.utils.data import filter_by_dict
 from faststream.specification.schema.extra import (
     Contact as SpecContact,
@@ -25,13 +24,7 @@ class Contact(BaseModel):
     url: AnyHttpUrl | None = None
     email: EmailStr | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
     @overload
     @classmethod

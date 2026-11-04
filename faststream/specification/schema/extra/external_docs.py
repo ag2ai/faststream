@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from typing import Required
 
-from typing_extensions import Required, TypedDict
+from typing_extensions import TypedDict
 
 
 class ExternalDocsDict(TypedDict, total=False):
@@ -8,7 +9,7 @@ class ExternalDocsDict(TypedDict, total=False):
     description: str
 
 
-@dataclass
+@dataclass(slots=True)
 class ExternalDocs:
     url: str
     description: str | None = None

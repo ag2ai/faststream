@@ -2,7 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema import ServerVariable, Tag
 from faststream.specification.asyncapi.v2_6_0.schema.utils import Reference
 
@@ -32,8 +31,7 @@ class Server(BaseModel):
         The attributes `description`, `protocolVersion`, `tags`, `security`, `variables`, and `bindings` are all optional.
 
     Configurations:
-        If `PYDANTIC_V2` is True, the model configuration is set to allow extra attributes.
-        Otherwise, the `Config` class is defined with the `extra` attribute set to "allow".
+        The model configuration allows extra attributes.
 
     """
 
@@ -46,10 +44,4 @@ class Server(BaseModel):
     security: SecurityRequirement | None = None
     variables: dict[str, ServerVariable | Reference] | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}

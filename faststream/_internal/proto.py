@@ -1,6 +1,4 @@
-from typing import Any, overload
-
-from typing_extensions import Self
+from typing import Any, Self, overload
 
 
 class NameRequired:  # ruff: ignore[eq-without-hash] - each subclass decides whether it is hashable

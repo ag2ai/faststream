@@ -1,10 +1,9 @@
 import asyncio
 from collections.abc import Awaitable, Callable, Mapping
 from types import MappingProxyType
-from typing import Any
+from typing import Any, assert_type
 
 import prometheus_client
-from typing_extensions import assert_type
 
 from faststream._internal.basic_types import DecodedMessage
 from faststream.kafka import (
@@ -19,7 +18,6 @@ from faststream.kafka import (
     TestKafkaBroker,
 )
 from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
-from faststream.kafka.fastapi import KafkaRouter as FastAPIRouter
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
 from faststream.kafka.prometheus import KafkaPrometheusMiddleware
 from faststream.kafka.publisher import BatchPublisher, DefaultPublisher
@@ -239,70 +237,6 @@ KafkaRouter(
 )
 
 
-FastAPIRouter(
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-FastAPIRouter(
-    parser=async_parser,
-    decoder=async_decoder,
-)
-FastAPIRouter(
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-
-fastapi_router = FastAPIRouter()
-
-fastapi_sub = fastapi_router.subscriber("test")
-
-
-@fastapi_sub(
-    filter=sync_filter,
-)
-async def handle15() -> None: ...
-
-
-@fastapi_sub(
-    filter=async_filter,
-)
-async def handle16() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=sync_parser,
-    decoder=sync_decoder,
-)
-async def handle17() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=async_parser,
-    decoder=async_decoder,
-)
-async def handle18() -> None: ...
-
-
-@fastapi_router.subscriber(
-    "test",
-    parser=custom_parser,
-    decoder=custom_decoder,
-)
-async def handle19() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-def handle20() -> None: ...
-
-
-@fastapi_router.subscriber("test")
-@fastapi_router.publisher("test2")
-async def handle21() -> None: ...
-
-
 otlp_middleware = KafkaTelemetryMiddleware()
 KafkaBroker().add_middleware(otlp_middleware)
 KafkaBroker(middlewares=[otlp_middleware])
@@ -418,7 +352,7 @@ async def check_publish_headers() -> None:
 
 
 async def check_publisher_headers(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+    broker: KafkaBroker | KafkaRouter,
 ) -> None:
     headers: Mapping[str, str | bytes | None] = MappingProxyType({
         "binary": b"\xff\x00",
@@ -439,7 +373,7 @@ def check_raw_header_types(message: KafkaMessage) -> None:
 
 
 async def check_subscriber_message_type(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+    broker: KafkaBroker | KafkaRouter,
 ) -> None:
     subscriber = broker.subscriber("test")
 
@@ -451,7 +385,7 @@ async def check_subscriber_message_type(
 
 
 def check_subscriber_instance_type(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+    broker: KafkaBroker | KafkaRouter,
 ) -> None:
     sub1 = broker.subscriber("test")
     assert_type(sub1, DefaultSubscriber)
@@ -467,7 +401,7 @@ def check_subscriber_instance_type(
 
 
 def check_publisher_instance_type(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+    broker: KafkaBroker | KafkaRouter,
 ) -> None:
     pub1 = broker.publisher("test")
     assert_type(pub1, DefaultPublisher)
@@ -477,7 +411,7 @@ def check_publisher_instance_type(
 
 
 async def check_call_assertions_take_the_kafka_fields(
-    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+    broker: KafkaBroker | KafkaRouter,
 ) -> None:
     # A sync handler: mypy and pyright spell an `async def`'s return type differently
     @broker.subscriber("test")
@@ -512,5 +446,3 @@ KafkaBroker().include_routers(KafkaRouter())
 KafkaRouter(routers=[KafkaRouter()])
 KafkaRouter().include_router(KafkaRouter())
 KafkaRouter().include_routers(KafkaRouter())
-
-FastAPIRouter().include_router(KafkaRouter())

@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any
 
 import anyio
@@ -27,7 +26,7 @@ class RequestsTestcase(BaseTestcaseConfig[Any]):
         async with self.patch_broker(broker):
             await broker.start()
 
-            with pytest.raises((TimeoutError, asyncio.TimeoutError)):
+            with pytest.raises(TimeoutError):
                 await broker.request(
                     None,
                     queue,

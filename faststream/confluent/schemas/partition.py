@@ -3,7 +3,9 @@ from typing import TYPE_CHECKING
 from confluent_kafka import TopicPartition as ConfluentPartition
 
 if TYPE_CHECKING:
-    from typing_extensions import NotRequired, TypedDict
+    from typing import NotRequired
+
+    from typing_extensions import TypedDict
 
     class _TopicKwargs(TypedDict):
         topic: str

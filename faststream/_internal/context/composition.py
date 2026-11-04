@@ -13,6 +13,11 @@ T = TypeVar("T")
 
 
 class ContextRepoComposition(ContextRepo):
+    __slots__ = (
+        "_contexts",
+        "_inner_context",
+    )
+
     def __init__(self, *contexts: ContextRepo) -> None:
         super().__init__()
 
@@ -80,7 +85,7 @@ class ContextRepoComposition(ContextRepo):
         for context in self._contexts:
             try:
                 return context.resolve(argument)
-            except ContextError:  # ruff: ignore[try-except-in-loop]
+            except ContextError:
                 pass
 
         raise ContextError(self.context, first)

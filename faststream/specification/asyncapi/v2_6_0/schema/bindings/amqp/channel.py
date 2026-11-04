@@ -3,10 +3,9 @@
 References: https://github.com/asyncapi/bindings/tree/master/amqp
 """
 
-from typing import Literal, overload
+from typing import Literal, Self, overload
 
 from pydantic import BaseModel, Field
-from typing_extensions import Self
 
 from faststream.specification.schema.bindings import amqp
 

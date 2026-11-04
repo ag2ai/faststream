@@ -1,4 +1,4 @@
-from typing_extensions import assert_type
+from typing import assert_type
 
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream.mqtt import (
@@ -11,7 +11,6 @@ from faststream.mqtt import (
     Will,
     WillProperties,
 )
-from faststream.mqtt.fastapi import MQTTRouter as FastAPIRouter
 from faststream.mqtt.message import MQTTMessage
 from faststream.mqtt.subscriber.usecase import (
     MQTTConcurrentSubscriber,
@@ -88,12 +87,3 @@ def check_decorated_handler_type(broker: MQTTBroker | MQTTRouter) -> None:
     def handle() -> None: ...
 
     assert_type(handle, HandlerCallWrapper[[], None])
-
-
-FastAPIRouter(
-    receive_maximum=10,
-    maximum_packet_size=4096,
-    user_properties=[("role", "worker")],
-    request_response_information=True,
-    request_problem_information=False,
-).include_router(MQTTRouter())

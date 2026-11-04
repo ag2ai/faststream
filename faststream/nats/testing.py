@@ -58,6 +58,8 @@ class TestNatsBroker(
 ):
     """A class to test NATS brokers."""
 
+    __slots__ = ()
+
     @overload
     def __init__(
         self: "TestNatsBroker[NatsBroker]",
@@ -139,6 +141,14 @@ class TestNatsBroker(
 
 
 class FakeProducer(NatsFastProducer):
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "broker",
+        "brokers",
+        "codec",
+    )
+
     def __init__(
         self,
         broker: NatsBroker,

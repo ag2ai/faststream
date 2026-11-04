@@ -1,11 +1,10 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from types import TracebackType
-from typing import Any
+from typing import Any, Self
 from unittest.mock import MagicMock, call
 
 import pytest
-from typing_extensions import Self
 
 from faststream import Context
 from faststream._internal.basic_types import DecodedMessage

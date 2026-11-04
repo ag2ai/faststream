@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 
 
 class MQTTResponse(Response):
+    __slots__ = (
+        "qos",
+        "retain",
+    )
+
     def __init__(
         self,
         body: "SendableMessage",
@@ -38,6 +43,13 @@ class MQTTResponse(Response):
 
 
 class MQTTPublishCommand(PublishCommand):
+    __slots__ = (
+        "message_expiry_interval",
+        "qos",
+        "retain",
+        "timeout",
+    )
+
     def __init__(
         self,
         message: "SendableMessage",

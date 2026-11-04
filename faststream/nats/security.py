@@ -1,10 +1,10 @@
 import warnings
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Self
 
 from nats.aio.client import Credentials, RawCredentials
-from typing_extensions import Self, override
+from typing_extensions import override
 
 from faststream.exceptions import INSTALL_NATS_NKEYS
 from faststream.security import BaseSecurity, SASLPlaintext

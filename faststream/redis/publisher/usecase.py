@@ -99,7 +99,7 @@ class ChannelPublisher(LogicPublisher):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -231,7 +231,7 @@ class ListPublisher(_ListPublisherMixin):
         headers: dict[str, Any] | None = None,
         correlation_id: str | None = None,
         *,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             message,
@@ -286,7 +286,7 @@ class ListBatchPublisher(_ListPublisherMixin):
         correlation_id: str | None = None,
         reply_to: str = "",
         headers: dict[str, Any] | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> int:
         cmd = RedisPublishCommand(
             *messages,
@@ -370,7 +370,7 @@ class StreamPublisher(LogicPublisher):
         correlation_id: str | None = None,
         *,
         maxlen: int | None = None,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
     ) -> bytes:
         cmd = RedisPublishCommand(
             message,

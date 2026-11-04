@@ -29,27 +29,15 @@ First, install the `pydantic-settings` package:
 pip install pydantic-settings
 ```
 
-!!! info
-    In **Pydantic v1**, this functionality was included with the main package. Now it is distributed as an independent package so that you can choose not to install it if you don't need that functionality.
-
 ### Create the `Settings` Object
 
 Import `BaseSettings` from Pydantic and create a subclass, similar to what you would do with a Pydantic model.
 
 Just like with Pydantic models, you declare class attributes with type annotations and can use all the same validation features and tools, including different data types and additional validations with `Field()`.
 
-=== "Pydantic v2"
-    ```python linenums='1' hl_lines="1 4" title="config.py"
-    {!> docs_src/getting_started/config/settings_base_2.py !}
-    ```
-
-=== "Pydantic v1"
-    !!! info
-        In **Pydantic v1** you would import `BaseSettings` directly from `pydantic` instead of from `pydantic_settings`.
-
-    ```python linenums='1' hl_lines="1 4" title="config.py"
-    {!> docs_src/getting_started/config/settings_base_1.py !}
-    ```
+```python linenums='1' hl_lines="1 4" title="config.py"
+{!> docs_src/getting_started/config/settings_base_2.py !}
+```
 
 When you create an instance of that `Settings` class (in this case, in the `settings` object), Pydantic will read the environment variables in a case-insensitive way. For example, an upper-case variable `APP_NAME` will still be read for the attribute `app_name`.
 

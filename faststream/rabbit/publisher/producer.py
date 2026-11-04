@@ -22,9 +22,8 @@ from faststream.rabbit.schemas import RABBIT_REPLY, RabbitExchange
 if TYPE_CHECKING:
     from types import TracebackType
 
-    import aiormq
     from aio_pika import IncomingMessage, RobustQueue
-    from aio_pika.abc import AbstractIncomingMessage, TimeoutType
+    from aio_pika.abc import AbstractIncomingMessage, PublishResultType, TimeoutType
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
     from fast_depends.library.serializer import SerializerProto
 
@@ -77,7 +76,7 @@ class AioPikaFastProducer(ProducerProto[RabbitPublishCommand]):
     async def publish(
         self,
         cmd: "RabbitPublishCommand",
-    ) -> Optional["aiormq.abc.ConfirmationFrameType"]: ...
+    ) -> "PublishResultType | None": ...
 
     @abstractmethod
     async def request(self, cmd: "RabbitPublishCommand") -> "IncomingMessage": ...
@@ -108,7 +107,7 @@ class FakeAioPikaFastProducer(AioPikaFastProducer):
     async def publish(
         self,
         cmd: "RabbitPublishCommand",
-    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
+    ) -> "PublishResultType | None":
         raise NotImplementedError
 
     @override
@@ -171,7 +170,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
     async def publish(
         self,
         cmd: "RabbitPublishCommand",
-    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
+    ) -> "PublishResultType | None":
         return await self._publish(
             message=cmd.body,
             exchange=cmd.exchange,
@@ -212,7 +211,7 @@ class AioPikaFastProducerImpl(AioPikaFastProducer):
         immediate: bool = False,
         timeout: "TimeoutType" = None,
         **message_options: Unpack["MessageOptions"],
-    ) -> Optional["aiormq.abc.ConfirmationFrameType"]:
+    ) -> "PublishResultType | None":
         message = await AioPikaParser.encode_message(
             message=message,
             serializer=self.serializer,

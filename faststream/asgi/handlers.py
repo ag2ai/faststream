@@ -19,6 +19,18 @@ if TYPE_CHECKING:
 
 
 class HttpHandler:
+    __slots__ = (
+        "__original_func",
+        "description",
+        "fd_config",
+        "func",
+        "include_in_schema",
+        "logger",
+        "methods",
+        "tags",
+        "unique_id",
+    )
+
     def __init__(
         self,
         func: "UserApp",
@@ -87,6 +99,8 @@ class HttpHandler:
 
 
 class GetHandler(HttpHandler):
+    __slots__ = ()
+
     def __init__(
         self,
         func: "UserApp",
@@ -152,6 +166,8 @@ def get(
 
 
 class PostHandler(HttpHandler):
+    __slots__ = ()
+
     def __init__(
         self,
         func: "UserApp",

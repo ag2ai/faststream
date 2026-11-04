@@ -2,7 +2,6 @@ import warnings
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from faststream._internal._compat import DEF_KEY
 from faststream._internal.constants import ContentTypes
 from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs, ref
 from faststream.specification.asyncapi.v2_6_0.schema import (
@@ -269,10 +268,10 @@ def _resolve_msg_payloads(
     Payloads and messages are editable dicts to store schemas for reference in AsyncAPI.
     """
     one_of_list: list[Reference] = []
-    m.payload = move_pydantic_refs(m.payload, DEF_KEY)
+    m.payload = move_pydantic_refs(m.payload, "$defs")
 
-    if DEF_KEY in m.payload:
-        payloads.update(m.payload.pop(DEF_KEY))
+    if "$defs" in m.payload:
+        payloads.update(m.payload.pop("$defs"))
 
     one_of = m.payload.get("oneOf")
     if isinstance(one_of, dict):
@@ -280,11 +279,11 @@ def _resolve_msg_payloads(
             formatted_payload_title = clear_key(p_title)
             # Promote nested Pydantic $defs from each payload into components/schemas
             # so that referenced nested models are available globally.
-            if isinstance(p, dict) and DEF_KEY in p:
-                defs = p.pop(DEF_KEY) or {}
+            if isinstance(p, dict) and "$defs" in p:
+                defs = p.pop("$defs") or {}
                 for def_name, def_schema in defs.items():
                     payloads[clear_key(def_name)] = def_schema
-            payloads.update(p.pop(DEF_KEY, {}))
+            payloads.update(p.pop("$defs", {}))
             if formatted_payload_title not in payloads:
                 payloads[formatted_payload_title] = p
             one_of_list.append(
@@ -302,7 +301,7 @@ def _resolve_msg_payloads(
             one_of_list.append(Reference(**ref("components", "schemas", p_title)))
 
     if not one_of_list:
-        payloads.update(m.payload.pop(DEF_KEY, {}))
+        payloads.update(m.payload.pop("$defs", {}))
         p_title = m.payload.get("title", f"{channel_name}Payload")
         p_title = clear_key(p_title)
         if p_title in payloads and payloads[p_title] != m.payload:

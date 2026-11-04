@@ -1,7 +1,5 @@
 from collections.abc import Awaitable, Callable
-from typing import Any
-
-from typing_extensions import assert_type
+from typing import Any, assert_type
 
 from faststream import BaseMiddleware, ContextRepo
 from faststream.kafka import KafkaPublishCommand

@@ -2,9 +2,9 @@ import logging
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, Self, TypeVar
 
-from typing_extensions import ParamSpec, Self, deprecated
+from typing_extensions import ParamSpec
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
@@ -108,16 +108,6 @@ class StartAbleApplication:
     @property
     def broker(self) -> Optional["BrokerUsecase[Any, Any, Any]"]:
         return self.brokers[0] if self.brokers else None
-
-    @deprecated(
-        "This method is deprecated and will be removed in 0.8.0 Use `add_broker` instead."
-    )
-    def set_broker(self, broker: "BrokerUsecase[Any, Any, Any]") -> None:
-        """Set already existed App object broker.
-
-        Useful then you create/init broker in `on_startup` hook.
-        """
-        self.add_broker(broker)
 
     def add_broker(self, broker: "BrokerUsecase[Any, Any, Any]") -> None:
         if broker in self.brokers:

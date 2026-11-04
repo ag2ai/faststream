@@ -131,9 +131,6 @@ plugins:
       redirect_template: templates/redirect.html
       canonical_version: latest
 
-hooks:
-  - create_api_docs.py
-
 markdown_extensions:
   - toc:
       permalink: "#"             # replace TOC block symbol

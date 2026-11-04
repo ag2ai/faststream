@@ -8,9 +8,6 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
 
-# `public_api/` is a symlink to `api/`: the same symbol pages, kept out of the sitemap
-API_DIRS = ("api", "public_api")
-
 
 def check_site(site_dir: Path) -> None:
     """Exit with a report if the built site breaks an invariant a crawler relies on."""
@@ -75,16 +72,10 @@ def _parse(path: Path) -> _Page:
     return page
 
 
-def _is_guide(path: str) -> bool:
-    return path.endswith("index.html") and path.split("/")[0] not in API_DIRS
-
-
 def _duplicate_titles(pages: dict[str, _Page]) -> list[str]:
-    # symbol pages share titles by design: a class is documented under every
-    # module that re-exports it
     by_title = defaultdict(list)
     for path, page in pages.items():
-        if _is_guide(path):
+        if path.endswith("index.html"):
             by_title[" ".join(page.titles)].append(path)
 
     return [
@@ -100,8 +91,6 @@ def _page_errors(pages: dict[str, _Page]) -> list[str]:
     for path, page in pages.items():
         if path.endswith("index.html") and len(page.canonicals) != 1:
             errors.append(f"{path}: {len(page.canonicals)} canonical links")
-        if path.startswith("public_api/") and "/public_api/" in "".join(page.canonicals):
-            errors.append(f"{path}: canonical must point at the api/ copy")
         description = page.meta.get("description")
         if page.meta.get("og:description", description) != description:
             errors.append(f"{path}: og:description differs from the meta description")
@@ -128,8 +117,6 @@ def _sitemap_errors(site_dir: Path, pages: dict[str, _Page]) -> list[str]:
         path = urlparse(loc).path
         page = path.removeprefix(root)
 
-        if page.split("/")[0] in API_DIRS:
-            errors.append(f"sitemap lists the API reference page {path}")
         if f"{page}index.html" not in pages:
             errors.append(f"sitemap lists {path}, which the build does not contain")
 

@@ -79,7 +79,7 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class NatsBrokerConfig(BrokerConfig):
     js_options: JsInitOptions | dict[str, Any] = field(default_factory=dict)
 

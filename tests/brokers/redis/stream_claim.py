@@ -11,7 +11,6 @@ from redis.exceptions import ResponseError
 from faststream.redis import RedisBroker, StreamSub
 from faststream.redis.annotations import RedisBatchStreamMessage, RedisStreamMessage
 from tests.brokers.base.basic import BaseTestcaseConfig
-from tests.marks import require_redis_v710
 
 
 async def skip_without_claim_support(broker: RedisBroker) -> None:
@@ -50,7 +49,6 @@ class StreamClaimTestcase(BaseTestcaseConfig[Any]):
     """The client class whose `xreadgroup` the unsupported-server test patches; the cluster overrides it."""
 
     @pytest.mark.slow()
-    @require_redis_v710
     async def test_consume_claimed_and_new_in_one_handler(
         self,
         queue: str,
@@ -98,7 +96,6 @@ class StreamClaimTestcase(BaseTestcaseConfig[Any]):
         ]
 
     @pytest.mark.slow()
-    @require_redis_v710
     async def test_batch_metadata_aligned(
         self,
         queue: str,
@@ -159,7 +156,6 @@ class StreamClaimTestcase(BaseTestcaseConfig[Any]):
         assert entries[:2] == [(1, IsInt(ge=300))] * 2
 
     @pytest.mark.slow()
-    @require_redis_v710
     async def test_repeated_get_one_keeps_claiming(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
@@ -199,7 +195,6 @@ class StreamClaimTestcase(BaseTestcaseConfig[Any]):
             assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
-    @require_redis_v710
     async def test_iterator_repeated_messages(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
@@ -237,7 +232,6 @@ class StreamClaimTestcase(BaseTestcaseConfig[Any]):
             assert subscriber.read_id == ">"
 
     @pytest.mark.slow()
-    @require_redis_v710
     async def test_unsupported_server_stops_app(
         self,
         queue: str,
@@ -278,7 +272,6 @@ class StreamClaimTestcase(BaseTestcaseConfig[Any]):
                 fake_app.exit.assert_called_once()
 
     @pytest.mark.slow()
-    @require_redis_v710
     async def test_concurrent_subscriber(
         self,
         queue: str,

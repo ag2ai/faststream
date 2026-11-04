@@ -1,7 +1,7 @@
 import re
 from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
@@ -45,6 +45,8 @@ class TestKafkaBroker(
     broker=KafkaBroker,
 ):
     """A class to test Kafka brokers."""
+
+    __slots__ = ()
 
     @overload
     def __init__(
@@ -137,6 +139,8 @@ class TestKafkaBroker(
 
 
 class FakeConsumer:
+    __slots__ = ()
+
     async def start(self) -> None:
         pass
 
@@ -152,6 +156,14 @@ class FakeProducer(AioKafkaFastProducer):
 
     This class extends AioKafkaFastProducer and is used to simulate Kafka message publishing during tests.
     """
+
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "broker",
+        "brokers",
+        "codec",
+    )
 
     def __init__(
         self,
@@ -350,7 +362,7 @@ async def build_message(
         offset=0,
         headers=encode_headers(headers),
         timestamp_type=1,
-        timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 
@@ -385,7 +397,7 @@ def _build_record(
         offset=0,
         headers=encode_headers(h),
         timestamp_type=1,
-        timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 

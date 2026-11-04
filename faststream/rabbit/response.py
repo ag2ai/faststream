@@ -18,6 +18,12 @@ if TYPE_CHECKING:
 
 
 class RabbitResponse(Response):
+    __slots__ = (
+        "exchange",
+        "message_options",
+        "publish_options",
+    )
+
     def __init__(
         self,
         body: "AioPikaSendableMessage",
@@ -60,6 +66,13 @@ class RabbitResponse(Response):
 
 
 class RabbitPublishCommand(PublishCommand):
+    __slots__ = (
+        "_exchange",
+        "message_options",
+        "publish_options",
+        "timeout",
+    )
+
     def __init__(
         self,
         message: "AioPikaSendableMessage",

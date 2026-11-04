@@ -2,7 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from faststream._internal._compat import PYDANTIC_V2
 from faststream.specification.asyncapi.v2_6_0.schema.tag import Tag
 from faststream.specification.asyncapi.v2_6_0.schema.utils import Reference
 
@@ -24,13 +23,7 @@ class ServerVariable(BaseModel):
     description: str | None = None
     examples: list[str] | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}
 
 
 class Server(BaseModel):
@@ -59,10 +52,4 @@ class Server(BaseModel):
 
     variables: dict[str, ServerVariable | Reference] | None = None
 
-    if PYDANTIC_V2:
-        model_config = {"extra": "allow"}
-
-    else:
-
-        class Config:
-            extra = "allow"
+    model_config = {"extra": "allow"}

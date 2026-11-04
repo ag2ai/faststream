@@ -11,7 +11,6 @@ from faststream.kafka import (
     Topic,
     TopicPartition,
 )
-from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
 from faststream.kafka.helpers.admin import AdminService, CreateResult
 from faststream.kafka.testing import TestKafkaBroker
 from tests.tools import spy_decorator
@@ -346,14 +345,6 @@ def test_route_accepts_topic() -> None:
 
     (subscriber,) = broker.subscribers
     assert subscriber.topics == [Topic("test", num_partitions=3)]  # type: ignore[attr-defined]
-
-
-@pytest.mark.kafka()
-def test_fastapi_router_accepts_topic() -> None:
-    router = FastAPIKafkaRouter()
-    subscriber = router.subscriber(Topic("test", num_partitions=3))
-
-    assert subscriber.topics == [Topic("test", num_partitions=3)]
 
 
 @pytest.mark.kafka()

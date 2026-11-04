@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from typing import Required
 
 from pydantic import AnyHttpUrl
-from typing_extensions import Required, TypedDict
+from typing_extensions import TypedDict
 
 from faststream._internal._compat import EmailStr
 
@@ -12,7 +13,7 @@ class ContactDict(TypedDict, total=False):
     email: EmailStr
 
 
-@dataclass
+@dataclass(slots=True)
 class Contact:
     name: str
     url: AnyHttpUrl | str | None = None

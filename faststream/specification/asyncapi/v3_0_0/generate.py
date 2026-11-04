@@ -4,7 +4,6 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
-from faststream._internal._compat import DEF_KEY
 from faststream._internal.constants import ContentTypes
 from faststream.specification.asyncapi.utils import clear_key, move_pydantic_refs, ref
 from faststream.specification.asyncapi.v3_0_0.schema import (
@@ -331,13 +330,13 @@ def _resolve_msg_payloads(
 ) -> Reference:
     assert isinstance(m.payload, dict)
 
-    m.payload = move_pydantic_refs(m.payload, DEF_KEY)
+    m.payload = move_pydantic_refs(m.payload, "$defs")
 
     message_name = clear_key(message_name)
     channel_name = clear_key(channel_name)
 
-    if DEF_KEY in m.payload:
-        payloads.update(m.payload.pop(DEF_KEY))
+    if "$defs" in m.payload:
+        payloads.update(m.payload.pop("$defs"))
 
     one_of = m.payload.get("oneOf", None)
     if isinstance(one_of, dict):
@@ -346,8 +345,8 @@ def _resolve_msg_payloads(
         for name, payload in one_of.items():
             # Promote nested Pydantic $defs from each payload into components/schemas
             # so that referenced nested models are available globally.
-            if isinstance(payload, dict) and DEF_KEY in payload:
-                defs = payload.pop(DEF_KEY) or {}
+            if isinstance(payload, dict) and "$defs" in payload:
+                defs = payload.pop("$defs") or {}
                 for def_name, def_schema in defs.items():
                     payloads[clear_key(def_name)] = def_schema
             processed_payloads[clear_key(name)] = payload
@@ -361,7 +360,7 @@ def _resolve_msg_payloads(
             **ref("components", "messages", f"{channel_name}:{message_name}"),
         )
 
-    payloads.update(m.payload.pop(DEF_KEY, {}))
+    payloads.update(m.payload.pop("$defs", {}))
     payload_name = m.payload.get("title", f"{channel_name}:{message_name}:Payload")
     payload_name = clear_key(payload_name)
 

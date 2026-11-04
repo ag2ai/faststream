@@ -29,6 +29,8 @@ class MQTTPublisher(ArgsContainer):
     A copy of MQTTRegistrator.publisher(...) arguments for use in MQTTRoute.
     """
 
+    __slots__ = ()
+
     def __init__(
         self,
         topic: str,
@@ -58,6 +60,8 @@ class MQTTPublisher(ArgsContainer):
 
 class MQTTRoute(SubscriberRoute):
     """Class to store delayed MQTTBroker subscriber registration."""
+
+    __slots__ = ()
 
     def __init__(
         self,
@@ -107,6 +111,8 @@ class MQTTRouter(
     BrokerRouter[Message, MQTTBrokerConfig],
 ):
     """Includable to MQTTBroker router."""
+
+    __slots__ = ()
 
     def __init__(
         self,

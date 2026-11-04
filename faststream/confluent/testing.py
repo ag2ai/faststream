@@ -1,6 +1,6 @@
 from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import AsyncMock, MagicMock
 
@@ -44,6 +44,8 @@ class TestKafkaBroker(
     broker=KafkaBroker,
 ):
     """A class to test Kafka brokers."""
+
+    __slots__ = ()
 
     @overload
     def __init__(
@@ -144,6 +146,14 @@ class FakeProducer(AsyncConfluentFastProducer):
 
     This class extends AsyncConfluentFastProducer and is used to simulate Kafka message publishing during tests.
     """
+
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "broker",
+        "brokers",
+        "codec",
+    )
 
     def __init__(
         self,
@@ -291,9 +301,17 @@ class FakeProducer(AsyncConfluentFastProducer):
         )
 
 
-# A `Message` so that the reader of the Kafka fields takes it for the client's own
 class MockConfluentMessage(Message):
-    """The message the in-memory broker delivers, answering as the client's does."""
+    __slots__ = (
+        "_error",
+        "_headers",
+        "_key",
+        "_offset",
+        "_partition",
+        "_raw_msg",
+        "_timestamp",
+        "_topic",
+    )
 
     def __init__(
         self,
@@ -391,7 +409,7 @@ async def build_message(
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
-        timestamp_ms=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp_ms=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 
@@ -422,7 +440,7 @@ def _build_mock_message(
         offset=0,
         partition=partition or 0,
         timestamp_type=1,
-        timestamp_ms=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
+        timestamp_ms=timestamp_ms or int(datetime.now(UTC).timestamp() * 1000),
     )
 
 
