@@ -216,7 +216,11 @@ def get_broker_channels(
                     stacklevel=1,
                 )
 
-            channels[key] = Channel.from_sub(sub, servers=servers)
+            channels[key] = Channel.from_sub(
+                sub,
+                servers=servers,
+                parameters=s.specification.get_path_parameters(sub.address),
+            )
 
     for p in filter(lambda p: p.specification.include_in_schema, broker.publishers):
         for key, pub in p.schema().items():
