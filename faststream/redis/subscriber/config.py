@@ -6,6 +6,7 @@ from faststream._internal.configs import (
     SubscriberUsecaseConfig,
 )
 from faststream._internal.constants import EMPTY
+from faststream._internal.types import MsgType, StreamMsgType
 from faststream.middlewares.acknowledgement.config import AckPolicy
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.schemas import ListSub, PubSub, StreamSub
@@ -19,7 +20,7 @@ class RedisSubscriberSpecificationConfig(SubscriberSpecificationConfig):
 
 
 @dataclass(kw_only=True)
-class RedisSubscriberConfig(SubscriberUsecaseConfig):
+class RedisSubscriberConfig(SubscriberUsecaseConfig[MsgType, StreamMsgType]):
     _outer_config: RedisBrokerConfig
 
     list_sub: ListSub | None = field(default=None, repr=False)

@@ -10,7 +10,7 @@ from typing import (
     cast,
 )
 
-from faststream._internal.types import MsgType
+from faststream._internal.types import MsgType, StreamMsgType
 from faststream.exceptions import IgnoredException, SetupError
 from faststream.specification.asyncapi.utils import to_camelcase
 
@@ -21,15 +21,15 @@ if TYPE_CHECKING:
     from faststream._internal.di import FastDependsConfig
     from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
     from faststream._internal.types import (
-        AsyncCallable,
         AsyncFilter,
         CustomCallable,
+        Decoder,
+        Parser,
         SubscriberMiddleware,
     )
-    from faststream.message import StreamMessage
 
 
-class HandlerItem(Generic[MsgType]):
+class HandlerItem(Generic[MsgType, StreamMsgType]):
     """A class representing handler overloaded item."""
 
     __slots__ = (
@@ -49,8 +49,8 @@ class HandlerItem(Generic[MsgType]):
     item_parser: Optional["CustomCallable"]
     item_decoder: Optional["CustomCallable"]
     # What the last composition made of them.
-    parser: Optional["AsyncCallable"]
-    decoder: Optional["AsyncCallable"]
+    parser: Optional["Parser[MsgType, StreamMsgType]"]
+    decoder: Optional["Decoder[StreamMsgType]"]
 
     def __init__(
         self,
@@ -78,8 +78,8 @@ class HandlerItem(Generic[MsgType]):
     def _setup(
         self,
         *,
-        parser: "AsyncCallable",
-        decoder: "AsyncCallable",
+        parser: "Parser[MsgType, StreamMsgType]",
+        decoder: "Decoder[StreamMsgType]",
         config: "FastDependsConfig",
         broker_dependencies: Sequence["Dependant"],
         _call_decorators: Reversible["Decorator"],
@@ -115,14 +115,14 @@ class HandlerItem(Generic[MsgType]):
         self,
         msg: MsgType,
         cache: dict[Any, Any],
-    ) -> Optional["StreamMessage[MsgType]"]:
+    ) -> StreamMsgType | None:
         """Check is message suite for current filter."""
         if not (parser := self.parser) or not (decoder := self.decoder):
             error_msg = "You should setup `HandlerItem` at first."
             raise SetupError(error_msg)
 
         message = cache[parser] = cast(
-            "StreamMessage[MsgType]",
+            "StreamMsgType",
             cache.get(parser) or await parser(msg),
         )
 
@@ -137,7 +137,7 @@ class HandlerItem(Generic[MsgType]):
     async def call(
         self,
         /,
-        message: "StreamMessage[MsgType]",
+        message: StreamMsgType,
         _extra_middlewares: Iterable["SubscriberMiddleware[Any]"],
     ) -> Any:
         """Execute wrapped handler with consume middlewares."""
@@ -162,8 +162,8 @@ class HandlerItem(Generic[MsgType]):
             return result
 
 
-class CallsCollection(UserList[HandlerItem[MsgType]]):
-    def add_call(self, call: "HandlerItem[MsgType]") -> None:
+class CallsCollection(UserList[HandlerItem[MsgType, StreamMsgType]]):
+    def add_call(self, call: "HandlerItem[MsgType, StreamMsgType]") -> None:
         self.data.append(call)
 
     @property

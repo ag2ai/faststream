@@ -184,13 +184,17 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             async for raw_message in queue_iter:
                 raw_message = cast("IncomingMessage", raw_message)
 
-                msg: RabbitMessage = await process_msg(  # type: ignore[assignment]
-                    msg=raw_message,
-                    middlewares=(
-                        m(raw_message, context=context) for m in self._broker_middlewares
+                msg = cast(
+                    "RabbitMessage",
+                    await process_msg(
+                        msg=raw_message,
+                        middlewares=(
+                            m(raw_message, context=context)
+                            for m in self._broker_middlewares
+                        ),
+                        parser=async_parser,
+                        decoder=async_decoder,
                     ),
-                    parser=async_parser,
-                    decoder=async_decoder,
                 )
                 yield msg  # ruff: ignore[yield-in-context-manager-in-async-generator]
 
