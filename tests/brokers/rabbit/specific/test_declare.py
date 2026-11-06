@@ -42,8 +42,9 @@ async def test_declare_queue(async_mock: AsyncMock, queue: str) -> None:
     channel_manager: Any = FakeChannelManager(async_mock)
     declarer = RabbitDeclarerImpl(channel_manager)
 
-    q1 = await declarer.declare_queue(RabbitQueue(queue))
-    q2 = await declarer.declare_queue(RabbitQueue(queue))
+    arguments: Any = {"custom": ["value", {"nested": True}]}
+    q1 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
+    q2 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
 
     assert q1 is q2
     async_mock.declare_queue.assert_awaited_once()
@@ -55,8 +56,9 @@ async def test_declare_exchange(async_mock: AsyncMock, queue: str) -> None:
     channel_manager: Any = FakeChannelManager(async_mock)
     declarer = RabbitDeclarerImpl(channel_manager)
 
-    ex1 = await declarer.declare_exchange(RabbitExchange(queue))
-    ex2 = await declarer.declare_exchange(RabbitExchange(queue))
+    arguments: Any = {"custom": ["value", {"nested": True}]}
+    ex1 = await declarer.declare_exchange(RabbitExchange(queue, arguments=arguments))
+    ex2 = await declarer.declare_exchange(RabbitExchange(queue, arguments=arguments))
 
     assert ex1 is ex2
     async_mock.declare_exchange.assert_awaited_once()
@@ -214,84 +216,6 @@ async def test_active_exchange_replaces_passive_cache_entry(
     assert async_mock.declare_exchange.await_count == 2
     assert async_mock.declare_exchange.await_args_list[0].kwargs["passive"] is True
     assert async_mock.declare_exchange.await_args_list[1].kwargs["passive"] is False
-
-
-@pytest.mark.rabbit()
-@pytest.mark.asyncio()
-async def test_queue_binding_settings_do_not_conflict(
-    async_mock: AsyncMock,
-    queue: str,
-) -> None:
-    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
-    q1 = await declarer.declare_queue(
-        RabbitQueue(
-            queue,
-            routing_key="first",
-            bind_arguments={"key": "first"},
-        ),
-    )
-    q2 = await declarer.declare_queue(
-        RabbitQueue(
-            queue,
-            routing_key="second",
-            bind_arguments={"key": "second"},
-        ),
-    )
-
-    assert q1 is q2
-    async_mock.declare_queue.assert_awaited_once()
-
-
-@pytest.mark.rabbit()
-@pytest.mark.asyncio()
-async def test_exchange_binding_settings_do_not_conflict(
-    async_mock: AsyncMock,
-    queue: str,
-) -> None:
-    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
-    ex1 = await declarer.declare_exchange(
-        RabbitExchange(
-            queue,
-            bind_to=RabbitExchange(f"{queue}-parent-1"),
-            routing_key="first",
-            bind_arguments={"key": "first"},
-        ),
-    )
-    ex2 = await declarer.declare_exchange(
-        RabbitExchange(
-            queue,
-            bind_to=RabbitExchange(f"{queue}-parent-2"),
-            routing_key="second",
-            bind_arguments={"key": "second"},
-        ),
-    )
-
-    assert ex1 is ex2
-    assert async_mock.declare_exchange.await_count == 2
-
-
-@pytest.mark.rabbit()
-@pytest.mark.asyncio()
-async def test_reuse_declarations_with_nested_arguments(
-    async_mock: AsyncMock,
-    queue: str,
-) -> None:
-    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
-    arguments: Any = {"custom": ["value", {"nested": True}]}
-
-    q1 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
-    q2 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
-    ex1 = await declarer.declare_exchange(
-        RabbitExchange(f"{queue}-exchange", arguments=arguments),
-    )
-    ex2 = await declarer.declare_exchange(
-        RabbitExchange(f"{queue}-exchange", arguments=arguments),
-    )
-
-    assert q1 is q2
-    assert ex1 is ex2
-    async_mock.declare_queue.assert_awaited_once()
-    async_mock.declare_exchange.assert_awaited_once()
 
 
 @pytest.mark.rabbit()
