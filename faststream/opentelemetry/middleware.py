@@ -159,6 +159,8 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
     # `__settings_provider` is name-mangled here exactly as the attribute is.
     __slots__ = (
         "__settings_provider",
+        "_after_processed_requested",
+        "_consume_finished",
         "_current_span",
         "_metrics",
         "_origin_context",
@@ -184,6 +186,8 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         self._tracer = tracer
         self._metrics = metrics_container
         self._current_span: Span | None = None
+        self._consume_finished = False
+        self._after_processed_requested = False
         self._origin_context: Context | None = None
         self._scope_tokens_stack = ExitStack()
         self.__settings_provider = settings_provider_factory(msg)
@@ -328,12 +332,21 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
             raise
 
         finally:
-            duration = time.perf_counter() - start_time
-            msg_count = trace_attributes.get(
-                SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT,
-                1,
-            )
-            self._metrics.observe_consume(metrics_attributes, duration, msg_count)
+            try:
+                duration = time.perf_counter() - start_time
+                msg_count = trace_attributes.get(
+                    SpanAttributes.MESSAGING_BATCH_MESSAGE_COUNT,
+                    1,
+                )
+                self._metrics.observe_consume(metrics_attributes, duration, msg_count)
+            finally:
+                self._consume_finished = True
+                if (
+                    self._after_processed_requested
+                    and self._current_span is not None
+                    and self._current_span.is_recording()
+                ):
+                    self._current_span.end()
 
         return result
 
@@ -343,7 +356,12 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         exc_val: BaseException | None = None,
         exc_tb: Optional["TracebackType"] = None,
     ) -> bool | None:
-        if self._current_span and self._current_span.is_recording():
+        self._after_processed_requested = True
+        if (
+            self._consume_finished
+            and self._current_span
+            and self._current_span.is_recording()
+        ):
             self._current_span.end()
         return False
 
