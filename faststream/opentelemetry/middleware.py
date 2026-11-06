@@ -341,12 +341,7 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
                 self._metrics.observe_consume(metrics_attributes, duration, msg_count)
             finally:
                 self._consume_finished = True
-                if (
-                    self._after_processed_requested
-                    and self._current_span is not None
-                    and self._current_span.is_recording()
-                ):
-                    self._current_span.end()
+                self._end_span_if_ready()
 
         return result
 
@@ -357,13 +352,17 @@ class BaseTelemetryMiddleware(BaseMiddleware[PublishCommandType]):
         exc_tb: Optional["TracebackType"] = None,
     ) -> bool | None:
         self._after_processed_requested = True
+        self._end_span_if_ready()
+        return False
+
+    def _end_span_if_ready(self) -> None:
         if (
             self._consume_finished
-            and self._current_span
+            and self._after_processed_requested
+            and self._current_span is not None
             and self._current_span.is_recording()
         ):
             self._current_span.end()
-        return False
 
 
 def _get_meter(
