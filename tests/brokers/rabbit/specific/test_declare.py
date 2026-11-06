@@ -3,7 +3,14 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue
+from faststream.exceptions import SetupError
+from faststream.rabbit import (
+    ExchangeType,
+    RabbitBroker,
+    RabbitExchange,
+    RabbitQueue,
+)
+from faststream.rabbit.helpers.channel_manager import ChannelManager
 from faststream.rabbit.helpers.declarer import RabbitDeclarerImpl
 
 if TYPE_CHECKING:
@@ -12,9 +19,15 @@ if TYPE_CHECKING:
     from faststream.rabbit.schemas import Channel
 
 
-class FakeChannelManager:
+class FakeChannelManager(ChannelManager):
     def __init__(self, async_mock: AsyncMock) -> None:
         self.async_mock = async_mock
+
+    def connect(self, connection: "aio_pika.RobustConnection") -> None:
+        raise NotImplementedError
+
+    def disconnect(self) -> None:
+        raise NotImplementedError
 
     async def get_channel(
         self,
@@ -29,8 +42,9 @@ async def test_declare_queue(async_mock: AsyncMock, queue: str) -> None:
     channel_manager: Any = FakeChannelManager(async_mock)
     declarer = RabbitDeclarerImpl(channel_manager)
 
-    q1 = await declarer.declare_queue(RabbitQueue(queue))
-    q2 = await declarer.declare_queue(RabbitQueue(queue))
+    arguments: Any = {"custom": ["value", {"nested": True}]}
+    q1 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
+    q2 = await declarer.declare_queue(RabbitQueue(queue, arguments=arguments))
 
     assert q1 is q2
     async_mock.declare_queue.assert_awaited_once()
@@ -42,11 +56,166 @@ async def test_declare_exchange(async_mock: AsyncMock, queue: str) -> None:
     channel_manager: Any = FakeChannelManager(async_mock)
     declarer = RabbitDeclarerImpl(channel_manager)
 
-    ex1 = await declarer.declare_exchange(RabbitExchange(queue))
-    ex2 = await declarer.declare_exchange(RabbitExchange(queue))
+    arguments: Any = {"custom": ["value", {"nested": True}]}
+    ex1 = await declarer.declare_exchange(RabbitExchange(queue, arguments=arguments))
+    ex2 = await declarer.declare_exchange(RabbitExchange(queue, arguments=arguments))
 
     assert ex1 is ex2
     async_mock.declare_exchange.assert_awaited_once()
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    ("settings", "conflicting_field"),
+    (
+        pytest.param({"durable": False}, "durable", id="durable"),
+        pytest.param({"exclusive": True}, "exclusive", id="exclusive"),
+        pytest.param({"auto_delete": True}, "auto_delete", id="auto-delete"),
+        pytest.param(
+            {"arguments": {"custom": ["value"]}},
+            "arguments",
+            id="arguments",
+        ),
+    ),
+)
+async def test_reject_conflicting_queue_declaration(
+    async_mock: AsyncMock,
+    queue: str,
+    settings: dict[str, Any],
+    conflicting_field: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    await declarer.declare_queue(RabbitQueue(queue))
+
+    with pytest.raises(
+        SetupError,
+        match=rf"RabbitQueue .*{conflicting_field}",
+    ):
+        await declarer.declare_queue(RabbitQueue(queue, **settings))
+
+    async_mock.declare_queue.assert_awaited_once()
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    ("settings", "conflicting_field"),
+    (
+        pytest.param(
+            {"type": ExchangeType.FANOUT},
+            "type",
+            id="type",
+        ),
+        pytest.param({"durable": False}, "durable", id="durable"),
+        pytest.param({"auto_delete": True}, "auto_delete", id="auto-delete"),
+        pytest.param(
+            {"arguments": {"custom": ["value"]}},
+            "arguments",
+            id="arguments",
+        ),
+    ),
+)
+async def test_reject_conflicting_exchange_declaration(
+    async_mock: AsyncMock,
+    queue: str,
+    settings: dict[str, Any],
+    conflicting_field: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    await declarer.declare_exchange(RabbitExchange(queue))
+
+    with pytest.raises(
+        SetupError,
+        match=rf"RabbitExchange .*{conflicting_field}",
+    ):
+        await declarer.declare_exchange(RabbitExchange(queue, **settings))
+
+    async_mock.declare_exchange.assert_awaited_once()
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_passive_queue_access_ignores_declaration_settings(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    q1 = await declarer.declare_queue(RabbitQueue(queue))
+    q2 = await declarer.declare_queue(
+        RabbitQueue(queue, durable=False),
+        declare=False,
+    )
+
+    assert q1 is q2
+    async_mock.declare_queue.assert_awaited_once()
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_passive_exchange_access_ignores_declaration_settings(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    ex1 = await declarer.declare_exchange(
+        RabbitExchange(queue, type=ExchangeType.TOPIC),
+    )
+    ex2 = await declarer.declare_exchange(
+        RabbitExchange(queue),
+        declare=False,
+    )
+
+    assert ex1 is ex2
+    async_mock.declare_exchange.assert_awaited_once()
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_active_queue_replaces_passive_cache_entry(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    passive_object = object()
+    active_object = object()
+    async_mock.declare_queue.side_effect = (passive_object, active_object)
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+
+    q1 = await declarer.declare_queue(RabbitQueue(queue), declare=False)
+    active_queue = RabbitQueue(queue, durable=False)
+    q2 = await declarer.declare_queue(active_queue)
+    q3 = await declarer.declare_queue(active_queue)
+
+    assert q1 is passive_object
+    assert q2 is active_object
+    assert q3 is active_object
+    assert async_mock.declare_queue.await_count == 2
+    assert async_mock.declare_queue.await_args_list[0].kwargs["passive"] is True
+    assert async_mock.declare_queue.await_args_list[1].kwargs["passive"] is False
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_active_exchange_replaces_passive_cache_entry(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    passive_object = object()
+    active_object = object()
+    async_mock.declare_exchange.side_effect = (passive_object, active_object)
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+
+    ex1 = await declarer.declare_exchange(RabbitExchange(queue), declare=False)
+    active_exchange = RabbitExchange(queue, type=ExchangeType.TOPIC)
+    ex2 = await declarer.declare_exchange(active_exchange)
+    ex3 = await declarer.declare_exchange(active_exchange)
+
+    assert ex1 is passive_object
+    assert ex2 is active_object
+    assert ex3 is active_object
+    assert async_mock.declare_exchange.await_count == 2
+    assert async_mock.declare_exchange.await_args_list[0].kwargs["passive"] is True
+    assert async_mock.declare_exchange.await_args_list[1].kwargs["passive"] is False
 
 
 @pytest.mark.rabbit()
@@ -69,6 +238,82 @@ async def test_declare_nested_exchange_cash_nested(
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
+async def test_reject_conflicting_cached_parent_exchange(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    parent = RabbitExchange(f"{queue}-parent")
+    await declarer.declare_exchange(RabbitExchange(queue, bind_to=parent))
+
+    with pytest.raises(SetupError, match=r"RabbitExchange .*durable"):
+        await declarer.declare_exchange(
+            RabbitExchange(parent.name, durable=False),
+        )
+
+    assert async_mock.declare_exchange.await_count == 2
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_reject_conflicting_nested_queue_arguments(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    first: Any = {"custom": ["first"]}
+    second: Any = {"custom": ["second"]}
+    await declarer.declare_queue(
+        RabbitQueue(queue, arguments=first),
+    )
+
+    with pytest.raises(SetupError, match=r"RabbitQueue .*arguments"):
+        await declarer.declare_queue(
+            RabbitQueue(queue, arguments=second),
+        )
+
+    async_mock.declare_queue.assert_awaited_once()
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_reject_conflicting_nested_exchange_arguments(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    await declarer.declare_exchange(
+        RabbitExchange(queue, arguments={"custom": ["first"]}),
+    )
+
+    with pytest.raises(SetupError, match=r"RabbitExchange .*arguments"):
+        await declarer.declare_exchange(
+            RabbitExchange(queue, arguments={"custom": ["second"]}),
+        )
+
+    async_mock.declare_exchange.assert_awaited_once()
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
+async def test_disconnect_clears_declaration_settings(
+    async_mock: AsyncMock,
+    queue: str,
+) -> None:
+    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    await declarer.declare_queue(RabbitQueue(queue))
+
+    with pytest.raises(SetupError):
+        await declarer.declare_queue(RabbitQueue(queue, durable=False))
+
+    declarer.disconnect()
+    await declarer.declare_queue(RabbitQueue(queue, durable=False))
+
+    assert async_mock.declare_queue.await_count == 2
+
+
+@pytest.mark.rabbit()
+@pytest.mark.asyncio()
 async def test_publisher_declare(async_mock: AsyncMock, queue: str) -> None:
     channel_manager: Any = FakeChannelManager(async_mock)
     declarer = RabbitDeclarerImpl(channel_manager)
@@ -83,5 +328,7 @@ async def test_publisher_declare(async_mock: AsyncMock, queue: str) -> None:
 
     await broker.start()
 
-    assert RabbitQueue.validate(queue) not in declarer._queues
-    assert RabbitExchange.validate(queue) in declarer._exchanges
+    async_mock.declare_queue.assert_awaited_once()
+    assert async_mock.declare_queue.await_args.kwargs["name"] == "amq.rabbitmq.reply-to"
+    async_mock.declare_exchange.assert_awaited_once()
+    assert async_mock.declare_exchange.await_args.kwargs["name"] == queue
