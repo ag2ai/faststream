@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Callable, Coroutine
+from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine
 from contextlib import suppress
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Optional, cast
