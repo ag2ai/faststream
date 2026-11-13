@@ -1,3 +1,5 @@
+from typing import Any
+
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
 from faststream._internal.utils.path import Address
 from faststream.kafka.configs import KafkaBrokerConfig
@@ -36,6 +38,20 @@ class KafkaSubscriberSpecification(
             )
 
         return list(dict.fromkeys(topics))
+
+    def get_path_parameters(self, address: str | None) -> dict[str, dict[str, Any]]:
+        if not self.config.pattern:
+            return {}
+
+        pattern_address = (
+            Address(self.config.pattern, KAFKA_ADDRESS_SYNTAX)
+            .add_prefix(self._outer_config.prefix)
+            .template
+        )
+        if address != pattern_address:
+            return {}
+
+        return super().get_path_parameters(address)
 
     @property
     def channel_labels(self) -> list[str]:

@@ -1,3 +1,7 @@
+from typing import Any
+
+from typing_extensions import override
+
 from faststream._internal.endpoint.subscriber import SubscriberSpecification
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.specification.asyncapi.utils import resolve_payloads
@@ -25,6 +29,10 @@ class KafkaSubscriberSpecification(
         topics.extend(f"{prefix}{p.topic}" for p in self.config.partitions)
 
         return list(dict.fromkeys(topics))
+
+    @override
+    def get_path_parameters(self, address: str | None) -> dict[str, dict[str, Any]]:
+        return {}
 
     @property
     def channel_labels(self) -> list[str]:

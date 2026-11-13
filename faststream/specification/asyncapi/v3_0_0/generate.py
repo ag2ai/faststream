@@ -226,7 +226,11 @@ def get_broker_channels(
         sub_title = sub.specification.config.title_ if len(sub_schema) == 1 else None
 
         for sub_key, sub_channel in sub_schema.items():
-            channel_obj = Channel.from_sub(sub_channel, servers=channel_servers)
+            channel_obj = Channel.from_sub(
+                sub_channel,
+                servers=channel_servers,
+                parameters=sub.specification.get_path_parameters(sub_channel.address),
+            )
 
             channel_key = clear_key(sub_key)
             if channel_key in channels:

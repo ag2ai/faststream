@@ -628,3 +628,21 @@ By default, the context is available in the same place as `Depends`:
 
 !!! tip
     You can get access to the **Context** in [Middlewares](middlewares/index.md#context-access){.internal-link} as `#!python self.context`
+
+## Path Parameter Metadata
+
+For subscriber addresses with `{name}` placeholders, declare the matching handler argument with `Path`. The annotation supplies the parameter schema or enum; `description` and `examples` are included where supported by the selected AsyncAPI version. AsyncAPI 2.6 places the schema (including a declared default) under `schema`, while 3.0 uses top-level `enum`, `default`, `description`, and `examples` fields.
+
+```python
+from typing import Literal
+
+from faststream import Path
+
+@broker.subscriber("orders.{status}")
+async def handle(
+    status: Literal["created", "shipped"] = Path(
+        description="Current order status",
+        examples=["created"],
+    ),
+) -> None: ...
+```

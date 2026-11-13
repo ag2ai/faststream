@@ -15,6 +15,9 @@
           "$ref": "#/components/messages/test.%7Bpath%7D:Handle:SubscribeMessage"
         }
       },
+      "parameters": {
+        "path": {}
+      },
       "servers": [
         {
           "$ref": "#/servers/development"

@@ -9,6 +9,9 @@
           "method": "psubscribe"
         }
       },
+      "parameters": {
+        "path": {}
+      },
       "publish": {
         "message": {
           "$ref": "#/components/messages/test.%7Bpath%7D:Handle:Message"
