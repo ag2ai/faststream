@@ -35,7 +35,7 @@ class SubscriberSpecification(
         self,
         _outer_config: "T_BrokerConfig",
         specification_config: "T_SpecificationConfig",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[Any, Any]",
     ) -> None:
         super().__init__(_outer_config, specification_config)
         self.calls = calls

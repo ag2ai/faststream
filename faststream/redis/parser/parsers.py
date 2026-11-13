@@ -1,17 +1,24 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Generic, Optional, Protocol, TypeVar
 
 from typing_extensions import override
 
 from faststream._internal._compat import dump_json, json_loads
 from faststream._internal.basic_types import DecodedMessage
 from faststream._internal.constants import EMPTY, ContentTypes
+from faststream._internal.types import StreamMsgType
 from faststream._internal.utils.path import match_path
 from faststream.message import decode_message, gen_cor_id
 from faststream.redis.message import (
     FAKE_CONSUMER,
+    BaseRedisMsgType,
+    BatchListMessage,
+    BatchStreamMessage,
     ConsumerProtocol,
+    DefaultListMessage,
+    DefaultStreamMessage,
+    PubSubMessage,
     RedisBatchListMessage,
     RedisBatchStreamMessage,
     RedisChannelMessage,
@@ -23,8 +30,6 @@ from faststream.redis.message import (
 
 if TYPE_CHECKING:
     from re import Pattern
-
-    from faststream.message import StreamMessage
 
     from .message import MessageFormat
 
@@ -41,13 +46,13 @@ class SimpleParserConfig:
     message_format: type["MessageFormat"]
 
 
-class SimpleParser:
+class SimpleParser(Generic[BaseRedisMsgType, StreamMsgType]):
     __slots__ = (
         "config",
         "pattern",
     )
 
-    msg_class: type["StreamMessage[Any]"]
+    msg_class: type["StreamMsgType"]
 
     def __init__(
         self,
@@ -59,8 +64,8 @@ class SimpleParser:
 
     async def parse_message(
         self,
-        message: Mapping[str, Any],
-    ) -> "StreamMessage[Mapping[str, Any]]":
+        message: BaseRedisMsgType,
+    ) -> "StreamMsgType":
         data, headers, batch_headers = self._parse_data(message)
 
         id_ = gen_cor_id()
@@ -85,7 +90,7 @@ class SimpleParser:
         self,
         *args: Any,
         **kwargs: Any,
-    ) -> "StreamMessage[Mapping[str, Any]]":
+    ) -> "StreamMsgType":
         return self.msg_class(*args, **kwargs)
 
     def _parse_data(
@@ -96,24 +101,24 @@ class SimpleParser:
 
     async def decode_message(  # ruff: ignore[no-self-use]
         self,
-        msg: "StreamMessage[Any]",
+        msg: "StreamMsgType",
     ) -> DecodedMessage:
         return decode_message(msg)
 
 
-class RedisPubSubParser(SimpleParser):
+class RedisPubSubParser(SimpleParser[PubSubMessage, RedisChannelMessage]):
     __slots__ = ()
 
     msg_class = RedisChannelMessage
 
 
-class RedisListParser(SimpleParser):
+class RedisListParser(SimpleParser[DefaultListMessage, RedisListMessage]):
     __slots__ = ()
 
     msg_class = RedisListMessage
 
 
-class RedisBatchListParser(SimpleParser):
+class RedisBatchListParser(SimpleParser[BatchListMessage, RedisBatchListMessage]):
     __slots__ = ()
 
     msg_class = RedisBatchListMessage
@@ -142,10 +147,12 @@ class RedisBatchListParser(SimpleParser):
         )
 
 
-class _StreamParser(SimpleParser):
-    __slots__ = ("consumer", "group")
+_RawStreamT = TypeVar("_RawStreamT", bound=DefaultStreamMessage | BatchStreamMessage)
+_RedisStreamT = TypeVar("_RedisStreamT", bound="_RedisStreamMessageMixin[Any]")
 
-    msg_class: type["_RedisStreamMessageMixin[Any]"]
+
+class _StreamParser(SimpleParser[_RawStreamT, _RedisStreamT]):
+    __slots__ = ("consumer", "group")
 
     def __init__(
         self,
@@ -161,13 +168,11 @@ class _StreamParser(SimpleParser):
         self.group = group
 
     @override
-    def _build_message(
-        self, *args: Any, **kwargs: Any
-    ) -> "StreamMessage[Mapping[str, Any]]":
+    def _build_message(self, *args: Any, **kwargs: Any) -> _RedisStreamT:
         return self.msg_class(*args, consumer=self.consumer, group=self.group, **kwargs)
 
 
-class RedisStreamParser(_StreamParser):
+class RedisStreamParser(_StreamParser[DefaultStreamMessage, RedisStreamMessage]):
     __slots__ = ()
 
     msg_class = RedisStreamMessage
@@ -183,7 +188,7 @@ class RedisStreamParser(_StreamParser):
         )
 
 
-class RedisBatchStreamParser(_StreamParser):
+class RedisBatchStreamParser(_StreamParser[BatchStreamMessage, RedisBatchStreamMessage]):
     __slots__ = ()
 
     msg_class = RedisBatchStreamMessage

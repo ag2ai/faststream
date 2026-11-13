@@ -298,7 +298,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber": ...
+    ) -> "LogicSubscriber[Any, Any]": ...
 
     @overload
     def subscriber(
@@ -321,7 +321,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber": ...
+    ) -> "LogicSubscriber[Any, Any]": ...
 
     @overload
     def subscriber(
@@ -344,7 +344,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber": ...
+    ) -> "LogicSubscriber[Any, Any]": ...
 
     @override
     def subscriber(
@@ -367,7 +367,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber":
+    ) -> "LogicSubscriber[Any, Any]":
         """Subscribe a handler to a RabbitMQ queue.
 
         Args:

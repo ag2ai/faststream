@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic
 import anyio
 from typing_extensions import override
 
-from faststream._internal.types import MsgType
+from faststream._internal.types import MsgType, MsgTypeWithFallback, StreamMsgType
 
 from .supervisor import TaskCallbackSupervisor
 from .usecase import SubscriberUsecase
@@ -14,7 +14,10 @@ if TYPE_CHECKING:
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
 
-class TasksMixin(SubscriberUsecase[Any]):
+class TasksMixin(
+    SubscriberUsecase[MsgTypeWithFallback, StreamMsgType],
+    Generic[MsgTypeWithFallback, StreamMsgType],
+):
     __slots__ = ("tasks",)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -53,7 +56,9 @@ class TasksMixin(SubscriberUsecase[Any]):
         self.tasks.clear()
 
 
-class ConcurrentMixin(TasksMixin, Generic[MsgType]):
+class ConcurrentMixin(
+    TasksMixin[MsgType, StreamMsgType], Generic[MsgType, StreamMsgType]
+):
     """Unslotted on purpose.
 
     Every `Concurrent<X>Subscriber` mixes this into a broker's own slotted
