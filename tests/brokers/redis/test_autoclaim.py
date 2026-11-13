@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import suppress
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -90,12 +91,11 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             # First, create a pending message
             await br.publish({"data": "pending"}, stream=queue)
             with suppress(Exception):
-                await br._connection.xgroup_create(
-                    queue, "idle_group", id="0", mkstream=True
-                )
+                client = await br.connect()
+                await client.xgroup_create(queue, "idle_group", id="0", mkstream=True)
 
             # Read it but don't ack to make it pending
-            await br._connection.xreadgroup(
+            await client.xreadgroup(
                 groupname="idle_group",
                 consumername="temp_consumer",
                 streams={queue: ">"},
@@ -176,12 +176,11 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             await br.publish({"data": "msg2"}, stream=queue)
 
             with suppress(Exception):
-                await br._connection.xgroup_create(
-                    queue, "iter_group", id="0", mkstream=True
-                )
+                client = await br.connect()
+                await client.xgroup_create(queue, "iter_group", id="0", mkstream=True)
 
             # Read them but don't ack
-            await br._connection.xreadgroup(
+            await client.xreadgroup(
                 groupname="iter_group",
                 consumername="temp",
                 streams={queue: ">"},
@@ -241,7 +240,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                 min_idle_time=1,
             ),
         )
-        async def handler(msg: list) -> None:
+        async def handler(msg: list[Any]) -> None:
             mock(msg)
             event.set()
 
@@ -250,12 +249,11 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             await br.publish({"data": "batch_msg"}, stream=queue)
 
             with suppress(Exception):
-                await br._connection.xgroup_create(
-                    queue, "batch_group", id="0", mkstream=True
-                )
+                client = await br.connect()
+                await client.xgroup_create(queue, "batch_group", id="0", mkstream=True)
 
             # Read but don't ack (before starting subscriber)
-            await br._connection.xreadgroup(
+            await client.xreadgroup(
                 groupname="batch_group",
                 consumername="temp",
                 streams={queue: ">"},
@@ -307,12 +305,11 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             msg_id = await br.publish({"data": "will_delete"}, stream=queue)
 
             with suppress(Exception):
-                await br._connection.xgroup_create(
-                    queue, "delete_group", id="0", mkstream=True
-                )
+                client = await br.connect()
+                await client.xgroup_create(queue, "delete_group", id="0", mkstream=True)
 
             # Read to make it pending
-            await br._connection.xreadgroup(
+            await client.xreadgroup(
                 groupname="delete_group",
                 consumername="temp",
                 streams={queue: ">"},
@@ -320,7 +317,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             )
 
             # Delete the message from stream
-            await br._connection.xdel(queue, msg_id)
+            await client.xdel(queue, msg_id)
 
             await asyncio.sleep(0.1)
 
@@ -360,12 +357,11 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
                 msg_ids.append(msg_id)
 
             with suppress(Exception):
-                await br._connection.xgroup_create(
-                    queue, "circular_group", id="0", mkstream=True
-                )
+                client = await br.connect()
+                await client.xgroup_create(queue, "circular_group", id="0", mkstream=True)
 
             # Read all messages with consumer1 but don't ack - making them pending
-            await br._connection.xreadgroup(
+            await client.xreadgroup(
                 groupname="circular_group",
                 consumername="consumer1",
                 streams={queue: ">"},
@@ -390,7 +386,7 @@ class TestAutoClaim(RedisTestcaseConfig, BrokerRealConsumeTestcase):
             for _ in range(5):
                 msg = await subscriber.get_one(timeout=1)
                 if msg:
-                    decoded = await msg.decode()
+                    decoded: Any = await msg.decode()
                     claimed_messages_first_pass.append(decoded)
                     mock(f"first_pass_{decoded['data']}")
 

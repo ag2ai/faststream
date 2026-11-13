@@ -8,6 +8,8 @@ if TYPE_CHECKING:
 
 
 class ProducerState(Protocol):
+    __slots__ = ()
+
     producer: "AIOKafkaProducer"
 
     @property

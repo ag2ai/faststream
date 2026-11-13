@@ -2,18 +2,17 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
-
 
 class BrokerConnectionTestcase:
-    broker: type[BrokerUsecase]
+    broker: Any
 
     def get_broker_args(self, settings: Any) -> dict[str, Any]:
         return {}
 
     @pytest.mark.asyncio()
-    async def ping(self, broker) -> bool:
-        return await broker.ping(timeout=5.0)
+    async def ping(self, broker: Any) -> bool:
+        is_alive: bool = await broker.ping(timeout=5.0)
+        return is_alive
 
     @pytest.mark.asyncio()
     async def test_stop_before_start(self) -> None:

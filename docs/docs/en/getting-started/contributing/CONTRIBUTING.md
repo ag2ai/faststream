@@ -38,7 +38,7 @@ Build faststream image and install all dependencies:
 just init
 ```
 
-By default, this builds Python 3.10. If you need another version, pass it as an argument to the just command:
+By default, this builds Python 3.11. If you need another version, pass it as an argument to the just command:
 
 ```bash
 just init 3.11.5

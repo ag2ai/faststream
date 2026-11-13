@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 
 
 class KVBucketDeclarer:
+    __slots__ = (
+        "__state",
+        "buckets",
+    )
+
     buckets: dict[str, "KeyValue"]
 
     def __init__(self) -> None:

@@ -22,6 +22,15 @@ if TYPE_CHECKING:
 
 
 class ZmqttBaseProducer(ProducerProto[MQTTPublishCommand]):
+    __slots__ = (
+        "_client",
+        "_decoder",
+        "_parser",
+        "codec",
+        "id_generator",
+        "serializer",
+    )
+
     _parser: "AsyncCallable"
     _decoder: "AsyncCallable"
 
@@ -83,6 +92,8 @@ class ZmqttProducerV311(ZmqttBaseProducer):
     an explicit reply_to topic provided by the caller.
     """
 
+    __slots__ = ()
+
     def __init__(
         self,
         parser: Optional["CustomCallable"],
@@ -138,6 +149,8 @@ class ZmqttProducerV311(ZmqttBaseProducer):
 
 class ZmqttProducerV5(ZmqttBaseProducer):
     """Producer for MQTT 5.0 — publishes with PublishProperties."""
+
+    __slots__ = ()
 
     def __init__(
         self,
@@ -205,6 +218,8 @@ class ZmqttProducerV5(ZmqttBaseProducer):
 
 
 class ZmqttFakeProducer(ZmqttBaseProducer):
+    __slots__ = ()
+
     def __init__(self) -> None: ...
     def __bool__(self) -> bool:
         return False

@@ -37,6 +37,8 @@ class ObjStoreWatchSubscriber(
     TasksMixin,
     LogicSubscriber[ObjectInfo],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
     _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
 
@@ -82,12 +84,12 @@ class ObjStoreWatchSubscriber(
         msg = None
         sleep_interval = timeout / 10
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
@@ -126,13 +128,13 @@ class ObjStoreWatchSubscriber(
         timeout = 5
         sleep_interval = timeout / 10
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
             msg = None
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
                 ) is None:
                     await anyio.sleep(sleep_interval)
@@ -174,7 +176,7 @@ class ObjStoreWatchSubscriber(
 
         self.subscription = UnsubscribeAdapter["ObjectStore.ObjectWatcher"](obj_watch)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
 
         while self.running:
             with suppress(TimeoutError):
@@ -187,6 +189,7 @@ class ObjStoreWatchSubscriber(
                     with context.scope(OBJECT_STORAGE_CONTEXT_KEY, self.bucket):
                         await self.consume(message)
 
+    @override
     def _make_response_publisher(
         self,
         message: "StreamMessage[ObjectInfo]",

@@ -12,7 +12,7 @@ search:
 
 The **Topic** Exchange is a powerful *RabbitMQ* routing tool. This type of `exchange` sends messages to the queue in accordance with the *pattern* specified when they are connected to `exchange` and the `routing_key` of the message itself.
 
-At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](../direct#scaling){.internal-link}).
+At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](direct.md#scaling){.internal-link}).
 
 ## Example
 

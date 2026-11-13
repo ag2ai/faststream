@@ -2,6 +2,8 @@ from faststream.__about__ import __version__
 
 
 class MessageAction:
+    __slots__ = ()
+
     CREATE = "create"
     PUBLISH = "publish"
     PROCESS = "process"

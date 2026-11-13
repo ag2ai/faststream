@@ -10,7 +10,7 @@ from .basic import BaseTestcaseConfig
 
 
 @pytest.mark.asyncio()
-class AddressDeliveryTestcase(BaseTestcaseConfig):
+class AddressDeliveryTestcase(BaseTestcaseConfig[Any]):
     separator = "."
     """What goes between two address segments; MQTT spells it `/`."""
 

@@ -9,6 +9,8 @@ if TYPE_CHECKING:
 
 
 class ChannelManager(Protocol):
+    __slots__ = ()
+
     def connect(self, connection: "aio_pika.RobustConnection") -> None: ...
 
     def disconnect(self) -> None: ...
@@ -22,6 +24,8 @@ class ChannelManager(Protocol):
 
 
 class FakeChannelManager(ChannelManager):
+    __slots__ = ()
+
     def connect(self, connection: "aio_pika.RobustConnection") -> None:
         raise NotImplementedError
 

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -7,12 +8,12 @@ from faststream.kafka import KafkaRouter
 from faststream.kafka.fastapi import KafkaRouter as StreamRouter
 from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
 
-from .basic import KafkaMemoryTestcaseConfig
+from .basic import KafkaMemoryTestcaseConfig, KafkaTestcaseConfig
 
 
 @pytest.mark.kafka()
 @pytest.mark.connected()
-class TestKafkaRouter(FastAPITestcase):
+class TestKafkaRouter(KafkaTestcaseConfig, FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
 
@@ -21,8 +22,10 @@ class TestKafkaRouter(FastAPITestcase):
     ) -> None:
         router = self.router_class()
 
-        @router.subscriber(queue, batch=True)
-        async def hello(msg: list[str]):
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -62,7 +65,7 @@ class TestRouterLocal(KafkaMemoryTestcaseConfig, FastAPILocalTestcase):
         router = self.router_class()
 
         @router.subscriber(queue, batch=True)
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 

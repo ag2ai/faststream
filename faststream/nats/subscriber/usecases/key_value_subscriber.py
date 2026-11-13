@@ -29,6 +29,8 @@ class KeyValueWatchSubscriber(
     TasksMixin,
     LogicSubscriber["KeyValue.Entry"],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[KeyValue.KeyWatcher]"]
     _fetch_sub: UnsubscribeAdapter["KeyValue.KeyWatcher"] | None
 
@@ -78,12 +80,12 @@ class KeyValueWatchSubscriber(
         msg = None
         sleep_interval = timeout / 10
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         return cast(
@@ -123,13 +125,13 @@ class KeyValueWatchSubscriber(
         timeout = 5
         sleep_interval = timeout / 10
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         while True:
             msg = None
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
                 ) is None:
                     await anyio.sleep(sleep_interval)
@@ -186,6 +188,7 @@ class KeyValueWatchSubscriber(
                 if message:
                     await self.consume(message)
 
+    @override
     def _make_response_publisher(
         self,
         message: "StreamMessage[KeyValue.Entry]",

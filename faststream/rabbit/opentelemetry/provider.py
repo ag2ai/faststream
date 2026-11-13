@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from opentelemetry.semconv.trace import SpanAttributes
+from typing_extensions import override
 
 from faststream.opentelemetry import TelemetrySettingsProvider
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
@@ -34,6 +35,7 @@ class RabbitTelemetrySettingsProvider(
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.exchange,
         }
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[IncomingMessage]",
@@ -53,6 +55,7 @@ class RabbitTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
+    @override
     def get_publish_destination_name(
         self,
         cmd: "RabbitPublishCommand",

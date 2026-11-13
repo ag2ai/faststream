@@ -10,6 +10,15 @@ class StreamGroupNotFoundError(FastStreamException):
     """
 
 
+class StreamClaimUnsupportedError(FastStreamException):
+    """Raised when the Redis server rejects the XREADGROUP CLAIM option.
+
+    ``StreamSub.claim_min_idle_time`` requires Redis server 8.4+; older
+    servers reject the CLAIM option with a syntax error.  The subscriber
+    cannot proceed - upgrade the server or remove the option.
+    """
+
+
 class UnreachablePathError(FastStreamException):
     """Raised when an allegedly unreachable code path is hit."""
 

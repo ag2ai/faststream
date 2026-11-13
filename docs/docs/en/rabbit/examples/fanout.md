@@ -12,7 +12,7 @@ search:
 
 The **Fanout** Exchange is an even simpler, but slightly less popular way of routing in *RabbitMQ*. This type of `exchange` sends messages to all queues subscribed to it, ignoring any arguments of the message.
 
-At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](../direct#scaling){.internal-link}).
+At the same time, if the queue listens to several consumers, messages will also be distributed among them (default [scaling mechanism](direct.md#scaling){.internal-link}).
 
 ## Example
 
@@ -41,7 +41,7 @@ Then we signed up several consumers using the advertised queues to the `exchange
 
 ### Message Distribution
 
-Now the all messages will be send to all subscribers due they are binded to the same **FANOUT** exchange:
+Now all messages will be sent to all subscribers because they are bound to the same **FANOUT** exchange:
 
 ```python linenums="30"
 {! docs_src/rabbit/subscription/fanout.py [ln:30.5,31.5,32.5,33.5] !}

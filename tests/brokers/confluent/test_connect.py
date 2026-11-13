@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from dirty_equals import IsPartialDict
 
@@ -34,11 +36,13 @@ async def test_correct_config_merging(queue: str) -> None:
             "debug": config.Debug.broker,
         })
 
-        producer_config = broker._producer._producer.producer.config
+        producer: Any = broker._producer
+        producer_config = producer._producer.producer.config
 
         assert producer_config == expected_config
 
-        subscriber_config = broker.subscribers[0].consumer.config
+        subscriber: Any = broker.subscribers[0]
+        subscriber_config = subscriber.consumer.config
 
         assert subscriber_config == expected_config
 

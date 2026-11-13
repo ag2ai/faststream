@@ -1,8 +1,8 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.nats import NatsBroker, NatsPublisher, NatsRoute, NatsRouter
 from faststream.specification.base import Specification
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
@@ -17,79 +17,26 @@ class TestRouter(RouterTestcase):
     route_class = NatsRoute
     publisher_class = NatsPublisher
 
-    def test_prefix(self) -> None:
+    def test_prefix(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         router = self.router_class(prefix="test_")
 
         @router.subscriber("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         broker.include_router(router)
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "asyncapi": "3.0.0",
-            "defaultContentType": "application/json",
-            "servers": {
-                "development": {
-                    "host": "localhost:4222",
-                    "pathname": "",
-                    "protocol": "nats",
-                    "protocolVersion": "custom",
-                },
-            },
-            "channels": {
-                "test_test:Handle": {
-                    "address": "test_test",
-                    "servers": [{"$ref": "#/servers/development"}],
-                    "messages": {
-                        "SubscribeMessage": {
-                            "$ref": "#/components/messages/test_test:Handle:SubscribeMessage",
-                        },
-                    },
-                    "bindings": {
-                        "nats": {"subject": "test_test", "bindingVersion": "custom"},
-                    },
-                },
-            },
-            "operations": {
-                "test_test:HandleSubscribe": {
-                    "action": "receive",
-                    "messages": [
-                        {
-                            "$ref": "#/channels/test_test:Handle/messages/SubscribeMessage",
-                        },
-                    ],
-                    "channel": {"$ref": "#/channels/test_test:Handle"},
-                },
-            },
-            "components": {
-                "messages": {
-                    "test_test:Handle:SubscribeMessage": {
-                        "title": "test_test:Handle:SubscribeMessage",
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {
-                            "$ref": "#/components/schemas/Handle:Message:Payload",
-                        },
-                    },
-                },
-                "schemas": {
-                    "Handle:Message:Payload": {"title": "Handle:Message:Payload"},
-                },
-            },
-        }
+        assert schema == snapshot_json
 
 
 @pytest.mark.nats()
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = NatsRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(NatsBroker(routers=broker))
 
 
@@ -97,5 +44,5 @@ class TestRouterArguments(ArgumentsTestcase):
 class TestRouterPublisher(PublisherTestcase):
     broker_class = NatsRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(NatsBroker(routers=broker))

@@ -9,12 +9,11 @@ from faststream import Context
 from faststream.exceptions import IgnoredException, RejectMessage
 from faststream.message import AckStatus
 from faststream.prometheus import MetricsSettingsProvider
-from faststream.prometheus.middleware import (
+from faststream.prometheus.consts import (
     PROCESSING_STATUS_BY_ACK_STATUS,
     PROCESSING_STATUS_BY_HANDLER_EXCEPTION_MAP,
-    BasePrometheusMiddleware,
-    PrometheusMiddleware,
 )
+from faststream.prometheus.middleware import PrometheusMiddleware
 from faststream.prometheus.types import ProcessingStatus, PublishingStatus
 from tests.brokers.base.basic import BaseTestcaseConfig
 from tests.prometheus.utils import (
@@ -33,14 +32,16 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
+class PrometheusTestcaseConfig(BaseTestcaseConfig[Any]):
+    def get_middleware(self, **kwargs: Any) -> PrometheusMiddleware[Any, Any]:
+        raise NotImplementedError
+
+    def get_settings_provider(self) -> MetricsSettingsProvider[Any, Any]:
+        raise NotImplementedError
+
+
 @pytest.mark.asyncio()
-class LocalPrometheusTestcase(BaseTestcaseConfig):
-    def get_middleware(self, **kwargs: Any) -> PrometheusMiddleware:
-        raise NotImplementedError
-
-    def get_settings_provider(self) -> MetricsSettingsProvider[Any]:
-        raise NotImplementedError
-
+class LocalPrometheusTestcase(PrometheusTestcaseConfig):
     @pytest.mark.parametrize(
         (
             "status",
@@ -100,7 +101,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
         message = None
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(m=Context("message")) -> None:
+        async def handler(m: Any = Context("message")) -> None:
             event.set()
 
             nonlocal message
@@ -283,7 +284,7 @@ class LocalPrometheusTestcase(BaseTestcaseConfig):
         assert real_metrics == expected_metrics
 
 
-class LocalRPCPrometheusTestcase:
+class LocalRPCPrometheusTestcase(LocalPrometheusTestcase):
     @pytest.mark.asyncio()
     async def test_rpc_request(self, queue: str, event: asyncio.Event) -> None:
         registry = CollectorRegistry()
@@ -295,7 +296,7 @@ class LocalRPCPrometheusTestcase:
         message = None
 
         @broker.subscriber(queue)
-        async def handle(m=Context("message")):
+        async def handle(m: Any = Context("message")) -> Any:
             event.set()
 
             nonlocal message
@@ -321,15 +322,8 @@ class LocalRPCPrometheusTestcase:
         )
 
 
-class LocalMetricsSettingsProviderTestcase:
+class LocalMetricsSettingsProviderTestcase(PrometheusTestcaseConfig):
     messaging_system: str
-
-    def get_middleware(self, **kwargs) -> BasePrometheusMiddleware:
-        raise NotImplementedError
-
-    @staticmethod
-    def get_settings_provider() -> MetricsSettingsProvider:
-        raise NotImplementedError
 
     def test_messaging_system(self) -> None:
         provider = self.get_settings_provider()

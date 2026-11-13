@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class ProducerProto(Protocol[PublishCommandType_contra]):
+    __slots__ = ()
+
     _parser: "AsyncCallable"
     _decoder: "AsyncCallable"
     codec: "CodecProto"
@@ -32,6 +34,8 @@ class ProducerProto(Protocol[PublishCommandType_contra]):
 
 
 class ProducerFactory(Protocol):
+    __slots__ = ()
+
     def __call__(
         self,
         parser: "AsyncCallable",
@@ -40,6 +44,8 @@ class ProducerFactory(Protocol):
 
 
 class ProducerUnset(ProducerProto):
+    __slots__ = ()
+
     msg = "Producer is unset yet. You should set producer in broker initial method."
 
     def __bool__(self) -> bool:

@@ -1,5 +1,6 @@
 import ssl
 from copy import deepcopy
+from typing import Any
 
 import pytest
 
@@ -14,7 +15,7 @@ from faststream.security import (
 )
 from tests.asyncapi.base.v3_0_0 import get_3_0_0_schema
 
-basic_schema = {
+basic_schema: dict[str, Any] = {
     "info": {"title": "FastStream", "version": "0.1.0"},
     "asyncapi": "3.0.0",
     "defaultContentType": "application/json",

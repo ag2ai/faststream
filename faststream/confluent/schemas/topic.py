@@ -16,7 +16,6 @@ class Topic(NameRequired):
 
     __slots__ = (
         "declare",
-        "name",
         "num_partitions",
         "replication_factor",
     )

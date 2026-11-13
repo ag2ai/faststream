@@ -3,14 +3,13 @@ from collections.abc import Awaitable, Callable, Iterable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     Optional,
 )
 from urllib.parse import urlsplit
 
 import zmqtt
 from fast_depends import Provider, dependency_provider
-from typing_extensions import override
+from typing_extensions import assert_never, override
 
 from faststream._internal.broker import BrokerUsecase
 from faststream._internal.constants import EMPTY
@@ -20,6 +19,7 @@ from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.config import MQTTBrokerConfig
+from faststream.mqtt.parser import MQTTVersion
 from faststream.mqtt.publisher.producer import (
     ZmqttBaseProducer,
     ZmqttProducerV5,
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.mqtt.message import MQTTMessage
@@ -65,11 +66,16 @@ class MQTTBroker(
         keepalive: int = 60,
         clean_session: bool = True,
         will: zmqtt.Will | None = None,
-        version: Literal["3.1.1", "5.0"] = "5.0",
+        version: MQTTVersion = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
         on_connection_recovery_failed: Callable[[], Awaitable[None]] | None = None,
         mqtt_connect_timeout: float = 30.0,
         session_expiry_interval: int = 0,
+        receive_maximum: int | None = None,
+        maximum_packet_size: int | None = None,
+        user_properties: Sequence[tuple[str, str]] = (),
+        request_response_information: bool | None = None,
+        request_problem_information: bool | None = None,
         session_replay_buffer_size: int = 1000,
         session_replay_timeout: float = 30.0,
         stripped_prefixes: tuple[str, ...] | None = None,
@@ -77,7 +83,7 @@ class MQTTBroker(
         decoder: Optional["CustomCallable"] = None,
         parser: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         ack_policy: AckPolicy = EMPTY,
@@ -97,6 +103,7 @@ class MQTTBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         url_options = parse_mqtt_url(url)
         secure_kwargs = parse_security(security)
@@ -125,19 +132,26 @@ class MQTTBroker(
             "password": password,
             "tls": connection_tls,
             "will": will,
+            "receive_maximum": receive_maximum,
+            "maximum_packet_size": maximum_packet_size,
+            "user_properties": user_properties,
+            "request_response_information": request_response_information,
+            "request_problem_information": request_problem_information,
         }
         if stripped_prefixes is not None:
             connection_kwargs["stripped_prefixes"] = stripped_prefixes
 
         producer: ZmqttBaseProducer
-        if version == "5.0":
+        if version == "3.1.1":
+            producer = ZmqttProducerV311(
+                parser=parser, decoder=decoder, id_generator=id_generator
+            )
+        elif version == "5.0":
             producer = ZmqttProducerV5(
                 parser=parser, decoder=decoder, id_generator=id_generator
             )
         else:
-            producer = ZmqttProducerV311(
-                parser=parser, decoder=decoder, id_generator=id_generator
-            )
+            assert_never(version)
 
         connection_url = build_mqtt_url(
             host=connection_host,
@@ -193,6 +207,7 @@ class MQTTBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,
@@ -203,6 +218,14 @@ class MQTTBroker(
                 security=security,
             ),
         )
+
+    @property
+    def connection_info(self) -> zmqtt.ConnectionInfo:
+        """Current handshake snapshot; raises MQTTDisconnectedError when disconnected."""
+        if self._connection is None:
+            msg = "No active connection information"
+            raise zmqtt.MQTTDisconnectedError(msg)
+        return self._connection.connection_info
 
     @override
     async def _connect(self) -> zmqtt.MQTTClient:

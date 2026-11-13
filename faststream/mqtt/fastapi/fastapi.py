@@ -17,6 +17,7 @@ from faststream._internal.types import IdGenerator
 from faststream.message import gen_cor_id
 from faststream.middlewares import AckPolicy
 from faststream.mqtt.broker.broker import MQTTBroker
+from faststream.mqtt.parser import MQTTVersion
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -56,10 +57,15 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         keepalive: int = 60,
         clean_session: bool = True,
         will: zmqtt.Will | None = None,
-        version: Literal["3.1.1", "5.0"] = "5.0",
+        version: MQTTVersion = "5.0",
         reconnect: zmqtt.ReconnectConfig | None = None,
         on_connection_recovery_failed: Callable[[], Awaitable[None]] | None = None,
         session_expiry_interval: int = 0,
+        receive_maximum: int | None = None,
+        maximum_packet_size: int | None = None,
+        user_properties: Sequence[tuple[str, str]] = (),
+        request_response_information: bool | None = None,
+        request_problem_information: bool | None = None,
         session_replay_buffer_size: int = 1000,
         session_replay_timeout: float = 30.0,
         # broker base args
@@ -119,6 +125,11 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
             reconnect=reconnect,
             on_connection_recovery_failed=on_connection_recovery_failed,
             session_expiry_interval=session_expiry_interval,
+            receive_maximum=receive_maximum,
+            maximum_packet_size=maximum_packet_size,
+            user_properties=user_properties,
+            request_response_information=request_response_information,
+            request_problem_information=request_problem_information,
             session_replay_buffer_size=session_replay_buffer_size,
             session_replay_timeout=session_replay_timeout,
             graceful_timeout=graceful_timeout,

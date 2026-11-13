@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Share objects between FastStream handlers with the Context: application-wide fields,
+  per-message scope and the built-in broker, logger and message values.
 search:
   boost: 10
 ---
@@ -80,7 +83,7 @@ Afterward, you can access your `secret` field in the usual way:
 
 In this case, the field becomes a global context field: it does not depend on the current message handler (unlike `message`)
 
-Alternatively you can setup global context objects in `FastStream` object constructor:
+Alternatively, you can set up global context objects in the `FastStream` object constructor:
 
 ```python
 from faststream import FastStream
@@ -114,7 +117,7 @@ context.reset_global("my_key")
 
 ## Local
 
-To set a local context (available only within the message processing scope), use the context manager `scope`. It could me extremely uselful to fill context with additional options in [Middlewares](../middlewares/){.internal-link}
+To set a local context (available only within the message processing scope), use the context manager `scope`. It could be extremely useful to fill the context with additional options in [Middlewares](middlewares/index.md){.internal-link}
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="13 22"
@@ -155,7 +158,7 @@ To set a local context (available only within the message processing scope), use
 * **logger** - the logger used for your broker (tags messages with *message_id*)
 * **message** - the raw message (if you need access to it)
 
-At the same time, thanks to `contextlib.ContextVar`, **message** is local for you current consumer scope.
+At the same time, thanks to `contextvars.ContextVar`, **message** is local to your current consumer scope.
 
 ### Access to Context Fields
 
@@ -268,8 +271,8 @@ from faststream import Logger, ContextRepo
     ```python
     from faststream.nats.annotations import (
         Logger, ContextRepo, NatsMessage,
-        NatsBroker, NatsProducer, NatsJsProducer,
-        Client, JsClient, NoCast,
+        NatsBroker, Client, JsClient,
+        ObjectStorage, NoCast,
     )
     ```
 
@@ -344,6 +347,51 @@ from faststream import Logger, ContextRepo
         logger.info(message)
         await broker.publish("test", "response")
     ```
+
+### Driver Type Hints
+
+A broker's driver objects, such as the `redis.asyncio.Redis` client, the `aiokafka.AIOKafkaConsumer` or the broker itself, live in the context. An argument typed with the bare driver class is not a context field, so **FastStream** would try to validate it as message data. Instead, it refuses to start and names the annotation to use:
+
+```text
+`redis` is annotated with `redis.asyncio.client.Redis`, which FastStream cannot inject.
+Use the context annotation instead:
+
+    from faststream.redis.annotations import Redis
+```
+
+Every broker knows its own driver classes. To get the same check for your own objects, pass `underlying_driver_annotations` to the broker or a router. Each key is a class that must not be used as a bare type hint. Wrap the value in `UnderlyingDriverAnnotation` to name the import the error should suggest:
+
+=== "AIOKafka"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/kafka/driver_annotations.py !}
+    ```
+
+=== "Confluent"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/confluent/driver_annotations.py !}
+    ```
+
+=== "RabbitMQ"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/rabbit/driver_annotations.py !}
+    ```
+
+=== "NATS"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/nats/driver_annotations.py !}
+    ```
+
+=== "Redis"
+    ```python linenums="1" hl_lines="8 12-18"
+    {!> docs_src/getting_started/context/redis/driver_annotations.py !}
+    ```
+
+=== "MQTT"
+    ```python linenums="1" hl_lines="8 13-19"
+    {!> docs_src/getting_started/context/mqtt/driver_annotations.py !}
+    ```
+
+A handler argument typed `storage: Storage` now fails at startup with `from app.dependencies import StorageClient` in the message. Your rows are merged over the broker's own, so a row for one of the broker's driver classes replaces its default.
 
 ## Context Extra Options
 
@@ -453,7 +501,7 @@ If you require this functionality, you can enable the appropriate flag.
 
 ### Initial Value
 
-Also, `Context` provides you with a `initial` option to setup base context value without previous `set_global` call.
+Also, `Context` provides you with an `initial` option to set up a base context value without previous `set_global` call.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="4 6"
@@ -520,7 +568,7 @@ Sometimes, you may need to use a different name for the argument (not the one un
     {!> docs_src/getting_started/context/mqtt/fields_access.py !}
     ```
 
-This way you can get access to context object specific field
+This way you can get access to a context object's specific field
 
 
 ```python
@@ -538,7 +586,7 @@ Or even to a dict key
 
 **FastStreams** has its own Dependency Injection container - **Context**, used to store application runtime objects and variables.
 
-With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](../dependencies/index.md){.internal-link} usage.
+With this container, you can access both application scope and message processing scope objects. This functionality is similar to [`Depends`](dependencies/index.md){.internal-link} usage.
 
 === "AIOKafka"
     ```python linenums="1" hl_lines="2 4 12"
@@ -579,4 +627,4 @@ By default, the context is available in the same place as `Depends`:
 * nested dependencies
 
 !!! tip
-    You can get access to the **Context** in [Middlewares](../middlewares/#context-access){.internal-link} as `#!python self.context`
+    You can get access to the **Context** in [Middlewares](middlewares/index.md#context-access){.internal-link} as `#!python self.context`

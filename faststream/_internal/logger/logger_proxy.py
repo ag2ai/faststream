@@ -2,11 +2,15 @@ from abc import abstractmethod
 from collections.abc import Mapping
 from typing import Any, Optional
 
+from typing_extensions import override
+
 from faststream._internal.basic_types import LoggerProto
 from faststream.exceptions import IncorrectState
 
 
 class LoggerObject(LoggerProto):
+    __slots__ = ()
+
     logger: Optional["LoggerProto"]
 
     @abstractmethod
@@ -19,6 +23,8 @@ class NotSetLoggerObject(LoggerObject):
     Raises an error if user tries to log smth before state setup.
     """
 
+    __slots__ = ("logger",)
+
     def __init__(self) -> None:
         self.logger = None
 
@@ -28,6 +34,7 @@ class NotSetLoggerObject(LoggerObject):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
+    @override
     def log(
         self,
         level: int,
@@ -49,6 +56,8 @@ class EmptyLoggerObject(LoggerObject):
 
     Will be used if user setup `logger=None`.
     """
+
+    __slots__ = ("logger",)
 
     def __init__(self) -> None:
         self.logger = None
@@ -77,6 +86,8 @@ class RealLoggerObject(LoggerObject):
     Will be used if user setup custom `logger` (.params_storage.ManualLoggerStorage)
     or in default logger case (.params_storage.DefaultLoggerStorage).
     """
+
+    __slots__ = ("logger",)
 
     logger: "LoggerProto"
 

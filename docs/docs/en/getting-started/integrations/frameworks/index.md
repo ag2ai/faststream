@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Embed a FastStream broker in any async HTTP framework: connect it at startup, close it at
+  shutdown and publish from your web handlers.
 search:
   boost: 10
 ---

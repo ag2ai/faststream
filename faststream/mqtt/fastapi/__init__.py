@@ -4,8 +4,8 @@ from typing import Annotated
 import zmqtt
 
 from faststream._internal.fastapi.context import Context, ContextRepo, Logger
-from faststream.mqtt.broker.broker import MQTTBroker as MB  # noqa: N814
-from faststream.mqtt.message import MQTTMessage as MM  # noqa: N814
+from faststream.mqtt.broker.broker import MQTTBroker as MB  # ruff: ignore[camelcase-imported-as-constant]
+from faststream.mqtt.message import MQTTMessage as MM  # ruff: ignore[camelcase-imported-as-constant]
 
 from .fastapi import MQTTRouter
 

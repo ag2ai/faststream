@@ -15,9 +15,11 @@ from tests.marks import (
 async def test_handle_kafka() -> None:
     from docs.docs_src.getting_started.publishing.kafka.object_testing import (
         test_handle as test_handle_k,
+        test_message_fields,
     )
 
     await test_handle_k()
+    await test_message_fields()
 
 
 @pytest.mark.asyncio()
@@ -25,9 +27,11 @@ async def test_handle_kafka() -> None:
 async def test_handle_confluent() -> None:
     from docs.docs_src.getting_started.publishing.confluent.object_testing import (
         test_handle as test_handle_confluent,
+        test_message_fields,
     )
 
     await test_handle_confluent()
+    await test_message_fields()
 
 
 @pytest.mark.asyncio()
@@ -35,9 +39,11 @@ async def test_handle_confluent() -> None:
 async def test_handle_rabbit() -> None:
     from docs.docs_src.getting_started.publishing.rabbit.object_testing import (
         test_handle as test_handle_r,
+        test_message_fields,
     )
 
     await test_handle_r()
+    await test_message_fields()
 
 
 @pytest.mark.asyncio()
@@ -45,9 +51,11 @@ async def test_handle_rabbit() -> None:
 async def test_handle_nats() -> None:
     from docs.docs_src.getting_started.publishing.nats.object_testing import (
         test_handle as test_handle_n,
+        test_message_fields,
     )
 
     await test_handle_n()
+    await test_message_fields()
 
 
 @pytest.mark.asyncio()
@@ -55,9 +63,11 @@ async def test_handle_nats() -> None:
 async def test_handle_redis() -> None:
     from docs.docs_src.getting_started.publishing.redis.object_testing import (
         test_handle as test_handle_red,
+        test_message_fields,
     )
 
     await test_handle_red()
+    await test_message_fields()
 
 
 @pytest.mark.asyncio()
@@ -65,6 +75,8 @@ async def test_handle_redis() -> None:
 async def test_handle_mqtt() -> None:
     from docs.docs_src.getting_started.publishing.mqtt.object_testing import (
         test_handle as test_handle_m,
+        test_message_fields,
     )
 
     await test_handle_m()
+    await test_message_fields()

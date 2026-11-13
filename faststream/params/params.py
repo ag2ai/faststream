@@ -1,11 +1,11 @@
 from collections.abc import Callable
 from typing import Any
 
-from faststream._internal.constants import EMPTY
+from faststream._internal.constants import EMPTY, PATH_CONTEXT_PREFIX
 from faststream._internal.context import Context as Context_
 
 
-def Context(  # noqa: N802
+def Context(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = False,
@@ -20,7 +20,7 @@ def Context(  # noqa: N802
     )
 
 
-def Header(  # noqa: N802
+def Header(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = True,
@@ -34,7 +34,7 @@ def Header(  # noqa: N802
     )
 
 
-def Path(  # noqa: N802
+def Path(  # ruff: ignore[invalid-function-name]
     real_name: str = "",
     *,
     cast: bool = True,
@@ -44,5 +44,5 @@ def Path(  # noqa: N802
         real_name=real_name,
         cast=cast,
         default=default,
-        prefix="message.path.",
+        prefix=PATH_CONTEXT_PREFIX,
     )

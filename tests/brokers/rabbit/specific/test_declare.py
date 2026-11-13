@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 from unittest.mock import AsyncMock
 
 import pytest
@@ -26,7 +26,8 @@ class FakeChannelManager:
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
 async def test_declare_queue(async_mock: AsyncMock, queue: str) -> None:
-    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    channel_manager: Any = FakeChannelManager(async_mock)
+    declarer = RabbitDeclarerImpl(channel_manager)
 
     q1 = await declarer.declare_queue(RabbitQueue(queue))
     q2 = await declarer.declare_queue(RabbitQueue(queue))
@@ -38,7 +39,8 @@ async def test_declare_queue(async_mock: AsyncMock, queue: str) -> None:
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
 async def test_declare_exchange(async_mock: AsyncMock, queue: str) -> None:
-    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    channel_manager: Any = FakeChannelManager(async_mock)
+    declarer = RabbitDeclarerImpl(channel_manager)
 
     ex1 = await declarer.declare_exchange(RabbitExchange(queue))
     ex2 = await declarer.declare_exchange(RabbitExchange(queue))
@@ -53,7 +55,8 @@ async def test_declare_nested_exchange_cash_nested(
     async_mock: AsyncMock,
     queue: str,
 ) -> None:
-    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    channel_manager: Any = FakeChannelManager(async_mock)
+    declarer = RabbitDeclarerImpl(channel_manager)
 
     exchange = RabbitExchange(queue)
 
@@ -67,11 +70,13 @@ async def test_declare_nested_exchange_cash_nested(
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
 async def test_publisher_declare(async_mock: AsyncMock, queue: str) -> None:
-    declarer = RabbitDeclarerImpl(FakeChannelManager(async_mock))
+    channel_manager: Any = FakeChannelManager(async_mock)
+    declarer = RabbitDeclarerImpl(channel_manager)
 
     broker = RabbitBroker()
     broker._connection = async_mock
-    broker.config.declarer = declarer
+    config: Any = broker.config
+    config.declarer = declarer
 
     @broker.publisher(queue, queue)
     async def f() -> None: ...

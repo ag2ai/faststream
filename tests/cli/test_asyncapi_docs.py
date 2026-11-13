@@ -2,7 +2,7 @@ import json
 from collections.abc import Callable
 from typing import Any, TextIO
 
-import httpx
+import httpx2
 import pytest
 import yaml
 
@@ -194,7 +194,7 @@ def test_gen_asyncapi_for_kafka_app(
 
 @pytest.mark.slow()
 @skip_windows
-def test_gen_wrong_path(faststream_cli) -> None:
+def test_gen_wrong_path(faststream_cli: Any) -> None:
     with faststream_cli("faststream", "docs", "gen", "non_existent:app") as cli:
         assert cli.wait_for_stderr("No such file or directory")
 
@@ -217,7 +217,7 @@ def test_serve_asyncapi_docs_from_app(
         cli.wait_for_stderr("Please, do not use it in production.")
 
         try:
-            response = httpx.get("http://0.0.0.0:8000")
+            response = httpx2.get("http://0.0.0.0:8000")
         except Exception as e:
             raise RuntimeError(cli.stderr) from e
 
@@ -247,10 +247,9 @@ def test_serve_asyncapi_docs_from_app_with_reload(
 
 
 @skip_windows
-@skip_macos  # MacOS GHA runner doesn't allow to run 0.0.0.0 process
+@skip_macos  # HTTPServer readiness times out on macOS runners.
 @require_aiokafka
 @pytest.mark.slow()
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.parametrize(
     ("doc_filename", "doc"),
     (
@@ -267,15 +266,100 @@ def test_serve_asyncapi_docs_from_file(
     with (
         generate_template(doc, filename=doc_filename) as doc_path,
         faststream_cli(
-            "faststream", "docs", "serve", "--host", "0.0.0.0", str(doc_path)
-        ) as cli,
+            "faststream",
+            "docs",
+            "serve",
+            "--host",
+            "127.0.0.1",
+            str(doc_path),
+            readiness_url="http://127.0.0.1:8000/",
+        ),
     ):
-        cli.wait_for_stderr("Please, do not use it in production.")
-
-        try:
-            response = httpx.get("http://0.0.0.0:8000")
-        except Exception as e:
-            raise RuntimeError(cli.stderr) from e
+        response = httpx2.get("http://127.0.0.1:8000/")
 
         assert "<title>FastStream AsyncAPI</title>" in response.text
         assert response.status_code == 200
+
+
+@skip_windows
+def test_serve_asyncapi_yaml_unquoted_scalar_reports_hint(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    """Regression for #2709: the exact reproduction from the issue.
+
+    `protocolVersion: ! "3.2"` should round-trip to the string `"3.2"` per the YAML
+    1.2 failsafe schema, but PyYAML coerces it to a float that fails AsyncAPI
+    validation. The CLI must surface the per-version validation errors and hint
+    that the value should be quoted.
+    """
+    bad_doc = yaml_asyncapi_doc.replace(
+        "protocolVersion: auto",
+        'protocolVersion: ! "3.2"',
+    )
+    with (
+        generate_template(bad_doc, filename="asyncapi.yaml") as doc_path,
+        faststream_cli("faststream", "docs", "serve", str(doc_path)) as cli,
+    ):
+        cli.wait_for_stderr("not supported", timeout=5.0)
+        cli.wait(timeout=5.0)
+
+        stderr = cli.stderr
+        assert cli.process is not None
+        assert cli.process.returncode == 1, stderr
+        assert "AsyncAPI v3.0 validation errors" in stderr, stderr
+        assert "AsyncAPI v2.6 validation errors" in stderr, stderr
+        assert "Hint: YAML parses bare `3.2`" in stderr, stderr
+        # The hint must appear exactly once, not once per AsyncAPI version.
+        assert stderr.count("Hint: YAML parses") == 1, stderr
+
+
+@skip_windows
+def test_serve_asyncapi_json_numeric_scalar_omits_yaml_hint(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    """The YAML-specific quoting hint must not appear for `.json` inputs.
+
+    A numeric scalar in a JSON document is a genuine schema error, not a PyYAML
+    coercion, so the hint would only mislead there.
+    """
+    bad_doc = json_asyncapi_doc.replace(
+        '"protocolVersion": "auto"',
+        '"protocolVersion": 3.2',
+    )
+    with (
+        generate_template(bad_doc, filename="asyncapi.json") as doc_path,
+        faststream_cli("faststream", "docs", "serve", str(doc_path)) as cli,
+    ):
+        cli.wait_for_stderr("not supported", timeout=5.0)
+        cli.wait(timeout=5.0)
+
+        stderr = cli.stderr
+        assert cli.process is not None
+        assert cli.process.returncode == 1, stderr
+        assert "Hint: YAML parses" not in stderr, stderr
+
+
+@skip_windows
+def test_serve_asyncapi_reports_yaml_parse_error(
+    generate_template: interfaces.GenerateTemplateFactory,
+    faststream_cli: interfaces.FastStreamCLIFactory,
+) -> None:
+    """Regression for #2709: malformed YAML surfaces the parser's error.
+
+    A syntactically invalid document should report the parse failure directly
+    instead of failing silently.
+    """
+    bad_yaml = "asyncapi: 2.6.0\nfoo: [unclosed\n"
+    with (
+        generate_template(bad_yaml, filename="asyncapi.yaml") as doc_path,
+        faststream_cli("faststream", "docs", "serve", str(doc_path)) as cli,
+    ):
+        cli.wait_for_stderr("Failed to parse YAML file", timeout=5.0)
+        cli.wait(timeout=5.0)
+
+        stderr = cli.stderr
+        assert cli.process is not None
+        assert cli.process.returncode == 1, stderr
+        assert "Failed to parse YAML file" in stderr, stderr

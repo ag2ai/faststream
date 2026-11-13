@@ -3,8 +3,10 @@ from typing import Any, overload
 from typing_extensions import Self
 
 
-class NameRequired:
+class NameRequired:  # ruff: ignore[eq-without-hash] - each subclass decides whether it is hashable
     """Required name option object."""
+
+    __slots__ = ("name",)
 
     def __eq__(self, value: object, /) -> bool:
         """Compares the current object with another object for equality."""

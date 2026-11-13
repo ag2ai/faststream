@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -61,7 +62,8 @@ async def test_fastapi_asyncapi_routes() -> None:
             schema = router.schema.to_specification()
 
             response_json = client.get("/asyncapi_schema.json")
-            assert response_json.json() == schema.to_jsonable()
+            # indented for a reader: the download is a file people open
+            assert response_json.text == json.dumps(schema.to_jsonable(), indent=2)
 
             response_yaml = client.get("/asyncapi_schema.yaml")
             assert response_yaml.text == schema.to_yaml()

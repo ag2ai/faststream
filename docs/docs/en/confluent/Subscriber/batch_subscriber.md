@@ -10,7 +10,7 @@ search:
 
 # Batch Subscriber
 
-If you want to consume data in batches, the `#!python @broker.subscriber(...)` decorator makes it possible. By defining your consumed `msg` object as a list of messages and setting the `batch` parameter to `True`, the subscriber will call your consuming function with a batch of messages consumed from a single partition. Let's walk through how to achieve this.
+If you want to consume data in batches, the `#!python @broker.subscriber(...)` decorator makes it possible. By defining your consumed `msg` object as a list of messages and setting the `batch` parameter to `True`, the subscriber will call your consuming function with a batch of messages, which may come from several partitions of the subscribed topics. Let's walk through how to achieve this.
 
 ## Using the Subscriber with Batching
 

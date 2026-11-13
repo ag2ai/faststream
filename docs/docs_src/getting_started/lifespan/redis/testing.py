@@ -3,7 +3,8 @@ import pytest
 from faststream import FastStream, TestApp
 from faststream.redis import RedisBroker, TestRedisBroker
 
-app = FastStream(RedisBroker())
+broker = RedisBroker()
+app = FastStream(broker)
 
 
 @app.after_startup
@@ -14,7 +15,7 @@ async def handle():
 @pytest.mark.asyncio
 async def test_lifespan():
     async with (
-        TestRedisBroker(app.broker, connect_only=True),
+        TestRedisBroker(broker, connect_only=True),
         TestApp(app),
     ):
         # test something

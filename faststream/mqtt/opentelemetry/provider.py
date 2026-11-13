@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 import zmqtt
 from opentelemetry.semconv.trace import SpanAttributes
+from typing_extensions import override
 
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.opentelemetry import TelemetrySettingsProvider
@@ -31,6 +32,7 @@ class MQTTTelemetrySettingsProvider(
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.topic,
         }
 
+    @override
     def get_consume_destination_name(
         self,
         msg: "StreamMessage[zmqtt.Message]",
@@ -47,6 +49,7 @@ class MQTTTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
+    @override
     def get_publish_destination_name(
         self,
         cmd: MQTTPublishCommand,

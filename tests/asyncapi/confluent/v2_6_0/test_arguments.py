@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.confluent import KafkaBroker, TopicPartition
@@ -12,10 +14,10 @@ class TestArguments(ArgumentsTestcase):
         broker = self.broker_class()
 
         @broker.subscriber("test")
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert schema["channels"][key]["bindings"] == {
             "kafka": {"bindingVersion": "0.4.0", "topic": "test"},
@@ -28,10 +30,10 @@ class TestArguments(ArgumentsTestcase):
         part2 = TopicPartition("topic_name", 2)
 
         @broker.subscriber(partitions=[part1, part2])
-        async def handle(msg): ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
         assert schema["channels"][key]["bindings"] == {
             "kafka": {"bindingVersion": "0.4.0", "topic": "topic_name"},
@@ -44,10 +46,10 @@ class TestArguments(ArgumentsTestcase):
         part2 = TopicPartition("topic_name2", 2)
 
         @broker.subscriber(partitions=[part1, part2])
-        async def handle(msg): ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key1 = tuple(schema["channels"].keys())[0]  # noqa: RUF015
+        key1 = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
         key2 = tuple(schema["channels"].keys())[1]
 
         assert sorted((

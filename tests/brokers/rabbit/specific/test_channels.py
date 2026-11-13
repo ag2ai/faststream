@@ -23,9 +23,17 @@ async def test_subscriber_use_shared_channel() -> None:
 
         default_channel = broker._channel
 
-        assert sub1._queue_obj.channel is default_channel
+        queue1, queue2, queue3, queue4 = (
+            sub._queue_obj for sub in (sub1, sub2, sub3, sub4)
+        )
+        assert queue1
+        assert queue2
+        assert queue3
+        assert queue4
 
-        assert sub2._queue_obj.channel is not default_channel
+        assert queue1.channel is default_channel
 
-        assert sub3._queue_obj.channel is not default_channel
-        assert sub3._queue_obj.channel is sub4._queue_obj.channel
+        assert queue2.channel is not default_channel
+
+        assert queue3.channel is not default_channel
+        assert queue3.channel is queue4.channel

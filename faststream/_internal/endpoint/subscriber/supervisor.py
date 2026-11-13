@@ -109,6 +109,10 @@ class TaskCallbackSupervisor:
         if task.cancelled() or self.is_disabled:
             return
 
+        # `stop()` forgot this task: a restart would outlive the subscriber
+        if task not in self.subscriber.tasks:
+            return
+
         if (exc := task.exception()) and not isinstance(exc, self.ignored_exceptions):
             # trace is printed only once, but task is still retried
             identifier = self._get_exception_identifier(exc)

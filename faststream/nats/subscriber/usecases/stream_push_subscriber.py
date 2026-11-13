@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 
 class PushStreamSubscriber(StreamSubscriber):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PushSubscription"]
 
     @override
@@ -30,6 +32,8 @@ class PushStreamSubscriber(StreamSubscriber):
 
 
 class ConcurrentPushStreamSubscriber(ConcurrentMixin[Msg], StreamSubscriber):
+    __slots__ = ()
+
     subscription: Optional["JetStreamContext.PushSubscription"]
 
     @override

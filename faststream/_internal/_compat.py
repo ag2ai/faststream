@@ -155,7 +155,7 @@ else:
 
 
 if sys.version_info >= (3, 11):
-    ExceptionGroup = ExceptionGroup  # noqa: F821,PLW0127
+    ExceptionGroup = ExceptionGroup  # ruff: ignore[undefined-name, self-assigning-variable]
 else:
     from exceptiongroup import ExceptionGroup
 
@@ -244,7 +244,7 @@ except ImportError:
 opentelemetry: Any
 
 try:
-    import opentelemetry
+    import opentelemetry.semconv
 except ImportError:
     opentelemetry = None
     HAS_OPENTELEMETRY = False

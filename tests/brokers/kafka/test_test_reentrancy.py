@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.kafka import KafkaBroker, TestKafkaBroker
@@ -10,7 +12,7 @@ to_output_data = broker.publisher("output_data")
 
 @to_output_data
 @broker.subscriber("input_data")
-async def on_input_data(msg: int):
+async def on_input_data(msg: int) -> Any:
     return msg + 1
 
 

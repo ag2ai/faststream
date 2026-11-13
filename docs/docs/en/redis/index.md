@@ -4,11 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Redis in Python: Pub/Sub, Streams and Queues"
+description: >-
+  Use Redis from async Python with redis-py and FastStream. Choose Pub/Sub channels, Stream consumer groups or List queues, and connect publishers and subscribers.
 search:
   boost: 10
 ---
 
-# Redis Broker
+# Redis in Python: Pub/Sub, Streams and Queues
+
+Connect Python applications to Redis using **redis-py** through FastStream. `RedisBroker` provides asynchronous subscribers and publishers for three messaging mechanisms: [Pub/Sub channels](pubsub/index.md), [Streams](streams/index.md) and [List queues](list/index.md). Choose the mechanism based on whether you need live broadcasts, replayable messages or a work queue.
 
 ## Redis Overview
 
@@ -41,7 +46,7 @@ Ultimately, the choice between **Pub/Sub**, **List**, or **Streams** hinges on t
 The **FastStream** `RedisBroker` is a key component of the **FastStream** framework that enables seamless integration with **Redis**. With the `RedisBroker`, developers can easily connect to **Redis** instances, publish messages to **Redis** channels, and subscribe to **Redis** channels within their **FastStream** applications.
 
 !!! tip "Redis Cluster Support"
-    For multi-node **Redis Cluster** deployments FastStream provides `RedisClusterBroker`. It is a drop-in replacement with the same API and supports List, Stream, Sharded Pub/Sub, and XAUTOCLAIM. See the [Cluster documentation](./cluster.md){.internal-link} for details.
+    For multi-node **Redis Cluster** deployments FastStream provides `RedisClusterBroker`. It is a drop-in replacement with the same API and supports List, Stream, Pub/Sub, and XAUTOCLAIM. See the [Cluster documentation](./cluster.md){.internal-link} for details.
 
 ### Establishing a Connection
 

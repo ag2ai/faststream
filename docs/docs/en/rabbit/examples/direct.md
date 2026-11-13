@@ -32,7 +32,7 @@ Thus, *RabbitMQ* can independently balance the load on queue consumers. You can 
         ...
     ```
 
-The argument `auto_delete=True` in this and subsequent examples is used only to clear the state of *RabbitMQ* after example runs.
+The argument `auto_delete=True` in this and subsequent examples is used only to clear the state of *RabbitMQ* after the example runs.
 
 ```python linenums="1"
 {! docs_src/rabbit/subscription/direct.py !}

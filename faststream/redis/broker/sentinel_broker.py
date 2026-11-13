@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from typing_extensions import Unpack
+from typing_extensions import Unpack, override
 
 from faststream.exceptions import SetupError
 from faststream.redis.broker import RedisBroker
@@ -32,6 +32,7 @@ class RedisSentinelBroker(RedisBroker):
     ) -> None:
         self._init_broker(url, dict(kwargs))
 
+    @override
     def _validate_init_params(self, kwargs: dict[str, Any]) -> None:
         if not kwargs.get("sentinels"):
             msg = "`sentinels` is required for RedisSentinelBroker."
@@ -40,6 +41,7 @@ class RedisSentinelBroker(RedisBroker):
             msg = "`sentinel_master_name` is required for RedisSentinelBroker."
             raise SetupError(msg)
 
+    @override
     def _make_connection_state(
         self,
         connection_options: dict[str, Any],

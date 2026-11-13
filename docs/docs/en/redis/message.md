@@ -14,11 +14,10 @@ In **FastStream**, messages passed through a **Redis** broker are serialized and
 
 ## Redis Message Access
 
-When dealing with **Redis** broker in **FastStream**, you can easily access message details by using the `RedisMessage` object which wraps the underlying message with additional context information. This object is specifically tailored for **Redis** and contains relevant message attributes:
+When dealing with the **Redis** broker in **FastStream**, you can easily access message details by using the `RedisMessage` object which wraps the underlying message with additional context information. This object is specifically tailored for **Redis** and contains relevant message attributes:
 
 * `#!python body: Union[bytes, Any]`
 * `#!python raw_message: Any`
-* `#!python decoded_body: Optional[DecodedMessage]`
 * `#!python headers: dict[str, Any]`
 * `#!python path: dict[str, Any]`
 * `#!python content_type: Optional[str]`
@@ -26,7 +25,7 @@ When dealing with **Redis** broker in **FastStream**, you can easily access mess
 * `#!python message_id: str`
 * `#!python correlation_id: str`
 * `#!python processed: bool`
-* `#!python committed: bool`
+* `#!python committed: Optional[AckStatus]`
 
 For instance, if you need to retrieve headers from an incoming **Redis** message, here’s how you might do it:
 
@@ -60,17 +59,17 @@ The `Context` object lets you reference message attributes directly, making your
 ## Redis Stream Delivery Count
 
 For a single stream message consumed through a consumer group, call
-`await message.get_delivery_count(redis, group)` on `RedisStreamMessage` to read
+`await message.get_delivery_count()` on `RedisStreamMessage` to read
 its current delivery count from the Redis [Pending Entries List](https://redis.io/docs/latest/develop/data-types/streams/#viewing-pending-messages){.external-link target="_blank"}.
 
 ```python
-from faststream.redis import Redis, RedisStreamMessage, StreamSub
+from faststream.redis import RedisStreamMessage, StreamSub
 
 @broker.subscriber(
     stream=StreamSub("orders", group="workers", consumer="worker-1")
 )
-async def handle_order(message: RedisStreamMessage, redis: Redis) -> None:
-    delivery_count = await message.get_delivery_count(redis, "workers")
+async def handle_order(message: RedisStreamMessage) -> None:
+    delivery_count = await message.get_delivery_count()
 ```
 
 Each call performs an exact-ID `XPENDING RANGE` query, so the value is a live

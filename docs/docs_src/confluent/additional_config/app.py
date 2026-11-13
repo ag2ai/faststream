@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
 from faststream import FastStream, Logger
-from faststream.confluent import KafkaBroker
+from faststream.confluent import ConfluentConfig, KafkaBroker
 
 
 class HelloWorld(BaseModel):
@@ -12,7 +12,7 @@ class HelloWorld(BaseModel):
     )
 
 
-config = {"topic.metadata.refresh.fast.interval.ms": 300}
+config: ConfluentConfig = {"topic.metadata.refresh.fast.interval.ms": 300}
 broker = KafkaBroker("localhost:9092", config=config)
 app = FastStream(broker)
 

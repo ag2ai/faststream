@@ -12,6 +12,12 @@ if TYPE_CHECKING:
 class RabbitFakePublisher(FakePublisher):
     """Publisher Interface implementation to use as RPC or REPLY TO answer publisher."""
 
+    __slots__ = (
+        "app_id",
+        "exchange",
+        "routing_key",
+    )
+
     def __init__(
         self,
         producer: "ProducerProto[Any]",

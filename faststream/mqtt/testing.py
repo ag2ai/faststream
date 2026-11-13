@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Generator, Iterable, Sequence
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Optional, cast, overload
 from unittest.mock import MagicMock
 
 import anyio
@@ -18,7 +18,7 @@ from faststream._internal.testing.broker import (
 )
 from faststream.exceptions import SubscriberNotFound
 from faststream.mqtt.broker.broker import MQTTBroker
-from faststream.mqtt.parser import MQTTParserV5, MQTTParserV311
+from faststream.mqtt.parser import MQTTVersion, parser_for
 from faststream.mqtt.publisher.producer import ZmqttBaseProducer
 from faststream.mqtt.response import MQTTPublishCommand
 
@@ -60,17 +60,14 @@ def mqtt_topic_matches(pattern: str, topic: str) -> bool:
     return topic_matches(pattern, topic)
 
 
-def _broker_version(broker: MQTTBroker) -> Literal["3.1.1", "5.0"]:
+def _broker_version(broker: MQTTBroker) -> MQTTVersion:
     return getattr(broker.config.broker_config, "version", "5.0")
 
 
-def _parser_for_version(
-    version: Literal["3.1.1", "5.0"],
-) -> MQTTParserV311 | MQTTParserV5:
-    return MQTTParserV311() if version == "3.1.1" else MQTTParserV5()
-
-
-class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
+class TestMQTTBroker(
+    TestBroker[MQTTBroker, EnterType],
+    broker=MQTTBroker,
+):
     """In-memory test double for MQTTBroker.
 
     Routes published messages to matching subscribers without a real
@@ -155,6 +152,7 @@ class TestMQTTBroker(TestBroker[MQTTBroker, EnterType]):
         with change_producer(broker.config.broker_config, fake_producer):
             yield
 
+    @override
     async def _fake_connect(  # type: ignore[override]
         self,
         broker: MQTTBroker,
@@ -186,7 +184,7 @@ class FakeProducer(ZmqttBaseProducer):
         self.serializer: SerializerProto | None = None
 
         version = _broker_version(broker)
-        default = _parser_for_version(version)
+        default = parser_for(version)()
         self._parser = ParserComposition(broker._parser, default.parse_message)
         self._decoder = ParserComposition(broker._decoder, default.decode_message)
         self.codec = broker.config.broker_codec or DefaultCodec()
@@ -198,7 +196,7 @@ class FakeProducer(ZmqttBaseProducer):
         )
 
     @property
-    def _version(self) -> Literal["3.1.1", "5.0"]:
+    def _version(self) -> MQTTVersion:
         return _broker_version(self.broker)
 
     @override
@@ -270,7 +268,7 @@ async def build_message(
     message: "SendableMessage",
     topic: str,
     *,
-    version: Literal["3.1.1", "5.0"] = "5.0",
+    version: MQTTVersion = "5.0",
     qos: int = 0,
     retain: bool = False,
     reply_to: str = "",

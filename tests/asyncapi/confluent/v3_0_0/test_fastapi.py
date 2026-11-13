@@ -2,7 +2,6 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.confluent.fastapi import KafkaRouter
 from faststream.confluent.testing import TestKafkaBroker
 from faststream.security import SASLPlaintext
@@ -19,16 +18,16 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
     router_class = KafkaRouter
     broker_wrapper = staticmethod(TestKafkaBroker)
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))
 
 
 @pytest.mark.confluent()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))
 
 
 @pytest.mark.confluent()

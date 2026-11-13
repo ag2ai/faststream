@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -69,7 +70,7 @@ class TestRouterLocal(RabbitMemoryTestcaseConfig, FastAPILocalTestcase):
                 type=ExchangeType.TOPIC,
             ),
         )
-        async def hello(name):
+        async def hello(name: Any) -> Any:
             return name
 
         async with self.patch_broker(router.broker) as br:

@@ -17,8 +17,8 @@ async def test_new_inbox() -> None:
         spy_decorator(NatsClient.new_inbox),
     ) as m:
         broker = NatsBroker(inbox_prefix="_FOO_TEST_INBOX")
-        await broker.connect()
-        inbox_name = await broker.new_inbox()
+        async with broker:
+            inbox_name = await broker.new_inbox()
 
-        m.mock.assert_called_once()
-        assert inbox_name.startswith("_FOO_TEST_INBOX.")
+            m.mock.assert_called_once()
+            assert inbox_name.startswith("_FOO_TEST_INBOX.")

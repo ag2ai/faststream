@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
+from aio_pika.exceptions import ChannelInvalidStateError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
@@ -31,6 +32,16 @@ if TYPE_CHECKING:
 
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
+
+    __slots__ = (
+        "__no_ack",
+        "_consumer_tag",
+        "_queue_obj",
+        "channel",
+        "consume_args",
+        "exchange",
+        "queue",
+    )
 
     _outer_config: "RabbitBrokerConfig"
 
@@ -82,8 +93,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         )
 
         if (
-            self.exchange is not None
-            and queue_to_bind.declare  # queue just getted from RMQ
+            queue_to_bind.declare  # queue just getted from RMQ
             and self.exchange.name  # check Exchange is not default
         ):
             exchange = await declarer.declare_exchange(
@@ -110,15 +120,30 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self._post_start()
 
     async def stop(self) -> None:
-        await super().stop()
-
-        if self._queue_obj is not None:
-            if self._consumer_tag is not None:  # pragma: no branch
+        # Stop processing, then cancel the consumer before waiting for in-flight
+        # handlers, so RabbitMQ hands new messages to the other consumers of the
+        # queue meanwhile instead of parking them on this channel until it closes.
+        self.running = False
+        try:
+            if self._queue_obj is not None and self._consumer_tag is not None:
                 if not self._queue_obj.channel.is_closed:
                     await self._queue_obj.cancel(self._consumer_tag)
                 self._consumer_tag = None
+        finally:
+            await super().stop()
 
             self._queue_obj = None
+
+    @override
+    async def consume(self, msg: "IncomingMessage") -> Any:
+        if not self.running and not self.__no_ack:
+            # A delivery that arrives while `stop` cancels the consumer goes back to
+            # the queue right away instead of staying unacknowledged until the channel closes.
+            with contextlib.suppress(ChannelInvalidStateError):
+                await msg.reject(requeue=True)
+            return None
+
+        return await super().consume(msg)
 
     @override
     async def get_one(
@@ -139,7 +164,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             contextlib.suppress(asyncio.exceptions.CancelledError),
             anyio.move_on_after(timeout),
         ):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 raw_message := await self._queue_obj.get(
                     fail=False,
                     no_ack=no_ack,
@@ -148,7 +173,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         msg: RabbitMessage | None = await process_msg(  # type: ignore[assignment]
@@ -168,7 +193,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             "You can't use iterator method if subscriber has registered handlers."
         )
 
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async with self._queue_obj.iterator() as queue_iter:
@@ -183,7 +208,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                     parser=async_parser,
                     decoder=async_decoder,
                 )
-                yield msg
+                yield msg  # ruff: ignore[yield-in-context-manager-in-async-generator]
 
     def _make_response_publisher(
         self,

@@ -2,7 +2,7 @@ import warnings
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import anyio
 import zmqtt
@@ -12,7 +12,7 @@ from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.middlewares import AckPolicy
-from faststream.mqtt.parser import MQTTBaseParser, MQTTParserV5, MQTTParserV311
+from faststream.mqtt.parser import MQTTBaseParser, MQTTVersion, parser_for
 from faststream.mqtt.publisher.fake import MQTTFakePublisher
 
 if TYPE_CHECKING:
@@ -28,6 +28,14 @@ if TYPE_CHECKING:
 
 class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     """Base class for all MQTT subscribers."""
+
+    __slots__ = (
+        "_address",
+        "_qos",
+        "_shared",
+        "_subscription",
+        "last_unsubscribe_result",
+    )
 
     _outer_config: "MQTTBrokerConfig"
 
@@ -47,6 +55,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
+        self.last_unsubscribe_result: zmqtt.UnsubscribeResult | None = None
 
         if config.ack_policy is AckPolicy.NACK_ON_ERROR:
             warnings.warn(
@@ -60,11 +69,13 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     def _build_parser(self) -> MQTTBaseParser:
         return self._make_parser(self._outer_config)
 
-    def _make_parser(self, outer_config: Any) -> MQTTBaseParser:
-        version = getattr(outer_config, "version", "5.0")
-        cls: type[MQTTBaseParser] = MQTTParserV311 if version == "3.1.1" else MQTTParserV5
+    def _make_parser(self, outer_config: "MQTTBrokerConfig") -> MQTTBaseParser:
+        version: MQTTVersion | Literal["unset"] = outer_config.version
+        if version == "unset":
+            # Declared on a Router, before a Broker composes its version in.
+            version = "5.0"
         prefix = getattr(outer_config, "prefix", "")
-        return cls(path_regex=self._address.add_prefix(prefix).regex)
+        return parser_for(version)(path_regex=self._address.add_prefix(prefix).regex)
 
     @property
     def address(self) -> "Address":
@@ -127,8 +138,9 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         # also cancel an in-flight UNSUBSCRIBE.
         self.running = False
         if self._subscription is not None:
+            self.last_unsubscribe_result = None
             with suppress(Exception):
-                await self._subscription.stop()
+                self.last_unsubscribe_result = await self._subscription.stop()
             self._subscription = None
 
         await super().stop()
@@ -147,7 +159,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMessage[zmqtt.Message] | None":
+    ) -> "MQTTMessage | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -167,21 +179,22 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         with anyio.move_on_after(timeout):
             raw_msg = await self._subscription.get_message()
 
-        context = self._outer_config.fd_config.context
-        return await process_msg(
+        context = self._outer_config.context
+        msg: MQTTMessage | None = await process_msg(  # type: ignore[assignment]
             msg=raw_msg,
             middlewares=(m(raw_msg, context=context) for m in self._broker_middlewares),
             parser=async_parser,
             decoder=async_decoder,
         )
+        return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMessage[zmqtt.Message]"]:
+    async def __aiter__(self) -> AsyncIterator["MQTTMessage"]:
         if self._subscription is None:
             await self._create_subscription()
 
         assert self._subscription is not None
-        context = self._outer_config.fd_config.context
+        context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
         async for raw_msg in self._subscription:
             msg: MQTTMessage = await process_msg(  # type: ignore[assignment]
@@ -202,6 +215,8 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 class MQTTDefaultSubscriber(MQTTBaseSubscriber):
     """Sequential MQTT subscriber — processes one message at a time."""
 
+    __slots__ = ()
+
     async def _consume_loop(self) -> None:
         assert self._subscription is not None
         async for msg in self._subscription:
@@ -210,6 +225,8 @@ class MQTTDefaultSubscriber(MQTTBaseSubscriber):
 
 class MQTTConcurrentSubscriber(ConcurrentMixin[zmqtt.Message], MQTTBaseSubscriber):
     """Concurrent MQTT subscriber — processes up to max_workers messages in parallel."""
+
+    __slots__ = ()
 
     @override
     async def start(self) -> None:

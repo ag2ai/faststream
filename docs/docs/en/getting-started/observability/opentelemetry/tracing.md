@@ -43,7 +43,7 @@ async def third_handler(msg: str):
 
 **OpenTelemetry** tracing support in **FastStream** adheres to the [semantic conventions for messaging systems](https://opentelemetry.io/docs/specs/semconv/messaging/){.external-link target="_blank"}.
 
-To enable tracing your broker:
+To enable tracing for your broker:
 
 1. Install `FastStream` with the `opentelemetry-sdk`:
 

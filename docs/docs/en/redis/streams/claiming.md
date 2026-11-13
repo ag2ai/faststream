@@ -4,11 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Redis XAUTOCLAIM in Python: Recover Pending Messages"
+description: >-
+  Recover pending Redis Stream messages in Python with XAUTOCLAIM and FastStream. Configure min_idle_time, a claiming worker and acknowledgements for consumer groups.
 search:
   boost: 10
 ---
 
-# Redis Stream Message Claiming
+# Redis XAUTOCLAIM in Python: Recover Pending Messages
+
+Use **Redis `XAUTOCLAIM` in Python** to recover consumer-group messages left pending after a worker fails. FastStream calls `redis-py` through `StreamSub(min_idle_time=...)`, which transfers idle pending entries to a claiming subscriber. This mode only reads pending entries: keep a regular `XREADGROUP` subscriber for new messages, or use the Redis 8.4+ `XREADGROUP CLAIM` mode described below.
 
 When working with Redis Stream Consumer Groups, there may be situations where messages remain in a pending state because a consumer failed to process them. FastStream provides a mechanism to automatically claim these pending messages using Redis's `XAUTOCLAIM` command through the `min_idle_time` parameter.
 
@@ -82,6 +87,49 @@ async def backup_worker(order_id: str):
     await process_complex_order(order_id)
 ```
 
+## Unified Consuming and Claiming with `XREADGROUP CLAIM`
+
+Redis 8.4 added the [`CLAIM` option](https://redis.io/docs/latest/commands/xreadgroup/#the-claim-option){.external-link target="_blank"} to `XREADGROUP`, merging claiming and consuming into a single command: each read first claims messages that have been pending for at least the given duration, then reads new ones. FastStream exposes it via the `claim_min_idle_time` parameter, so a single subscriber can process new messages and recover abandoned ones:
+
+```python linenums="1"
+{! docs_src/redis/stream/claiming_unified.py !}
+```
+
+!!! note "Requirements"
+    - **Redis server 8.4+** — older servers reject the `CLAIM` option with a `ResponseError` (`ERR syntax error`)
+    - **redis-py 7.1.0+** — with an older client the subscriber fails at startup with a clear `SetupError`
+    - `claim_min_idle_time` is mutually exclusive with `min_idle_time` (a different claiming mode) and with `no_ack` (never acknowledging claimed entries would redeliver them forever), and requires a consumer group with the default `last_id` (`>`), because Redis silently ignores `CLAIM` for any other id
+
+### Claim Metadata
+
+When `claim_min_idle_time` is set, Redis extends every returned entry with two extra fields, which FastStream exposes via the raw message (as in the example above). Both are lists aligned with `message_ids`, so batch subscribers get one value per entry:
+
+- `message.raw_message["idle_times"]` — milliseconds since the last delivery
+- `message.raw_message["delivery_counts"]` — previous deliveries (`0` for a new message)
+
+This makes retry caps and dead-letter routing possible without an extra `XPENDING` call.
+
+!!! warning
+    `delivery_counts` counts *previous* deliveries and is therefore one less than `XPENDING`'s `times_delivered`, which includes the current delivery.
+
+### `claim_min_idle_time` vs `min_idle_time`
+
+The new option does not replace `XAUTOCLAIM`-based claiming — they complement each other:
+
+| | `claim_min_idle_time` (XREADGROUP CLAIM) | `min_idle_time` (XAUTOCLAIM) |
+|---|---|---|
+| New messages | consumed in the same call | never consumed |
+| Finding idle entries | server-side time-ordered index | cursor scan over the PEL |
+| Deleted (trimmed / `XDEL`-ed) pending entries | left in the PEL | removed from the PEL |
+
+If your stream is capped (`maxlen` / `XTRIM`), deleted entries can leave ghost records in the PEL that only `XAUTOCLAIM` cleans up.
+
+Additional guidelines:
+
+- The `min_idle_time` sizing warning below applies here as well: set `claim_min_idle_time` greater than your worst-case processing time, with a safety margin. This is especially important with `max_workers`, where the subscriber keeps reading while previous messages are still being processed — a too-low threshold lets it reclaim its own in-flight messages.
+- Claimed entries share the `COUNT` budget with new ones and are returned first, so a large backlog of idle messages can fill whole reads. Consider setting `max_records` to bound a single delivery.
+- Works with Redis Cluster as well: each stream maps to a single node, so the `CLAIM` option needs nothing cluster-specific.
+
 ## Combining with Manual Acknowledgment
 
 You can combine `min_idle_time` with manual acknowledgment policies for fine-grained control:
@@ -123,16 +171,16 @@ async def claiming_worker(task): ...
 ```
 
 #### Pattern 2: All Workers Can Claim
-All workers can claim messages from each other:
+All workers process new messages and claim abandoned ones. This pattern requires `claim_min_idle_time` (Redis 8.4+, see [Unified Consuming and Claiming](#unified-consuming-and-claiming-with-xreadgroup-claim)) — with `min_idle_time`, subscribers only claim pending messages and never consume new ones:
 
 ```python
-# Each worker can both process new messages and claim abandoned ones
+# Each worker both processes new messages and claims abandoned ones
 @broker.subscriber(
     stream=StreamSub(
         "tasks",
         group="workers",
         consumer=f"worker-{instance_id}",
-        min_idle_time=10000,
+        claim_min_idle_time=10000,
     )
 )
 async def worker(task): ...
@@ -153,4 +201,5 @@ Claiming behaves the same way in tests, without waiting on real `min_idle_time` 
 For more information about Redis Streams message claiming:
 
 - [Redis XAUTOCLAIM Documentation](https://redis.io/docs/latest/commands/xautoclaim/){.external-link target="_blank"}
+- [Redis XREADGROUP CLAIM Documentation](https://redis.io/docs/latest/commands/xreadgroup/#the-claim-option){.external-link target="_blank"}
 - [Redis Streams Claiming Guide](https://redis.io/docs/latest/develop/data-types/streams/#claiming-and-the-delivery-counter){.external-link target="_blank"}

@@ -1,0 +1,52 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {
+    "test.{path}:Handle": {
+      "bindings": {
+        "redis": {
+          "bindingVersion": "custom",
+          "channel": "test.{path}",
+          "method": "psubscribe"
+        }
+      },
+      "publish": {
+        "message": {
+          "$ref": "#/components/messages/test.%7Bpath%7D:Handle:Message"
+        }
+      },
+      "servers": [
+        "development"
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "test.{path}:Handle:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/Handle:Message:Payload"
+        },
+        "title": "test.{path}:Handle:Message"
+      }
+    },
+    "schemas": {
+      "Handle:Message:Payload": {
+        "title": "Handle:Message:Payload"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "redis",
+      "protocolVersion": "custom",
+      "url": "redis://localhost:6379"
+    }
+  }
+}

@@ -12,7 +12,7 @@ search:
 
 ## Overview
 
-**NATS JetStream** supports two different ways to consume messages: [**Push** and **Pull**](https://docs.nats.io/using-nats/developer/develop_jetstream/consumers#push-and-pull-consumers){.external-link target="_blank} consumers.
+**NATS JetStream** supports two different ways to consume messages: [**Push** and **Pull**](https://docs.nats.io/using-nats/developer/develop_jetstream/consumers#push-and-pull-consumers){.external-link target="_blank"} consumers.
 
 The **Push** consumer is used by default to consume messages with **FastStream**. It means that the **NATS** server delivers messages to your consumer as fast as possible by itself. However, it also means that **NATS** should control all current consumer connections and increase server load.
 
@@ -32,10 +32,10 @@ The **Pull** consumer is just a regular *Stream* consumer, but with the `pull_su
 {! docs_src/nats/js/pull_sub.py !}
 ```
 
-The batch size doesn't mean that your `msg` argument is a list of messages, but it means that you consume up to `#!python 10` messages for one request to **NATS** and call your handler for each message in an `asyncio.gather` pool.
+The batch size doesn't mean that your `msg` argument is a list of messages, but it means that you consume up to `#!python 10` messages for one request to **NATS** and call your handler for each message concurrently in an `anyio` task group.
 
 !!! tip
-    If you want to consume list of messages, just set the `batch=True` in `PullSub` class.
+    If you want to consume a list of messages, just set the `batch=True` in `PullSub` class.
 
 ### Batch Pull Subscriber Example
 
@@ -48,4 +48,9 @@ allowing per‑message `ack()` inside a batch.
 {! docs_src/nats/js/pull_sub_batch_example.py !}
 ```
 
-So, your subject will be processed much faster, without blocking for each message processing. However, if your subject has fewer than `#!python 10` messages, your request to **NATS** will be blocked for `timeout` (5 seconds by default) while trying to collect the required number of messages. Therefore, you should choose `batch_size` and `timeout` accurately to optimize your consumer efficiency.
+So, your subject will be processed much faster, without blocking for each message processing.
+
+With `batch=True`, FastStream collects up to `batch_size` messages before calling the handler. It waits until the batch is full or `timeout` expires (5 seconds by default), then delivers any collected messages as a partial batch. Set `timeout=None` to wait until the batch is full.
+
+!!! note
+    `nats-py` can return a partial batch before its timeout expires. FastStream makes additional fetch requests to fill the batch; see [nats-py issue #1034](https://github.com/nats-io/nats.py/issues/1034){.external-link target="_blank"}.

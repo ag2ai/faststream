@@ -1,5 +1,5 @@
 import re
-from collections.abc import Callable, Generator, Iterable, Sequence
+from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, cast, overload
@@ -10,6 +10,7 @@ from aiokafka import ConsumerRecord
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.kafka import encode_headers
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
@@ -39,7 +40,10 @@ if TYPE_CHECKING:
 __all__ = ("TestKafkaBroker",)
 
 
-class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
+class TestKafkaBroker(
+    TestBroker[KafkaBroker, EnterType],
+    broker=KafkaBroker,
+):
     """A class to test Kafka brokers."""
 
     @overload
@@ -88,8 +92,6 @@ class TestKafkaBroker(TestBroker[KafkaBroker, EnterType]):
         *args: Any,
         **kwargs: Any,
     ) -> Callable[..., AsyncMock]:
-        broker.config.broker_config._admin_client = AsyncMock()
-
         builder = MagicMock(return_value=FakeConsumer())
         broker.config.broker_config.builder = builder
 
@@ -203,7 +205,9 @@ class FakeProducer(AioKafkaFastProducer):
             cmd.destination,
             cmd.partition,
         ):
-            msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
+            msg_to_send = (
+                (incoming,) if isinstance(handler, BatchSubscriber) else incoming
+            )
 
             await self._execute_handler(msg_to_send, cmd.destination, handler)
 
@@ -227,7 +231,9 @@ class FakeProducer(AioKafkaFastProducer):
             cmd.destination,
             cmd.partition,
         ):
-            msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
+            msg_to_send = (
+                (incoming,) if isinstance(handler, BatchSubscriber) else incoming
+            )
 
             with anyio.fail_after(cmd.timeout):
                 return await self._execute_handler(
@@ -275,7 +281,7 @@ class FakeProducer(AioKafkaFastProducer):
             ]
 
             if isinstance(handler, BatchSubscriber):
-                await self._execute_handler(list(messages), cmd.destination, handler)
+                await self._execute_handler(tuple(messages), cmd.destination, handler)
 
             else:
                 for m in messages:
@@ -306,7 +312,7 @@ async def build_message(
     partition: int | None = None,
     timestamp_ms: int | None = None,
     key: bytes | None = None,
-    headers: dict[str, str] | None = None,
+    headers: Mapping[str, str | bytes | None] | None = None,
     correlation_id: str | None = None,
     *,
     reply_to: str = "",
@@ -342,7 +348,7 @@ async def build_message(
         serialized_value_size=0 if msg is None else len(msg),
         checksum=0 if msg is None else sum(msg),
         offset=0,
-        headers=[(i, j.encode()) for i, j in headers.items()],
+        headers=encode_headers(headers),
         timestamp_type=1,
         timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
     )
@@ -355,7 +361,7 @@ def _build_record(
     partition: int | None = None,
     timestamp_ms: int | None = None,
     key: bytes | None = None,
-    headers: dict[str, str] | None = None,
+    headers: Mapping[str, str | bytes | None] | None = None,
     correlation_id: str | None = None,
     reply_to: str = "",
     id_generator: IdGenerator = gen_cor_id,
@@ -377,7 +383,7 @@ def _build_record(
         serialized_value_size=len(body),
         checksum=sum(body),
         offset=0,
-        headers=[(i, j.encode()) for i, j in h.items()],
+        headers=encode_headers(h),
         timestamp_type=1,
         timestamp=timestamp_ms or int(datetime.now(timezone.utc).timestamp() * 1000),
     )
@@ -417,7 +423,7 @@ def _is_handler_matches(
     ):
         return True
 
-    if topic in handler.topics:
+    if any(t.name == topic for t in handler.topics):
         return True
 
     pattern = handler.pattern

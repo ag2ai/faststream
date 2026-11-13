@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Any, cast
 
 from opentelemetry.semconv.trace import SpanAttributes
+from typing_extensions import override
 
 from faststream.opentelemetry import TelemetrySettingsProvider
 from faststream.opentelemetry.consts import MESSAGING_DESTINATION_PUBLISH_NAME
@@ -51,6 +52,7 @@ class RedisTelemetrySettingsProvider(TelemetrySettingsProvider[dict[str, Any]]):
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: cmd.correlation_id,
         }
 
+    @override
     def get_publish_destination_name(
         self,
         cmd: "PublishCommand",

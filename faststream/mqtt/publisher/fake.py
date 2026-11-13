@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 class MQTTFakePublisher(FakePublisher):
     """Publisher used for RPC / reply-to responses in MQTT."""
 
+    __slots__ = ("topic",)
+
     def __init__(
         self,
         producer: "ProducerProto[MQTTPublishCommand]",

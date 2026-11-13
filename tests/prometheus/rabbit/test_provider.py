@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -30,7 +31,7 @@ class TestRabbitMetricsSettingsProvider(
             "message_size": len(body),
             "messages_count": 1,
         }
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=SimpleNamespace(exchange=exchange, routing_key=queue),
         )
@@ -53,7 +54,7 @@ class TestRabbitMetricsSettingsProvider(
         queue: str,
     ) -> None:
         expected_destination_name = f"{exchange or 'default'}.{queue}"
-        command = SimpleNamespace(
+        command: Any = SimpleNamespace(
             exchange=SimpleNamespace(name=exchange),
             destination=queue,
         )

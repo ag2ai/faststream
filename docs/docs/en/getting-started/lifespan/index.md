@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Run setup and teardown code once per FastStream application with lifespan hooks: on_startup,
+  on_shutdown and the lifespan context manager.
 search:
   boost: 10
 ---

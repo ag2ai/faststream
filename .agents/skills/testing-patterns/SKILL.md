@@ -63,6 +63,12 @@ Global pytest timeout is 30s per test; the suite runs parallel — keep tests in
 - Slow test → `@pytest.mark.slow()` (also excluded by default).
 - Async test → `@pytest.mark.asyncio()`.
 
+Marks pick the CI job, so a wrong one drops a test silently. `just misplaced-marks` (a CI step too) fails on the three shapes that did it before:
+
+- a test under a `<broker>/` directory anywhere in `tests/` without the `<broker>` mark (`redis_cluster` under `redis/cluster/`). A test imported from `docs_src` or `examples` is marked through `pytestmark` in the importing module.
+- a `connected` test whose module is built on one broker package, without that broker's mark. An unmarked test still runs in `test-basic`; a `connected` one runs only in its broker's job, so there it never runs at all.
+- `connected` on a whole `*MemoryTestcaseConfig` class (or its module). When an in-memory class inherits a test that does open a connection, mark that test — in the base testcase if it is inherited.
+
 ## Shared base testcases
 
 Cross-broker behavior is specified ONCE in `tests/brokers/base/` (`basic.py`, `consume.py`, `publish.py`, `router.py`, `codec.py`, `middlewares.py`, `parser.py`, `requests.py`, `connection.py`, `fastapi.py`, `testclient.py`, ...) and inherited by every broker.
@@ -108,6 +114,64 @@ subscriber = self.declare_subscriber(
 )
 ```
 
+## Add a test only when nothing else already breaks on it
+
+Before writing a new test, ask what already goes red if the change is wrong: another test
+in the suite, or `mypy` running over library code that already exercises the path (a
+registrator signature checked through `faststream/<broker>/testing.py`, say). If something
+already catches it, don't add another one — a ticket asking for "a test per case" doesn't
+override this; say which existing check covers the rest instead of writing one that just
+restates it. Never pin language or stdlib behaviour FastStream doesn't own (a `NamedTuple`
+unpacks, `==` on tuples).
+
+The name is the behaviour, so a test carries no docstring by default, and an assertion
+that needs explaining gets a single `#` comment directly over it. Two cases earn one:
+
+- the regression pattern below — the docstring is the issue URL and nothing else;
+- the rare test that is unreadable without it, because what it guards is invisible from
+  the body. `tests/utils/test_lazy_imports.py` runs an import in a subprocess: only the
+  docstring can say what that protects, how it broke before, and why nothing else goes
+  red. If a better name or one comment would do, the test is not this case.
+
+## One equality per behaviour
+
+When a test checks one value from several angles — a tuple's fields, a few keys of a
+dict, a length and an element — build the expected shape from `dirty-equals` matchers
+and compare once. The failure then prints the whole shape, and the test reads as a single
+statement of the behaviour:
+
+```python
+# Claimed entries come first, with their previous deliveries and idle time
+assert received[:2] == [
+    ("pending_message", IsInt(ge=1), IsInt(ge=100)),
+    ("new_message", 0, 0),
+]
+
+assert snapshot == IsPartialDict({
+    "delivery_counts": HasLen(size),
+    "idle_times": HasLen(size),
+})
+```
+
+A chain of `assert x[0] ...`, `assert x[1] ...`, or a loop carrying a `found` flag, is this
+shape spelled out one field at a time: collapse it into the one equality. `IsPartialDict`
+takes a dict literal, so dotted keys and enum values read the same as the config they
+mirror. An equality that already fails on a missing delivery stands alone; the
+`assert event.is_set()` in front of it says nothing more.
+
+## Tests are type checked
+
+`just mypy` runs the same strict config over all of `tests/`, so a test is annotated like library code: every function, fixture and handler has its parameters and return typed.
+
+- **Cross-broker testcases hold the broker as `Any`.** A base class in `tests/brokers/base/`, `tests/asyncapi/base/` and the like subclasses `BaseTestcaseConfig[Any]` and types `broker_class`, `router_class` and friends as `Any` — each broker spells `subscriber()` differently. Such a module also joins the `disallow_untyped_decorators = false` override in `pyproject.toml`; broker-specific tests keep the check.
+- **A value that is wrong on purpose goes through `Any`**, not an ignore: `router: Any = NatsRouter()` before handing it to a Kafka broker, `channel_manager: Any = FakeChannelManager(mock)` for a stand-in. The same goes for private internals (`producer: Any = broker._producer`).
+- **The raw client comes from the public API**: `client = await br.connect()`, never `br._connection`, which is `None`-able.
+- **Narrow with an assertion the test already implies** — `assert message`, `assert isinstance(point, HistogramDataPoint)` — and put a repeated one in a small module-level helper.
+- **An awaitable dropped on purpose is written `_ = ...`**: `_ = tg.start_soon(app.run)`, `_ = await br.publish(..., no_confirm=True)`. A bare statement reads as a forgotten `await`, which is what `unused-awaitable` reports.
+- **`# type: ignore[code]` is for what nothing else expresses**, always with its code and before any `# noqa`: `subscriber(*args, **kwargs)` from `get_subscriber_params()` resolves to `Any` (`untyped-decorator`), a test overriding a base test with other fixtures (`override`), a name redefined on purpose (`no-redef`), a call missing a required argument to prove it raises (`call-arg`).
+
+A typing problem that turns out to live in `faststream/` is fixed there, in its own PR with a case in `tests/mypy/`, not papered over in the test.
+
 ## Regression tests
 
 A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
@@ -118,7 +182,7 @@ async def test_publisher_without_destination(self) -> None:
     """Fixes https://github.com/ag2ai/faststream/issues/2513."""
 ```
 
-The URL goes on the docstring's own first line, with the explanation of the behavior below it. `xfail`/`skip` reasons take the same URL. Comments inside the test body follow the **code-architecture** rules — two lines, over the line they explain.
+The URL is the whole docstring — no explanation of the behavior underneath it. `xfail`/`skip` reasons take the same URL. A comment inside the test body follows the **code-architecture** rule: one line, directly over the assertion it explains.
 
 A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
 
@@ -141,7 +205,7 @@ The same run grades the tests already there, and it is how a suite shrinks. Two 
 - `tests/marks.py`: conditional skips — `skip_windows`, `skip_macos`, `pydantic_v1`/`pydantic_v2`, `require_aiokafka`, `require_confluent`, `require_aiopika`, `require_redis`, `require_nats`, `require_mqtt`.
 - `tests/tools.py`: `spy_decorator` — wraps a real method with a mock spy (call assertions via `.mock`) while preserving behavior.
 - `tests/mocks.py`: `mock_pydantic_settings_env` for env-driven settings tests.
-- `dirty-equals` and `freezegun` are available as test deps.
+- `freezegun` is available as a test dep.
 
 **Never import from a `conftest.py`.** pytest loads conftest modules specially (their fixtures are injected into the collected files), so importing from one — `from .conftest import Settings` or `from tests.brokers.redis.conftest import ...` — can produce a duplicated/mismatched module and confusing collection errors. When conftest and a test file need the same object, declare it in a plain helper module next to them (e.g. `tests/brokers/redis/settings.py`, `basic.py`) and import it from both.
 

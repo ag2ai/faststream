@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class AsyncAPI(SpecificationFactory):
+    """Unslotted, following `SpecificationFactory`: one of these exists per app."""
+
     def __init__(
         self,
         /,

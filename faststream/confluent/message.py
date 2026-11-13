@@ -59,6 +59,23 @@ class KafkaMessage(
         if not is_manual:
             self.committed = AckStatus.ACKED
 
+    @property
+    def raw_headers(self) -> dict[str, bytes | None]:
+        """Original header bytes, or the first message's headers for a batch."""
+        raw_message = self.raw_message
+        if isinstance(raw_message, tuple):
+            if not raw_message:
+                return {}
+            raw_message = raw_message[0]
+        return _get_raw_headers(raw_message)
+
+    @property
+    def batch_raw_headers(self) -> list[dict[str, bytes | None]]:
+        """Original header bytes for every batch message; empty for a single message."""
+        if isinstance(self.raw_message, tuple):
+            return [_get_raw_headers(message) for message in self.raw_message]
+        return []
+
     async def ack(self) -> None:
         """Acknowledge the Kafka message."""
         if self.is_manual and not self.committed:
@@ -71,18 +88,35 @@ class KafkaMessage(
     async def nack(self) -> None:
         """Reject the Kafka message."""
         if self.is_manual and not self.committed:
-            raw_message: Message = (
-                self.raw_message[0]
+            # A batch may span several partitions: rewind each one to its earliest
+            # record, so none of them is committed past an unprocessed message.
+            records: tuple[Message, ...] = (
+                self.raw_message
                 if isinstance(self.raw_message, tuple)
-                else self.raw_message
+                else (self.raw_message,)
             )
-            topic = raw_message.topic()
-            partition = raw_message.partition()
-            offset = raw_message.offset()
-            if topic is not None and partition is not None and offset is not None:
+            earliest: dict[tuple[str, int], int] = {}
+            for record in records:
+                topic = record.topic()
+                partition = record.partition()
+                offset = record.offset()
+                if topic is None or partition is None or offset is None:
+                    continue
+                known = earliest.get((topic, partition))
+                if known is None or offset < known:
+                    earliest[topic, partition] = offset
+            for (topic, partition), offset in earliest.items():
                 await self.consumer.seek(
                     topic=topic,
                     partition=partition,
                     offset=offset,
                 )
         await super().nack()
+
+
+def _get_raw_headers(message: Message) -> dict[str, bytes | None]:
+    headers = dict(message.headers() or ())
+    return {
+        key: value.encode() if isinstance(value, str) else value
+        for key, value in headers.items()
+    }

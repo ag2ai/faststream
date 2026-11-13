@@ -1,3 +1,4 @@
+from io import StringIO
 from typing import Any
 
 from pydantic import BaseModel
@@ -43,8 +44,6 @@ class BaseApplicationSchema(BaseModel):
 
     def to_yaml(self) -> str:
         """Convert the schema to a YAML string."""
-        from io import StringIO
-
         import yaml
 
         io = StringIO(initial_value="", newline="\n")

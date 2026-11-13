@@ -299,6 +299,13 @@ ConfluentConfig = TypedDict(
 
 
 class ConfluentFastConfig:
+    __slots__ = (
+        "config",
+        "raw_admin_config",
+        "raw_consumer_config",
+        "raw_producer_config",
+    )
+
     def __init__(
         self,
         *,

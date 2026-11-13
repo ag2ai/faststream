@@ -25,6 +25,14 @@ if TYPE_CHECKING:
 class LogicPublisher(PublisherUsecase):
     """A class to represent a NATS publisher."""
 
+    __slots__ = (
+        "_subject",
+        "headers",
+        "reply_to",
+        "stream",
+        "timeout",
+    )
+
     _outer_config: "NatsBrokerConfig"
 
     def __init__(
