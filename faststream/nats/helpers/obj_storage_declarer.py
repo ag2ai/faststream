@@ -28,6 +28,7 @@ class OSBucketDeclarer:
 
     def disconnect(self) -> None:
         self.__state = EmptyConnectionState()
+        self.buckets.clear()
 
     async def create_object_store(
         self,

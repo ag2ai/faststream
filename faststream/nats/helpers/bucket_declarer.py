@@ -28,6 +28,7 @@ class KVBucketDeclarer:
 
     def disconnect(self) -> None:
         self.__state = EmptyConnectionState()
+        self.buckets.clear()
 
     async def create_key_value(
         self,
