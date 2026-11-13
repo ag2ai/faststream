@@ -498,10 +498,10 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
                     IncomingMessage,
                     "reject",
                     spy_decorator(IncomingMessage.reject),
-                ) as m:
+                ) as reject:
                     await br.publish("hello", queue)
                     await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-                    m.mock.assert_not_called()
+                    reject.mock.assert_not_called()
 
         mock.assert_not_called()
