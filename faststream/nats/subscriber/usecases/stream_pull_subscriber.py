@@ -100,7 +100,7 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
         self,
         cb: Callable[["Msg"], Awaitable["SendableMessage"]],
     ) -> None:
-        """Consume no more messages than the available worker capacity."""
+        """Hold a worker slot from the pull request through message processing."""
         if not self.running:
             return
 
@@ -109,15 +109,17 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
 
         async with anyio.create_task_group() as tg:
             while self.running:  # pragma: no branch
-                reserved_slots = await self._reserve_worker_slots()
+                await self.limiter.acquire()
+                slot_reserved = True
 
                 try:
                     if not self.running:
                         continue
 
                     try:
-                        messages = await self.subscription.fetch(
-                            batch=reserved_slots,
+                        # Batch fetches can leave extra server pulls active (see issue #2563).
+                        (msg,) = await self.subscription.fetch(
+                            batch=1,
                             timeout=self.pull_sub.timeout,
                         )
                     except (
@@ -130,31 +132,15 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
                         fetch_error = exc
                         break
 
-                    for msg in messages:
-                        tg.start_soon(self._consume_with_release, cb, msg)
-                        reserved_slots -= 1
+                    _ = tg.start_soon(self._consume_with_release, cb, msg)
+                    slot_reserved = False
 
                 finally:
-                    for _ in range(reserved_slots):
+                    if slot_reserved:
                         self.limiter.release()
 
         if fetch_error is not None and self.running:
             raise fetch_error
-
-    async def _reserve_worker_slots(self) -> int:
-        """Reserve the currently available capacity for the next fetch."""
-        max_slots = min(self.pull_sub.batch_size, self.max_workers)
-        if max_slots < 1:
-            return max_slots
-
-        await self.limiter.acquire()
-        reserved_slots = 1
-
-        while reserved_slots < max_slots and self.limiter.value:
-            self.limiter.acquire_nowait()
-            reserved_slots += 1
-
-        return reserved_slots
 
     async def _consume_with_release(
         self,

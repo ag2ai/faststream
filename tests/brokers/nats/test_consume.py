@@ -13,6 +13,7 @@ from faststream.exceptions import AckMessage
 from faststream.nats import ConsumerConfig, JStream, NatsBroker, PubAck, PullSub
 from faststream.nats.annotations import NatsMessage
 from faststream.nats.message import NatsMessage as StreamMessage
+from faststream.nats.subscriber.usecases import ConcurrentPullStreamSubscriber
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
 from tests.tools import spy_decorator
 
@@ -90,13 +91,20 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
 
+    @pytest.mark.parametrize(
+        ("fetch_timeout", "publish_interval"),
+        ((0.05, 0.0), (0.05, 0.002), (None, 0.002)),
+    )
     async def test_concurrent_pull_respects_worker_capacity(
         self,
         queue: str,
         stream: JStream,
         event: asyncio.Event,
         event2: asyncio.Event,
+        fetch_timeout: float | None,
+        publish_interval: float,
     ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/2563."""
         broker = self.get_broker()
         release_handlers = asyncio.Event()
 
@@ -104,9 +112,10 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             queue,
             durable=queue,
             stream=stream,
-            pull_sub=PullSub(batch_size=2, batch=True),
+            pull_sub=PullSub(batch_size=2, timeout=fetch_timeout),
             max_workers=2,
         )
+        assert isinstance(subscriber, ConcurrentPullStreamSubscriber)
 
         @subscriber
         async def handler(msg: str) -> None:
@@ -120,7 +129,15 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             await br.start()
 
             try:
-                await asyncio.gather(*(br.publish(i, queue) for i in range(4)))
+                if publish_interval:
+                    if fetch_timeout is not None:
+                        # Let a pull expire before messages arrive (see issue #2563).
+                        await asyncio.sleep(fetch_timeout * 1.1)
+                    for i in range(4):
+                        await br.publish(i, queue)
+                        await asyncio.sleep(publish_interval)
+                else:
+                    await asyncio.gather(*(br.publish(i, queue) for i in range(4)))
                 await asyncio.wait_for(
                     asyncio.gather(event.wait(), event2.wait()),
                     timeout=3,
