@@ -304,6 +304,17 @@ class AsyncConfluentConsumer:
             "isolation.level": isolation_level,
         } | config.consumer_config
 
+        if config_from_params.get("group.protocol") == "consumer":
+            # KIP-848: the assignor moved to `group.remote.assignor` and both timers became
+            # broker-side, per group. librdkafka rejects all three on the client, and the
+            # `config` passthrough can override a value but never drop a key.
+            for classic_only in (
+                "partition.assignment.strategy",
+                "session.timeout.ms",
+                "heartbeat.interval.ms",
+            ):
+                config_from_params.pop(classic_only, None)
+
         self.config = config_from_params
         self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
 
