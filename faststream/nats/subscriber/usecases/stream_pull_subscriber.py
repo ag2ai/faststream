@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Callable, Coroutine
+from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine
 from contextlib import suppress
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Optional, cast
@@ -96,19 +96,62 @@ class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscribe
     __slots__ = ()
 
     @override
-    async def _create_subscription(self) -> None:
-        """Create NATS subscription and start consume task."""
-        if self.subscription:
+    async def _consume_pull(
+        self,
+        cb: Callable[["Msg"], Awaitable["SendableMessage"]],
+    ) -> None:
+        """Hold a worker slot from the pull request through message processing."""
+        if not self.running:
             return
 
-        self.start_consume_task()
+        assert self.subscription
+        fetch_error: Exception | None = None
 
-        self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.subject.broker_address,
-            config=self.config,
-            **self.extra_options,
-        )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
+        async with anyio.create_task_group() as tg:
+            while self.running:  # pragma: no branch
+                await self.limiter.acquire()
+                slot_reserved = True
+
+                try:
+                    if not self.running:
+                        continue
+
+                    try:
+                        # Batch fetches can leave extra server pulls active (see issue #2563).
+                        (msg,) = await self.subscription.fetch(
+                            batch=1,
+                            timeout=self.pull_sub.timeout,
+                        )
+                    except (
+                        TimeoutError,
+                        ConnectionClosedError,
+                        ServiceUnavailableError,
+                    ):
+                        continue
+                    except Exception as exc:
+                        fetch_error = exc
+                        break
+
+                    _ = tg.start_soon(self._consume_with_release, cb, msg)
+                    slot_reserved = False
+
+                finally:
+                    if slot_reserved:
+                        self.limiter.release()
+
+        if fetch_error is not None and self.running:
+            raise fetch_error
+
+    async def _consume_with_release(
+        self,
+        cb: Callable[["Msg"], Awaitable["SendableMessage"]],
+        msg: "Msg",
+    ) -> None:
+        """Release reserved capacity only after message processing finishes."""
+        try:
+            await cb(msg)
+        finally:
+            self.limiter.release()
 
 
 class BatchPullStreamSubscriber(
