@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
+from aio_pika.exceptions import ChannelInvalidStateError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
@@ -119,15 +120,30 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self._post_start()
 
     async def stop(self) -> None:
-        await super().stop()
-
-        if self._queue_obj is not None:
-            if self._consumer_tag is not None:  # pragma: no branch
+        # Stop processing, then cancel the consumer before waiting for in-flight
+        # handlers, so RabbitMQ hands new messages to the other consumers of the
+        # queue meanwhile instead of parking them on this channel until it closes.
+        self.running = False
+        try:
+            if self._queue_obj is not None and self._consumer_tag is not None:
                 if not self._queue_obj.channel.is_closed:
                     await self._queue_obj.cancel(self._consumer_tag)
                 self._consumer_tag = None
+        finally:
+            await super().stop()
 
             self._queue_obj = None
+
+    @override
+    async def consume(self, msg: "IncomingMessage") -> Any:
+        if not self.running and not self.__no_ack:
+            # A delivery that arrives while `stop` cancels the consumer goes back to
+            # the queue right away instead of staying unacknowledged until the channel closes.
+            with contextlib.suppress(ChannelInvalidStateError):
+                await msg.reject(requeue=True)
+            return None
+
+        return await super().consume(msg)
 
     @override
     async def get_one(
