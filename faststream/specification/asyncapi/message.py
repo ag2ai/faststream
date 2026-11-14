@@ -1,142 +1,162 @@
-from collections.abc import Sequence
-from inspect import isclass
-from typing import TYPE_CHECKING, Any, Optional, cast, overload
+from copy import deepcopy
+from inspect import Parameter
+from typing import TYPE_CHECKING, Annotated, Any, get_args, get_origin
+from urllib.parse import unquote
 
-from pydantic import BaseModel, create_model
+from fast_depends.library.schema_processing import process_schema
+from fast_depends.library.serializer import OptionItem
 
-from faststream._internal._compat import (
-    DEF_KEY,
-    PYDANTIC_V2,
-    get_model_fields,
-    model_schema,
-)
+from faststream._internal.di.body import BodyBinding
+from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from fast_depends.core import CallModel
+    from fast_depends.library.serializer import SerializerProto
+
+
+_DEFINITIONS = ("$defs", "definitions")
 
 
 def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
-    """Parses the handler parameters."""
-    model_container = getattr(call, "serializer", call)
-    model = cast("type[BaseModel] | None", getattr(model_container, "model", None))
-    assert model
-
-    body = get_model_schema(
-        create_model(
-            model.__name__,
-            **{p.field_name: (p.field_type, p.default_value) for p in call.flat_params},  # type: ignore[call-overload]
-        ),
-        prefix=prefix,
-        exclude=tuple(call.custom_fields.keys()),
-    )
-
-    if body is None:
+    """Describe the same external body parameters used by message binding."""
+    binding = BodyBinding(call)
+    if not binding.params:
         return {"title": "EmptyPayload", "type": "null"}
 
-    return body
-
-
-@overload
-def get_response_schema(call: None, prefix: str = "") -> None: ...
-
-
-@overload
-def get_response_schema(call: "CallModel", prefix: str = "") -> dict[str, Any]: ...
-
-
-def get_response_schema(
-    call: Optional["CallModel"],
-    prefix: str = "",
-) -> dict[str, Any] | None:
-    """Get the response schema for a given call."""
-    return get_model_schema(
-        getattr(
-            call,
-            "response_model",
-            None,
-        ),  # NOTE: FastAPI Dependant object compatibility
-        prefix=prefix,
+    factory = call.serializer_cls
+    if factory is None:
+        msg = "AsyncAPI requires a serializer with JSON Schema support."
+        raise SetupError(msg)
+    serializer = factory(
+        name=f"{prefix}:Payload",
+        options=list(binding.params),
+        response_type=Parameter.empty,
     )
-
-
-@overload
-def get_model_schema(
-    call: None,
-    prefix: str = "",
-    exclude: Sequence[str] = (),
-) -> None: ...
-
-
-@overload
-def get_model_schema(
-    call: type[BaseModel],
-    prefix: str = "",
-    exclude: Sequence[str] = (),
-) -> dict[str, Any]: ...
-
-
-def get_model_schema(
-    call: type[BaseModel] | None,
-    prefix: str = "",
-    exclude: Sequence[str] = (),
-) -> dict[str, Any] | None:
-    """Get the schema of a model."""
-    if call is None:
-        return None
-
-    params = {k: v for k, v in get_model_fields(call).items() if k not in exclude}
-    params_number = len(params)
-
-    if params_number == 0:
-        return None
-
-    model = None
-    use_original_model = False
-    name, param = next(iter(params.items()))
-    if (
-        params_number == 1
-        and param.annotation
-        and isclass(param.annotation)
-        and issubclass(param.annotation, BaseModel)  # NOTE: 3.7-3.10 compatibility
-    ):
-        model = param.annotation
-        use_original_model = True
-
-    if model is None:
-        model = call
-
-    body: dict[str, Any] = model_schema(model)
-    body["properties"] = body.get("properties", {})
-    for i in exclude:
-        body["properties"].pop(i, None)
-    if required := body.get("required"):
-        body["required"] = list(filter(lambda x: x not in exclude, required))
-
-    if params_number == 1 and not use_original_model:
-        param_body: dict[str, Any] = body.get("properties", {})
-        param_body = param_body[name]
-
-        if defs := body.get(DEF_KEY):
-            # single argument with useless reference
-            if param_body.get("$ref"):
-                ref_obj: dict[str, Any] = next(iter(defs.values()))
-                ref_obj[DEF_KEY] = {
-                    k: v for k, v in defs.items() if k != ref_obj.get("title")
-                }
-                return ref_obj
-            param_body[DEF_KEY] = defs
-
-        original_title = param.title if PYDANTIC_V2 else param.field_info.title
-
-        if original_title:
-            use_original_model = True
-            param_body["title"] = original_title
-        else:
-            param_body["title"] = name
-
-        body = param_body
-
-    if not use_original_model:
-        body["title"] = f"{prefix}:Payload"
-
+    single = binding.single_parameter
+    document = serializer.get_schema()
+    root = _schema_root(document)
+    properties = root.get("properties", {})
+    emitted_name = next(iter(properties)) if len(properties) == 1 else None
+    schema = process_schema(document, embed=single is not None)
+    body = prepare_payload(schema, prefix=prefix)
+    if single is not None:
+        title = _field_title(single)
+        if (
+            "$ref" not in schema
+            and emitted_name is not None
+            and body.get("title") == emitted_name.replace("_", " ").title()
+            and title != body.get("title")
+        ):
+            body["title"] = f"{prefix}:Payload"
     return body
+
+
+def payload_schema(
+    factory: "SerializerProto",
+    annotation: Any,
+    prefix: str = "",
+) -> dict[str, Any]:
+    """Describe the declared payload type for the generic publisher encoder."""
+    serializer = factory(
+        name=f"{prefix}:Payload",
+        options=[OptionItem("payload", annotation)],
+        response_type=Parameter.empty,
+    )
+    document = serializer.get_schema()
+    root = _schema_root(document)
+    properties = root.get("properties", {})
+    emitted_name = next(iter(properties)) if len(properties) == 1 else "payload"
+    schema = process_schema(document, embed=True)
+    body = prepare_payload(schema, prefix=prefix)
+    if (
+        "$ref" not in schema
+        and body.get("title") == emitted_name.replace("_", " ").title()
+    ):
+        body["title"] = f"{prefix}:Payload"
+    return body
+
+
+def prepare_payload(schema: dict[str, Any], *, prefix: str) -> dict[str, Any]:
+    """Keep native schema metadata while giving the payload a component name."""
+    body = deepcopy(schema)
+    if "$id" in body:
+        body.setdefault("title", f"{prefix}:Payload")
+        return body
+    definitions = {key: body.pop(key) for key in _DEFINITIONS if key in body}
+    reference = body.get("$ref")
+    if isinstance(reference, str) and reference.startswith("#/"):
+        target = _lookup_reference(schema, reference)
+        if isinstance(target, dict) and target is not schema and "$id" not in target:
+            siblings = {k: v for k, v in body.items() if k != "$ref"}
+            annotations = {
+                "title",
+                "description",
+                "default",
+                "examples",
+                "deprecated",
+                "readOnly",
+                "writeOnly",
+            }
+            if siblings.keys() - annotations:
+                body = {
+                    **siblings,
+                    "allOf": [deepcopy(target), *siblings.get("allOf", [])],
+                }
+            else:
+                body = {**deepcopy(target), **siblings}
+    body.setdefault("title", f"{prefix}:Payload")
+    for key, values in definitions.items():
+        # References to this component remain valid after its definition moves.
+        if isinstance(reference, str) and reference.startswith(f"#/{key}/"):
+            name = (
+                unquote(reference[len(key) + 3 :]).replace("~1", "/").replace("~0", "~")
+            )
+            if name == body["title"]:
+                values.pop(name, None)
+        if values:
+            body[key] = values
+    return body
+
+
+def _lookup_reference(document: dict[str, Any], reference: str) -> dict[str, Any] | None:
+    if not reference.startswith("#/"):
+        return None
+    target: Any = document
+    for raw_token in unquote(reference[2:]).split("/"):
+        if target is not document and isinstance(target, dict) and "$id" in target:
+            return None
+        token = raw_token.replace("~1", "/").replace("~0", "~")
+        if isinstance(target, dict):
+            target = target.get(token)
+        elif isinstance(target, list) and token.isdigit() and int(token) < len(target):
+            target = target[int(token)]
+        else:
+            return None
+    return target if isinstance(target, dict) else None
+
+
+def _schema_root(document: dict[str, Any]) -> dict[str, Any]:
+    root = document
+    seen: set[str] = set()
+    while isinstance(reference := root.get("$ref"), str) and reference not in seen:
+        seen.add(reference)
+        if "$id" in root or not reference.startswith("#/"):
+            break
+        target = _lookup_reference(document, reference)
+        if not isinstance(target, dict):
+            break
+        root = target
+    return root
+
+
+def _field_title(parameter: "OptionItem") -> str | None:
+    annotation = parameter.field_type
+    metadata: Sequence[Any] = (
+        get_args(annotation)[1:] if get_origin(annotation) is Annotated else ()
+    )
+    for value in reversed((*metadata, parameter.default_value)):
+        if isinstance(title := getattr(value, "title", None), str):
+            return title
+    return None

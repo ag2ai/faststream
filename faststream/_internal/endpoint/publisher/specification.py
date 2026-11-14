@@ -2,12 +2,12 @@ from inspect import Parameter, unwrap
 from typing import TYPE_CHECKING, Any
 
 from fast_depends.core import build_call_model
-from fast_depends.pydantic._compat import create_model, get_config_base  # ruff: ignore[import-private-name]
 from typing_extensions import TypeVar as TypeVar313
 
 from faststream._internal.configs import BrokerConfig, PublisherSpecificationConfig
 from faststream._internal.endpoint.specification import EndpointSpecification
-from faststream.specification.asyncapi.message import get_model_schema
+from faststream.exceptions import SetupError
+from faststream.specification.asyncapi.message import payload_schema
 from faststream.specification.asyncapi.utils import to_camelcase
 
 if TYPE_CHECKING:
@@ -43,48 +43,34 @@ class PublisherSpecification(
     def get_payloads(self) -> list[tuple[dict[str, Any], str]]:
         payloads: list[tuple[dict[str, Any], str]] = []
 
-        if self.config.schema_:
-            body = get_model_schema(
-                call=create_model(
-                    "",
-                    __config__=get_config_base(),
-                    response__=(self.config.schema_, ...),
-                ),
-                prefix=f"{self.name}:Message",
-            )
+        di_state = self._outer_config.fd_config
+        factory = di_state._serializer
+        prefix = f"{self.name}:Message"
 
-            if body:  # pragma: no branch
-                payloads.append((body, ""))
-
+        if self.config.schema_ is not None:
+            if factory is None:
+                msg = "AsyncAPI requires a serializer with JSON Schema support."
+                raise SetupError(msg)
+            body = payload_schema(factory, self.config.schema_, prefix=prefix)
+            payloads.append((body, ""))
         else:
-            di_state = self._outer_config.fd_config
-
             for call in self.calls:
                 call_model = build_call_model(
                     call,
                     dependency_provider=di_state.provider,
-                    serializer_cls=di_state._serializer,
+                    serializer_cls=factory,
                 )
-
-                if call_model.serializer:
-                    response_type = next(
-                        iter(call_model.serializer.response_option.values()),
-                    ).field_type
-                else:
-                    response_type = None
-
-                if response_type is not None and response_type is not Parameter.empty:
-                    body = get_model_schema(
-                        create_model(
-                            "",
-                            __config__=get_config_base(),
-                            response__=(response_type, ...),
-                        ),
-                        prefix=f"{self.name}:Message",
-                    )
-
-                    if body:
-                        payloads.append((body, to_camelcase(unwrap(call).__name__)))
+                serializer = call_model.serializer
+                if serializer is None:
+                    continue
+                response_type = serializer.response_option["return"].field_type
+                if (
+                    factory is not None
+                    and response_type is not None
+                    and response_type is not Parameter.empty
+                ):
+                    body = payload_schema(factory, response_type, prefix=prefix)
+                    payloads.append((body, to_camelcase(unwrap(call).__name__)))
 
         return payloads
 

@@ -53,12 +53,11 @@ classifiers = [
     "Environment :: Web Environment",
     "Framework :: AsyncIO",
     "Framework :: Pydantic",
-    "Framework :: Pydantic :: 1",
     "Framework :: Pydantic :: 2",
 ]
 
 dependencies = [
-    "fast-depends[pydantic]>=3.0.9",
+    "fast-depends[pydantic]>=4.0.0a0,<5.0.0",
     "typing-extensions>=4.12.0",
     "anyio>=4.14.2,<5",
 ]
