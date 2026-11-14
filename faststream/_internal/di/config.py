@@ -1,4 +1,3 @@
-import inspect
 from collections.abc import Awaitable, Callable, Mapping, Reversible, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
@@ -10,6 +9,7 @@ from fast_depends.pydantic import PydanticSerializer
 from faststream._internal.constants import EMPTY
 from faststream._internal.context import ContextRepo
 from faststream._internal.context.composition import ContextRepoComposition
+from faststream._internal.di.body import BodyBinding
 from faststream._internal.utils import apply_types, to_async
 
 if TYPE_CHECKING:
@@ -105,16 +105,7 @@ def _unwrap_message_to_fast_depends_decorator(
     func: Callable[..., Any],
     dependent: "CallModel",
 ) -> Callable[["StreamMessage[Any]"], Awaitable[Any]]:
-    dependant_params = dependent.flat_params
-    if len(dependant_params) <= 1:
-        if option := next(iter(dependant_params), None):
-            is_multi_params = option.kind is inspect.Parameter.VAR_POSITIONAL
-        else:
-            is_multi_params = False
-    else:
-        is_multi_params = True
-
-    if is_multi_params:
+    if BodyBinding(dependent).unpack:
 
         async def decode_wrapper(message: "StreamMessage[Any]") -> Any:
             msg = await message.decode()
