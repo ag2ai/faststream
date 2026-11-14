@@ -283,10 +283,6 @@ def _resolve_msg_payloads(
             formatted_payload_title = clear_key(p_title)
             # Promote nested Pydantic $defs from each payload into components/schemas
             # so that referenced nested models are available globally.
-            if isinstance(p, dict):
-                defs = pop_schema_definitions(p)
-                for def_name, def_schema in defs.items():
-                    payloads[clear_key(def_name)] = def_schema
             payloads.update(pop_schema_definitions(p))
             if formatted_payload_title not in payloads:
                 payloads[formatted_payload_title] = p
@@ -305,7 +301,6 @@ def _resolve_msg_payloads(
             one_of_list.append(Reference(**ref("components", "schemas", p_title)))
 
     if not one_of_list:
-        payloads.update(pop_schema_definitions(m.payload))
         p_title = m.payload.get("title", f"{channel_name}Payload")
         p_title = clear_key(p_title)
         if p_title in payloads and payloads[p_title] != m.payload:

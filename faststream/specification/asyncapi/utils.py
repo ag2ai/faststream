@@ -102,14 +102,17 @@ def move_schema_refs(original: Any, *, root_name: str) -> Any:
             return root_ref + value[1:]
         return value
 
-    def visit(schema: Any, root_ref: str) -> None:
+    def visit(schema: Any, root_ref: str) -> Any:
         if not isinstance(schema, dict) or "$id" in schema:
-            return
+            return schema
+        schema = schema.copy()
         for key in ("$ref", "$dynamicRef", "$recursiveRef"):
             if isinstance(value := schema.get(key), str):
                 schema[key] = rewrite(value, root_ref)
         discriminator = schema.get("discriminator")
         if isinstance(discriminator, dict):
+            discriminator = discriminator.copy()
+            schema["discriminator"] = discriminator
             if isinstance(mapping := discriminator.get("mapping"), dict):
                 discriminator["mapping"] = {
                     k: rewrite(v, root_ref) if isinstance(v, str) else v
@@ -119,28 +122,30 @@ def move_schema_refs(original: Any, *, root_name: str) -> Any:
                 schema["discriminator"] = discriminator["propertyName"]
         for key, value in schema.items():
             if key in _SCHEMA_MAPS and isinstance(value, dict):
-                for child in value.values():
-                    visit(child, root_ref)
+                schema[key] = {
+                    name: visit(child, root_ref) for name, child in value.items()
+                }
             elif key == "oneOf" and isinstance(value, dict):
                 # FastStream's overloaded-handler payloads use a named map.
+                children = {}
                 for name, child in value.items():
                     child_name = (
                         child.get("title", name) if isinstance(child, dict) else name
                     )
                     if not isinstance(child_name, str):
                         child_name = name
-                    visit(
+                    children[name] = visit(
                         child, ref("components", "schemas", clear_key(child_name))["$ref"]
                     )
+                schema[key] = children
             elif (key in _SCHEMA_LISTS or key == "items") and isinstance(value, list):
-                for child in value:
-                    visit(child, root_ref)
+                schema[key] = [visit(child, root_ref) for child in value]
             elif key in _SCHEMA_VALUES:
-                visit(value, root_ref)
+                schema[key] = visit(value, root_ref)
+        return schema
 
     title = data.get("title", root_name) if isinstance(data, dict) else root_name
-    visit(data, ref("components", "schemas", clear_key(title))["$ref"])
-    return data
+    return visit(data, ref("components", "schemas", clear_key(title))["$ref"])
 
 
 def pop_schema_definitions(payload: dict[str, Any]) -> dict[str, Any]:

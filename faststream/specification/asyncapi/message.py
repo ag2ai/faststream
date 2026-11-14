@@ -29,12 +29,27 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
     if factory is None:
         msg = "AsyncAPI requires a serializer with JSON Schema support."
         raise SetupError(msg)
+    return _payload_schema(factory, list(binding.params), prefix)
+
+
+def payload_schema(
+    factory: "SerializerProto",
+    annotation: Any,
+    prefix: str = "",
+) -> dict[str, Any]:
+    """Describe the declared payload type for the generic publisher encoder."""
+    return _payload_schema(factory, [OptionItem("payload", annotation)], prefix)
+
+
+def _payload_schema(
+    factory: "SerializerProto", options: list[OptionItem], prefix: str
+) -> dict[str, Any]:
     serializer = factory(
         name=f"{prefix}:Payload",
-        options=list(binding.params),
+        options=options,
         response_type=Parameter.empty,
     )
-    single = binding.single_parameter
+    single = options[0] if len(options) == 1 else None
     document = serializer.get_schema()
     root = _schema_root(document)
     properties = root.get("properties", {})
@@ -50,31 +65,6 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
             and title != body.get("title")
         ):
             body["title"] = f"{prefix}:Payload"
-    return body
-
-
-def payload_schema(
-    factory: "SerializerProto",
-    annotation: Any,
-    prefix: str = "",
-) -> dict[str, Any]:
-    """Describe the declared payload type for the generic publisher encoder."""
-    serializer = factory(
-        name=f"{prefix}:Payload",
-        options=[OptionItem("payload", annotation)],
-        response_type=Parameter.empty,
-    )
-    document = serializer.get_schema()
-    root = _schema_root(document)
-    properties = root.get("properties", {})
-    emitted_name = next(iter(properties)) if len(properties) == 1 else "payload"
-    schema = process_schema(document, embed=True)
-    body = prepare_payload(schema, prefix=prefix)
-    if (
-        "$ref" not in schema
-        and body.get("title") == emitted_name.replace("_", " ").title()
-    ):
-        body["title"] = f"{prefix}:Payload"
     return body
 
 

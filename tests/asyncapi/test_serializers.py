@@ -506,3 +506,68 @@ def test_input_resource_scope_is_preserved_during_embedding(specification):
         == "#/components/schemas/__fast_depends_input/properties/value"
     )
     assert_local_refs_resolve(document)
+
+
+@pytest.mark.parametrize(
+    ("factory", "metadata"),
+    ((PydanticSerializer, Field), (MsgSpecSerializer, msgspec.Meta)),
+)
+@pytest.mark.parametrize("title", ("Payload", "Counter"))
+def test_publisher_preserves_explicit_scalar_title(
+    specification, factory, metadata, title
+):
+    broker = RabbitBroker(serializer=factory())
+    annotation = Annotated[int, metadata(title=title)]
+
+    @broker.publisher("out")
+    async def handle() -> annotation: ...
+
+    assert specification(broker)["components"]["schemas"] == {
+        title: {"title": title, "type": "integer"}
+    }
+
+
+def test_shared_schema_nodes_are_rewritten_once(component_payload):
+    shared = {"$ref": "#/$defs/Leaf"}
+    native = {
+        "title": "Payload",
+        "type": "object",
+        "properties": {"first": shared, "second": shared},
+        "$defs": {"Leaf": {"type": "string"}},
+    }
+    original = deepcopy(native)
+    document = component_payload(native)
+    schema = document["components"]["schemas"]["Payload"]
+    assert schema["properties"] == {
+        "first": {"$ref": "#/components/schemas/Leaf"},
+        "second": {"$ref": "#/components/schemas/Leaf"},
+    }
+    assert native == original
+    assert_local_refs_resolve(document)
+
+
+def test_shared_nodes_preserve_resource_scope_and_data_literals(component_payload):
+    shared = {"$ref": "#/$defs/Leaf"}
+    resource = {
+        "$id": "https://example.test/local",
+        "type": "object",
+        "properties": {"local": shared},
+        "$defs": {"Leaf": {"type": "integer"}},
+    }
+    native = {
+        "title": "Payload",
+        "type": "object",
+        "properties": {"global": shared, "scoped": resource},
+        "default": shared,
+        "examples": [shared],
+        "$defs": {"Leaf": {"type": "string"}},
+    }
+    original = deepcopy(native)
+    document = component_payload(native)
+    schema = document["components"]["schemas"]["Payload"]
+    assert schema["properties"]["global"] == {"$ref": "#/components/schemas/Leaf"}
+    assert schema["properties"]["scoped"] == resource
+    assert schema["default"] == {"$ref": "#/$defs/Leaf"}
+    assert schema["examples"] == [{"$ref": "#/$defs/Leaf"}]
+    assert native == original
+    assert_local_refs_resolve(document)
