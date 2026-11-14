@@ -1,10 +1,10 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 ContentType = str
 
 
-class ContentTypes(str, Enum):
+class ContentTypes(StrEnum):
     """A class to represent content types."""
 
     TEXT = "text/plain"

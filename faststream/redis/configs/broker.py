@@ -15,10 +15,7 @@ if TYPE_CHECKING:
     from redis.asyncio.cluster import RedisCluster
 
     from faststream.redis.parser import MessageFormat
-    from faststream.redis.publisher.producer import (
-        RedisClusterFastProducer,
-        RedisFastProducer,
-    )
+    from faststream.redis.publisher.producer import RedisFastProducer
 
     from .state import ConnectionState
 
@@ -89,10 +86,10 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     )
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RedisBrokerConfig(BrokerConfig):
-    producer: "RedisFastProducer | RedisClusterFastProducer"
-    connection: "ConnectionState[Redis[bytes]] | ConnectionState[RedisCluster[bytes]]"
+    producer: "RedisFastProducer"
+    connection: "ConnectionState[Redis] | ConnectionState[RedisCluster]"
 
     message_format: type["MessageFormat"]
 
@@ -110,7 +107,7 @@ class RedisBrokerConfig(BrokerConfig):
         await self.connection.disconnect()
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class RedisRouterConfig(BrokerConfig):
     default_driver_annotations: UnderlyingDriverAnnotations = field(
         default_factory=_context_annotations_factory,

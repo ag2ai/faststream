@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 class RabbitRegistrator(Registrator[IncomingMessage, RabbitBrokerConfig]):
     """Includable to RabbitBroker router."""
 
+    __slots__ = ()
+
     @override
     def subscriber(  # type: ignore[override]
         self,

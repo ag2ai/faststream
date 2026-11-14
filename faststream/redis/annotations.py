@@ -1,9 +1,13 @@
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from redis.asyncio.client import (
-    Pipeline as _RedisPipeline,
-    Redis as _RedisClient,
+    Pipeline as RedisPipeline,
+    Redis as RedisClient,
+)
+from redis.asyncio.cluster import (
+    ClusterPipeline as RedisClusterPipeline,
+    RedisCluster as RedisClusterClient,
 )
 
 from faststream import Depends
@@ -18,13 +22,6 @@ from faststream.redis.message import (
     RedisMessage as Rm,
     RedisStreamMessage as Rsm,
 )
-
-if TYPE_CHECKING:
-    RedisClient = _RedisClient[bytes]
-    RedisPipeline = _RedisPipeline[bytes]
-else:
-    RedisClient = _RedisClient
-    RedisPipeline = _RedisPipeline
 
 __all__ = (
     "ContextRepo",
@@ -46,6 +43,7 @@ RedisListMessage = Annotated[Rlm, Context("message")]
 
 RedisBroker = Annotated[RB, Context("broker")]
 Redis = Annotated[RedisClient, Context("broker._connection")]
+RedisCluster = Annotated[RedisClusterClient, Context("broker._connection")]
 
 
 async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
@@ -54,3 +52,13 @@ async def get_pipe(redis: Redis) -> AsyncGenerator[RedisPipeline, None]:
 
 
 Pipeline = Annotated[RedisPipeline, Depends(get_pipe, cast=False)]
+
+
+async def get_cluster_pipe(
+    redis: RedisCluster,
+) -> AsyncGenerator[RedisClusterPipeline, None]:
+    async with redis.pipeline() as pipe:
+        yield pipe  # ruff: ignore[yield-in-context-manager-in-async-generator]
+
+
+ClusterPipeline = Annotated[RedisClusterPipeline, Depends(get_cluster_pipe, cast=False)]

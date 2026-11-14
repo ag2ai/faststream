@@ -9,11 +9,13 @@ from typing import (
     Generic,
     NamedTuple,
     Optional,
+    Self,
     Union,
     cast,
+    overload,
 )
 
-from typing_extensions import Self, overload, override
+from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber.hints import (
     check_context_annotations,

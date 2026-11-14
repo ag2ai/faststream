@@ -34,6 +34,8 @@ class NatsPublisher(ArgsContainer):
     Just a copy of `KafkaRegistrator.publisher(...)` arguments.
     """
 
+    __slots__ = ()
+
     def __init__(
         self,
         subject: str = "",
@@ -92,6 +94,8 @@ class NatsPublisher(ArgsContainer):
 
 class NatsRoute(SubscriberRoute):
     """Class to store delayed NatsBroker subscriber registration."""
+
+    __slots__ = ()
 
     def __init__(
         self,

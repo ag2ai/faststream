@@ -7,7 +7,7 @@ description: Use when writing or modifying FastStream library source code under 
 
 ## Public vs internal split
 
-- `faststream/_internal/` holds shared machinery: `broker/` (abstract `BrokerUsecase`, registrator, router), `endpoint/`, `di/` (fast-depends integration), `context/`, `configs/`, `logger/`, `testing/`, `cli/`, `fastapi/`, `utils/`.
+- `faststream/_internal/` holds shared machinery: `broker/` (abstract `BrokerUsecase`, registrator, router), `endpoint/`, `di/` (fast-depends integration), `context/`, `configs/`, `logger/`, `testing/`, `cli/`, `utils/`.
 - Broker packages (`faststream/kafka/`, `rabbit/`, `nats/`, `redis/`, `confluent/`, `mqtt/`) are thin public layers over `_internal`.
 - Cross-broker public packages: `faststream/middlewares/`, `params/`, `response/`, `specification/`, `message/`, `asgi/`, `opentelemetry/`, `prometheus/`.
 
@@ -33,7 +33,7 @@ faststream/<broker>/
 └── exceptions.py      # broker-specific exceptions
 ```
 
-Brokers also carry optional integration subpackages where supported — kafka has `fastapi/`, `helpers/`, `opentelemetry/`, `prometheus/`, and `schemas/` — follow kafka's structure when adding these to another broker.
+Brokers also carry optional integration subpackages where supported — kafka has `helpers/`, `opentelemetry/`, `prometheus/`, and `schemas/` — follow kafka's structure when adding these to another broker.
 
 A broker package is closed over its driver: `faststream.<broker>` never imports another broker package, nothing outside it imports it, and its driver (`aiokafka`, `confluent_kafka`, `aio_pika`, `nats`, `redis`, `zmqtt`) is imported nowhere else. `just import-linter` checks all three; the contracts live in `[tool.importlinter]` in `pyproject.toml`.
 
@@ -49,7 +49,7 @@ All brokers expose the same surface: `publish()`, `request()`, `ping()`, `start(
 
 - mypy runs with `strict = true` (see `[tool.mypy]` in `pyproject.toml`): every function fully annotated, no implicit `Optional`, decorators typed. Checked paths: `faststream/`, all of `tests/` and `docs/docs_src/`.
 - Generics are used for broker abstractions: `BrokerUsecase[MsgType, ConnectionType, BrokerConfigType]` (see `faststream/_internal/broker/broker.py`), `BaseMiddleware[PublishCommandType, AnyMsg]`.
-- Import `Callable`, `Awaitable`, `Sequence`, `Mapping` from `collections.abc`; newer typing features (`Self`, `ParamSpec`, `TypedDict`, ...) from `typing_extensions`.
+- Import `Callable`, `Awaitable`, `Sequence`, `Mapping` from `collections.abc`; what Python 3.11 already has (`Self`, `NotRequired`, `assert_type`, ...) from `typing`; only features newer than 3.11 (`override`, `deprecated`, `TypeVar`/`ParamSpec` with a default, `Unpack`, `TypedDict` — pydantic rejects `typing.TypedDict` before 3.12) from `typing_extensions`.
 - Connection kwargs use `TypedDict` (e.g. `KafkaInitKwargs` in `faststream/kafka/broker/broker.py`).
 - Pydantic v1/v2 and Python-version differences go through `faststream/_internal/_compat.py` — never inline version checks elsewhere.
 

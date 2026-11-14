@@ -1,7 +1,6 @@
-from typing import Any
+from typing import Any, Self
 
 import pytest
-from typing_extensions import Self
 
 from faststream._internal.testing.ast import is_contains_context_name
 

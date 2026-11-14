@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast, overload
 
-from typing_extensions import overload, override
+from typing_extensions import override
 
 from faststream._internal.broker.registrator import Registrator
 from faststream._internal.constants import EMPTY
@@ -44,6 +44,8 @@ if TYPE_CHECKING:
 
 class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
     """Includable to RedisBroker router."""
+
+    __slots__ = ()
 
     @overload  # type: ignore[override]
     def subscriber(

@@ -2,7 +2,6 @@ import pytest
 from pydantic import BaseModel, Field, NonNegativeFloat
 
 from faststream import FastStream, Logger
-from faststream._internal._compat import model_to_json
 from faststream.kafka import KafkaBroker, TestKafkaBroker
 
 broker = KafkaBroker("localhost:9092")
@@ -26,7 +25,7 @@ async def test_prepared_publish():
         msg = Data(data=0.5)
 
         await prepared_publisher.publish(
-            model_to_json(msg),
+            msg.model_dump_json(),
             headers={"content-type": "application/json"},
         )
 

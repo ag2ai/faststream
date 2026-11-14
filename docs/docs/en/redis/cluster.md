@@ -32,6 +32,9 @@ from faststream.redis import RedisClusterBroker
 broker = RedisClusterBroker(url="redis://node1:7000")
 ```
 
+!!! note "redis-py 8.0.0+"
+    Cluster Pub/Sub uses the native async cluster client, which gained `publish` / `pubsub` in **redis-py 8.0.0**. Every connection option — including `credential_provider` for IAM / token-based auth — reaches Channels, Lists and Streams through that one client.
+
 For multi-address environments you can explicitly specify seed nodes via `startup_nodes`:
 
 ```python linenums="1"
@@ -50,7 +53,7 @@ broker = RedisClusterBroker(
 |---|---|---|
 | List | ✅ | ✅ |
 | Stream + XAUTOCLAIM | ✅ | ✅ |
-| Pub/Sub | ✅ | ✅ (via sync cluster) |
+| Pub/Sub | ✅ | ✅ |
 | Pipeline | ✅ | ❌ |
 
 ## Stream Location
@@ -78,7 +81,6 @@ broker = RedisClusterBroker(url="redis://localhost:7000")
 
 - **Pipeline** is not supported in Redis Cluster.
 - **XAUTOCLAIM** with `min_idle_time` requires a consumer group with `group` and `consumer` parameters on `StreamSub`.
-- **Pub/Sub** uses a synchronous `RedisCluster` client (via `ThreadPoolExecutor`) because the async client does not expose `publish`/`pubsub` until `redis-py >= 8.0.0`.
 
 ## References
 

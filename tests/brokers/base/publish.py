@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import suppress
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -10,7 +10,7 @@ import pytest
 from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, FastStream, Response, TestApp
-from faststream._internal._compat import dump_json, model_to_json
+from faststream._internal._compat import dump_json
 from faststream.context import ContextRepo
 from faststream.exceptions import SubscriberNotFound
 
@@ -26,7 +26,7 @@ class SimpleDataclass:
     r: str
 
 
-now = datetime.now(timezone.utc)
+now = datetime.now(UTC)
 
 parametrized = (
     pytest.param(
@@ -117,7 +117,7 @@ class BrokerPublishTestcase(BaseTestcaseConfig[Any]):
         (
             *parametrized,
             pytest.param(
-                model_to_json(SimpleModel(r="hello!")).encode(),
+                SimpleModel(r="hello!").model_dump_json().encode(),
                 SimpleModel,
                 SimpleModel(r="hello!"),
                 id="bytes->model",

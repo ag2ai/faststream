@@ -4,8 +4,6 @@ documentation:
       - any-glob-to-any-file:
         - docs/**
       - all-globs-to-all-files:
-        - '!docs/en/docs/api/**'
-        - '!docs/create_api_docs.py'
         - '!docs/update_releases.py'
         - '!docs/docs.py'
 

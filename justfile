@@ -85,11 +85,6 @@ docs-build:
 docs-check:
   just _docs check
 
-[doc("Build API Reference")]
-[group("docs")]
-docs-build-api:
-  just _docs build-api-docs
-
 [doc("Update release notes")]
 [group("docs")]
 docs-update-release-notes:
@@ -116,7 +111,7 @@ ruff-check *params:
   just _linter ruff check --exit-non-zero-on-fix {{params}}
 
 _codespell:
-  just _linter codespell -L Dependant,dependant --skip "./docs/site"
+  just _linter codespell -L Dependant,dependant,GroupT --skip "./docs/site"
 
 [doc("Check typos")]
 [group("linter")]

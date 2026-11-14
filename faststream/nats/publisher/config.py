@@ -11,12 +11,12 @@ if TYPE_CHECKING:
     from faststream.nats.schemas import JStream
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class NatsPublisherSpecificationConfig(PublisherSpecificationConfig):
     subject: str
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class NatsPublisherConfig(PublisherUsecaseConfig):
     _outer_config: "NatsBrokerConfig" = field(default_factory=NatsBrokerConfig)
 

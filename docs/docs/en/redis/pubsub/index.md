@@ -52,7 +52,7 @@ The subscriber processes the message and the publisher sends its return value, `
 For publishing directly from Python, see [channel publishing](publishing.md). For wildcard channels such as `logs.*`, see [pattern subscriptions](subscription.md#pattern-channel-subscription).
 
 !!! tip "Cluster Support"
-    `RedisClusterBroker` supports Pub/Sub via a synchronous `RedisCluster` client. See the [Cluster docs](../cluster.md){.internal-link}.
+    `RedisClusterBroker` supports Pub/Sub natively. See the [Cluster docs](../cluster.md){.internal-link}.
 
 ## Delivery and limitations
 

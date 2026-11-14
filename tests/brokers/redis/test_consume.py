@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import ANY, AsyncMock, MagicMock, call, patch
+from unittest.mock import MagicMock, call, patch
 
 import anyio
 import pytest
@@ -19,7 +19,7 @@ from faststream.redis import (
     StreamSub,
 )
 from tests.brokers.base.consume import BrokerRealConsumeTestcase
-from tests.tools import spy_decorator
+from tests.tools import awaitable_to_coro, spy_decorator
 
 from .basic import RedisTestcaseConfig
 
@@ -172,7 +172,7 @@ class TestConsumeList(RedisTestcaseConfig):
             client = await br.connect()
             await asyncio.wait(
                 (
-                    asyncio.create_task(client.rpush(queue, "hello")),
+                    asyncio.create_task(awaitable_to_coro(client.rpush(queue, "hello"))),
                     asyncio.create_task(event.wait()),
                 ),
                 timeout=3,
@@ -523,7 +523,7 @@ class TestConsumeStream(RedisTestcaseConfig):
 
             client = await br.connect()
             # XREADGROUP NOACK delivers the entry without ever putting it in the PEL
-            assert await client.xpending(queue, "group") == IsPartialDict(  # type: ignore[no-untyped-call]
+            assert await client.xpending(queue, "group") == IsPartialDict(
                 pending=0,
             )
 
@@ -618,7 +618,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        client.xadd(queue, {"message": "hello"}),
+                        awaitable_to_coro(client.xadd(queue, {"message": "hello"})),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -740,7 +740,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             await asyncio.wait(
                 (
                     asyncio.create_task(
-                        client.xadd(queue, {"message": "hello"}),
+                        awaitable_to_coro(client.xadd(queue, {"message": "hello"})),
                     ),
                     asyncio.create_task(event.wait()),
                 ),
@@ -905,35 +905,6 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         ack.mock.assert_awaited_once()
 
-    async def test_consume_ack_with_deprecated_args(
-        self,
-        queue: str,
-        event: asyncio.Event,
-        mock: MagicMock,
-    ) -> None:
-        consume_broker = self.get_broker(apply_types=True)
-        legacy_client = MagicMock(xack=AsyncMock())
-
-        @consume_broker.subscriber(
-            stream=StreamSub(queue, group="group", consumer=queue),
-            ack_policy=AckPolicy.MANUAL,
-        )
-        async def handler(msg: RedisStreamMessage) -> None:
-            with pytest.warns(
-                DeprecationWarning, match=r"will be removed in 1\.0\.0"
-            ) as warnings:
-                await msg.ack(legacy_client, "legacy-group")
-            mock(len(warnings))
-            event.set()
-
-        async with self.patch_broker(consume_broker) as br:
-            await br.start()
-            await br.publish("hello", stream=queue)
-            await asyncio.wait_for(event.wait(), timeout=self.timeout)
-
-        mock.assert_called_once_with(1)
-        legacy_client.xack.assert_awaited_once_with(queue, "legacy-group", ANY)
-
     @pytest.mark.flaky(reruns=3, reruns_delay=1)
     async def test_consume_and_delete_acked(
         self,
@@ -1073,7 +1044,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             assert await message.decode() == "hello"
 
             client = await br.connect()
-            pending = await client.xpending(queue, queue)  # type: ignore[no-untyped-call]
+            pending = await client.xpending(queue, queue)
             assert pending["pending"] == (0 if no_ack else 1)
 
     async def test_concurrent_consume_stream(
@@ -1178,7 +1149,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             assert await message.decode() == "hello"
 
             client = await br.connect()
-            pending = await client.xpending(queue, queue)  # type: ignore[no-untyped-call]
+            pending = await client.xpending(queue, queue)
             assert pending["pending"] == (0 if no_ack else 1)
 
     async def test_get_one_group_cursor_advances(
@@ -1271,7 +1242,7 @@ class TestConsumeStream(RedisTestcaseConfig):
             # because it already stopped due to NOGROUP
             event.clear()
             await br.publish("world", stream=queue)
-            with pytest.raises(asyncio.TimeoutError):
+            with pytest.raises(TimeoutError):
                 await asyncio.wait_for(event.wait(), timeout=1)
 
             # Stopped instead of restarting in a hot loop, and asked the app to exit

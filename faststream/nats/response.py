@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 
 
 class NatsResponse(Response):
+    __slots__ = (
+        "schedule",
+        "stream",
+    )
+
     def __init__(
         self,
         body: "SendableMessage",
@@ -43,6 +48,12 @@ class NatsResponse(Response):
 
 
 class NatsPublishCommand(PublishCommand):
+    __slots__ = (
+        "schedule",
+        "stream",
+        "timeout",
+    )
+
     def __init__(
         self,
         message: "SendableMessage",

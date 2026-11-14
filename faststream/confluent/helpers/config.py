@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from typing_extensions import TypedDict
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from faststream.security import BaseSecurity
 
 
-class BuiltinFeatures(str, Enum):
+class BuiltinFeatures(StrEnum):
     gzip = "gzip"
     snappy = "snappy"
     ssl = "ssl"
@@ -29,7 +29,7 @@ class BuiltinFeatures(str, Enum):
     oidc = "oidc"
 
 
-class Debug(str, Enum):
+class Debug(StrEnum):
     generic = "generic"
     broker = "broker"
     topic = "topic"
@@ -52,41 +52,41 @@ class Debug(str, Enum):
     all = "all"
 
 
-class BrokerAddressFamily(str, Enum):
+class BrokerAddressFamily(StrEnum):
     any = "any"
     v4 = "v4"
     v6 = "v6"
 
 
-class SecurityProtocol(str, Enum):
+class SecurityProtocol(StrEnum):
     plaintext = "plaintext"
     ssl = "ssl"
     sasl_plaintext = "sasl_plaintext"
     sasl_ssl = "sasl_ssl"
 
 
-class SASLOAUTHBearerMethod(str, Enum):
+class SASLOAUTHBearerMethod(StrEnum):
     default = "default"
     oidc = "oidc"
 
 
-class GroupProtocol(str, Enum):
+class GroupProtocol(StrEnum):
     classic = "classic"
     consumer = "consumer"
 
 
-class OffsetStoreMethod(str, Enum):
+class OffsetStoreMethod(StrEnum):
     none = "none"
     file = "file"
     broker = "broker"
 
 
-class IsolationLevel(str, Enum):
+class IsolationLevel(StrEnum):
     read_uncommitted = "read_uncommitted"
     read_committed = "read_committed"
 
 
-class CompressionCodec(str, Enum):
+class CompressionCodec(StrEnum):
     none = "none"
     gzip = "gzip"
     snappy = "snappy"
@@ -94,7 +94,7 @@ class CompressionCodec(str, Enum):
     zstd = "zstd"
 
 
-class CompressionType(str, Enum):
+class CompressionType(StrEnum):
     none = "none"
     gzip = "gzip"
     snappy = "snappy"
@@ -102,7 +102,7 @@ class CompressionType(str, Enum):
     zstd = "zstd"
 
 
-class ClientDNSLookup(str, Enum):
+class ClientDNSLookup(StrEnum):
     use_all_dns_ips = "use_all_dns_ips"
     resolve_canonical_bootstrap_servers_only = "resolve_canonical_bootstrap_servers_only"
 

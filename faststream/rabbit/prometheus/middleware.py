@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 class RabbitPrometheusMiddleware(
     PrometheusMiddleware[IncomingMessage, RabbitPublishCommand],
 ):
+    __slots__ = ()
+
     def __init__(
         self,
         *,

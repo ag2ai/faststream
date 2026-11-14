@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from typing_extensions import override
@@ -15,13 +15,18 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
 
 
-class DestinationType(str, Enum):
+class DestinationType(StrEnum):
     Channel = "channel"
     List = "list"
     Stream = "stream"
 
 
 class RedisResponse(Response):
+    __slots__ = (
+        "maxlen",
+        "message_format",
+    )
+
     def __init__(
         self,
         body: Optional["SendableMessage"] = None,
@@ -53,6 +58,14 @@ class RedisResponse(Response):
 
 
 class RedisPublishCommand(BatchPublishCommand):
+    __slots__ = (
+        "destination_type",
+        "maxlen",
+        "message_format",
+        "pipeline",
+        "timeout",
+    )
+
     destination_type: DestinationType
 
     def __init__(
@@ -69,7 +82,7 @@ class RedisPublishCommand(BatchPublishCommand):
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
         timeout: float | None = 30.0,
-        pipeline: Optional["Pipeline[bytes]"] = None,
+        pipeline: Optional["Pipeline"] = None,
         message_format: type["MessageFormat"] = BinaryMessageFormatV1,
     ) -> None:
         super().__init__(

@@ -55,8 +55,8 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
         self.config = config
 
     @property
-    def _client(self) -> "Redis[bytes]":
-        return cast("Redis[bytes]", self._outer_config.connection.client)
+    def _client(self) -> "Redis":
+        return cast("Redis", self._outer_config.connection.client)
 
     def _make_response_publisher(
         self,
@@ -97,7 +97,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             try:
                 await self._get_msgs(*args)
 
-            except Exception as e:  # ruff: ignore[try-except-in-loop]
+            except Exception as e:
                 self._log(
                     log_level=logging.ERROR,
                     message="Message fetch error",

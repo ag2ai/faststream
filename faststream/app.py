@@ -12,7 +12,6 @@ import anyio
 from fast_depends import Provider, dependency_provider
 from typing_extensions import ParamSpec
 
-from faststream._internal._compat import ExceptionGroup
 from faststream._internal.application import Application
 from faststream._internal.cli.supervisors.utils import set_exit
 from faststream._internal.constants import EMPTY

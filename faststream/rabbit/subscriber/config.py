@@ -7,24 +7,24 @@ from faststream._internal.configs import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.middlewares import AckPolicy
-from faststream.rabbit.configs import RabbitBrokerConfig, RabbitConfig
+from faststream.rabbit.configs import RabbitBrokerConfig
 
 if TYPE_CHECKING:
-    from faststream.rabbit.schemas import Channel
+    from faststream.rabbit.schemas import Channel, RabbitExchange, RabbitQueue
 
 
-@dataclass(kw_only=True)
-class RabbitSubscriberSpecificationConfig(
-    RabbitConfig,
-    SubscriberSpecificationConfig,
-):
-    pass
+@dataclass(kw_only=True, slots=True)
+class RabbitSubscriberSpecificationConfig(SubscriberSpecificationConfig):
+    queue: "RabbitQueue"
+    exchange: "RabbitExchange"
 
 
-@dataclass(kw_only=True)
-class RabbitSubscriberConfig(RabbitConfig, SubscriberUsecaseConfig):
+@dataclass(kw_only=True, slots=True)
+class RabbitSubscriberConfig(SubscriberUsecaseConfig):
     _outer_config: "RabbitBrokerConfig" = field(default_factory=RabbitBrokerConfig)
 
+    queue: "RabbitQueue"
+    exchange: "RabbitExchange"
     consume_args: dict[str, Any] | None = None
     channel: Optional["Channel"] = None
 

@@ -5,7 +5,6 @@ import pytest
 from faststream.exceptions import SetupError
 from faststream.kafka import KafkaBroker, KafkaRoute
 from faststream.kafka.configs.broker import KafkaBrokerConfig
-from faststream.kafka.fastapi import KafkaRouter as FastAPIKafkaRouter
 from tests.marks import require_aiokafka_v014
 
 
@@ -114,14 +113,3 @@ class TestSubscriberClientRack:
         )
 
         assert route.kwargs["client_rack"] == "route-rack"
-
-    @require_aiokafka_v014
-    def test_fastapi_router_passes_client_rack(self) -> None:
-        router = FastAPIKafkaRouter()
-        sub = router.subscriber(
-            "test-topic",
-            group_id="test-group",
-            client_rack="fastapi-rack",
-        )
-
-        assert sub._connection_args["client_rack"] == "fastapi-rack"
