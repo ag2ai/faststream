@@ -391,11 +391,12 @@ def _is_handler_matches(
 
 def apply_pattern(pattern: str, current: str) -> bool:
     """Apply a pattern to a routing key."""
-    words = current.split(".")
+    words = current.split(".") if current else []
+    pattern_words = pattern.split(".") if pattern else []
 
     # matched[i] - the pattern words seen so far match the first i routing key words
     matched = [True] + [False] * len(words)
-    for pattern_word in pattern.split("."):
+    for pattern_word in pattern_words:
         if pattern_word == "#":
             # `#` takes zero or more words, so it keeps every prefix matched before it
             for i in range(1, len(matched)):

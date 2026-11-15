@@ -219,6 +219,10 @@ class TestTestclient(
 @pytest.mark.parametrize(
     ("pattern", "current", "result"),
     (
+        pytest.param("", "", True, id="empty binding and routing key"),
+        pytest.param("#", "", True, id="# - empty routing key"),
+        pytest.param("#.*", "", False, id="#.* - empty routing key"),
+        pytest.param("*.#", "", False, id="*.# - empty routing key"),
         pytest.param("#", "1.2.3", True, id="#"),
         pytest.param("*", "1", True, id="*"),
         pytest.param("*", "1.2", False, id="* - broken"),
