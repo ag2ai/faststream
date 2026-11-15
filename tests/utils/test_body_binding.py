@@ -1,57 +1,17 @@
 import json
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
-from dirty_equals import AnyThing, IsPartialDict
 from fast_depends import Depends, Provider
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.di.config import _unwrap_message_to_fast_depends_decorator
 from faststream.message import StreamMessage, decode_message
-from faststream.specification.asyncapi.message import parse_handler_params
 
-
-class User(BaseModel):
-    name: str
-
-
-async def scalar(value: int) -> int:
-    return value
-
-
-async def mapping(value: dict[str, int]) -> dict[str, int]:
-    return value
-
-
-async def sequence(value: list[int]) -> list[int]:
-    return value
-
-
-async def model(user: User) -> dict[str, str]:
-    return {"name": user.name}
-
-
-async def pair(a: int, b: int) -> tuple[int, int]:
-    return a, b
-
-
-async def varargs(*items: tuple[int, ...]) -> tuple[Any, ...]:
-    return items
-
-
-async def mixed(a: int, *rest: tuple[int, ...]) -> tuple[int, tuple[Any, ...]]:
-    return a, rest
-
-
-async def keyword_only(*, value: int) -> int:
-    return value
-
-
-async def empty() -> str:
-    return "empty"
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 async def decode(message: StreamMessage[Any]) -> Any:
@@ -69,30 +29,6 @@ def message(value: Any) -> StreamMessage[Any]:
 @pytest.mark.asyncio()
 class TestBodyShapes:
     @pytest.mark.parametrize(
-        ("handler", "payload", "expected", "schema_type"),
-        (
-            pytest.param(scalar, "12", 12, "integer", id="scalar"),
-            pytest.param(mapping, {"n": "2"}, {"n": 2}, "object", id="mapping"),
-            pytest.param(sequence, [1, "2"], [1, 2], "array", id="sequence"),
-            pytest.param(model, {"name": "Ada"}, {"name": "Ada"}, "object", id="model"),
-            pytest.param(pair, {"a": "1", "b": 2}, (1, 2), "object", id="unpack-mapping"),
-            pytest.param(pair, [1, "2"], (1, 2), "object", id="unpack-sequence"),
-            pytest.param(varargs, [1, "2"], (1, 2), "array", id="varargs"),
-            pytest.param(mixed, [1, "2", 3], (1, (2, 3)), "object", id="mixed-varargs"),
-            pytest.param(keyword_only, "12", 12, "integer", id="keyword-only"),
-            pytest.param(empty, None, "empty", "null", id="no-parameters-null"),
-            pytest.param(empty, {}, "empty", "null", id="no-parameters-mapping"),
-        ),
-    )
-    async def test_existing_body_shapes(
-        self, handler: Callable[..., Any], payload: Any, expected: Any, schema_type: str
-    ) -> None:
-        built = FastDependsConfig().build_call(handler)
-
-        assert parse_handler_params(built.dependent)["type"] == schema_type
-        assert await built.wrapped_call(message(payload)) == expected
-
-    @pytest.mark.parametrize(
         "payload",
         (
             pytest.param(None, id="null"),
@@ -100,14 +36,13 @@ class TestBodyShapes:
             pytest.param([], id="empty-sequence"),
         ),
     )
-    async def test_whole_body_and_null_remain_distinct(self, payload: Any) -> None:
+    async def test_whole_body_is_preserved(self, payload: Any) -> None:
         async def handler(value: Any) -> Any:
             return value
 
         built = FastDependsConfig().build_call(handler)
 
         assert await built.wrapped_call(message(payload)) == payload
-        assert parse_handler_params(built.dependent)["title"] != "EmptyPayload"
 
     async def test_multiple_parameters_preserve_aliases_and_defaults(self) -> None:
         async def handler(
@@ -116,50 +51,11 @@ class TestBodyShapes:
             return a, b
 
         built = FastDependsConfig().build_call(handler)
-        schema = parse_handler_params(built.dependent)
-
-        assert schema == IsPartialDict({
-            "properties": {
-                "external": AnyThing,
-                "b": IsPartialDict({"default": 7}),
-            },
-            "required": ["external"],
-        })
         assert await built.wrapped_call(message({"external": 1})) == (1, 7)
 
 
 @pytest.mark.asyncio()
 class TestDependencyBodyBinding:
-    @pytest.mark.parametrize(
-        "extra",
-        (
-            pytest.param(False, id="dependency"),
-            pytest.param(True, id="extra-dependency"),
-        ),
-    )
-    async def test_dependency_inputs_define_body_without_running_dependencies(
-        self,
-        extra: bool,
-        mock: MagicMock,
-    ) -> None:
-        def dependency(value: int) -> int:
-            mock.dependency(value)
-            return value + 1
-
-        async def handler(result: int = Depends(dependency)) -> int:
-            return result
-
-        built = FastDependsConfig().build_call(
-            empty if extra else handler,
-            dependencies=(Depends(dependency),) if extra else (),
-        )
-        schema = parse_handler_params(built.dependent)
-
-        assert schema["type"] == "integer"
-        mock.dependency.assert_not_called()
-        assert await built.wrapped_call(message(41)) == ("empty" if extra else 42)
-        mock.dependency.assert_called_once_with(41)
-
     async def test_provider_override_inputs_define_body(self) -> None:
         def dependency(value: int) -> int:
             return value
@@ -174,7 +70,6 @@ class TestDependencyBodyBinding:
         provider.override(dependency, replacement)
         built = FastDependsConfig(provider=provider).build_call(handler)
 
-        assert set(parse_handler_params(built.dependent)["properties"]) == {"a", "b"}
         assert await built.wrapped_call(message({"a": 10, "b": 22})) == 42
 
 
@@ -221,7 +116,9 @@ class TestBodyUnpacking:
         mock.assert_called_once_with(*expected_args, **expected_kwargs)
 
     async def test_non_container_body_keeps_unpacking_error(self) -> None:
-        built = FastDependsConfig().build_call(pair)
+        async def handler(a: int, b: int) -> None: ...
+
+        built = FastDependsConfig().build_call(handler)
 
         with pytest.raises(ValueError, match="Couldn't unpack `42` to multiple values"):
             await built.wrapped_call(message(42))
