@@ -187,18 +187,13 @@ class RabbitDeclarerImpl(RabbitDeclarer):
         if declare is EMPTY:
             declare = exchange.declare
 
-        exchange_type = exchange.type
-        durable = exchange.durable
-        auto_delete = exchange.auto_delete
+        # Keep cache history independent of the client's mutable arguments.
         arguments = deepcopy(exchange.arguments or {})
-        timeout = exchange.timeout
-        robust = exchange.robust
         requested_settings: dict[str, Any] = {
-            "type": exchange_type,
-            "durable": durable,
-            "auto_delete": auto_delete,
-            # Keep cache history independent of the client's mutable arguments.
-            "arguments": deepcopy(arguments),
+            "type": exchange.type,
+            "durable": exchange.durable,
+            "auto_delete": exchange.auto_delete,
+            "arguments": arguments,
         }
         cached_exchange = self._exchanges.get(exchange_name)
         if cached_exchange is not None and (
@@ -220,13 +215,13 @@ class RabbitDeclarerImpl(RabbitDeclarer):
             "RobustExchange",
             await channel_obj.declare_exchange(
                 name=exchange_name,
-                type=exchange_type.value,
-                durable=durable,
-                auto_delete=auto_delete,
+                type=exchange.type.value,
+                durable=exchange.durable,
+                auto_delete=exchange.auto_delete,
                 passive=not declare,
                 arguments=arguments,
-                timeout=timeout,
-                robust=robust,
+                timeout=exchange.timeout,
+                robust=exchange.robust,
                 internal=False,
             ),
         )
