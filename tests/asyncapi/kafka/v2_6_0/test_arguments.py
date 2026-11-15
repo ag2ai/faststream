@@ -3,11 +3,12 @@ from typing import Any
 import pytest
 
 from faststream.kafka import KafkaBroker, TopicPartition
+from tests.asyncapi.base.body_binding import BodyBindingTestcase
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 
 
 @pytest.mark.kafka()
-class TestArguments(ArgumentsTestcase):
+class TestArguments(BodyBindingTestcase, ArgumentsTestcase):
     broker_class = KafkaBroker
 
     def test_subscriber_bindings(self) -> None:
