@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import typer
 
-from faststream.exceptions import INSTALL_TOML, INSTALL_YAML
+from faststream.exceptions import INSTALL_YAML
 
 if TYPE_CHECKING:
     from faststream._internal.application import Application
@@ -108,14 +108,7 @@ def _get_yaml_config(file: Path) -> dict[str, Any] | Any:
 
 def _get_toml_config(file: Path) -> dict[str, Any] | Any:
     """Parse toml config file to dict."""
-    try:
-        import tomllib
-    except ImportError:
-        try:
-            import tomli as tomllib
-        except ImportError as e:
-            typer.echo(INSTALL_TOML, err=True)
-            raise typer.Exit(1) from e
+    import tomllib
 
     with file.open("rb") as config_file:
         return tomllib.load(config_file)
