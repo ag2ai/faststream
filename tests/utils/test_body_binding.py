@@ -1,6 +1,7 @@
 import json
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from dirty_equals import AnyThing, IsPartialDict
@@ -139,11 +140,10 @@ class TestDependencyBodyBinding:
     async def test_dependency_inputs_define_body_without_running_dependencies(
         self,
         extra: bool,
+        mock: MagicMock,
     ) -> None:
-        seen: list[int] = []
-
         def dependency(value: int) -> int:
-            seen.append(value)
+            mock.dependency(value)
             return value + 1
 
         async def handler(result: int = Depends(dependency)) -> int:
@@ -156,9 +156,9 @@ class TestDependencyBodyBinding:
         schema = parse_handler_params(built.dependent)
 
         assert schema["type"] == "integer"
-        assert seen == []
+        mock.dependency.assert_not_called()
         assert await built.wrapped_call(message(41)) == ("empty" if extra else 42)
-        assert seen == [41]
+        mock.dependency.assert_called_once_with(41)
 
     async def test_provider_override_inputs_define_body(self) -> None:
         def dependency(value: int) -> int:
@@ -195,6 +195,7 @@ class TestBodyUnpacking:
         payload: Any,
         expected_args: tuple[Any, ...],
         expected_kwargs: dict[str, Any],
+        mock: MagicMock,
     ) -> None:
         async def positional(value: int, /) -> None: ...
 
@@ -204,10 +205,8 @@ class TestBodyUnpacking:
 
         async def mixed(a: int, **values: Any) -> None: ...
 
-        calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
-
         async def receive(*args: Any, **kwargs: Any) -> None:
-            calls.append((args, kwargs))
+            mock(*args, **kwargs)
 
         handlers: dict[str, Callable[..., Any]] = {
             "positional": positional,
@@ -219,7 +218,7 @@ class TestBodyUnpacking:
         wrapper = _unwrap_message_to_fast_depends_decorator(receive, built.dependent)
         await wrapper(message(payload))
 
-        assert calls == [(expected_args, expected_kwargs)]
+        mock.assert_called_once_with(*expected_args, **expected_kwargs)
 
     async def test_non_container_body_keeps_unpacking_error(self) -> None:
         built = FastDependsConfig().build_call(pair)
