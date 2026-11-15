@@ -69,6 +69,18 @@ Marks pick the CI job, so a wrong one drops a test silently. `just misplaced-mar
 - a `connected` test whose module is built on one broker package, without that broker's mark. An unmarked test still runs in `test-basic`; a `connected` one runs only in its broker's job, so there it never runs at all.
 - `connected` on a whole `*MemoryTestcaseConfig` class (or its module). When an in-memory class inherits a test that does open a connection, mark that test — in the base testcase if it is inherited.
 
+## Name parametrized cases
+
+Write every case in `@pytest.mark.parametrize` as `pytest.param(..., id="...")`,
+including single-argument cases. Give each case an explicit, descriptive `id`
+naming the scenario so failures are identifiable in pytest output.
+
+## Group tests by behavior
+
+Group related tests into `Test...` classes by logical behavior, including utility
+tests. Name each class for the behavior it covers and its methods for individual
+expected outcomes.
+
 ## Shared base testcases
 
 Cross-broker behavior is specified ONCE in `tests/brokers/base/` (`basic.py`, `consume.py`, `publish.py`, `router.py`, `codec.py`, `middlewares.py`, `parser.py`, `requests.py`, `connection.py`, `fastapi.py`, `testclient.py`, ...) and inherited by every broker.
