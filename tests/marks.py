@@ -29,14 +29,21 @@ pydantic_v2 = pytest.mark.skipif(
 
 try:
     from faststream.confluent import KafkaBroker as ConfluentBroker  # ruff: ignore[unused-import]
+    from faststream.confluent._compat import CONFLUENT_V240
 except ImportError:
     HAS_CONFLUENT = False
+    CONFLUENT_V240 = False
 else:
     HAS_CONFLUENT = True
 
 require_confluent = pytest.mark.skipif(
     not HAS_CONFLUENT,
     reason="requires confluent-kafka",
+)
+
+require_confluent_v240 = pytest.mark.skipif(
+    not CONFLUENT_V240,
+    reason="requires confluent-kafka 2.4.0+ (KIP-848 group.protocol)",
 )
 
 

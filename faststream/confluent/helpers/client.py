@@ -305,9 +305,8 @@ class AsyncConfluentConsumer:
         } | config.consumer_config
 
         if config_from_params.get("group.protocol") == "consumer":
-            # KIP-848: the assignor moved to `group.remote.assignor` and both timers became
-            # broker-side, per group. librdkafka rejects all three on the client, and the
-            # `config` passthrough can override a value but never drop a key.
+            # KIP-848 moves assignment and timers to the broker; librdkafka rejects
+            # these classic options even when they come from the config passthrough.
             for classic_only in (
                 "partition.assignment.strategy",
                 "session.timeout.ms",
