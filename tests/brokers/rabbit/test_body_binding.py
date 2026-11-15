@@ -1,6 +1,6 @@
 from typing import Any
+from unittest.mock import MagicMock
 
-import pydantic
 import pytest
 from fast_depends import Depends
 from fast_depends.msgspec import MsgSpecSerializer
@@ -9,90 +9,68 @@ from fast_depends.pydantic import PydanticSerializer
 from faststream import Context, Header
 from faststream.message import StreamMessage
 from faststream.rabbit import RabbitBroker, TestRabbitBroker
-from tests.asyncapi.base.v2_6_0.basic import get_2_6_0_schema
-from tests.asyncapi.base.v3_0_0.basic import get_3_0_0_schema
-from tests.marks import pydantic_v2
 
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("serializer", (PydanticSerializer(), MsgSpecSerializer()))
-@pytest.mark.parametrize("schema_version", ("2.6.0", "3.0.0"))
-@pytest.mark.parametrize("extra", (False, True))
-async def test_injected_name_does_not_hide_dependency_body(
-    serializer: Any, schema_version: str, extra: bool
-) -> None:
-    broker = RabbitBroker(serializer=serializer)
-    seen: list[tuple[str, int | None]] = []
-    dependencies: list[int] = []
-
-    def dependency(value: int) -> int:
-        dependencies.append(value)
-        return value + 1
-
-    async def handler(
-        value: str = Header("token"),
-        raw: StreamMessage[Any] = Context("message"),
-        result: int = Depends(dependency),
-    ) -> None:
-        assert raw.headers["token"] == value
-        seen.append((value, result))
-
-    async def with_extra(
-        value: str = Header("token"),
-        raw: StreamMessage[Any] = Context("message"),
-    ) -> None:
-        assert raw.headers["token"] == value
-        seen.append((value, None))
-
-    broker.subscriber("input", dependencies=[Depends(dependency)] if extra else [])(
-        with_extra if extra else handler
-    )
-    get_schema = get_2_6_0_schema if schema_version == "2.6.0" else get_3_0_0_schema
-    schema = get_schema(broker)
-    payloads = schema["components"]["schemas"]
-
-    assert len(payloads) == 1
-    assert next(iter(payloads.values()))["type"] == "integer"
-    assert get_schema(broker) == schema
-    assert dependencies == []
-    assert seen == []
-
-    async with TestRabbitBroker(broker) as test_broker:
-        await test_broker.publish(41, "input", headers={"token": "secret"})
-
-    assert seen == [("secret", None if extra else 42)]
-    assert dependencies == [41]
-
-
-@pytest.mark.rabbit()
-@pytest.mark.asyncio()
-@pytest.mark.parametrize("schema_version", ("2.6.0", "3.0.0"))
-@pydantic_v2
-async def test_dependency_validation_alias_keeps_single_body(schema_version: str) -> None:
-    broker = RabbitBroker()
-    seen: list[tuple[str, int]] = []
-
-    def dependency(
-        value: int = pydantic.Field(
-            ..., validation_alias=pydantic.AliasChoices("external", "value")
+class TestBodyBinding:
+    @pytest.mark.parametrize(
+        "serializer",
+        (
+            pytest.param(PydanticSerializer(), id="pydantic"),
+            pytest.param(MsgSpecSerializer(), id="msgspec"),
         ),
-    ) -> int:
-        return value + 1
-
-    @broker.subscriber("input")
-    async def handler(
-        value: str = Header("token"), result: int = Depends(dependency)
+    )
+    async def test_dependency_receives_body_when_handler_injects_same_name(
+        self, serializer: Any, queue: str, mock: MagicMock
     ) -> None:
-        seen.append((value, result))
+        broker = RabbitBroker(serializer=serializer)
 
-    get_schema = get_2_6_0_schema if schema_version == "2.6.0" else get_3_0_0_schema
-    payloads = get_schema(broker)["components"]["schemas"]
-    assert len(payloads) == 1
-    assert next(iter(payloads.values()))["type"] == "integer"
-    assert seen == []
+        def dependency(value: int) -> int:
+            mock.dependency(value)
+            return value + 1
 
-    async with TestRabbitBroker(broker) as test_broker:
-        await test_broker.publish(41, "input", headers={"token": "secret"})
+        @broker.subscriber(queue)
+        async def handler(
+            value: str = Header("token"),
+            raw: StreamMessage[Any] = Context("message"),
+            result: int = Depends(dependency),
+        ) -> None:
+            assert raw.headers["token"] == value
+            mock(value, result)
 
-    assert seen == [("secret", 42)]
+        async with TestRabbitBroker(broker) as test_broker:
+            await test_broker.publish(41, queue, headers={"token": "secret"})
+
+        mock.assert_called_once_with("secret", 42)
+        mock.dependency.assert_called_once_with(41)
+
+    @pytest.mark.parametrize(
+        "serializer",
+        (
+            pytest.param(PydanticSerializer(), id="pydantic"),
+            pytest.param(MsgSpecSerializer(), id="msgspec"),
+        ),
+    )
+    async def test_extra_dependency_receives_body_when_handler_injects_same_name(
+        self, serializer: Any, queue: str, mock: MagicMock
+    ) -> None:
+        broker = RabbitBroker(serializer=serializer)
+
+        def dependency(value: int) -> int:
+            mock.dependency(value)
+            return value + 1
+
+        @broker.subscriber(queue, dependencies=[Depends(dependency)])
+        async def handler(
+            value: str = Header("token"),
+            raw: StreamMessage[Any] = Context("message"),
+        ) -> None:
+            assert raw.headers["token"] == value
+            mock(value)
+
+        async with TestRabbitBroker(broker) as test_broker:
+            await test_broker.publish(41, queue, headers={"token": "secret"})
+
+        mock.assert_called_once_with("secret")
+        mock.dependency.assert_called_once_with(41)

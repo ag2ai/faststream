@@ -4,11 +4,12 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from faststream.mqtt import MQTTBroker
+from tests.asyncapi.base.body_binding import BodyBindingTestcase
 from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
 
 
 @pytest.mark.mqtt()
-class TestArguments(ArgumentsTestcase):
+class TestArguments(BodyBindingTestcase, ArgumentsTestcase):
     broker_class = MQTTBroker
 
     def test_subscriber_bindings(self, snapshot_json: SnapshotAssertion) -> None:
