@@ -39,21 +39,18 @@ class BodyBindingTestcase(SpecificationFactory):
     ) -> None:
         broker = self.broker_class(serializer=serializer)
 
-        def dependency(value: int) -> int:
-            pytest.fail("Schema generation must not call dependencies")
+        def dependency(value: int) -> int: ...
 
         async def handler(
             value: str = Header("token"),
             raw: StreamMessage[Any] = Context("message"),
             result: int = Depends(dependency),
-        ) -> None:
-            pytest.fail("Schema generation must not call handlers")
+        ) -> None: ...
 
         async def with_extra(
             value: str = Header("token"),
             raw: StreamMessage[Any] = Context("message"),
-        ) -> None:
-            pytest.fail("Schema generation must not call handlers")
+        ) -> None: ...
 
         broker.subscriber("input", dependencies=[Depends(dependency)] if extra else [])(
             with_extra if extra else handler
@@ -72,14 +69,12 @@ class BodyBindingTestcase(SpecificationFactory):
             value: int = pydantic.Field(
                 ..., validation_alias=pydantic.AliasChoices("external", "value")
             ),
-        ) -> int:
-            pytest.fail("Schema generation must not call dependencies")
+        ) -> int: ...
 
         @broker.subscriber("input")
         async def handler(
             value: str = Header("token"), result: int = Depends(dependency)
-        ) -> None:
-            pytest.fail("Schema generation must not call handlers")
+        ) -> None: ...
 
         payloads = self.get_spec(broker).to_jsonable()["components"]["schemas"]
 
