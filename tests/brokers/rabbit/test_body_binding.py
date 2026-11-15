@@ -2,6 +2,7 @@ from typing import Any
 
 import pydantic
 import pytest
+from dirty_equals import IsPartialDict
 from fast_depends import Depends
 from fast_depends.msgspec import MsgSpecSerializer
 from fast_depends.pydantic import PydanticSerializer
@@ -16,9 +17,27 @@ from tests.marks import pydantic_v2
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("serializer", (PydanticSerializer(), MsgSpecSerializer()))
-@pytest.mark.parametrize("schema_version", ("2.6.0", "3.0.0"))
-@pytest.mark.parametrize("extra", (False, True))
+@pytest.mark.parametrize(
+    "serializer",
+    (
+        pytest.param(PydanticSerializer(), id="pydantic"),
+        pytest.param(MsgSpecSerializer(), id="msgspec"),
+    ),
+)
+@pytest.mark.parametrize(
+    "schema_version",
+    (
+        pytest.param("2.6.0", id="2.6.0"),
+        pytest.param("3.0.0", id="3.0.0"),
+    ),
+)
+@pytest.mark.parametrize(
+    "extra",
+    (
+        pytest.param(False, id="dependency"),
+        pytest.param(True, id="extra-dependency"),
+    ),
+)
 async def test_injected_name_does_not_hide_dependency_body(
     serializer: Any, schema_version: str, extra: bool
 ) -> None:
@@ -52,8 +71,7 @@ async def test_injected_name_does_not_hide_dependency_body(
     schema = get_schema(broker)
     payloads = schema["components"]["schemas"]
 
-    assert len(payloads) == 1
-    assert next(iter(payloads.values()))["type"] == "integer"
+    assert list(payloads.values()) == [IsPartialDict({"type": "integer"})]
     assert get_schema(broker) == schema
     assert dependencies == []
     assert seen == []
@@ -67,7 +85,13 @@ async def test_injected_name_does_not_hide_dependency_body(
 
 @pytest.mark.rabbit()
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("schema_version", ("2.6.0", "3.0.0"))
+@pytest.mark.parametrize(
+    "schema_version",
+    (
+        pytest.param("2.6.0", id="2.6.0"),
+        pytest.param("3.0.0", id="3.0.0"),
+    ),
+)
 @pydantic_v2
 async def test_dependency_validation_alias_keeps_single_body(schema_version: str) -> None:
     broker = RabbitBroker()
@@ -88,8 +112,7 @@ async def test_dependency_validation_alias_keeps_single_body(schema_version: str
 
     get_schema = get_2_6_0_schema if schema_version == "2.6.0" else get_3_0_0_schema
     payloads = get_schema(broker)["components"]["schemas"]
-    assert len(payloads) == 1
-    assert next(iter(payloads.values()))["type"] == "integer"
+    assert list(payloads.values()) == [IsPartialDict({"type": "integer"})]
     assert seen == []
 
     async with TestRabbitBroker(broker) as test_broker:

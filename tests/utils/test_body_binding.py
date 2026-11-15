@@ -3,6 +3,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from dirty_equals import AnyThing, IsPartialDict
 from fast_depends import Depends, Provider
 from pydantic import BaseModel, Field
 
@@ -68,17 +69,17 @@ def message(value: Any) -> StreamMessage[Any]:
 @pytest.mark.parametrize(
     ("handler", "payload", "expected", "schema_type"),
     (
-        (scalar, "12", 12, "integer"),
-        (mapping, {"n": "2"}, {"n": 2}, "object"),
-        (sequence, [1, "2"], [1, 2], "array"),
-        (model, {"name": "Ada"}, {"name": "Ada"}, "object"),
-        (pair, {"a": "1", "b": 2}, (1, 2), "object"),
-        (pair, [1, "2"], (1, 2), "object"),
-        (varargs, [1, "2"], (1, 2), "array"),
-        (mixed, [1, "2", 3], (1, (2, 3)), "object"),
-        (keyword_only, "12", 12, "integer"),
-        (empty, None, "empty", "null"),
-        (empty, {}, "empty", "null"),
+        pytest.param(scalar, "12", 12, "integer", id="scalar"),
+        pytest.param(mapping, {"n": "2"}, {"n": 2}, "object", id="mapping"),
+        pytest.param(sequence, [1, "2"], [1, 2], "array", id="sequence"),
+        pytest.param(model, {"name": "Ada"}, {"name": "Ada"}, "object", id="model"),
+        pytest.param(pair, {"a": "1", "b": 2}, (1, 2), "object", id="unpack-mapping"),
+        pytest.param(pair, [1, "2"], (1, 2), "object", id="unpack-sequence"),
+        pytest.param(varargs, [1, "2"], (1, 2), "array", id="varargs"),
+        pytest.param(mixed, [1, "2", 3], (1, (2, 3)), "object", id="mixed-varargs"),
+        pytest.param(keyword_only, "12", 12, "integer", id="keyword-only"),
+        pytest.param(empty, None, "empty", "null", id="no-parameters-null"),
+        pytest.param(empty, {}, "empty", "null", id="no-parameters-mapping"),
     ),
 )
 async def test_existing_body_shapes(
@@ -91,7 +92,14 @@ async def test_existing_body_shapes(
 
 
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("payload", (None, {}, []))
+@pytest.mark.parametrize(
+    "payload",
+    (
+        pytest.param(None, id="null"),
+        pytest.param({}, id="empty-mapping"),
+        pytest.param([], id="empty-sequence"),
+    ),
+)
 async def test_whole_body_and_null_remain_distinct(payload: Any) -> None:
     async def handler(value: Any) -> Any:
         return value
@@ -103,7 +111,13 @@ async def test_whole_body_and_null_remain_distinct(payload: Any) -> None:
 
 
 @pytest.mark.asyncio()
-@pytest.mark.parametrize("extra", (False, True))
+@pytest.mark.parametrize(
+    "extra",
+    (
+        pytest.param(False, id="dependency"),
+        pytest.param(True, id="extra-dependency"),
+    ),
+)
 async def test_dependency_inputs_define_body_without_running_dependencies(
     extra: bool,
 ) -> None:
@@ -157,9 +171,13 @@ async def test_multiple_parameters_preserve_aliases_and_defaults() -> None:
     built = FastDependsConfig().build_call(handler)
     schema = parse_handler_params(built.dependent)
 
-    assert set(schema["properties"]) == {"external", "b"}
-    assert schema["required"] == ["external"]
-    assert schema["properties"]["b"]["default"] == 7
+    assert schema == IsPartialDict({
+        "properties": {
+            "external": AnyThing,
+            "b": IsPartialDict({"default": 7}),
+        },
+        "required": ["external"],
+    })
     assert await built.wrapped_call(message({"external": 1})) == (1, 7)
 
 
@@ -167,10 +185,10 @@ async def test_multiple_parameters_preserve_aliases_and_defaults() -> None:
 @pytest.mark.parametrize(
     ("signature", "payload", "expected_args", "expected_kwargs"),
     (
-        ("positional", 42, (42,), {}),
-        ("star", [1, 2], (1, 2), {}),
-        ("double_star", {"a": 1}, ({"a": 1},), {}),
-        ("mixed", {"a": 1, "b": 2}, (), {"a": 1, "b": 2}),
+        pytest.param("positional", 42, (42,), {}, id="positional-only"),
+        pytest.param("star", [1, 2], (1, 2), {}, id="var-positional"),
+        pytest.param("double_star", {"a": 1}, ({"a": 1},), {}, id="var-keyword"),
+        pytest.param("mixed", {"a": 1, "b": 2}, (), {"a": 1, "b": 2}, id="mixed"),
     ),
 )
 async def test_argument_kinds_preserve_unwrapping(
