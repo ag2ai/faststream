@@ -1,0 +1,278 @@
+from collections.abc import Iterable
+from copy import deepcopy
+from typing import Annotated, Any, Literal
+
+import msgspec
+import pytest
+from dirty_equals import IsPartialDict
+from fast_depends import Depends, Provider
+from fast_depends.library.schema_processing import SchemaExclude, process_schema
+from fast_depends.library.serializer import OptionItem, Serializer, SerializerProto
+from fast_depends.msgspec import MsgSpecSerializer
+from fast_depends.pydantic import PydanticSerializer
+from pydantic import Field
+
+from .basic import SpecificationFactory
+from .serialization import (
+    Item,
+    NativeFactory,
+    Opaque,
+    Tree,
+    assert_local_refs_resolve,
+    assert_msgspec_payload,
+)
+
+
+class SerializerArgumentsTestcase(SpecificationFactory):
+    broker_class: Any
+
+    @pytest.mark.parametrize(
+        "annotation",
+        (
+            pytest.param(Item, id="struct"),
+            pytest.param(list[Item], id="struct-list"),
+            pytest.param(Tree, id="recursive-struct"),
+        ),
+    )
+    def test_msgspec_subscriber_payloads(self, annotation: Any) -> None:
+        broker = self.broker_class(serializer=MsgSpecSerializer())
+
+        @broker.subscriber("in")
+        async def handle(value: annotation) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        assert_msgspec_payload(document, annotation)
+
+    def test_msgspec_field_alias_and_constraint(self) -> None:
+        broker = self.broker_class(serializer=MsgSpecSerializer())
+
+        @broker.subscriber("in")
+        async def handle(
+            count: Annotated[int, msgspec.Meta(ge=1)] = msgspec.field(name="size"),
+            label: Literal["a", "b"] = "a",
+        ) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()["components"]["schemas"][
+            "Handle:Message:Payload"
+        ]
+        assert schema["properties"]["size"] == {"type": "integer", "minimum": 1}
+        assert schema["properties"]["label"] == {"enum": ["a", "b"], "default": "a"}
+        assert schema["required"] == ["size"]
+
+    def test_selected_factory_configuration(self) -> None:
+        broker = self.broker_class(
+            serializer=PydanticSerializer(pydantic_config={"alias_generator": str.upper})
+        )
+
+        @broker.subscriber("in")
+        async def handle(first: int, second: str) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()["components"]["schemas"][
+            "Handle:Message:Payload"
+        ]
+        assert set(schema["properties"]) == {"FIRST", "SECOND"}
+        assert schema["required"] == ["FIRST", "SECOND"]
+
+    def test_explicit_field_title(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("in")
+        async def handle(value: Annotated[int, Field(title="Counter", gt=0)]) -> None: ...
+
+        assert self.get_spec(broker).to_jsonable()["components"]["schemas"][
+            "Counter"
+        ] == {
+            "title": "Counter",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+        }
+
+    @pytest.mark.parametrize(
+        ("annotation", "default", "title"),
+        (
+            pytest.param(
+                Annotated[int, Field(title="First"), Field(title="Second")],
+                ...,
+                "Second",
+                id="last-annotation-title",
+            ),
+            pytest.param(
+                Annotated[int, Field(title="Inner")],
+                Field(title="Outer"),
+                "Outer",
+                id="default-title",
+            ),
+        ),
+    )
+    def test_field_title_uses_backend_precedence(
+        self,
+        annotation: Any,
+        default: Any,
+        title: str,
+    ) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("in")
+        async def handle(value: annotation = default) -> None: ...
+
+        schema = self.get_spec(broker).to_jsonable()["components"]["schemas"][title]
+        assert schema["title"] == title
+        assert schema["type"] == "integer"
+
+    def test_single_field_alias_does_not_merge_unrelated_components(self) -> None:
+        broker = self.broker_class()
+
+        @broker.subscriber("first")
+        async def first(value: int = Field(alias="wire")) -> None: ...
+        @broker.subscriber("second")
+        async def second(value: str = Field(alias="wire")) -> None: ...
+
+        schemas = self.get_spec(broker).to_jsonable()["components"]["schemas"]
+        assert schemas["First:Message:Payload"]["type"] == "integer"
+        assert schemas["Second:Message:Payload"]["type"] == "string"
+        assert "Wire" not in schemas
+
+    def test_custom_backend_uses_exact_ref_and_preserves_data(self) -> None:
+        factory = NativeFactory()
+        original = deepcopy(factory.document)
+        broker = self.broker_class(serializer=factory)
+
+        @broker.subscriber("in")
+        async def handler(value: Opaque) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        schema = document["components"]["schemas"]["Actual"]
+        assert schema == {
+            "title": "Actual",
+            "type": "string",
+            "pattern": "^x",
+            "description": "literal #/definitions/Unused",
+            "examples": [{"$ref": "#/definitions/Unused"}],
+        }
+        assert factory.document == original
+        assert_local_refs_resolve(document)
+
+    def test_nested_scoped_resource_from_options_aware_backend(self) -> None:
+        resource = {
+            "$id": "https://example.test/record",
+            "$ref": "#/$defs/Node",
+            "$defs": {
+                "Node": {
+                    "title": "Node",
+                    "type": "object",
+                    "properties": {"child": {"$ref": "#/$defs/Node"}},
+                }
+            },
+        }
+
+        class ResourceFactory(SerializerProto):
+            def __call__(
+                self, *, name: str, options: list[OptionItem], response_type: Any
+            ) -> Serializer:
+                class ResourceSerializer(Serializer):
+                    def __call__(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+                        return kwargs
+
+                    def get_schema(
+                        self,
+                        *,
+                        embed: bool = False,
+                        exclude: Iterable[SchemaExclude] = (),
+                        resolve_refs: bool = False,
+                    ) -> dict[str, Any]:
+                        schema = {
+                            "type": "object",
+                            "properties": {
+                                p.field_name: deepcopy(resource) for p in options
+                            },
+                        }
+                        return process_schema(
+                            schema, embed=embed, resolve_refs=resolve_refs
+                        )
+
+                return ResourceSerializer(
+                    name=name, options=options, response_type=response_type
+                )
+
+        broker = self.broker_class(serializer=ResourceFactory())
+
+        @broker.subscriber("in")
+        async def handle(value: Opaque) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        schemas = document["components"]["schemas"]
+        assert schemas["__fast_depends_input"]["properties"]["value"] == resource
+        assert (
+            schemas["Handle:Message:Payload"]["$ref"]
+            == "#/components/schemas/__fast_depends_input/properties/value"
+        )
+        assert_local_refs_resolve(document)
+
+    def test_input_resource_scope_is_preserved_during_embedding(self) -> None:
+        native = {
+            "$id": "https://example.test/inputs",
+            "type": "object",
+            "properties": {"value": {"$ref": "#/$defs/Node"}},
+            "$defs": {
+                "Node": {
+                    "type": "object",
+                    "properties": {
+                        "children": {"type": "array", "items": {"$ref": "#/$defs/Node"}}
+                    },
+                }
+            },
+        }
+
+        class ResourceFactory(SerializerProto):
+            def __call__(
+                self, *, name: str, options: list[OptionItem], response_type: Any
+            ) -> Serializer:
+                class ResourceSerializer(Serializer):
+                    def __call__(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+                        return kwargs
+
+                    def get_schema(
+                        self,
+                        *,
+                        embed: bool = False,
+                        exclude: Iterable[SchemaExclude] = (),
+                        resolve_refs: bool = False,
+                    ) -> dict[str, Any]:
+                        return process_schema(
+                            deepcopy(native), embed=embed, resolve_refs=resolve_refs
+                        )
+
+                return ResourceSerializer(
+                    name=name, options=options, response_type=response_type
+                )
+
+        broker = self.broker_class(serializer=ResourceFactory())
+
+        @broker.subscriber("in")
+        async def handle(value: Opaque) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        schemas = document["components"]["schemas"]
+        assert schemas["__fast_depends_input"] == native
+        assert (
+            schemas["Handle:Message:Payload"]["$ref"]
+            == "#/components/schemas/__fast_depends_input/properties/value"
+        )
+        assert_local_refs_resolve(document)
+
+    def test_dependency_override_changes_body_schema(self) -> None:
+        provider = Provider()
+
+        async def dependency(count: int) -> None: ...
+        async def replacement(item: Item) -> None: ...
+        async def handler(value: Annotated[Any, Depends(dependency)]) -> None: ...
+
+        broker = self.broker_class(serializer=MsgSpecSerializer(), provider=provider)
+        broker.subscriber("in")(handler)
+        schemas = self.get_spec(broker).to_jsonable()["components"]["schemas"]
+        assert list(schemas.values()) == [IsPartialDict({"type": "integer"})]
+        with provider.scope(dependency, replacement):
+            schemas = self.get_spec(broker).to_jsonable()["components"]["schemas"]
+            assert list(schemas) == ["Item"]
+        schemas = self.get_spec(broker).to_jsonable()["components"]["schemas"]
+        assert list(schemas.values()) == [IsPartialDict({"type": "integer"})]
