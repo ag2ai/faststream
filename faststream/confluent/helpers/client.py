@@ -304,6 +304,16 @@ class AsyncConfluentConsumer:
             "isolation.level": isolation_level,
         } | config.consumer_config
 
+        if config_from_params.get("group.protocol") == "consumer":
+            # KIP-848 moves assignment and timers to the broker; librdkafka rejects
+            # these classic options even when they come from the config passthrough.
+            for classic_only in (
+                "partition.assignment.strategy",
+                "session.timeout.ms",
+                "heartbeat.interval.ms",
+            ):
+                config_from_params.pop(classic_only, None)
+
         self.config = config_from_params
         self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
 
