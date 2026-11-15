@@ -27,34 +27,46 @@ class BodyBindingTestcase(SpecificationFactory):
             pytest.param(MsgSpecSerializer(), id="msgspec"),
         ),
     )
-    @pytest.mark.parametrize(
-        "extra",
-        (
-            pytest.param(False, id="dependency"),
-            pytest.param(True, id="extra-dependency"),
-        ),
-    )
     def test_injected_name_does_not_hide_dependency_body(
-        self, serializer: "SerializerProto", extra: bool
+        self, serializer: "SerializerProto"
     ) -> None:
         broker = self.broker_class(serializer=serializer)
 
         def dependency(value: int) -> int: ...
 
+        @broker.subscriber("input")
         async def handler(
             value: str = Header("token"),
             raw: StreamMessage[Any] = Context("message"),
             result: int = Depends(dependency),
         ) -> None: ...
 
-        async def with_extra(
+        schema = self.get_spec(broker).to_jsonable()
+        payloads = schema["components"]["schemas"]
+
+        assert list(payloads.values()) == [IsPartialDict({"type": "integer"})]
+        assert self.get_spec(broker).to_jsonable() == schema
+
+    @pytest.mark.parametrize(
+        "serializer",
+        (
+            pytest.param(PydanticSerializer(), id="pydantic"),
+            pytest.param(MsgSpecSerializer(), id="msgspec"),
+        ),
+    )
+    def test_injected_name_does_not_hide_extra_dependency_body(
+        self, serializer: "SerializerProto"
+    ) -> None:
+        broker = self.broker_class(serializer=serializer)
+
+        def dependency(value: int) -> int: ...
+
+        @broker.subscriber("input", dependencies=[Depends(dependency)])
+        async def handler(
             value: str = Header("token"),
             raw: StreamMessage[Any] = Context("message"),
         ) -> None: ...
 
-        broker.subscriber("input", dependencies=[Depends(dependency)] if extra else [])(
-            with_extra if extra else handler
-        )
         schema = self.get_spec(broker).to_jsonable()
         payloads = schema["components"]["schemas"]
 

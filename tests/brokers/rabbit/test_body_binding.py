@@ -22,24 +22,18 @@ class TestBodyBinding:
             pytest.param(MsgSpecSerializer(), id="msgspec"),
         ),
     )
-    @pytest.mark.parametrize(
-        "extra",
-        (
-            pytest.param(False, id="dependency"),
-            pytest.param(True, id="extra-dependency"),
-        ),
-    )
     async def test_dependency_receives_body_when_handler_injects_same_name(
-        self, serializer: Any, extra: bool, queue: str
+        self, serializer: Any, queue: str
     ) -> None:
         broker = RabbitBroker(serializer=serializer)
-        seen: list[tuple[str, int | None]] = []
+        seen: list[tuple[str, int]] = []
         dependencies: list[int] = []
 
         def dependency(value: int) -> int:
             dependencies.append(value)
             return value + 1
 
+        @broker.subscriber(queue)
         async def handler(
             value: str = Header("token"),
             raw: StreamMessage[Any] = Context("message"),
@@ -48,20 +42,42 @@ class TestBodyBinding:
             assert raw.headers["token"] == value
             seen.append((value, result))
 
-        async def with_extra(
+        async with TestRabbitBroker(broker) as test_broker:
+            await test_broker.publish(41, queue, headers={"token": "secret"})
+
+        assert seen == [("secret", 42)]
+        assert dependencies == [41]
+
+    @pytest.mark.parametrize(
+        "serializer",
+        (
+            pytest.param(PydanticSerializer(), id="pydantic"),
+            pytest.param(MsgSpecSerializer(), id="msgspec"),
+        ),
+    )
+    async def test_extra_dependency_receives_body_when_handler_injects_same_name(
+        self, serializer: Any, queue: str
+    ) -> None:
+        broker = RabbitBroker(serializer=serializer)
+        seen: list[str] = []
+        dependencies: list[int] = []
+
+        def dependency(value: int) -> int:
+            dependencies.append(value)
+            return value + 1
+
+        @broker.subscriber(queue, dependencies=[Depends(dependency)])
+        async def handler(
             value: str = Header("token"),
             raw: StreamMessage[Any] = Context("message"),
         ) -> None:
             assert raw.headers["token"] == value
-            seen.append((value, None))
+            seen.append(value)
 
-        broker.subscriber(queue, dependencies=[Depends(dependency)] if extra else [])(
-            with_extra if extra else handler
-        )
         async with TestRabbitBroker(broker) as test_broker:
             await test_broker.publish(41, queue, headers={"token": "secret"})
 
-        assert seen == [("secret", None if extra else 42)]
+        assert seen == ["secret"]
         assert dependencies == [41]
 
     @pydantic_v2
