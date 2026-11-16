@@ -10,7 +10,7 @@ search:
 
 # Development
 
-Before contributing, read the [AI Policy](https://github.com/ag2ai/faststream/blob/main/.github/AI_POLICY.md){.external-link target="_blank"}.
+Before contributing, read the [AI Policy](ai-policy.md){.internal-link}.
 It covers AI assistance and automated contribution farms. Contributors without write access may have
 one open PR, including drafts, until their first PR is merged into FastStream.
 

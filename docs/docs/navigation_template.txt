@@ -155,5 +155,6 @@ search:
 - [Used By](who-uses.md)
 - Contributing
     - [Development](getting-started/contributing/CONTRIBUTING.md)
+    - [AI Policy](getting-started/contributing/ai-policy.md)
     - [Documentation](getting-started/contributing/docs.md)
 - [Release Notes](release.md)

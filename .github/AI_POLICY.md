@@ -8,7 +8,8 @@ for all code, descriptions, comments, and reviews submitted under your account.
 Understand and test generated code before submitting it. Check that generated
 tests exercise the intended behavior and can catch a broken implementation.
 You must have the right to contribute all submitted material under FastStream's
-[Apache 2.0 license](../LICENSE) and sign the Contributor License Agreement.
+[Apache 2.0 license](https://github.com/ag2ai/faststream/blob/main/LICENSE)
+and sign the Contributor License Agreement.
 
 ## Issues, pull requests, and reviews
 
