@@ -6,7 +6,7 @@ import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
 from faststream.exceptions import SetupError
-from faststream.kafka import TopicPartition
+from faststream.kafka import KafkaResponse, TopicPartition
 from faststream.kafka.annotations import KafkaMessage
 from faststream.kafka.message import FAKE_CONSUMER
 from faststream.kafka.testing import FakeProducer
@@ -20,6 +20,42 @@ from .basic import KafkaMemoryTestcaseConfig
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
 class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
+    @pytest.mark.parametrize(
+        "mode", ("publish", "batch", "request", "response", "batch-response")
+    )
+    @pytest.mark.parametrize(
+        ("key", "expected"), ((None, b"default"), (b"", b""), (b"custom", b"custom"))
+    )
+    async def test_publisher_key_override(
+        self, queue: str, mock: MagicMock, mode: str, key: bytes | None, expected: bytes
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3355."""
+        broker = self.get_broker(apply_types=True)
+        publisher = broker.publisher(
+            queue, key=b"default", batch=mode.startswith("batch")
+        )
+
+        @broker.subscriber(queue)
+        async def handler(msg: Any = Context("message")) -> str:
+            mock(msg.raw_message.key)
+            return "reply"
+
+        @broker.subscriber(queue + "input")
+        async def respond(body: str) -> KafkaResponse:
+            return KafkaResponse(body, key=key)
+
+        publisher(respond)
+
+        async with self.patch_broker(broker):
+            if mode.endswith("response"):
+                await broker.publish("hello", queue + "input")
+            elif mode == "request":
+                await publisher.request("hello", key=key)
+            else:
+                await publisher.publish("hello", key=key)
+
+        mock.assert_called_once_with(expected)
+
     async def test_publish_none_tombstone(
         self,
         queue: str,

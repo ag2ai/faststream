@@ -235,7 +235,7 @@ class DefaultPublisher(LogicPublisher):
         cmd = KafkaPublishCommand(
             message,
             topic=topic or self.topic,
-            key=key or self.key,
+            key=key if key is not None else self.key,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | dict(headers or {}),
@@ -265,7 +265,7 @@ class DefaultPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
 
         cmd.partition = cmd.partition if cmd.partition is not None else self.partition
-        cmd.key = cmd.key or self.key
+        cmd.key = cmd.key if cmd.key is not None else self.key
 
         await self._basic_publish(
             cmd,
@@ -313,7 +313,7 @@ class DefaultPublisher(LogicPublisher):
         return await super().request(
             message,
             topic=topic,
-            key=key or self.key,
+            key=key if key is not None else self.key,
             partition=partition,
             timestamp_ms=timestamp_ms,
             headers=headers,
@@ -424,7 +424,7 @@ class BatchPublisher(LogicPublisher):
         """
         cmd = KafkaPublishCommand(
             *messages,
-            key=key or self.key,
+            key=key if key is not None else self.key,
             topic=topic or self.topic,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
@@ -461,7 +461,7 @@ class BatchPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
 
         cmd.partition = cmd.partition if cmd.partition is not None else self.partition
-        cmd.key = cmd.key or self.key
+        cmd.key = cmd.key if cmd.key is not None else self.key
 
         await self._basic_publish_batch(
             cmd,
