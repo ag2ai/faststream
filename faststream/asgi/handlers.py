@@ -165,7 +165,7 @@ class PostHandler(HttpHandler):
             func,
             include_in_schema=include_in_schema,
             description=description,
-            methods=("POST", "HEAD"),
+            methods=("POST",),
             tags=tags,
             unique_id=unique_id,
         )
