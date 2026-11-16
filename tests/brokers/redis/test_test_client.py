@@ -92,6 +92,19 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert await (await br.request(1, "test.name.useless")).decode() == 1
             handler.mock.assert_called_once_with(1)
 
+    async def test_pub_sub_pattern_matches_whole_channel(self) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber("logs.*.error")
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("1", "logs.app.error")
+            await br.publish("2", "logs.app.error.extra")
+            await br.publish("3", "logs.app.errors")
+
+            handler.mock.assert_called_once_with("1")
+
     async def test_list(
         self,
         queue: str,
