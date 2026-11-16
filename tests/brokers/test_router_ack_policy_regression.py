@@ -97,12 +97,33 @@ async def test_kafka_late_policy_with_multiple_workers_is_rejected() -> None:
 
 
 @pytest.mark.asyncio()
+async def test_kafka_reattachment_cannot_change_worker_strategy() -> None:
+    router = KafkaRouter()
+    KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR).include_router(router)
+    subscriber = router.subscriber("orders", group_id="workers", max_workers=2)
+    KafkaBroker(ack_policy=AckPolicy.ACK_FIRST).include_router(router)
+
+    with pytest.raises(SetupError, match="router acknowledgement policy"):
+        await subscriber.start()
+
+
+@pytest.mark.asyncio()
 async def test_confluent_late_policy_with_multiple_workers_is_rejected() -> None:
     router = ConfluentRouter()
     subscriber = router.subscriber("orders", group_id="workers", max_workers=2)
     ConfluentBroker(ack_policy=AckPolicy.NACK_ON_ERROR).include_router(router)
 
     with pytest.raises(SetupError, match="manual commit"):
+        await subscriber.start()
+
+
+@pytest.mark.asyncio()
+async def test_confluent_late_manual_commit_requires_group() -> None:
+    router = ConfluentRouter()
+    subscriber = router.subscriber("orders")
+    ConfluentBroker(ack_policy=AckPolicy.NACK_ON_ERROR).include_router(router)
+
+    with pytest.raises(SetupError, match="group_id"):
         await subscriber.start()
 
 
