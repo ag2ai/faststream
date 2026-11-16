@@ -49,7 +49,7 @@ async def test_send_batch_waits_for_space_when_local_queue_is_full(
     """Fixes https://github.com/ag2ai/faststream/issues/2836."""
     driver = _BoundedProducer(max_messages=2)
     producer = AsyncConfluentProducer.__new__(AsyncConfluentProducer)
-    producer.producer = driver
+    producer.producer = driver  # type: ignore[assignment]
 
     batch = BatchBuilder()
     values = [f"msg-{i}".encode() for i in range(5)]
