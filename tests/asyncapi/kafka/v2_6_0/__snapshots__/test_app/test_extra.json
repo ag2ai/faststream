@@ -1,0 +1,44 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {}
+  },
+  "defaultContentType": "application/json",
+  "externalDocs": {
+    "url": "https://extra-docs.py/",
+    "x-field": "extra"
+  },
+  "id": "some-unique-uuid",
+  "info": {
+    "contact": {
+      "name": "support",
+      "url": "https://help.com/",
+      "x-field": "extra"
+    },
+    "description": "Test description",
+    "license": {
+      "name": "MIT",
+      "url": "https://mit.com/",
+      "x-field": "extra"
+    },
+    "termsOfService": "https://my-terms.com/",
+    "title": "My App",
+    "version": "1.0.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "kafka",
+      "protocolVersion": "auto",
+      "url": "localhost"
+    }
+  },
+  "tags": [
+    {
+      "description": "experimental",
+      "name": "some-tag",
+      "x-field": "extra"
+    }
+  ]
+}

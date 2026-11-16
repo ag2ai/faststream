@@ -1,11 +1,12 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.kafka import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
 from faststream.specification import Specification
-from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
-from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
+from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
+from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 from tests.asyncapi.base.v3_0_0.router import RouterTestcase
 
 
@@ -16,7 +17,7 @@ class TestRouter(RouterTestcase):
     route_class = KafkaRoute
     publisher_class = KafkaPublisher
 
-    def test_prefix(self) -> None:
+    def test_prefix(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         router = self.router_class(prefix="test_")
@@ -28,60 +29,7 @@ class TestRouter(RouterTestcase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "asyncapi": "3.0.0",
-            "defaultContentType": "application/json",
-            "servers": {
-                "development": {
-                    "host": "localhost",
-                    "pathname": "",
-                    "protocol": "kafka",
-                    "protocolVersion": "auto",
-                },
-            },
-            "channels": {
-                "test_test:Handle": {
-                    "address": "test_test",
-                    "servers": [{"$ref": "#/servers/development"}],
-                    "messages": {
-                        "SubscribeMessage": {
-                            "$ref": "#/components/messages/test_test:Handle:SubscribeMessage",
-                        },
-                    },
-                    "bindings": {
-                        "kafka": {"topic": "test_test", "bindingVersion": "0.4.0"},
-                    },
-                },
-            },
-            "operations": {
-                "test_test:HandleSubscribe": {
-                    "action": "receive",
-                    "messages": [
-                        {
-                            "$ref": "#/channels/test_test:Handle/messages/SubscribeMessage",
-                        },
-                    ],
-                    "channel": {"$ref": "#/channels/test_test:Handle"},
-                },
-            },
-            "components": {
-                "messages": {
-                    "test_test:Handle:SubscribeMessage": {
-                        "title": "test_test:Handle:SubscribeMessage",
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {
-                            "$ref": "#/components/schemas/Handle:Message:Payload",
-                        },
-                    },
-                },
-                "schemas": {
-                    "Handle:Message:Payload": {"title": "Handle:Message:Payload"},
-                },
-            },
-        }
+        assert schema == snapshot_json
 
 
 @pytest.mark.kafka()

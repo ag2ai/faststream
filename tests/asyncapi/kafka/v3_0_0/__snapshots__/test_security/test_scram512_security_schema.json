@@ -1,0 +1,122 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "test_1:TestTopic": {
+      "address": "test_1",
+      "bindings": {
+        "kafka": {
+          "bindingVersion": "0.4.0",
+          "topic": "test_1"
+        }
+      },
+      "messages": {
+        "SubscribeMessage": {
+          "$ref": "#/components/messages/test_1:TestTopic:SubscribeMessage"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    },
+    "test_2:Publisher": {
+      "address": "test_2",
+      "bindings": {
+        "kafka": {
+          "bindingVersion": "0.4.0",
+          "topic": "test_2"
+        }
+      },
+      "messages": {
+        "Message": {
+          "$ref": "#/components/messages/test_2:Publisher:Message"
+        }
+      },
+      "servers": [
+        {
+          "$ref": "#/servers/development"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "test_1:TestTopic:SubscribeMessage": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/TestTopic:Message:Payload"
+        },
+        "title": "test_1:TestTopic:SubscribeMessage"
+      },
+      "test_2:Publisher:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/test_2:Publisher:Message:Payload"
+        },
+        "title": "test_2:Publisher:Message"
+      }
+    },
+    "schemas": {
+      "TestTopic:Message:Payload": {
+        "title": "TestTopic:Message:Payload",
+        "type": "string"
+      },
+      "test_2:Publisher:Message:Payload": {
+        "title": "test_2:Publisher:Message:Payload",
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "scram512": {
+        "type": "scramSha512"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "test_1:TestTopicSubscribe": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/test_1:TestTopic"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/test_1:TestTopic/messages/SubscribeMessage"
+        }
+      ]
+    },
+    "test_2:Publisher": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/test_2:Publisher"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/test_2:Publisher/messages/Message"
+        }
+      ]
+    }
+  },
+  "servers": {
+    "development": {
+      "host": "localhost:9092",
+      "pathname": "",
+      "protocol": "kafka-secure",
+      "protocolVersion": "auto",
+      "security": [
+        {
+          "$ref": "#/components/securitySchemes/scram512"
+        }
+      ]
+    }
+  }
+}

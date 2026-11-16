@@ -1,0 +1,52 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {
+    "events.*:Handle": {
+      "bindings": {
+        "kafka": {
+          "bindingVersion": "0.4.0",
+          "topic": "events.*"
+        }
+      },
+      "publish": {
+        "message": {
+          "$ref": "#/components/messages/events.%2A:Handle:Message"
+        }
+      },
+      "servers": [
+        "development"
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "events.*:Handle:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/EmptyPayload"
+        },
+        "title": "events.*:Handle:Message"
+      }
+    },
+    "schemas": {
+      "EmptyPayload": {
+        "title": "EmptyPayload",
+        "type": "null"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "kafka",
+      "protocolVersion": "auto",
+      "url": "localhost"
+    }
+  }
+}
