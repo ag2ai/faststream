@@ -10,6 +10,10 @@ search:
 
 # Development
 
+Before contributing, read the [AI Policy](ai-policy.md){.internal-link}.
+It covers AI assistance and automated contribution farms. Contributors without write access may have
+one open PR, including drafts, until their first PR is merged into FastStream.
+
 After cloning the project, you'll need to set up the development environment. Here are the guidelines on how to do this.
 
 ## Install Justfile Utility
