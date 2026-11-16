@@ -177,6 +177,9 @@ class AsgiFastStream(Application):
             asgi_routes=asgi_routes,
             asyncapi_path=asyncapi_path,
             logger=app.logger,
+            provider=app.config.provider,
+            serializer=app.config.serializer,
+            context=app.config.context,
             lifespan=None,
         )
         asgi_app.lifespan_context = app.lifespan_context
