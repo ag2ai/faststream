@@ -149,3 +149,25 @@ To make your message schema reusable between different subscribers and publisher
     ```python linenums="1" hl_lines="1 15-17 22"
     {!> docs_src/getting_started/subscription/mqtt/msgspec_struct.py !}
     ```
+
+## AsyncAPI schemas
+
+AsyncAPI payload schemas use the serializer configured on the broker, including
+`msgspec.Struct`, `msgspec.field` aliases and `msgspec.Meta` constraints. This
+requires FastDepends 4.0.0a0 or newer. Both AsyncAPI 2.6 and 3.0 are supported.
+
+The same backend describes subscriber bodies, publisher return annotations and
+explicit publisher `schema=` types. A subscriber with one body parameter describes
+the whole body; multiple body parameters form an object. Dependency inputs are
+included, while injected context and header values are excluded from the body.
+Schema generation does not execute handlers or dependencies.
+
+Publisher schemas continue to describe the declared payload type for the generic
+broker encoder. Annotation serializers on a return type do not change the generic
+publication path. Typed response encoding, raw bytes, custom codecs and batch
+publication remain separate transport contracts.
+
+FastStream still uses Pydantic for its internal AsyncAPI document models and the
+FastAPI integration. Selecting Msgspec for payloads does not yet remove the
+Pydantic installation dependency. A disabled serializer cannot generate typed
+payload schemas; no implicit Pydantic payload fallback is used.

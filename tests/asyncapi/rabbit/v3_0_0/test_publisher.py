@@ -4,11 +4,12 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
+from tests.asyncapi.base.publisher import SerializerPublisherTestcase
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
 @pytest.mark.rabbit()
-class TestArguments(PublisherTestcase):
+class TestArguments(SerializerPublisherTestcase, PublisherTestcase):
     broker_class = RabbitBroker
 
     def test_just_exchange(self, snapshot_json: SnapshotAssertion) -> None:

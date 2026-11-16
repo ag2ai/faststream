@@ -3,11 +3,12 @@ from typing import Any
 import pytest
 
 from faststream.confluent import KafkaBroker
+from tests.asyncapi.base.publisher import SerializerPublisherTestcase
 from tests.asyncapi.base.v3_0_0.publisher import PublisherTestcase
 
 
 @pytest.mark.confluent()
-class TestArguments(PublisherTestcase):
+class TestArguments(SerializerPublisherTestcase, PublisherTestcase):
     broker_class = KafkaBroker
 
     def test_publisher_bindings(self) -> None:
