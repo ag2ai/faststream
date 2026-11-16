@@ -169,3 +169,13 @@ async def test_store_offsets_delegates_to_native_consumer() -> None:
     first, second = store_offsets.call_args.kwargs["offsets"]
     assert (first.topic, first.partition, first.offset) == ("topic", 2, 7)
     assert (second.topic, second.partition, second.offset) == ("other", 0, 9)
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_store_offsets_with_no_partitions_does_not_call_native_consumer() -> None:
+    consumer = build_consumer(enable_auto_commit=False)
+
+    await consumer.store_offsets()
+
+    cast("MagicMock", consumer.consumer.store_offsets).assert_not_called()

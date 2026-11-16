@@ -461,6 +461,9 @@ class AsyncConfluentConsumer:
 
     async def store_offsets(self, *topic_partitions: TopicPartition) -> None:
         """Stores the offsets to commit for the specified topic partitions."""
+        if not topic_partitions:
+            return
+
         await run_in_executor(
             self._thread_pool,
             self.consumer.store_offsets,
