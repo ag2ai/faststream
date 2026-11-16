@@ -156,7 +156,16 @@ class AsyncConfluentProducer:
             produce_kwargs["partition"] = kwargs["partition"]
         if kwargs.get("timestamp") is not None:
             produce_kwargs["timestamp"] = kwargs["timestamp"]
-        self.producer.produce(topic, **produce_kwargs)
+        while True:
+            try:
+                self.producer.produce(topic, **produce_kwargs)
+            except BufferError:  # ruff: ignore[try-except-in-loop]
+                # librdkafka's local queue is full (`queue.buffering.max.messages`
+                # or `queue.buffering.max.kbytes`): serve delivery reports to free
+                # space and retry instead of failing the message.
+                await call_or_await(self.producer.poll, 0.1)
+            else:
+                break
 
         if no_confirm:
             return result_future
