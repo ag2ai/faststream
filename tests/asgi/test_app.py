@@ -27,9 +27,42 @@ from faststream.asgi import (
     post,
 )
 from faststream.asgi.params import Header, Query
+from faststream.asgi.response import JSONResponse
 from faststream.asgi.types import ASGIApp, Scope
 from faststream.rabbit import RabbitBroker
 from faststream.specification import AsyncAPI
+
+
+class TestAsgiQueryParameters:
+    @pytest.mark.parametrize(
+        ("query", "expected"),
+        (
+            pytest.param(
+                "name=Alice+Smith&name=A%2BB",
+                {"name": ["Alice Smith", "A+B"]},
+                id="ascii",
+            ),
+            pytest.param(
+                "name=%C3%A9&name=%E6%9D%B1%E4%BA%AC",
+                {"name": ["\u00e9", "\u6771\u4eac"]},
+                id="utf8-values",
+            ),
+            pytest.param("%C3%A9=value", {"\u00e9": ["value"]}, id="utf8-key"),
+        ),
+    )
+    def test_percent_encoded_query(
+        self, query: str, expected: dict[str, list[str]]
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3344."""
+
+        @get
+        async def handler(request: Request) -> AsgiResponse:
+            return JSONResponse(request.query_params)
+
+        client = TestClient(AsgiFastStream(asgi_routes=[("/test", handler)]))
+        response = client.get(f"/test?{query}")
+        assert response.status_code == 200
+        assert response.json() == expected
 
 
 def test_not_found() -> None:
