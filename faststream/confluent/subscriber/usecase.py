@@ -22,6 +22,8 @@ from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
+from faststream.exceptions import SetupError
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -75,6 +77,22 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.consumer = None
         self.polling_interval = config.polling_interval
+
+    @override
+    def _on_config_changed(self) -> None:
+        ack_first = self.ack_policy is AckPolicy.ACK_FIRST
+        self.__connection_data["enable_auto_commit"] = ack_first
+        self.parser.is_manual = not ack_first
+
+    @override
+    def _validate_configuration(self) -> None:
+        ack_first = self.ack_policy is AckPolicy.ACK_FIRST
+        if isinstance(self, ConcurrentDefaultSubscriber) and not ack_first:
+            msg = "Max workers not work with manual commit mode."
+            raise SetupError(msg)
+        if not self.group_id and not ack_first:
+            msg = "You must use `group_id` with manual commit mode."
+            raise SetupError(msg)
 
     @overload
     def __call__(

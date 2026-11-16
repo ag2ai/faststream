@@ -18,12 +18,14 @@ from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address, AddressSyntax
+from faststream.exceptions import SetupError
 from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
 from faststream.kafka.publisher.fake import KafkaFakePublisher
 from faststream.kafka.schemas import Topic
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
@@ -83,6 +85,28 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._connection_args = config.connection_args
 
         self.consumer = None
+
+    @override
+    def _on_config_changed(self) -> None:
+        ack_first = self.ack_policy is AckPolicy.ACK_FIRST
+        self._connection_args["enable_auto_commit"] = ack_first
+        self.parser.msg_class = KafkaMessage if ack_first else KafkaAckableMessage
+
+    @override
+    def _validate_configuration(self) -> None:
+        ack_first = self.ack_policy is AckPolicy.ACK_FIRST
+        if isinstance(self, ConcurrentDefaultSubscriber) and not ack_first:
+            msg = (
+                "Set the Kafka router acknowledgement policy before registering "
+                "a subscriber with multiple workers."
+            )
+            raise SetupError(msg)
+        if isinstance(self, ConcurrentBetweenPartitionsSubscriber) and ack_first:
+            msg = (
+                "Set the Kafka router acknowledgement policy before registering "
+                "a subscriber with multiple workers."
+            )
+            raise SetupError(msg)
 
     @overload
     def __call__(

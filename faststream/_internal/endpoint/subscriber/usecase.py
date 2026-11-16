@@ -54,7 +54,7 @@ if TYPE_CHECKING:
         Filter,
     )
     from faststream.message import StreamMessage
-    from faststream.middlewares import BaseMiddleware
+    from faststream.middlewares import AckPolicy, BaseMiddleware
     from faststream.response import Response
     from faststream.specification.schema import SubscriberSpec
 
@@ -72,13 +72,12 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     """A class representing an asynchronous handler."""
 
     __slots__ = (
-        "__auto_ack_disabled",
         "_call_decorators",
         "_call_options",
         "_decoder",
         "_no_reply",
         "_parser",
-        "ack_policy",
+        "_subscriber_config",
         "calls",
         "lock",
         "running",
@@ -104,8 +103,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._parser = config.parser
         self._decoder = config.decoder
 
-        self.ack_policy = config.ack_policy
-        self.__auto_ack_disabled = config.auto_ack_disabled
+        self._subscriber_config = config
 
         self._call_options = _CallOptions(
             parser=None,
@@ -118,6 +116,16 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         self.running = False
         self.lock = nullcontext()
+
+    @property
+    def ack_policy(self) -> "AckPolicy":
+        return self._subscriber_config.ack_policy
+
+    def _on_config_changed(self) -> None:
+        """Refresh settings derived from a router's effective configuration."""
+
+    def _validate_configuration(self) -> None:
+        """Validate the final configuration before starting the subscriber."""
 
     @property
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
@@ -137,6 +145,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
+        self._validate_configuration()
         self.lock = MultiLock()
 
         self._build_fastdepends_model()
@@ -452,7 +461,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def __build__middlewares_stack(self) -> tuple["BrokerMiddleware[MsgType]", ...]:
         logger_state = self._outer_config.logger
 
-        if self.__auto_ack_disabled:
+        if self._subscriber_config.auto_ack_disabled:
             broker_middlewares = (
                 CriticalLogMiddleware(logger_state),
                 *self._broker_middlewares,

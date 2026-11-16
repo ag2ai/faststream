@@ -9,6 +9,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
+from faststream.middlewares import AckPolicy
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -34,7 +35,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
     __slots__ = (
-        "__no_ack",
         "_consumer_tag",
         "_queue_obj",
         "channel",
@@ -64,8 +64,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         self.exchange = config.exchange
 
         self.consume_args = config.consume_args or {}
-
-        self.__no_ack = config.ack_first
 
         self._consumer_tag: str | None = None
         self._queue_obj: RobustQueue | None = None
@@ -113,7 +111,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
                 self.consume,  # type: ignore[arg-type]
-                no_ack=self.__no_ack,
+                no_ack=self.ack_policy is AckPolicy.ACK_FIRST,
                 arguments=self.consume_args,
             )
 
@@ -136,7 +134,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     @override
     async def consume(self, msg: "IncomingMessage") -> Any:
-        if not self.running and not self.__no_ack:
+        if not self.running and self.ack_policy is not AckPolicy.ACK_FIRST:
             # A delivery that arrives while `stop` cancels the consumer goes back to
             # the queue right away instead of staying unacknowledged until the channel closes.
             with contextlib.suppress(ChannelInvalidStateError):

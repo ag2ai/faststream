@@ -112,6 +112,8 @@ class Registrator(Generic[MsgType, BrokerConfigType_co]):
             router.config.add_config(options_config)
 
         router.config.add_config(self.config)
+        for subscriber in router.subscribers:
+            subscriber._on_config_changed()
         self.routers.append(router)
 
     @property
