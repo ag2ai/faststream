@@ -273,7 +273,7 @@ def _resolve_msg_payloads(
     Payloads and messages are editable dicts to store schemas for reference in AsyncAPI.
     """
     one_of_list: list[Reference] = []
-    m.payload = move_schema_refs(m.payload, root_name=f"{channel_name}Payload")
+    m.payload = move_schema_refs(m.payload, root_name=f"{channel_name}:{m.title}:Payload")
 
     payloads.update(pop_schema_definitions(m.payload))
 

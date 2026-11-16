@@ -21,6 +21,13 @@ class Opaque:
     pass
 
 
+def resolve_local_ref(document: dict[str, Any], reference: str) -> dict[str, Any]:
+    target = document
+    for token in unquote(reference[2:]).split("/"):
+        target = target[token.replace("~1", "/").replace("~0", "~")]
+    return target
+
+
 def assert_local_refs_resolve(document: dict[str, Any]) -> None:
     def visit(value: Any) -> None:
         if isinstance(value, dict):
@@ -29,9 +36,7 @@ def assert_local_refs_resolve(document: dict[str, Any]) -> None:
             if isinstance(reference := value.get("$ref"), str) and reference.startswith(
                 "#/"
             ):
-                target = document
-                for token in unquote(reference[2:]).split("/"):
-                    target = target[token.replace("~1", "/").replace("~0", "~")]
+                resolve_local_ref(document, reference)
             for key, child in value.items():
                 if key not in {"default", "examples", "enum", "const"}:
                     visit(child)

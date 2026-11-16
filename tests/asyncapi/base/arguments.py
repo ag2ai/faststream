@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from typing import Annotated, Any, Literal
 
@@ -20,6 +20,7 @@ from .serialization import (
     Tree,
     assert_local_refs_resolve,
     assert_msgspec_payload,
+    resolve_local_ref,
 )
 
 
@@ -55,9 +56,54 @@ class SerializerArgumentsTestcase(SpecificationFactory):
         schema = self.get_spec(broker).to_jsonable()["components"]["schemas"][
             "Handle:Message:Payload"
         ]
-        assert schema["properties"]["size"] == {"type": "integer", "minimum": 1}
-        assert schema["properties"]["label"] == {"enum": ["a", "b"], "default": "a"}
-        assert schema["required"] == ["size"]
+        assert schema == IsPartialDict({
+            "properties": {
+                "size": {"type": "integer", "minimum": 1},
+                "label": {"enum": ["a", "b"], "default": "a"},
+            },
+            "required": ["size"],
+        })
+
+    @pytest.mark.parametrize(
+        ("factory", "metadata"),
+        (
+            pytest.param(
+                PydanticSerializer,
+                lambda uri: Field(json_schema_extra={"$id": uri}),
+                id="pydantic",
+            ),
+            pytest.param(
+                MsgSpecSerializer,
+                lambda uri: msgspec.Meta(extra_json_schema={"$id": uri}),
+                id="msgspec",
+            ),
+        ),
+    )
+    def test_payload_resources_remain_separate(
+        self, factory: type[SerializerProto], metadata: Callable[[str], Any]
+    ) -> None:
+        broker = self.broker_class(serializer=factory())
+
+        @broker.subscriber("first")
+        async def first(
+            value: Annotated[int, metadata("https://example.test/A")],
+        ) -> None: ...
+
+        @broker.subscriber("second")
+        async def second(
+            value: Annotated[str, metadata("https://example.test/B")],
+        ) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        schemas = document["components"]["schemas"]
+        assert [
+            resolve_local_ref(document, schemas[f"{name}:Message:Payload"]["$ref"])
+            for name in ("First", "Second")
+        ] == [
+            IsPartialDict({"$id": "https://example.test/A", "type": "integer"}),
+            IsPartialDict({"$id": "https://example.test/B", "type": "string"}),
+        ]
+        assert_local_refs_resolve(document)
 
     def test_selected_factory_configuration(self) -> None:
         broker = self.broker_class(
@@ -201,10 +247,9 @@ class SerializerArgumentsTestcase(SpecificationFactory):
 
         document = self.get_spec(broker).to_jsonable()
         schemas = document["components"]["schemas"]
-        assert schemas["__fast_depends_input"]["properties"]["value"] == resource
         assert (
-            schemas["Handle:Message:Payload"]["$ref"]
-            == "#/components/schemas/__fast_depends_input/properties/value"
+            resolve_local_ref(document, schemas["Handle:Message:Payload"]["$ref"])
+            == resource
         )
         assert_local_refs_resolve(document)
 
@@ -253,11 +298,10 @@ class SerializerArgumentsTestcase(SpecificationFactory):
 
         document = self.get_spec(broker).to_jsonable()
         schemas = document["components"]["schemas"]
-        assert schemas["__fast_depends_input"] == native
-        assert (
-            schemas["Handle:Message:Payload"]["$ref"]
-            == "#/components/schemas/__fast_depends_input/properties/value"
-        )
+        assert resolve_local_ref(document, schemas["Handle:Message:Payload"]["$ref"]) == {
+            "$ref": "#/$defs/Node"
+        }
+        assert native in schemas.values()
         assert_local_refs_resolve(document)
 
     def test_dependency_override_changes_body_schema(self) -> None:

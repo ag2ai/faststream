@@ -78,7 +78,14 @@ def prepare_payload(schema: dict[str, Any], *, prefix: str) -> dict[str, Any]:
     reference = body.get("$ref")
     if isinstance(reference, str) and reference.startswith("#/"):
         target = _lookup_reference(schema, reference)
-        if isinstance(target, dict) and target is not schema and "$id" not in target:
+        path = unquote(reference[2:]).split("/")
+        retained = len(path) > 2 and path[0] in _DEFINITIONS
+        if (
+            not retained
+            and isinstance(target, dict)
+            and target is not schema
+            and "$id" not in target
+        ):
             siblings = {k: v for k, v in body.items() if k != "$ref"}
             annotations = {
                 "title",

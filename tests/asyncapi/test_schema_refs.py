@@ -4,9 +4,11 @@ from importlib import import_module
 from typing import Any, TypeAlias
 
 import pytest
+from dirty_equals import IsPartialDict
+from fast_depends.library.schema_processing import process_schema
 
 from faststream.specification.asyncapi.message import prepare_payload
-from tests.asyncapi.base.serialization import assert_local_refs_resolve
+from tests.asyncapi.base.serialization import assert_local_refs_resolve, resolve_local_ref
 
 ComponentGenerator: TypeAlias = Callable[[dict[str, Any]], dict[str, Any]]
 
@@ -42,6 +44,46 @@ def component_payload(request: pytest.FixtureRequest) -> ComponentGenerator:
 
 
 class TestSchemaReferences:
+    def test_overloaded_payloads_keep_separate_definitions(
+        self, component_payload: ComponentGenerator
+    ) -> None:
+        native = {
+            "oneOf": {
+                f"{name}:Payload": prepare_payload(
+                    process_schema(
+                        {
+                            "type": "object",
+                            "additionalProperties": {"type": field_type},
+                            "properties": {
+                                "value": {
+                                    "type": field_type,
+                                    "allOf": [{"$ref": "#/additionalProperties"}],
+                                }
+                            },
+                        },
+                        embed=True,
+                    ),
+                    prefix=name,
+                )
+                for name, field_type in (("First", "integer"), ("Second", "string"))
+            },
+        }
+        document = component_payload(native)
+        schemas = document["components"]["schemas"]
+        selected = [schemas[f"{name}:Payload"] for name in ("First", "Second")]
+        selected = [
+            resolve_local_ref(document, value["$ref"]) if "$ref" in value else value
+            for value in selected
+        ]
+        assert [
+            (
+                value["type"],
+                resolve_local_ref(document, value["allOf"][0]["$ref"])["type"],
+            )
+            for value in selected
+        ] == [("integer", "integer"), ("string", "string")]
+        assert_local_refs_resolve(document)
+
     def test_root_pointer_ref_is_rebased(
         self, component_payload: ComponentGenerator
     ) -> None:
@@ -179,9 +221,13 @@ class TestSchemaReferences:
         original = deepcopy(native)
         document = component_payload(native)
         schema = document["components"]["schemas"]["Payload"]
-        assert schema["properties"]["global"] == {"$ref": "#/components/schemas/Leaf"}
-        assert schema["properties"]["scoped"] == resource
-        assert schema["default"] == {"$ref": "#/$defs/Leaf"}
-        assert schema["examples"] == [{"$ref": "#/$defs/Leaf"}]
+        assert schema == IsPartialDict({
+            "properties": {
+                "global": {"$ref": "#/components/schemas/Leaf"},
+                "scoped": resource,
+            },
+            "default": {"$ref": "#/$defs/Leaf"},
+            "examples": [{"$ref": "#/$defs/Leaf"}],
+        })
         assert native == original
         assert_local_refs_resolve(document)
