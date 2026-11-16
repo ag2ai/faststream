@@ -56,16 +56,16 @@ def extract_per_message_keys_and_bodies(
 
     bodies: list[Any] = []
     keys: list[Any | None] = []
-    has_key: bool = False
+    needs_normalization = False
 
     for item in batch_bodies:
         body, key = _extract_body_and_key(item)
         bodies.append(body)
         keys.append(key)
-        if key is not None:
-            has_key = True
+        if body is not item or key is not None:
+            needs_normalization = True
 
-    if not has_key:
+    if not needs_normalization:
         return (), None
 
     return tuple(keys), tuple(bodies)

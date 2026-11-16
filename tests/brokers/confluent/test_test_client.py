@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
+from faststream.confluent import KafkaPublishMessage
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
@@ -410,3 +411,28 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
             await another_publisher.publish(None, topic="new-key")
             another_publisher.mock.assert_called_once()
+
+    @pytest.mark.parametrize("key", (None, b"default"))
+    @pytest.mark.parametrize("mode", ("wrapped", "mixed", "keyed"))
+    async def test_batch_unkeyed_publish_messages(
+        self, queue: str, key: bytes | None, mode: str
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3357."""
+        broker = self.get_broker(apply_types=True)
+        publisher = broker.publisher(queue, batch=True, key=key)
+        received: list[tuple[str, bytes | None]] = []
+
+        @broker.subscriber(queue)
+        async def handler(body: str, message: Any = Context("message")) -> None:
+            received.append((body, message.raw_message.key()))
+
+        second_key = b"custom" if mode == "keyed" else key
+        second = (
+            "second"
+            if mode == "mixed"
+            else KafkaPublishMessage("second", key=b"custom" if mode == "keyed" else None)
+        )
+        async with self.patch_broker(broker):
+            await publisher.publish(KafkaPublishMessage("first"), second)
+
+        assert received == [("first", key or b""), ("second", second_key or b"")]
