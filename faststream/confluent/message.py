@@ -2,6 +2,7 @@ from typing import Any, Protocol
 
 from confluent_kafka import Message
 
+from faststream.confluent.schemas import TopicPartition
 from faststream.message import AckStatus, StreamMessage
 
 
@@ -17,11 +18,9 @@ class ConsumerProtocol(Protocol):
         offset: int,
     ) -> None: ...
 
-    async def store_offset(
+    async def store_offsets(
         self,
-        topic: str,
-        partition: int,
-        offset: int,
+        *topic_partitions: TopicPartition,
     ) -> None: ...
 
 
@@ -39,11 +38,9 @@ class FakeConsumer:
     ) -> None:
         pass
 
-    async def store_offset(
+    async def store_offsets(
         self,
-        topic: str,
-        partition: int,
-        offset: int,
+        *topic_partitions: TopicPartition,
     ) -> None:
         pass
 
@@ -111,12 +108,12 @@ class KafkaMessage(
                 known = latest.get((topic, partition))
                 if known is None or offset > known:
                     latest[topic, partition] = offset
-            for (topic, partition), offset in latest.items():
-                await self.consumer.store_offset(
-                    topic=topic,
-                    partition=partition,
-                    offset=offset + 1,
-                )
+            topic_partitions = [
+                TopicPartition(topic=topic, partition=partition, offset=offset + 1)
+                for (topic, partition), offset in latest.items()
+            ]
+            if topic_partitions:
+                await self.consumer.store_offsets(*topic_partitions)
             await self.consumer.commit()
         await super().ack()
 

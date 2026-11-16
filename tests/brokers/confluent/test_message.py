@@ -1,12 +1,13 @@
 import pytest
 
 from faststream.confluent.message import KafkaMessage
+from faststream.confluent.schemas import TopicPartition
 
 
 class RecordingConsumer:
     def __init__(self) -> None:
         self.seeks: list[tuple[str, int, int]] = []
-        self.stores: list[tuple[str, int, int]] = []
+        self.store_calls: list[list[tuple[str, int, int]]] = []
         self.commits = 0
         self.events: list[str] = []
 
@@ -18,8 +19,10 @@ class RecordingConsumer:
         self.seeks.append((topic, partition, offset))
         self.events.append("seek")
 
-    async def store_offset(self, topic: str, partition: int, offset: int) -> None:
-        self.stores.append((topic, partition, offset))
+    async def store_offsets(self, *topic_partitions: TopicPartition) -> None:
+        self.store_calls.append([
+            (tp.topic, tp.partition, tp.offset) for tp in topic_partitions
+        ])
         self.events.append("store")
 
 
@@ -54,7 +57,7 @@ async def test_ack_stores_offset_before_commit() -> None:
 
     await message.ack()
 
-    assert consumer.stores == [("topic", 2, 8)]
+    assert consumer.store_calls == [[("topic", 2, 8)]]
     assert consumer.commits == 1
     assert consumer.events == ["store", "commit"]
     assert consumer.seeks == []
@@ -76,14 +79,14 @@ async def test_batch_ack_stores_max_offset_per_partition_then_commits_once() -> 
 
     await message.ack()
 
-    assert sorted(consumer.stores) == [
+    assert len(consumer.store_calls) == 1
+    assert sorted(consumer.store_calls[0]) == [
         ("other", 0, 6),
         ("topic", 0, 3),
         ("topic", 1, 2),
     ]
     assert consumer.commits == 1
-    assert consumer.events.count("store") == 3
-    assert consumer.events[-1] == "commit"
+    assert consumer.events == ["store", "commit"]
 
 
 @pytest.mark.confluent()
@@ -100,7 +103,7 @@ async def test_ack_skips_records_without_topic_partition_or_offset() -> None:
 
     await message.ack()
 
-    assert consumer.stores == [("topic", 0, 5)]
+    assert consumer.store_calls == [[("topic", 0, 5)]]
     assert consumer.commits == 1
     assert consumer.events == ["store", "commit"]
 
@@ -116,6 +119,25 @@ async def test_ack_without_manual_mode_neither_stores_nor_commits() -> None:
     await message.ack()
 
     assert consumer.events == []
+    assert consumer.store_calls == []
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_ack_without_valid_offsets_commits_without_storing() -> None:
+    consumer = RecordingConsumer()
+    batch = (
+        Record(None, 0, 1),
+        Record("topic", None, 2),
+        Record("topic", 0, None),
+    )
+    message = KafkaMessage(raw_message=batch, body=b"", consumer=consumer, is_manual=True)
+
+    await message.ack()
+
+    assert consumer.store_calls == []
+    assert consumer.commits == 1
+    assert consumer.events == ["commit"]
 
 
 @pytest.mark.confluent()
@@ -134,7 +156,7 @@ async def test_batch_nack_rewinds_every_partition_and_never_stores() -> None:
     await message.nack()
 
     assert sorted(consumer.seeks) == [("other", 0, 5), ("topic", 0, 1), ("topic", 1, 0)]
-    assert consumer.stores == []
+    assert consumer.store_calls == []
     assert consumer.commits == 0
     assert "store" not in consumer.events
     assert "commit" not in consumer.events
@@ -151,5 +173,5 @@ async def test_single_message_nack_rewinds_its_partition_and_never_stores() -> N
     await message.nack()
 
     assert consumer.seeks == [("topic", 2, 7)]
-    assert consumer.stores == []
+    assert consumer.store_calls == []
     assert consumer.commits == 0

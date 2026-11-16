@@ -8,6 +8,7 @@ from faststream.confluent import KafkaBroker, KafkaRouter
 from faststream.confluent.configs import KafkaBrokerConfig
 from faststream.confluent.helpers.client import AsyncConfluentConsumer
 from faststream.confluent.helpers.config import ConfluentConfig, ConfluentFastConfig
+from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.config import KafkaSubscriberConfig
 from faststream.exceptions import SetupError
 
@@ -154,15 +155,17 @@ def test_manual_ack_allows_disabled_auto_offset_store_override() -> None:
 
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
-async def test_store_offset_delegates_to_native_consumer() -> None:
+async def test_store_offsets_delegates_to_native_consumer() -> None:
     consumer = build_consumer(enable_auto_commit=False)
 
     store_offsets = cast("MagicMock", consumer.consumer.store_offsets)
 
-    await consumer.store_offset("topic", 2, 7)
+    await consumer.store_offsets(
+        TopicPartition("topic", 2, 7),
+        TopicPartition("other", 0, 9),
+    )
 
     store_offsets.assert_called_once()
-    (offsets,) = store_offsets.call_args.kwargs["offsets"]
-    assert offsets.topic == "topic"
-    assert offsets.partition == 2
-    assert offsets.offset == 7
+    first, second = store_offsets.call_args.kwargs["offsets"]
+    assert (first.topic, first.partition, first.offset) == ("topic", 2, 7)
+    assert (second.topic, second.partition, second.offset) == ("other", 0, 9)

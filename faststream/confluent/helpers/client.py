@@ -459,17 +459,14 @@ class AsyncConfluentConsumer:
             topic_partition.to_confluent(),
         )
 
-    async def store_offset(self, topic: str, partition: int, offset: int) -> None:
-        """Stores the offset to commit for the specified topic and partition."""
-        topic_partition = TopicPartition(
-            topic=topic,
-            partition=partition,
-            offset=offset,
-        )
+    async def store_offsets(self, *topic_partitions: TopicPartition) -> None:
+        """Stores the offsets to commit for the specified topic partitions."""
         await run_in_executor(
             self._thread_pool,
             self.consumer.store_offsets,
-            offsets=[topic_partition.to_confluent()],
+            offsets=[
+                topic_partition.to_confluent() for topic_partition in topic_partitions
+            ],
         )
 
 
