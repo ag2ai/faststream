@@ -7,15 +7,14 @@ from faststream.exceptions import IncorrectState
 from tests.tools import spy_decorator
 
 from .basic import NatsTestcaseConfig
-from .settings import Settings
 
 
 @pytest.mark.connected()
 @pytest.mark.asyncio()
 @pytest.mark.nats()
 class TestObjectStorageCache(NatsTestcaseConfig):
-    async def test_object_storage_cache(self, settings: Settings, queue: str) -> None:
-        broker = self.get_broker(servers=settings.url)
+    async def test_object_storage_cache(self, queue: str) -> None:
+        broker = self.get_broker()
         async with self.patch_broker(broker) as br:
             with patch.object(
                 JetStreamContext,
@@ -27,9 +26,9 @@ class TestObjectStorageCache(NatsTestcaseConfig):
                 assert br.config.os_declarer.buckets[queue]
                 m.mock.assert_called_once()
 
-    async def test_object_storage_reconnect(self, settings: Settings, queue: str) -> None:
+    async def test_object_storage_reconnect(self, queue: str) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3331."""
-        broker = self.get_broker(servers=settings.url)
+        broker = self.get_broker()
         async with self.patch_broker(broker) as br:
             bucket = await br.object_storage(queue)
             await bucket.put("key", b"original")
@@ -42,11 +41,10 @@ class TestObjectStorageCache(NatsTestcaseConfig):
 
     async def test_object_storage_reconnect_without_declaration(
         self,
-        settings: Settings,
         queue: str,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3331."""
-        broker = self.get_broker(servers=settings.url)
+        broker = self.get_broker()
         async with self.patch_broker(broker) as br:
             await br.object_storage(queue)
 
@@ -57,11 +55,10 @@ class TestObjectStorageCache(NatsTestcaseConfig):
 
     async def test_object_storage_access_after_disconnect(
         self,
-        settings: Settings,
         queue: str,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3331."""
-        broker = self.get_broker(servers=settings.url)
+        broker = self.get_broker()
         async with self.patch_broker(broker) as br:
             await br.object_storage(queue)
 
