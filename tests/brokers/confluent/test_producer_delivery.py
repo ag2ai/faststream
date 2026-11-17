@@ -43,7 +43,6 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         message = MagicMock(spec=Message)
         message.error.return_value = None
@@ -51,13 +50,11 @@ class TestProducerDelivery:
         await checkpoint()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         task.cancel()
         await checkpoint()
         acknowledge(None, message)
         await checkpoint()
 
-        # Assert
         with pytest.raises(asyncio.CancelledError):
             await task
         assert errors == []
@@ -67,20 +64,17 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         error = KafkaError(KafkaError._MSG_TIMED_OUT)
         task = asyncio.create_task(producer.send("topic", value=b"payload"))
         await checkpoint()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         task.cancel()
         await checkpoint()
         acknowledge(error, None)
         await checkpoint()
 
-        # Assert
         with pytest.raises(asyncio.CancelledError):
             await task
         assert errors == []
@@ -90,7 +84,6 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         message = MagicMock(spec=Message)
         message.error.return_value = KafkaError(KafkaError._MSG_TIMED_OUT)
@@ -98,13 +91,11 @@ class TestProducerDelivery:
         await checkpoint()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         task.cancel()
         await checkpoint()
         acknowledge(None, message)
         await checkpoint()
 
-        # Assert
         with pytest.raises(asyncio.CancelledError):
             await task
         assert errors == []
@@ -114,7 +105,6 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         message = MagicMock(spec=Message)
         message.error.return_value = None
@@ -122,12 +112,10 @@ class TestProducerDelivery:
         await checkpoint()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         acknowledge(None, message)
         task.cancel()
         await checkpoint()
 
-        # Assert
         with pytest.raises(asyncio.CancelledError):
             await task
         assert errors == []
@@ -137,19 +125,16 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         error = KafkaError(KafkaError._MSG_TIMED_OUT)
         task = asyncio.create_task(producer.send("topic", value=b"payload"))
         await checkpoint()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         acknowledge(error, None)
         task.cancel()
         await checkpoint()
 
-        # Assert
         with pytest.raises(asyncio.CancelledError):
             await task
         assert errors == []
@@ -159,7 +144,6 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         message = MagicMock(spec=Message)
         message.error.return_value = KafkaError(KafkaError._MSG_TIMED_OUT)
@@ -167,12 +151,10 @@ class TestProducerDelivery:
         await checkpoint()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         acknowledge(None, message)
         task.cancel()
         await checkpoint()
 
-        # Assert
         with pytest.raises(asyncio.CancelledError):
             await task
         assert errors == []
@@ -182,7 +164,6 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         error = KafkaError(KafkaError._MSG_TIMED_OUT)
         message = MagicMock(spec=Message)
@@ -193,12 +174,10 @@ class TestProducerDelivery:
         )
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         acknowledge(None, message)
         acknowledge(error, None)
         await checkpoint()
 
-        # Assert
         assert future.result() is message
         assert errors == []
 
@@ -207,7 +186,6 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         error = KafkaError(KafkaError._MSG_TIMED_OUT)
         future = cast(
@@ -216,12 +194,10 @@ class TestProducerDelivery:
         )
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         acknowledge(error, None)
         acknowledge(None, None)
         await checkpoint()
 
-        # Assert
         with pytest.raises(KafkaException) as exc_info:
             future.result()
         assert exc_info.value.args == (error,)
@@ -232,7 +208,6 @@ class TestProducerDelivery:
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
         error = KafkaError(KafkaError._MSG_TIMED_OUT)
         message = MagicMock(spec=Message)
@@ -243,12 +218,10 @@ class TestProducerDelivery:
         )
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
         acknowledge(None, message)
         acknowledge(None, None)
         await checkpoint()
 
-        # Assert
         with pytest.raises(KafkaException) as exc_info:
             future.result()
         assert exc_info.value.args == (error,)
