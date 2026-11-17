@@ -86,6 +86,33 @@ def test_parse_json_with_binary_format() -> None:
     assert parsed_data == data_should_be
 
 
+@pytest.mark.parametrize(
+    "headers",
+    (
+        None,
+        {"city": ""},
+        {"city": "Paris"},
+        {"city": "Zürich"},
+        {"city": "서울"},
+        {"city": "6️⃣7️⃣"},
+    ),
+)
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+async def test_binary_message_headers_encode_parse(
+    headers: dict[str, str] | None,
+) -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/3343."""
+    raw_message = await BinaryMessageFormatV1.encode(
+        message="hello", reply_to=None, headers=headers, correlation_id="id"
+    )
+
+    assert BinaryMessageFormatV1.parse(raw_message) == (
+        b"hello",
+        {"correlation_id": "id", "content-type": "text/plain", **(headers or {})},
+    )
+
+
 @pytest.mark.redis()
 @pytest.mark.connected()
 @pytest.mark.asyncio()
