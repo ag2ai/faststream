@@ -35,6 +35,11 @@ Offset: TypeAlias = bytes
 
 
 class _ListHandlerMixin(LogicSubscriber):
+    __slots__ = (
+        "_list_sub",
+        "_read_lock",
+    )
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -94,12 +99,12 @@ class _ListHandlerMixin(LogicSubscriber):
         raw_message = None
 
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 raw_message := await self._client.lpop(name=self.list_sub.name)
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        if not raw_message:
+        if raw_message is None:
             return None
 
         redis_incoming_msg = DefaultListMessage(
@@ -136,12 +141,12 @@ class _ListHandlerMixin(LogicSubscriber):
 
         while True:
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     raw_message := await self._client.lpop(name=self.list_sub.name)
                 ) is None:
                     await anyio.sleep(sleep_interval)
 
-            if not raw_message:
+            if raw_message is None:
                 continue
 
             redis_incoming_msg = DefaultListMessage(
@@ -163,6 +168,8 @@ class _ListHandlerMixin(LogicSubscriber):
 
 
 class ListSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -194,6 +201,8 @@ class ListSubscriber(_ListHandlerMixin):
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -229,6 +238,8 @@ class ListConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     ListSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

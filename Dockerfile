@@ -1,7 +1,7 @@
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.11
 
 FROM python:$PYTHON_VERSION
-COPY --from=ghcr.io/astral-sh/uv:0.7.13 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.9.30 /uv /uvx /bin/
 
 ENV PYTHONUNBUFFERED=1
 

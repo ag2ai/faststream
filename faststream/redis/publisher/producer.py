@@ -28,6 +28,14 @@ if TYPE_CHECKING:
 class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
     """Shared logic for Redis producers."""
 
+    __slots__ = (
+        "_connection",
+        "_decoder",
+        "_parser",
+        "codec",
+        "serializer",
+    )
+
     _connection: "ConnectionState[Any]"
     _decoder: "ParserComposition"
     _parser: "ParserComposition"
@@ -89,6 +97,8 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
 
 class RedisFastProducer(BaseRedisFastProducer):
     """Producer for a single-node Redis."""
+
+    __slots__ = ()
 
     _connection: "ConnectionState[Redis[bytes]]"
 
@@ -168,17 +178,12 @@ class RedisFastProducer(BaseRedisFastProducer):
             await self.__publish(msg, cmd)
 
             with anyio.fail_after(cmd.timeout) as scope:
-                # skip subscribe message
-                await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-                # get real response
-                response_msg = await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
+                response_msg = None
+                while response_msg is None:
+                    response_msg = await psub.get_message(
+                        ignore_subscribe_messages=True,
+                        timeout=cmd.timeout,  # type: ignore[arg-type]
+                    )
 
             if scope.cancel_called:
                 raise TimeoutError
@@ -193,6 +198,8 @@ class RedisFastProducer(BaseRedisFastProducer):
 
 class RedisClusterFastProducer(BaseRedisFastProducer):
     """Producer that routes channel operations through the sync cluster."""
+
+    __slots__ = ("_cluster_state",)
 
     def __init__(
         self,
@@ -270,15 +277,12 @@ class RedisClusterFastProducer(BaseRedisFastProducer):
                 raise UnreachablePathError
 
             with anyio.fail_after(cmd.timeout) as scope:
-                await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
-
-                response_msg = await psub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=cmd.timeout or 0.0,
-                )
+                response_msg = None
+                while response_msg is None:
+                    response_msg = await psub.get_message(
+                        ignore_subscribe_messages=True,
+                        timeout=cmd.timeout,
+                    )
 
             if scope.cancel_called:
                 raise TimeoutError

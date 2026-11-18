@@ -8,6 +8,8 @@ if TYPE_CHECKING:
 
 
 class ConnectionState(Protocol):
+    __slots__ = ()
+
     @property
     def connection(self) -> "RobustConnection": ...
 

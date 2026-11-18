@@ -3,6 +3,8 @@ from typing import Any, Protocol, runtime_checkable
 
 @runtime_checkable
 class Specification(Protocol):
+    __slots__ = ()
+
     @property
     def title(self) -> str: ...
 

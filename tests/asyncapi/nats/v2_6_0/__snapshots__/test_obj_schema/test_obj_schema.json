@@ -1,0 +1,20 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {}
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "nats",
+      "protocolVersion": "custom",
+      "url": "nats://localhost:4222"
+    }
+  }
+}

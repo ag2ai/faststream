@@ -29,6 +29,14 @@ if TYPE_CHECKING:
 class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
     """Base class for all MQTT subscribers."""
 
+    __slots__ = (
+        "_address",
+        "_qos",
+        "_shared",
+        "_subscription",
+        "last_unsubscribe_result",
+    )
+
     _outer_config: "MQTTBrokerConfig"
 
     def __init__(
@@ -47,6 +55,7 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         self._shared = config.shared
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
+        self.last_unsubscribe_result: zmqtt.UnsubscribeResult | None = None
 
         if config.ack_policy is AckPolicy.NACK_ON_ERROR:
             warnings.warn(
@@ -129,8 +138,9 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
         # also cancel an in-flight UNSUBSCRIBE.
         self.running = False
         if self._subscription is not None:
+            self.last_unsubscribe_result = None
             with suppress(Exception):
-                await self._subscription.stop()
+                self.last_unsubscribe_result = await self._subscription.stop()
             self._subscription = None
 
         await super().stop()
@@ -205,6 +215,8 @@ class MQTTBaseSubscriber(TasksMixin, SubscriberUsecase[zmqtt.Message]):
 class MQTTDefaultSubscriber(MQTTBaseSubscriber):
     """Sequential MQTT subscriber — processes one message at a time."""
 
+    __slots__ = ()
+
     async def _consume_loop(self) -> None:
         assert self._subscription is not None
         async for msg in self._subscription:
@@ -213,6 +225,8 @@ class MQTTDefaultSubscriber(MQTTBaseSubscriber):
 
 class MQTTConcurrentSubscriber(ConcurrentMixin[zmqtt.Message], MQTTBaseSubscriber):
     """Concurrent MQTT subscriber — processes up to max_workers messages in parallel."""
+
+    __slots__ = ()
 
     @override
     async def start(self) -> None:

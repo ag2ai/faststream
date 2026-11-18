@@ -23,6 +23,8 @@ class MultiLock:
     `wait_release` method waits for all locks will be released.
     """
 
+    __slots__ = ("queue",)
+
     def __init__(self) -> None:
         """Initialize a new instance of the class."""
         self.queue: asyncio.Queue[None] = asyncio.Queue()
@@ -53,12 +55,12 @@ class MultiLock:
 
     @property
     def qsize(self) -> int:
-        """Return the size of the queue."""
+        """The size of the queue."""
         return self.queue.qsize()
 
     @property
     def empty(self) -> bool:
-        """Return whether the queue is empty."""
+        """Whether the queue is empty."""
         return self.queue.empty()
 
     async def wait_release(self, timeout: float | None = None) -> None:

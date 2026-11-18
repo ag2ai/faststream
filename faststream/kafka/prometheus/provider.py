@@ -28,6 +28,8 @@ class BaseKafkaMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
 
 
 class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRecord"]):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,
@@ -43,6 +45,8 @@ class KafkaMetricsSettingsProvider(BaseKafkaMetricsSettingsProvider["ConsumerRec
 class BatchKafkaMetricsSettingsProvider(
     BaseKafkaMetricsSettingsProvider[tuple["ConsumerRecord", ...]],
 ):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,

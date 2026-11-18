@@ -2,10 +2,12 @@ from typing_extensions import assert_type
 
 from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream.mqtt import (
+    ConnectionInfo,
     MQTTBroker,
     MQTTRouter,
     QoS,
     TestMQTTBroker,
+    UnsubscribeResult,
     Will,
     WillProperties,
 )
@@ -36,6 +38,11 @@ MQTTBroker(
     on_connection_recovery_failed=on_connection_recovery_failed,
     session_replay_buffer_size=5000,
     session_replay_timeout=60.0,
+    receive_maximum=10,
+    maximum_packet_size=4096,
+    user_properties=[("role", "worker"), ("role", "reader")],
+    request_response_information=True,
+    request_problem_information=False,
 )
 
 
@@ -67,6 +74,11 @@ def check_subscriber_instance_type(broker: MQTTBroker | MQTTRouter) -> None:
 
     sub2 = broker.subscriber("test", max_workers=2)
     assert_type(sub2, MQTTConcurrentSubscriber)
+    assert_type(sub2.last_unsubscribe_result, UnsubscribeResult | None)
+
+
+def check_connection_info(broker: MQTTBroker) -> None:
+    assert_type(broker.connection_info, ConnectionInfo)
 
 
 def check_decorated_handler_type(broker: MQTTBroker | MQTTRouter) -> None:
@@ -78,4 +90,10 @@ def check_decorated_handler_type(broker: MQTTBroker | MQTTRouter) -> None:
     assert_type(handle, HandlerCallWrapper[[], None])
 
 
-FastAPIRouter().include_router(MQTTRouter())
+FastAPIRouter(
+    receive_maximum=10,
+    maximum_packet_size=4096,
+    user_properties=[("role", "worker")],
+    request_response_information=True,
+    request_problem_information=False,
+).include_router(MQTTRouter())

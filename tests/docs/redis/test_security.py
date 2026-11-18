@@ -10,21 +10,18 @@ from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 @contextmanager
 def patch_asyncio_open_connection() -> Generator[AsyncMock, None, None]:
-    try:
-        reader = MagicMock()
-        reader.readline = AsyncMock(return_value=b":1\r\n")
-        reader.read = AsyncMock(return_value=b"")
+    reader = MagicMock()
+    reader.readline = AsyncMock(return_value=b":1\r\n")
+    reader.read = AsyncMock(return_value=b"")
 
-        writer = MagicMock()
-        writer.drain = AsyncMock()
-        writer.wait_closed = AsyncMock()
+    writer = MagicMock()
+    writer.drain = AsyncMock()
+    writer.wait_closed = AsyncMock()
 
-        open_connection = AsyncMock(return_value=(reader, writer))
+    open_connection = AsyncMock(return_value=(reader, writer))
 
-        with patch("asyncio.open_connection", new=open_connection):
-            yield open_connection
-    finally:
-        pass
+    with patch("asyncio.open_connection", new=open_connection):
+        yield open_connection
 
 
 @pytest.mark.connected()

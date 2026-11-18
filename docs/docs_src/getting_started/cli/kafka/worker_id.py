@@ -11,5 +11,8 @@ async def handler(msg: dict) -> None:
 
 
 @app.on_startup
-async def startup(worker_id: int) -> None:
-    print(f"Worker {worker_id} started")
+async def startup(worker_id: int | None) -> None:
+    if worker_id is None:
+        print("Started in a single process")
+    else:
+        print(f"Worker {worker_id} started")

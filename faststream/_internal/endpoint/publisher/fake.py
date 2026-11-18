@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 class FakePublisher(PublisherProto):
     """Publisher Interface implementation to use as RPC or REPLY TO answer publisher."""
 
+    __slots__ = ("_producer",)
+
     def __init__(
         self,
         *,

@@ -39,7 +39,11 @@ if TYPE_CHECKING:
 
 
 class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
-    """Includable to NatsBroker router."""
+    """Includable to NatsBroker router.
+
+    Unslotted on purpose: `NatsRouter` mixes this with `BrokerRouter`, a sibling under
+    `Registrator`, and the stream builder this one adds makes the two lay-outs conflict.
+    """
 
     def __init__(self, **kwargs: Any) -> None:
         self._stream_builder = StreamBuilder()

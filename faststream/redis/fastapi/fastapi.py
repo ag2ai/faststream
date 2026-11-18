@@ -390,7 +390,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        channel: str | PubSub = ...,
+        channel: str | PubSub,
         *,
         list: None = None,
         stream: None = None,
@@ -418,7 +418,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @overload
     def subscriber(
         self,
-        channel: str | PubSub = ...,
+        channel: str | PubSub,
         *,
         list: None = None,
         stream: None = None,
@@ -440,7 +440,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: int = ...,
+        max_workers: int,
     ) -> "ChannelConcurrentSubscriber": ...
 
     @overload
@@ -448,7 +448,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         *,
-        list: str | ListSub[Literal[False]] = ...,
+        list: str | ListSub[Literal[False]],
         stream: None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
@@ -476,7 +476,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         *,
-        list: ListSub[Literal[True]] = ...,
+        list: ListSub[Literal[True]],
         stream: None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
@@ -504,7 +504,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         *,
-        list: str | ListSub = ...,
+        list: str | ListSub,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
@@ -532,7 +532,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         self,
         channel: None = None,
         *,
-        list: str | ListSub = ...,
+        list: str | ListSub,
         stream: None = None,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
@@ -552,7 +552,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: int = ...,
+        max_workers: int,
     ) -> "ListConcurrentSubscriber": ...
 
     @overload
@@ -561,7 +561,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str | StreamSub[Literal[False]] = ...,
+        stream: str | StreamSub[Literal[False]],
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -589,7 +589,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         channel: None = None,
         *,
         list: None = None,
-        stream: StreamSub[Literal[True]] = ...,
+        stream: StreamSub[Literal[True]],
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -617,7 +617,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str | StreamSub = ...,
+        stream: str | StreamSub,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -645,7 +645,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         channel: None = None,
         *,
         list: None = None,
-        stream: str | StreamSub = ...,
+        stream: str | StreamSub,
         # broker arguments
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
@@ -664,7 +664,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: int = ...,
+        max_workers: int,
     ) -> "StreamConcurrentSubscriber": ...
 
     @override
@@ -720,12 +720,13 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             ),
         )
 
-    @overload
+    @overload  # type: ignore[override]
     def publisher(
         self,
         channel: None = None,
+        *,
         list: None = None,
-        stream: str | StreamSub = ...,
+        stream: str | StreamSub,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
         # AsyncAPI information
@@ -739,7 +740,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     def publisher(
         self,
         channel: None = None,
-        list: str | ListSub[Literal[False]] = ...,
+        *,
+        list: str | ListSub[Literal[False]],
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
@@ -754,7 +756,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     def publisher(
         self,
         channel: None = None,
-        list: ListSub[Literal[True]] = ...,
+        *,
+        list: ListSub[Literal[True]],
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
@@ -769,7 +772,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     def publisher(
         self,
         channel: None = None,
-        list: str | ListSub = ...,
+        *,
+        list: str | ListSub,
         stream: None = None,
         headers: dict[str, Any] | None = None,
         reply_to: str = "",
@@ -783,7 +787,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
     @overload
     def publisher(
         self,
-        channel: str | PubSub = ...,
+        channel: str | PubSub,
         list: None = None,
         stream: None = None,
         headers: dict[str, Any] | None = None,

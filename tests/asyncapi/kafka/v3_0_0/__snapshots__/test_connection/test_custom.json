@@ -1,0 +1,28 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {}
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "operations": {},
+  "servers": {
+    "Server1": {
+      "host": "kafka:9094",
+      "pathname": "",
+      "protocol": "kafka",
+      "protocolVersion": "auto"
+    },
+    "Server2": {
+      "host": "kafka:9095",
+      "pathname": "",
+      "protocol": "kafka",
+      "protocolVersion": "auto"
+    }
+  }
+}

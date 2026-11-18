@@ -391,38 +391,20 @@ def _is_handler_matches(
 
 def apply_pattern(pattern: str, current: str) -> bool:
     """Apply a pattern to a routing key."""
-    pattern_queue = iter(pattern.split("."))
-    current_queue = iter(current.split("."))
+    words = current.split(".") if current else []
+    pattern_words = pattern.split(".") if pattern else []
 
-    pattern_symb = next(pattern_queue, None)
-    while pattern_symb:
-        if (next_symb := next(current_queue, None)) is None:
-            return False
-
-        if pattern_symb == "#":
-            next_pattern = next(pattern_queue, None)
-
-            if next_pattern is None:
-                return True
-
-            if (next_symb := next(current_queue, None)) is None:
-                return False
-
-            while next_pattern == "*":
-                next_pattern = next(pattern_queue, None)
-                if (next_symb := next(current_queue, None)) is None:
-                    return False
-
-            while next_symb != next_pattern:
-                if (next_symb := next(current_queue, None)) is None:
-                    return False
-
-            pattern_symb = next(pattern_queue, None)
-
-        elif pattern_symb in {"*", next_symb}:
-            pattern_symb = next(pattern_queue, None)
+    # matched[i] - the pattern words seen so far match the first i routing key words
+    matched = [True] + [False] * len(words)
+    for pattern_word in pattern_words:
+        if pattern_word == "#":
+            # `#` takes zero or more words, so it keeps every prefix matched before it
+            for i in range(1, len(matched)):
+                matched[i] = matched[i] or matched[i - 1]
 
         else:
-            return False
+            for i in range(len(words), 0, -1):
+                matched[i] = matched[i - 1] and pattern_word in {"*", words[i - 1]}
+            matched[0] = False
 
-    return next(current_queue, None) is None
+    return matched[-1]

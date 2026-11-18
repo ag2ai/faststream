@@ -10,6 +10,10 @@ search:
 
 # Development
 
+Before contributing, read the [AI Policy](ai-policy.md){.internal-link}.
+It covers AI assistance and automated contribution farms. Contributors without write access may have
+one open PR, including drafts, until their first PR is merged into FastStream.
+
 After cloning the project, you'll need to set up the development environment. Here are the guidelines on how to do this.
 
 ## Install Justfile Utility
@@ -38,7 +42,7 @@ Build faststream image and install all dependencies:
 just init
 ```
 
-By default, this builds Python 3.10. If you need another version, pass it as an argument to the just command:
+By default, this builds Python 3.11. If you need another version, pass it as an argument to the just command:
 
 ```bash
 just init 3.11.5
@@ -200,9 +204,6 @@ For detailed instructions on building and serving the documentation, please refe
 
 ## Opening a pull request
 
-* **One open pull request at a time.** If you are not a maintainer, please land the one you have before
-  opening the next. Review is the bottleneck in this project, and a queue from a single author pushes back
-  everyone else's work.
 * **One pull request, one change.** Unrelated fixes — a typo you spotted, a lint failure in another module,
   a dependency bump — belong in their own pull request. They are welcome; they just do not travel with a
   feature. An unrelated change makes the diff harder to review and ties a trivial fix to a long discussion.

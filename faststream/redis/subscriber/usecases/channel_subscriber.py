@@ -34,6 +34,8 @@ Offset: TypeAlias = bytes
 
 
 class ChannelSubscriber(LogicSubscriber):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -100,7 +102,7 @@ class ChannelSubscriber(LogicSubscriber):
         raw_message: PubSubMessage | None = None
 
         with anyio.move_on_after(timeout):
-            while (raw_message := await self._get_message(self.subscription)) is None:  # noqa: ASYNC110
+            while (raw_message := await self._get_message(self.subscription)) is None:  # ruff: ignore[async-busy-wait]
                 await anyio.sleep(sleep_interval)
 
         context = self._outer_config.context
@@ -133,7 +135,7 @@ class ChannelSubscriber(LogicSubscriber):
 
         while True:
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     raw_message := await self._get_message(self.subscription)
                 ) is None:
                     await anyio.sleep(sleep_interval)
@@ -176,6 +178,8 @@ class ChannelConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     ChannelSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

@@ -43,6 +43,8 @@ SendableTable: TypeAlias = dict[str, "BaseSendableMessage"]
 class StandardDataclass(Protocol):
     """Protocol to check type is dataclass."""
 
+    __slots__ = ()
+
     __dataclass_fields__: ClassVar[dict[str, Any]]
 
 
@@ -87,6 +89,8 @@ Lifespan: TypeAlias = Callable[..., AbstractAsyncContextManager[None]]
 
 
 class LoggerProto(Protocol):
+    __slots__ = ()
+
     def log(
         self,
         level: int,

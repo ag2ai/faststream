@@ -30,6 +30,8 @@ class BaseConfluentMetricsSettingsProvider(MetricsSettingsProvider[MsgType]):
 
 
 class ConfluentMetricsSettingsProvider(BaseConfluentMetricsSettingsProvider["Message"]):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,
@@ -45,6 +47,8 @@ class ConfluentMetricsSettingsProvider(BaseConfluentMetricsSettingsProvider["Mes
 class BatchConfluentMetricsSettingsProvider(
     BaseConfluentMetricsSettingsProvider[tuple["Message", ...]],
 ):
+    __slots__ = ()
+
     @override
     def get_consume_attrs_from_message(
         self,

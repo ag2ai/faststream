@@ -37,7 +37,7 @@ def test_int_default() -> None:
 def test_int_wrong_value() -> None:
     value: Any = []
 
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
         cast_int(value)
 
 
@@ -54,5 +54,5 @@ def test_cast_default_default() -> None:
 def test_cast_default_wrong_value() -> None:
     value: Any = []
 
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
         cast_default(value)

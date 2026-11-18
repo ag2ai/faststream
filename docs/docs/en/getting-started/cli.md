@@ -73,6 +73,18 @@ Worker 2 started
 ```
 { data-search-exclude }
 
+Without `--workers`, the application runs in a single process, and `#!python worker_id` is `#!python None`:
+
+```shell
+faststream run main:app
+```
+
+```{ .console .no-copy }
+2025-08-20 17:35:03,932 INFO     - FastStream app starting...
+Started in a single process
+```
+{ data-search-exclude }
+
 
 ### ASGI Support
 

@@ -60,10 +60,7 @@ class AsgiRequest:
     def query_params(self) -> dict[str, list[str]]:
         if self._query_params is None:
             query_string = self._scope.get("query_string", b"")
-            self._query_params = {
-                key.decode("latin-1"): [v.decode("latin-1") for v in value]
-                for key, value in parse_qs(query_string).items()
-            }
+            self._query_params = parse_qs(query_string.decode("latin-1"))
         return self._query_params
 
     @property

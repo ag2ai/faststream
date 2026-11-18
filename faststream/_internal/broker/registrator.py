@@ -3,7 +3,11 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Generic
 from weakref import WeakSet
 
-from faststream._internal.configs import BrokerConfig, BrokerConfigType, ConfigComposition
+from faststream._internal.configs import (
+    BrokerConfig,
+    BrokerConfigType_co,
+    ConfigComposition,
+)
 from faststream._internal.types import BrokerMiddleware, MsgType
 
 if TYPE_CHECKING:
@@ -13,7 +17,7 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber import SubscriberUsecase
 
 
-class Registrator(Generic[MsgType, BrokerConfigType]):
+class Registrator(Generic[MsgType, BrokerConfigType_co]):
     """Basic class for brokers and routers.
 
     Contains subscribers & publishers registration logic only.
@@ -22,13 +26,13 @@ class Registrator(Generic[MsgType, BrokerConfigType]):
     def __init__(
         self,
         *,
-        config: BrokerConfigType,
+        config: BrokerConfigType_co,
         routers: Iterable["Registrator[MsgType]"],
     ) -> None:
         self._parser = config.broker_parser
         self._decoder = config.broker_decoder
 
-        self.config: ConfigComposition[BrokerConfigType] = ConfigComposition(config)
+        self.config: ConfigComposition[BrokerConfigType_co] = ConfigComposition(config)
 
         self._subscribers: WeakSet[SubscriberUsecase[MsgType]] = WeakSet()
         self._publishers: WeakSet[PublisherUsecase] = WeakSet()

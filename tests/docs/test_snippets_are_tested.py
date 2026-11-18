@@ -14,36 +14,14 @@ def test_every_snippet_is_imported_by_a_test() -> None:
     assert _untested_snippets() == NOT_TESTED_YET
 
 
-BROKERS = ("confluent", "kafka", "mqtt", "nats", "rabbit", "redis")
-
 NOT_TESTED_YET = {
-    "confluent/security/custom_config.py",
-    "getting_started/asyncapi/serve.py",
-    "getting_started/multiple_brokers/add_broker.py",
-    "index/dependencies_annotated.py",
+    # `Bot("")` needs a real Telegram token, and the module polls at import time
     "integrations/no_http_frameworks_integrations/aiogram.py",
-    "kafka/security/sasl_oauthbearer.py",
-    *(
-        "getting_started/" + snippet.format(b=broker)
-        for broker in BROKERS
-        for snippet in (
-            "cli/{b}/extra_options.py",
-            "cli/{b}/worker_id.py",
-            "manual_run/{b}_base_run.py",
-            "opentelemetry/{b}_telemetry.py",
-            "prometheus/{b}.py",
-            "prometheus/{b}_asgi.py",
-            "subscription/{b}/dynamic.py",
-            "subscription/{b}/dynamic_iter.py",
-            "subscription/{b}/msgspec_fields.py",
-            "subscription/{b}/msgspec_struct.py",
-        )
-    ),
-    *(
-        f"getting_started/lifespan/{broker}/basic.py"
-        for broker in BROKERS
-        if broker != "mqtt"
-    ),
+    # a group-less Confluent consumer joins one shared default group, behind the
+    # broker's rebalance delay: `dynamic.py` gives up before it lands, and any
+    # other test in that group can hold the partition `dynamic_iter.py` waits on
+    "getting_started/subscription/confluent/dynamic.py",
+    "getting_started/subscription/confluent/dynamic_iter.py",
 }
 
 

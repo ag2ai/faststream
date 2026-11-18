@@ -11,6 +11,8 @@ from .config import RedisPublisherSpecificationConfig
 class RedisPublisherSpecification(
     PublisherSpecification[RedisBrokerConfig, RedisPublisherSpecificationConfig],
 ):
+    __slots__ = ()
+
     def get_schema(self) -> dict[str, PublisherSpec]:
         payloads = self.get_payloads()
 
@@ -41,6 +43,8 @@ class RedisPublisherSpecification(
 
 
 class ChannelPublisherSpecification(RedisPublisherSpecification):
+    __slots__ = ("channel",)
+
     def __init__(
         self,
         _outer_config: RedisBrokerConfig,
@@ -72,6 +76,8 @@ class ChannelPublisherSpecification(RedisPublisherSpecification):
 
 
 class ListPublisherSpecification(RedisPublisherSpecification):
+    __slots__ = ("list_sub",)
+
     def __init__(
         self,
         _outer_config: RedisBrokerConfig,
@@ -101,6 +107,8 @@ class ListPublisherSpecification(RedisPublisherSpecification):
 
 
 class StreamPublisherSpecification(RedisPublisherSpecification):
+    __slots__ = ("stream_sub",)
+
     def __init__(
         self,
         _outer_config: RedisBrokerConfig,

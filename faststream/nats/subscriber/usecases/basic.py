@@ -28,7 +28,12 @@ if TYPE_CHECKING:
 
 
 class LogicSubscriber(SubscriberUsecase[MsgType]):
-    """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream)."""
+    """Basic class for all NATS Subscriber types (KeyValue, ObjectStorage, Core & JetStream).
+
+    Unslotted on purpose: `ConcurrentCoreSubscriber` mixes `ConcurrentMixin` into this,
+    and `TasksMixin` under it already extends `SubscriberUsecase`'s lay-out. NATS is the
+    one broker whose subscribers do not inherit `TasksMixin` in a straight line.
+    """
 
     subscription: Unsubscriptable | None
     _fetch_sub: Unsubscriptable | None
@@ -119,6 +124,8 @@ class LogicSubscriber(SubscriberUsecase[MsgType]):
 
 class DefaultSubscriber(LogicSubscriber[MsgType]):
     """Basic class for Core & JetStream Subscribers."""
+
+    __slots__ = ()
 
     def _make_response_publisher(
         self,

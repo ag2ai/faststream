@@ -63,7 +63,23 @@ Global pytest timeout is 30s per test; the suite runs parallel — keep tests in
 - Slow test → `@pytest.mark.slow()` (also excluded by default).
 - Async test → `@pytest.mark.asyncio()`.
 
-Marks pick the CI job, so a wrong one drops a test silently — `just misplaced-marks` (a CI step too) reads the collected tests and names what it finds. A test imported from `docs_src` or `examples` takes its mark through `pytestmark` in the importing module; an in-memory class that inherits a test which does open a connection marks that test, in the base testcase if it is inherited.
+Marks pick the CI job, so a wrong one drops a test silently. `just misplaced-marks` (a CI step too) fails on the three shapes that did it before:
+
+- a test under a `<broker>/` directory anywhere in `tests/` without the `<broker>` mark (`redis_cluster` under `redis/cluster/`). A test imported from `docs_src` or `examples` is marked through `pytestmark` in the importing module.
+- a `connected` test whose module is built on one broker package, without that broker's mark. An unmarked test still runs in `test-basic`; a `connected` one runs only in its broker's job, so there it never runs at all.
+- `connected` on a whole `*MemoryTestcaseConfig` class (or its module). When an in-memory class inherits a test that does open a connection, mark that test — in the base testcase if it is inherited.
+
+## Name parametrized cases
+
+Write every case in `@pytest.mark.parametrize` as `pytest.param(..., id="...")`,
+including single-argument cases. Give each case an explicit, descriptive `id`
+naming the scenario so failures are identifiable in pytest output.
+
+## Group tests by behavior
+
+Group related tests into `Test...` classes by logical behavior, including utility
+tests. Name each class for the behavior it covers and its methods for individual
+expected outcomes.
 
 ## Shared base testcases
 
@@ -212,7 +228,7 @@ A white-box test survives only when the state it guards is **reachable**. When a
 
 ## What a change must cover
 
-- **An `assert` inside a handler is swallowed** — the broker catches the exception and the test passes. Assert on a `mock` from outside the handler instead (#3010, #3016, #3129).
+- For a background consumer, assert on the handler mock from the test after delivery. An assertion raised in the consumer task can leave the test green (#3010, #3016, #3129). With an in-memory broker that propagates handler errors through `await broker.publish(...)`, the test can assert on that exception directly.
 - Exercise the feature through the **public API**, end to end, not by calling internals directly (#2827).
 - A promise made in the docs is verified against a **real broker**, not against the client kwargs the code happens to pass (#3129).
 - A Redis feature is covered on **Cluster** as well, not only on the standalone broker (#3049).
@@ -230,7 +246,7 @@ A white-box test survives only when the state it guards is **reachable**. When a
 Before believing a `connected` failure, rule out the container:
 
 - A just-restarted Kafka fails nearly everything for a minute or two, and a long-running one runs out of Java heap; recreate the compose brokers with `down -v`.
-- `tests/brokers/kafka/settings.py` hardcodes `localhost:9092`, so `just test-all` cannot reach Kafka from inside the dev container — run Kafka `connected` files with direct pytest on the host.
+- Kafka tests connect to `localhost:9092`. The dev container uses host networking. On Docker Desktop, enable host networking or run the connected Kafka tests on the host.
 - A Kafka test that publishes right after `start()` reads from `earliest` (`get_subscriber_params` sets it): `latest` is resolved asynchronously and skips a message published first (#3187).
 
 An unraisable `ResourceWarning` lands on whichever test runs at GC time. To pin it to the test that leaked, load a `-p` plugin that calls `gc.collect()` after each `pytest_runtest_call`. `PYTHONTRACEMALLOC` is inherited by the CLI subprocess tests and times ~30 of them out, so exclude `tests/cli` when using it. `filterwarnings = ["error"]` is off by choice: nats-py, starlette and our own FastAPI deprecation would each need a filter (#3186).

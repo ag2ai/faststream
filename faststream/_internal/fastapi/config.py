@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from fastapi import FastAPI
 
 
-@dataclass
+@dataclass(slots=True)
 class FastAPIConfig:
     dependency_overrides_provider: Any | None
     application: Optional["FastAPI"] = None

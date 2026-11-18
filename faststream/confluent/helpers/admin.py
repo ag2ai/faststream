@@ -12,13 +12,15 @@ if TYPE_CHECKING:
     from .config import ConfluentFastConfig
 
 
-@dataclass
+@dataclass(slots=True)
 class CreateResult:
     topic: str
     error: Exception | None
 
 
 class AdminService:
+    __slots__ = ("admin_client",)
+
     def __init__(self) -> None:
         self.admin_client: AdminClient | None = None
 

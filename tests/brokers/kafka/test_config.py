@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream import AckPolicy
@@ -84,3 +86,26 @@ def test_sub_overrides_broker_and_router() -> None:
     broker.include_router(router)
     sub = router.subscriber("test", ack_policy=AckPolicy.ACK)
     assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.kafka()
+@pytest.mark.parametrize(
+    ("aiokafka_v013", "api_version"),
+    (
+        pytest.param(False, "2.0", id="aiokafka<0.13"),
+        pytest.param(True, None, id="aiokafka>=0.13"),
+    ),
+)
+def test_protocol_version_reaches_aiokafka_before_013(
+    monkeypatch: pytest.MonkeyPatch,
+    aiokafka_v013: bool,
+    api_version: str | None,
+) -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/3202."""
+    monkeypatch.setattr("faststream.kafka.broker.broker.AIOKAFKA_V013", aiokafka_v013)
+
+    broker = KafkaBroker(protocol_version="2.0")
+
+    # the builder is a `functools.partial`, typed as a plain callable
+    builder: Any = broker.config.broker_config.builder
+    assert builder.keywords.get("api_version") == api_version

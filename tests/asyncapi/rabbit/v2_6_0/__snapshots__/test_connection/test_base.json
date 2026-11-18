@@ -21,7 +21,7 @@
           "name": "some-tag"
         }
       ],
-      "url": "amqps://guest:guest@localhost:5673/"
+      "url": "amqps://localhost:5673/"
     }
   }
 }

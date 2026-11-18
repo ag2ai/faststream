@@ -41,13 +41,21 @@ if HAS_UVICORN:
                 self.config._run_extra_options["worker_id"] = i
                 extra: dict[str, Any] = {"sockets": self.sockets}
                 if _UVICORN_TAKES_TARGET:
-                    extra["target"] = self.target
+                    extra["target"] = self.target  # type: ignore[attr-defined]
                 process = Process(self.config, **extra)
                 process.start()
                 self.processes.append(process)
 
 
 class ASGIMultiprocess:
+    __slots__ = (
+        "_is_factory",
+        "_log_level",
+        "_run_extra_options",
+        "_target",
+        "_workers",
+    )
+
     def __init__(
         self,
         target: str,

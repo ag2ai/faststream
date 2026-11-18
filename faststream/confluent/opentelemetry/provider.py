@@ -47,6 +47,8 @@ class BaseConfluentTelemetrySettingsProvider(
 class ConfluentTelemetrySettingsProvider(
     BaseConfluentTelemetrySettingsProvider["Message"],
 ):
+    __slots__ = ()
+
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[Message]",
@@ -77,6 +79,8 @@ class ConfluentTelemetrySettingsProvider(
 class BatchConfluentTelemetrySettingsProvider(
     BaseConfluentTelemetrySettingsProvider[tuple["Message", ...]],
 ):
+    __slots__ = ()
+
     def get_consume_attrs_from_message(
         self,
         msg: "StreamMessage[tuple[Message, ...]]",
