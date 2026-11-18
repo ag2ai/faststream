@@ -191,6 +191,31 @@ A typing problem that turns out to live in `faststream/` is fixed there, in its 
 
 For a regression test tied to a reported bug, use the test name to describe the expected behaviour and the full issue URL as its docstring. Use the same URL as the reason when that issue requires an `xfail` or `skip` mark. Place a comment explaining a surprising assertion directly above it.
 
+Replace `<number>` with the bug report number. Remove the `xfail` mark once the fix lands.
+
+```python
+import pytest
+
+from faststream.kafka import KafkaBroker, TestKafkaBroker
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+@pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/<number>")
+async def test_publishers_without_default_topics_track_calls_separately() -> None:
+    """https://github.com/ag2ai/faststream/issues/<number>"""
+    broker = KafkaBroker()
+    first = broker.publisher(topic="")
+    second = broker.publisher(topic="")
+
+    async with TestKafkaBroker(broker):
+        await first.publish("one", topic="events")
+        await second.publish("two", topic="events")
+
+        first.mock.assert_called_once_with("one")
+        second.mock.assert_called_once_with("two")
+```
+
 A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
 
 ```bash
