@@ -19,8 +19,9 @@ from faststream.nats.opentelemetry import NatsTelemetryMiddleware
 from faststream.nats.prometheus import NatsPrometheusMiddleware
 from faststream.nats.publisher.usecase import LogicPublisher
 from faststream.nats.schemas import ObjWatch, PullSub
-from faststream.nats.subscriber.usecases import (
+from faststream.nats.subscriber import (
     BatchPullStreamSubscriber,
+    ConcurrentPullStreamSubscriber,
     CoreSubscriber,
     KeyValueWatchSubscriber,
     ObjStoreWatchSubscriber,
@@ -480,7 +481,12 @@ def check_subscriber_instance_type(
     assert_type(sub3_unknown, BatchPullStreamSubscriber | PullStreamSubscriber)
 
     sub4 = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=2)
-    assert_type(sub4, PullStreamSubscriber)
+    assert_type(sub4, ConcurrentPullStreamSubscriber)
+
+    sub4_plain = broker.subscriber(
+        "test", stream="stream", pull_sub=PullSub(), max_workers=2
+    )
+    assert_type(sub4_plain, ConcurrentPullStreamSubscriber)
 
     sub5 = broker.subscriber("test", stream="stream", pull_sub=True)
     assert_type(sub5, PullStreamSubscriber)

@@ -1,6 +1,7 @@
 from .factory import create_subscriber
 from .usecases import (
     BatchPullStreamSubscriber,
+    ConcurrentPullStreamSubscriber,
     CoreSubscriber,
     KeyValueWatchSubscriber,
     LogicSubscriber,
@@ -11,6 +12,7 @@ from .usecases import (
 
 __all__ = (
     "BatchPullStreamSubscriber",
+    "ConcurrentPullStreamSubscriber",
     "CoreSubscriber",
     "KeyValueWatchSubscriber",
     "LogicSubscriber",
