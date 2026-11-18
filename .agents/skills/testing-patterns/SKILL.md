@@ -1,6 +1,6 @@
 ---
 name: testing-patterns
-description: Choosing which tests to run after a change, or writing tests under tests/ — base testcases, markers, in-memory vs connected brokers.
+description: Use when selecting tests for a change, writing or reviewing FastStream tests, or diagnosing flaky broker tests and resource leaks.
 ---
 
 # FastStream Testing Patterns
@@ -32,11 +32,7 @@ publishing, acks, bindings, reconnects. A change to a specification, a config,
 or a declaration-time check is decided in memory, in seconds. Broker-backed
 runs take minutes and share state between runs.
 
-When a `connected` run does fail, **re-run the failures alone before believing
-them**. The brokers are shared and accumulate topics, queues and consumer
-groups; a failure that passes in isolation is the container, not the code. To
-tell them apart, run the same set against the committed tree (`git stash`) and
-compare counts.
+When a `connected` test fails, rerun the failing case in isolation. If it only fails in a group, rerun that group in the same order on the base revision to check for shared state. For Kafka failures, see [Kafka diagnostics](troubleshooting.md#kafka-connected-tests).
 
 ## Commands
 
@@ -207,7 +203,7 @@ git checkout -- faststream/
 
 The same run grades the tests already there, and it is how a suite shrinks. Two tests red for one reason are one test: keep the one whose declaration carries more (an escaped brace *beside* a Path parameter over an escaped brace alone), delete the other, and check what a broker already gets from `test_router.py` or `test_path.py` before keeping a third.
 
-A white-box test survives only when the state it guards is **reachable**. When a reviewer calls an internal test redundant, settle it by mutation: break the code, run every suite against each break, keep the tests that go red where the others stay green. Then show the guarded state through the public path — a state no call site can produce is not worth its guard, so drop the test and take the simpler implementation.
+When reviewing a potentially redundant white-box test, identify the public call that reaches the guarded state. Introduce one mutation that breaks the behaviour and run the white-box test alongside the public-path tests that could replace it. Keep the white-box test if the state is reachable and only that test fails on the mutation. Restore the implementation and verify the selected tests pass.
 
 ## In-memory vs real broker
 
@@ -232,7 +228,6 @@ A white-box test survives only when the state it guards is **reachable**. When a
 - A Redis feature is covered on **Cluster** as well, not only on the standalone broker.
 - Behaviour gated by a broker/driver version carries the gate on **every** test it affects, with the marker declared in `tests/marks.py`.
 - A drive-by fix shipped inside a feature PR gets its own regression test — otherwise it silently reverts later.
-- **A fix comes with a red test.** The test must fail on the code before the fix; a test written after the fact only proves the current behaviour.
 - **When a replacement flag reverses the meaning of the old flag, test both values through each affected call path.** For example, `passive=True` corresponds to `declare=False`.
 - A flaky test is fixed by its cause, never by a retry, a sleep or a wider timeout — see **Flakes and leaks**.
 - Base testcases take their subscriber arguments from `self.get_subscriber_params(...)` — a hard-coded signature passes on the base broker and fails on Confluent.
@@ -241,13 +236,7 @@ A white-box test survives only when the state it guards is **reachable**. When a
 
 **De-flaking removes the race and keeps the path.** Cut the nondeterminism around the behaviour — who triggers it, when, what races what — and keep the production path the test exercised. For a shutdown handler, send a real `SIGINT` from the test once the workers are ready. Setting `should_exit` directly bypasses the handler. Verify that the test fails when the handler ignores the signal.
 
-Before believing a `connected` failure, rule out the container:
-
-- A just-restarted Kafka fails nearly everything for a minute or two, and a long-running one runs out of Java heap; recreate the compose brokers with `down -v`.
-- Kafka tests connect to `localhost:9092`. The dev container uses host networking. On Docker Desktop, enable host networking or run the connected Kafka tests on the host.
-- A Kafka test that publishes right after `start()` reads from `earliest` (`get_subscriber_params` sets it): `latest` is resolved asynchronously and skips a message published first.
-
-An unraisable `ResourceWarning` lands on whichever test runs at GC time. To pin it to the test that leaked, load a `-p` plugin that calls `gc.collect()` after each `pytest_runtest_call`. `PYTHONTRACEMALLOC` is inherited by the CLI subprocess tests and times ~30 of them out, so exclude `tests/cli` when using it. `filterwarnings = ["error"]` is off by choice: nats-py, starlette and our own FastAPI deprecation would each need a filter.
+For an unraisable `ResourceWarning`, see [how to identify the leaking test](troubleshooting.md#resource-warnings).
 
 ## Related skills
 

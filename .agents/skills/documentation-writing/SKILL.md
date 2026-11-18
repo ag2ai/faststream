@@ -1,6 +1,6 @@
 ---
 name: documentation-writing
-description: Use when writing or editing documentation under docs/ — page layout, docs_src snippet embedding, snippet tests, link conventions, and FastStream example-code rules.
+description: Use when writing or reviewing documentation under docs/ for broker behaviour, example code, snippet tests, page layout, or links.
 ---
 
 # FastStream Documentation Writing

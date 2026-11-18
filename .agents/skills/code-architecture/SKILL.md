@@ -1,6 +1,6 @@
 ---
 name: code-architecture
-description: Use when writing or modifying FastStream library source code under faststream/ — package layout, broker package anatomy, typing rules, configs, and public API conventions.
+description: Use when writing or reviewing library code under faststream/ for broker architecture, typing, configuration, or public API compatibility.
 ---
 
 # FastStream Code Architecture
@@ -100,11 +100,10 @@ Config classes are `@dataclass(kw_only=True)` inheriting `BrokerConfig` (base in
 **Errors and lifecycle**
 
 - An infrastructure failure gets its own exception type; it is not folded into a generic one.
-- A configuration error is terminal: stop the consumer, do not retry. Retrying a permanent failure hides it and burns the broker.
+- If recovery requires a configuration change, stop the consumer and report the invalid setting. If the failure can clear on its own and the consumer supports retries, wait between attempts.
 - One failure, one exception — the same condition raises the same type on every consumption path (`get_one`, iterator, subscriber).
 - A configuration conflict warns at **registration** time, with `stacklevel` pointing at the user's line, and only when the values actually differ.
 - When filtering driver options, report any explicit setting the driver cannot honour. Silently dropping a TLS setting can change the security of the connection.
-- An unrecoverable error waits with a pause; it never spins in an idle loop.
 - **A class-level container with no eviction is a leak.** Anything keyed per instance and never cleaned belongs to the instance.
 - Static data is separated from dynamic once, at initialisation, not re-computed on the hot path.
 - `connect()` → `setup_logger()` ordering is a contract. Shutdown order is `running = False` → wait for in-flight → `super().stop()` under the lock, and an object is removed from its registry only after `stop()` completes.
