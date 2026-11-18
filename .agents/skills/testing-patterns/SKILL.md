@@ -135,7 +135,7 @@ unpacks, `==` on tuples).
 The name is the behaviour, so a test carries no docstring by default, and an assertion
 that needs explaining gets a single `#` comment directly over it. Two cases earn one:
 
-- the regression pattern below — the docstring is the issue URL and nothing else;
+- a regression for a reported bug (see [Regression tests](#regression-tests));
 - the rare test that is unreadable without it, because what it guards is invisible from
   the body. `tests/utils/test_lazy_imports.py` runs an import in a subprocess: only the
   docstring can say what that protects, how it broke before, and why nothing else goes
@@ -185,7 +185,7 @@ A typing problem that turns out to live in `faststream/` is fixed there, in its 
 
 ## Regression tests
 
-For a regression test tied to a reported bug, use the test name to describe the expected behaviour and the full issue URL as its docstring. Use the same URL as the reason when that issue requires an `xfail` or `skip` mark. Place a comment explaining a surprising assertion directly above it.
+Name the test for the expected behaviour and use `Fixes <full issue URL>.` as its docstring. If the reported bug requires an `xfail` or `skip` mark, use the URL as the reason.
 
 ```python
 @pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/<number>")
@@ -193,13 +193,9 @@ async def test_publisher_without_destination(self) -> None:
     """Fixes https://github.com/ag2ai/faststream/issues/<number>."""
 ```
 
-A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
+Verify the regression with the same pytest node ID and test code on both revisions. Create a separate worktree at the revision immediately before the fix and apply the regression test there, including any fixtures it needs.
 
-```bash
-git show <fix-commit> -- faststream/ | git apply -R -
-uv run pytest tests/... -m "not slow and not connected"
-git checkout -- faststream/
-```
+Run `uv run pytest -m "" --runxfail '<node-id>'` in each worktree with the same broker setup. On the old revision, confirm that the failure shows the reported bug (the wrong result or the unexpected exception). On the fixed revision, confirm that the selected case passes.
 
 The same run grades the tests already there, and it is how a suite shrinks. Two tests red for one reason are one test: keep the one whose declaration carries more (an escaped brace *beside* a Path parameter over an escaped brace alone), delete the other, and check what a broker already gets from `test_router.py` or `test_path.py` before keeping a third.
 
@@ -224,7 +220,7 @@ When reviewing a potentially redundant white-box test, identify the public call 
 
 - For a background consumer, assert on the handler mock from the test after delivery. An assertion raised in the consumer task can leave the test green. With an in-memory broker that propagates handler errors through `await broker.publish(...)`, the test can assert on that exception directly.
 - Exercise the feature through the **public API**, end to end, not by calling internals directly.
-- A promise made in the docs is verified against a **real broker**, not against the client kwargs the code happens to pass.
+- Match the test to the documented behaviour. Verify delivery, acknowledgements and consumer-group semantics against a real broker. Check generated schemas and registration-time validation locally.
 - A Redis feature is covered on **Cluster** as well, not only on the standalone broker.
 - Behaviour gated by a broker/driver version carries the gate on **every** test it affects, with the marker declared in `tests/marks.py`.
 - A drive-by fix shipped inside a feature PR gets its own regression test — otherwise it silently reverts later.

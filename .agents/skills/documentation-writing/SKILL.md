@@ -92,7 +92,7 @@ All example code must follow idiomatic FastStream usage:
 
 `docs.py build` appends missing GitHub releases to `docs/docs/en/release.md`. Use `just docs-check` to validate guide edits. When a full build is needed, check the file’s diff before and after the build so you can discard generated additions and keep any manual corrections.
 
-The deploy runs on `release: published` or a manual dispatch. A dispatch from `main` publishes unreleased docs into `/latest/`: compare the `pyproject.toml` version with the last release first.
+A published release dispatches the docs workflow on the default branch with `release_tag` set to the published tag. For a manual release build, supply that tag too. Leaving the input empty builds the default-branch SHA from the dispatch, which may contain unreleased changes. A non-RC build updates `/latest/`. A release candidate publishes only to its versioned path.
 
 ### Indexing versioned docs
 
