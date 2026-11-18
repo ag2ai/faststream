@@ -189,15 +189,7 @@ A typing problem that turns out to live in `faststream/` is fixed there, in its 
 
 ## Regression tests
 
-A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
-
-```python
-@pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/2513")
-async def test_publisher_without_destination(self) -> None:
-    """Fixes https://github.com/ag2ai/faststream/issues/2513."""
-```
-
-The URL is the whole docstring — no explanation of the behavior underneath it. `xfail`/`skip` reasons take the same URL. A comment inside the test body follows the **code-architecture** rule: one line, directly over the assertion it explains.
+For a regression test tied to a reported bug, use the test name to describe the expected behaviour and the full issue URL as its docstring. Use the same URL as the reason when that issue requires an `xfail` or `skip` mark. Place a comment explaining a surprising assertion directly above it.
 
 A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
 
@@ -228,28 +220,28 @@ A white-box test survives only when the state it guards is **reachable**. When a
 
 ## What a change must cover
 
-- For a background consumer, assert on the handler mock from the test after delivery. An assertion raised in the consumer task can leave the test green (#3010, #3016, #3129). With an in-memory broker that propagates handler errors through `await broker.publish(...)`, the test can assert on that exception directly.
-- Exercise the feature through the **public API**, end to end, not by calling internals directly (#2827).
-- A promise made in the docs is verified against a **real broker**, not against the client kwargs the code happens to pass (#3129).
-- A Redis feature is covered on **Cluster** as well, not only on the standalone broker (#3049).
-- Behaviour gated by a broker/driver version carries the gate on **every** test it affects, with the marker declared in `tests/marks.py` (#3049).
-- A drive-by fix shipped inside a feature PR gets its own regression test — otherwise it silently reverts later (#3026).
-- **A fix comes with a red test.** The test must fail on the code before the fix; a test written after the fact only proves the current behaviour (#2366).
-- **Inverting a flag while renaming a parameter needs a test for the inversion.** `passive` → `declare` are opposites, and the sign was lost in some call sites and not others (#2236).
+- For a background consumer, assert on the handler mock from the test after delivery. An assertion raised in the consumer task can leave the test green. With an in-memory broker that propagates handler errors through `await broker.publish(...)`, the test can assert on that exception directly.
+- Exercise the feature through the **public API**, end to end, not by calling internals directly.
+- A promise made in the docs is verified against a **real broker**, not against the client kwargs the code happens to pass.
+- A Redis feature is covered on **Cluster** as well, not only on the standalone broker.
+- Behaviour gated by a broker/driver version carries the gate on **every** test it affects, with the marker declared in `tests/marks.py`.
+- A drive-by fix shipped inside a feature PR gets its own regression test — otherwise it silently reverts later.
+- **A fix comes with a red test.** The test must fail on the code before the fix; a test written after the fact only proves the current behaviour.
+- **When a replacement flag reverses the meaning of the old flag, test both values through each affected call path.** For example, `passive=True` corresponds to `declare=False`.
 - A flaky test is fixed by its cause, never by a retry, a sleep or a wider timeout — see **Flakes and leaks**.
-- Base testcases take their subscriber arguments from `self.get_subscriber_params(...)` — a hard-coded signature passes on the base broker and fails on Confluent (#2366).
+- Base testcases take their subscriber arguments from `self.get_subscriber_params(...)` — a hard-coded signature passes on the base broker and fails on Confluent.
 
 ## Flakes and leaks
 
-**De-flaking removes the race and keeps the path.** Cut the nondeterminism around the behaviour — who triggers it, when, what races what — and keep the production path the test exercised. Replacing a real `SIGINT` with `should_exit.set()` made `tests/cli/supervisors/test_multiprocess.py` stable and stopped covering the handler the fix had changed. Keep the trigger real and move it under the test's control (send the signal from the test, at a known moment), make the *outcome* deterministic (workers that only sleep), then break the path in the source and watch the test go red.
+**De-flaking removes the race and keeps the path.** Cut the nondeterminism around the behaviour — who triggers it, when, what races what — and keep the production path the test exercised. For a shutdown handler, send a real `SIGINT` from the test once the workers are ready. Setting `should_exit` directly bypasses the handler. Verify that the test fails when the handler ignores the signal.
 
 Before believing a `connected` failure, rule out the container:
 
 - A just-restarted Kafka fails nearly everything for a minute or two, and a long-running one runs out of Java heap; recreate the compose brokers with `down -v`.
 - Kafka tests connect to `localhost:9092`. The dev container uses host networking. On Docker Desktop, enable host networking or run the connected Kafka tests on the host.
-- A Kafka test that publishes right after `start()` reads from `earliest` (`get_subscriber_params` sets it): `latest` is resolved asynchronously and skips a message published first (#3187).
+- A Kafka test that publishes right after `start()` reads from `earliest` (`get_subscriber_params` sets it): `latest` is resolved asynchronously and skips a message published first.
 
-An unraisable `ResourceWarning` lands on whichever test runs at GC time. To pin it to the test that leaked, load a `-p` plugin that calls `gc.collect()` after each `pytest_runtest_call`. `PYTHONTRACEMALLOC` is inherited by the CLI subprocess tests and times ~30 of them out, so exclude `tests/cli` when using it. `filterwarnings = ["error"]` is off by choice: nats-py, starlette and our own FastAPI deprecation would each need a filter (#3186).
+An unraisable `ResourceWarning` lands on whichever test runs at GC time. To pin it to the test that leaked, load a `-p` plugin that calls `gc.collect()` after each `pytest_runtest_call`. `PYTHONTRACEMALLOC` is inherited by the CLI subprocess tests and times ~30 of them out, so exclude `tests/cli` when using it. `filterwarnings = ["error"]` is off by choice: nats-py, starlette and our own FastAPI deprecation would each need a filter.
 
 ## Related skills
 
