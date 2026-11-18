@@ -118,6 +118,7 @@ Packages built on top of **FastStream** by the community:
 
 * [`stompman`](https://github.com/community-of-python/stompman){.external-link target="_blank"} - STOMP client with a pleasant API
 * [`faststream-azure-servicebus`](https://github.com/thomaslaich/faststream-azure-servicebus){.external-link target="_blank"} - community broker adapter for **Azure Service Bus** queues and topics
+* [`faststream-gcp-pubsub`](https://github.com/powersemmi/faststream-gcp-pubsub){.external-link target="_blank"} - community broker adapter for **Google Cloud Pub/Sub** topics and subscriptions
 * [`faststream-mq`](https://github.com/davzucky/faststream-mq){.external-link target="_blank"} - standalone IBM MQ adapter
 * [`zMQTT`](https://github.com/faststream-community/zMQTT){.external-link target="_blank"} - pure asyncio MQTT 3.1.1 and 5.0 client library, no **paho** dependency
 * [`faststream-schema-registry`](https://github.com/mlovretovich/faststream-schema-registry){.external-link target="_blank"} - connects **FastStream** to the **Confluent** Schema Registry

@@ -29,4 +29,6 @@ exclude = [
     '^https://coverage-badge\.samuelcolvin\.workers\.dev/redirect/',
     # terminates automated requests to public channels that a browser opens
     '^https://t\.me/',
+    # answers 503 from behind Cloudflare to requests that are not a browser
+    '^https://(www\.)?pepy\.tech/',
 ]

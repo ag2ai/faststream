@@ -1,0 +1,21 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {}
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "description": "Test description",
+    "title": "My App",
+    "version": "1.0.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "kafka",
+      "protocolVersion": "auto",
+      "url": "localhost"
+    }
+  }
+}

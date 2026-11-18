@@ -1,24 +1,23 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.kafka import KafkaBroker
+from tests.asyncapi.base.body_binding import BodyBindingTestcase
 from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
 
 
 @pytest.mark.kafka()
-class TestArguments(ArgumentsTestcase):
+class TestArguments(BodyBindingTestcase, ArgumentsTestcase):
     broker_class = KafkaBroker
 
-    def test_subscriber_bindings(self) -> None:
+    def test_subscriber_bindings(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test")
         async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
-        key = tuple(schema["channels"].keys())[0]  # ruff: ignore[unnecessary-iterable-allocation-for-first-element]
 
-        assert schema["channels"][key]["bindings"] == {
-            "kafka": {"bindingVersion": "0.4.0", "topic": "test"},
-        }
+        assert schema == snapshot_json

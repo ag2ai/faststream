@@ -532,7 +532,8 @@ class ChannelVisitor(Visitor):
         if (
             sub_channel.pattern
             and bool(
-                re.match(
+                re.fullmatch(
+                    # Real Redis globs match the whole channel name, not a prefix.
                     # Escaped wholesale and then opened back up at the wildcard,
                     # the way `REDIS_ADDRESS_SYNTAX` does it: a Broker address may
                     # hold a literal brace, and `{2}` left bare is a quantifier.

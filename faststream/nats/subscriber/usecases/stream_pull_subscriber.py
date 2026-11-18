@@ -8,6 +8,7 @@ from nats.errors import ConnectionClosedError, TimeoutError
 from nats.js.errors import ServiceUnavailableError
 from typing_extensions import override
 
+from faststream._internal.endpoint.subscriber.dispatcher import DirectDispatcher
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import (
     BatchParser,
@@ -27,9 +28,7 @@ if TYPE_CHECKING:
     from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
-class PullStreamSubscriber(
-    StreamSubscriber,
-):
+class PullStreamSubscriber(StreamSubscriber):
     __slots__ = ("pull_sub",)
 
     subscription: Optional["JetStreamContext.PullSubscription"]
@@ -84,6 +83,69 @@ class PullStreamSubscriber(
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
                         _ = tg.start_soon(self.consume_dispatcher.dispatch, msg)
+
+
+class ConcurrentPullStreamSubscriber(PullStreamSubscriber):
+    __slots__ = ("limiter",)
+
+    def __init__(self, config: "NatsSubscriberConfig", *args: Any, **kwargs: Any) -> None:
+        super().__init__(config, *args, **kwargs)
+        self.consume_dispatcher = DirectDispatcher(self.consume)
+        self.limiter = anyio.Semaphore(config.max_workers)
+
+    @override
+    async def _consume_pull(self) -> None:
+        """Hold a worker slot from the pull request through message processing."""
+        if not self.running:
+            return
+
+        assert self.subscription
+        fetch_error: Exception | None = None
+
+        async with anyio.create_task_group() as tg:
+            while self.running:  # pragma: no branch
+                await self.limiter.acquire()
+                slot_reserved = True
+
+                try:
+                    if not self.running:
+                        continue
+
+                    try:
+                        # Batch fetches can leave extra server pulls active (see issue #2563).
+                        (msg,) = await self.subscription.fetch(
+                            batch=1,
+                            timeout=self.pull_sub.timeout,
+                        )
+                    except (
+                        TimeoutError,
+                        ConnectionClosedError,
+                        ServiceUnavailableError,
+                    ):
+                        continue
+                    except Exception as exc:
+                        fetch_error = exc
+                        break
+
+                    _ = tg.start_soon(self._consume_with_release, msg)
+                    slot_reserved = False
+
+                finally:
+                    if slot_reserved:
+                        self.limiter.release()
+
+        if fetch_error is not None and self.running:
+            raise fetch_error
+
+    async def _consume_with_release(
+        self,
+        msg: "Msg",
+    ) -> None:
+        """Release reserved capacity only after message processing finishes."""
+        try:
+            await self.consume_dispatcher.dispatch(msg)
+        finally:
+            self.limiter.release()
 
 
 class BatchPullStreamSubscriber(

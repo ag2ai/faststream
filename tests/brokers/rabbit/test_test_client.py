@@ -219,11 +219,19 @@ class TestTestclient(
 @pytest.mark.parametrize(
     ("pattern", "current", "result"),
     (
+        pytest.param("", "", True, id="empty binding and routing key"),
+        pytest.param("#", "", True, id="# - empty routing key"),
+        pytest.param("#.*", "", False, id="#.* - empty routing key"),
+        pytest.param("*.#", "", False, id="*.# - empty routing key"),
         pytest.param("#", "1.2.3", True, id="#"),
         pytest.param("*", "1", True, id="*"),
         pytest.param("*", "1.2", False, id="* - broken"),
         pytest.param("test.*", "test.1", True, id="test.*"),
         pytest.param("test.#", "test.1", True, id="test.#"),
+        pytest.param("test.#", "test", True, id="test.# - zero words"),
+        pytest.param("#.test", "test", True, id="#.test - zero words"),
+        pytest.param("#.*", "1", True, id="#.* - zero words"),
+        pytest.param("#.test", "test.test.test", True, id="#.test - repeated word"),
         pytest.param("#.test.#", "1.2.test.1.2", True, id="#.test.#"),
         pytest.param("#.test.*", "1.2.test.1", True, id="#.test.*"),
         pytest.param("#.test.*.*", "1.2.test.1.2", True, id="#.test.*."),
@@ -238,7 +246,8 @@ class TestTestclient(
         pytest.param("#.2.*.test", "1.2.2.test", True, id="#.2.*.test"),
         pytest.param("#.*.*.test", "1.2.2.test", True, id="#.*.*.test"),
         pytest.param("*.*.*.test", "1.2.test", False, id="*.*.*.test - broken"),
-        pytest.param("#.*.*.test", "1.2.test", False, id="#.*.*.test - broken"),
+        pytest.param("#.*.*.test", "1.2.test", True, id="#.*.*.test - zero words"),
+        pytest.param("#.*.*.test", "1.test", False, id="#.*.*.test - broken"),
     ),
 )
 def test(pattern: str, current: str, result: bool) -> None:

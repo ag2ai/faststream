@@ -21,6 +21,7 @@ from .config import NatsSubscriberConfig, NatsSubscriberSpecificationConfig
 from .specification import NatsSubscriberSpecification, NotIncludeSpecifation
 from .usecases import (
     BatchPullStreamSubscriber,
+    ConcurrentPullStreamSubscriber,
     CoreSubscriber,
     KeyValueWatchSubscriber,
     LogicSubscriber,
@@ -210,6 +211,14 @@ def create_subscriber(
         if pull_sub.batch and max_workers <= 1:
             return BatchPullStreamSubscriber(
                 **subscriber_options,
+                pull_sub=pull_sub,
+                stream=stream,
+            )
+
+        if max_workers > 1:
+            return ConcurrentPullStreamSubscriber(
+                **subscriber_options,
+                queue=queue,
                 pull_sub=pull_sub,
                 stream=stream,
             )

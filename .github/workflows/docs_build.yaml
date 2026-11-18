@@ -1,26 +1,61 @@
 name: Build Documentation
 
 on:
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to build (defaults to the current main branch)
+        type: string
   release:
     types:
       - published
 
-permissions:
-  contents: write
+permissions: {}
+
+# Serialize complete deployments, including the update to the shared mike branch.
+concurrency:
+  group: docs-pages-${{ github.event_name == 'workflow_dispatch' && 'deploy' || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
-  deploy_docs:
+  dispatch_release_docs:
+    name: Start docs deployment from the default branch
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch docs for the published tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh workflow run docs_build.yaml --repo "$GITHUB_REPOSITORY" \
+            --ref "$DEFAULT_BRANCH" -f "release_tag=$RELEASE_TAG"
+
+  build_docs:
+    name: Build and store the versioned site
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == github.event.repository.default_branch && github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:  # zizmor: ignore[artipacked]
+        with:
           fetch-depth: 0
-          token: ${{ secrets.AUTOMERGE_TOKEN }}
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+          persist-credentials: false
+          ref: ${{ inputs.release_tag && format('refs/tags/{0}', inputs.release_tag) || github.sha }}
+
+      - name: Record the current Pages branch tip
+        run: |
+          base_sha=$(git rev-parse --verify refs/remotes/origin/gh-pages)
+          echo "PAGES_BASE_SHA=$base_sha" >> "$GITHUB_ENV"
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: "latest"
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: 3.12
       - name: Install dependencies
@@ -76,12 +111,38 @@ jobs:
       - name: Add robots.txt, root sitemap.xml and archive markers
         run: python3 "$RUNNER_TEMP/create_seo_files.py" . "$RUNNER_TEMP/site_root"
 
-      - name: Commit
-        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+      - name: Commit and export the site
+        run: |
+          git add --all
+          git commit --allow-empty -m "docs: deploy docs"
+          mkdir "$RUNNER_TEMP/pages-site"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/pages-site"
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          branch: gh-pages
-          push_options: "--force"  # force push to stay with clear gh-pages branch history
-          commit_message: "docs: deploy docs"
-          commit_user_name: faststream-actions[bot]
-          commit_user_email: faststream-actions[bot]@users.noreply.github.com
-          commit_author: faststream-actions[bot] <faststream-actions[bot]@users.noreply.github.com>
+          path: ${{ runner.temp }}/pages-site
+          include-hidden-files: true
+
+      - name: Replace the published snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push \
+            --force-with-lease="refs/heads/gh-pages:$PAGES_BASE_SHA" \
+            origin HEAD:refs/heads/gh-pages
+
+  deploy_docs:
+    name: Publish to GitHub Pages
+    needs: build_docs
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy the Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
