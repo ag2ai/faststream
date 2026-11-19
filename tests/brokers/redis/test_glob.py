@@ -94,7 +94,7 @@ pytestmark = pytest.mark.redis()
         ("}", "}", True),
         # Matching is anchored to the whole channel.
         ("a", "ab", False),
-        ("a", "ba", False),
+        ("a", "xa", False),
         ("ab", "ab", True),
     ),
 )
