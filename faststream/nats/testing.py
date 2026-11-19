@@ -160,8 +160,16 @@ class FakeProducer(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
+        await self._publish_body(cmd.body, cmd)
+
+    @override
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> None:
+        for body in cmd.batch_bodies:
+            await self._publish_body(body, cmd)
+
+    async def _publish_body(self, body: Any, cmd: "NatsPublishCommand") -> None:
         incoming = await build_message(
-            message=cmd.body,
+            message=body,
             subject=cmd.destination,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,

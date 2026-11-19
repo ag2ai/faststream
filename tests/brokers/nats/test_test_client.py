@@ -47,6 +47,19 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish("Hi!", queue, stream="test")
             m.mock.assert_called_once_with("Hi!")
 
+    async def test_publish_batch(self, queue: str) -> None:
+        broker = self.get_broker()
+        received: list[Any] = []
+
+        @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
+        async def handler(msg: Any) -> None:
+            received.append(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(1, "hi", {"n": 2}, subject=queue, stream=queue)
+
+        assert received == [1, "hi", {"n": 2}]
+
     @pytest.mark.asyncio()
     async def test_wrong_stream_publish(
         self,
