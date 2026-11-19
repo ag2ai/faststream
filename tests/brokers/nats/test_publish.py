@@ -116,3 +116,21 @@ async def test_publish_with_schedule(
 
     assert event.is_set()
     mock.assert_called_once_with({"type": "do_something"})
+
+
+@pytest.mark.nats()
+@pytest.mark.connected()
+class TestAtomicBatchPublish:
+    @pytest.mark.asyncio()
+    async def test_stream_declares_allow_atomic(self, queue: str) -> None:
+        broker = NatsBroker()
+
+        @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
+        async def handle() -> None: ...
+
+        async with broker:
+            await broker.start()
+            client = await broker.connect()
+            info = await client.jetstream().stream_info(queue)
+
+        assert info.config.allow_atomic is True
