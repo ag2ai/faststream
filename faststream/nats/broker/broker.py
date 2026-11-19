@@ -847,6 +847,60 @@ class NatsBroker(
             result = await super()._basic_publish(cmd, producer=self.config.producer)
         return result
 
+    async def publish_batch(  # type: ignore[override]
+        self,
+        *messages: "SendableMessage",
+        subject: str,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
+    ) -> "PubAck":
+        """Publish many messages to JetStream as one atomic batch.
+
+        The stream stores all the messages or none of them.
+        The stream must have `allow_atomic=True`. NATS server 2.12 or later is necessary.
+
+        Args:
+            *messages:
+                Message bodies to send.
+                Can be any encodable object (native python types or `pydantic.BaseModel`).
+            subject:
+                NATS subject to send messages.
+            headers:
+                Message headers to store metainformation.
+                The broker adds them to each message of the batch.
+            correlation_id:
+                Manual message **correlation_id** setter.
+                All messages of the batch have the same **correlation_id**.
+            stream:
+                This option validates that the target subject is in presented stream.
+            timeout:
+                Timeout to wait for the acknowledgement of the batch.
+
+        Returns:
+            `faststream.nats.PubAck` of the last message of the batch.
+        """
+        if not messages:
+            msg = "Atomic batch publish needs at least one message."
+            raise ValueError(msg)
+
+        cmd = NatsPublishCommand(
+            *messages,
+            correlation_id=correlation_id or self.config.id_generator(),
+            subject=subject,
+            headers=headers,
+            stream=stream,
+            timeout=timeout or 0.5,
+            _publish_type=PublishType.PUBLISH,
+        )
+
+        result: PubAck = await super()._basic_publish_batch(
+            cmd,
+            producer=self.config.js_producer,
+        )
+        return result
+
     @override
     async def request(  # type: ignore[override]
         self,
