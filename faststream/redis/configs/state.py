@@ -66,6 +66,11 @@ class ConnectionState(ABC, Generic[ClientT]):
 
         return self._client
 
+    @property
+    def encoding(self) -> str:
+        """The encoding Redis uses for channel names."""
+        return self._options.get("encoding") or "utf-8"
+
     def __bool__(self) -> bool:
         return self._connected
 
