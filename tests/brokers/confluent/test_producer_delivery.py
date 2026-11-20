@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -38,218 +38,67 @@ async def delivery() -> AsyncIterator[
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 class TestProducerDelivery:
-    async def test_cancelled_publish_ignores_late_success(
+    async def test_cancelled_publish_ignores_queued_delivery(
         self,
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
-        message = MagicMock(spec=Message)
-        message.error.return_value = None
         task = asyncio.create_task(producer.send("topic", value=b"payload"))
         await checkpoint()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
-        task.cancel()
-        await checkpoint()
-        acknowledge(None, message)
-        await checkpoint()
-
-        # Assert
-        with pytest.raises(asyncio.CancelledError):
-            await task
-        assert errors == []
-
-    async def test_cancelled_publish_ignores_late_callback_error(
-        self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
-    ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
-        producer, native, errors = delivery
-        error = KafkaError(KafkaError._MSG_TIMED_OUT)
-        task = asyncio.create_task(producer.send("topic", value=b"payload"))
-        await checkpoint()
-        acknowledge = native.produce.call_args.kwargs["on_delivery"]
-
-        # Act
-        task.cancel()
-        await checkpoint()
-        acknowledge(error, None)
-        await checkpoint()
-
-        # Assert
-        with pytest.raises(asyncio.CancelledError):
-            await task
-        assert errors == []
-
-    async def test_cancelled_publish_ignores_late_message_error(
-        self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
-    ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
-        producer, native, errors = delivery
-        message = MagicMock(spec=Message)
-        message.error.return_value = KafkaError(KafkaError._MSG_TIMED_OUT)
-        task = asyncio.create_task(producer.send("topic", value=b"payload"))
-        await checkpoint()
-        acknowledge = native.produce.call_args.kwargs["on_delivery"]
-
-        # Act
-        task.cancel()
-        await checkpoint()
-        acknowledge(None, message)
-        await checkpoint()
-
-        # Assert
-        with pytest.raises(asyncio.CancelledError):
-            await task
-        assert errors == []
-
-    async def test_cancelled_publish_ignores_queued_success(
-        self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
-    ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
-        producer, native, errors = delivery
-        message = MagicMock(spec=Message)
-        message.error.return_value = None
-        task = asyncio.create_task(producer.send("topic", value=b"payload"))
-        await checkpoint()
-        acknowledge = native.produce.call_args.kwargs["on_delivery"]
-
-        # Act
-        acknowledge(None, message)
-        task.cancel()
-        await checkpoint()
-
-        # Assert
-        with pytest.raises(asyncio.CancelledError):
-            await task
-        assert errors == []
-
-    async def test_cancelled_publish_ignores_queued_callback_error(
-        self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
-    ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
-        producer, native, errors = delivery
-        error = KafkaError(KafkaError._MSG_TIMED_OUT)
-        task = asyncio.create_task(producer.send("topic", value=b"payload"))
-        await checkpoint()
-        acknowledge = native.produce.call_args.kwargs["on_delivery"]
-
-        # Act
-        acknowledge(error, None)
-        task.cancel()
-        await checkpoint()
-
-        # Assert
-        with pytest.raises(asyncio.CancelledError):
-            await task
-        assert errors == []
-
-    async def test_cancelled_publish_ignores_queued_message_error(
-        self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
-    ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
-        producer, native, errors = delivery
-        message = MagicMock(spec=Message)
-        message.error.return_value = KafkaError(KafkaError._MSG_TIMED_OUT)
-        task = asyncio.create_task(producer.send("topic", value=b"payload"))
-        await checkpoint()
-        acknowledge = native.produce.call_args.kwargs["on_delivery"]
-
-        # Act
-        acknowledge(None, message)
-        task.cancel()
-        await checkpoint()
-
-        # Assert
-        with pytest.raises(asyncio.CancelledError):
-            await task
-        assert errors == []
-
-    async def test_queued_error_preserves_success(
-        self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
-    ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
-        producer, native, errors = delivery
-        error = KafkaError(KafkaError._MSG_TIMED_OUT)
-        message = MagicMock(spec=Message)
-        message.error.return_value = None
-        future = cast(
-            "asyncio.Future[Message | None]",
-            await producer.send("topic", value=b"payload", no_confirm=True),
-        )
-        acknowledge = native.produce.call_args.kwargs["on_delivery"]
-
-        # Act
-        acknowledge(None, message)
-        acknowledge(error, None)
-        await checkpoint()
-
-        # Assert
-        assert future.result() is message
-        assert errors == []
-
-    async def test_queued_success_preserves_callback_error(
-        self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
-    ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
-        producer, native, errors = delivery
-        error = KafkaError(KafkaError._MSG_TIMED_OUT)
-        future = cast(
-            "asyncio.Future[Message | None]",
-            await producer.send("topic", value=b"payload", no_confirm=True),
-        )
-        acknowledge = native.produce.call_args.kwargs["on_delivery"]
-
-        # Act
-        acknowledge(error, None)
         acknowledge(None, None)
+        task.cancel()
         await checkpoint()
 
-        # Assert
-        with pytest.raises(KafkaException) as exc_info:
-            future.result()
-        assert exc_info.value.args == (error,)
+        with pytest.raises(asyncio.CancelledError):
+            await task
         assert errors == []
 
-    async def test_queued_success_preserves_message_error(
+    @pytest.mark.parametrize(
+        "first_error",
+        (
+            pytest.param(None, id="success-before-error"),
+            pytest.param(
+                KafkaError(KafkaError._MSG_TIMED_OUT),
+                id="error-before-success",
+            ),
+        ),
+    )
+    async def test_worker_deliveries_preserve_first_outcome(
         self,
         delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
+        first_error: KafkaError | None,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        # Arrange
         producer, native, errors = delivery
-        error = KafkaError(KafkaError._MSG_TIMED_OUT)
         message = MagicMock(spec=Message)
-        message.error.return_value = error
-        future = cast(
-            "asyncio.Future[Message | None]",
-            await producer.send("topic", value=b"payload", no_confirm=True),
+        message.error.return_value = None
+        second_error = (
+            KafkaError(KafkaError._MSG_TIMED_OUT) if first_error is None else None
         )
+        future = await producer.send("topic", value=b"payload", no_confirm=True)
+        assert isinstance(future, asyncio.Future)
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
-        # Act
-        acknowledge(None, message)
-        acknowledge(None, None)
-        await checkpoint()
+        def deliver_twice() -> None:
+            acknowledge(first_error, message)
+            acknowledge(second_error, message)
 
-        # Assert
-        with pytest.raises(KafkaException) as exc_info:
-            future.result()
-        assert exc_info.value.args == (error,)
+        loop = asyncio.get_running_loop()
+        previous_debug = loop.get_debug()
+        try:
+            loop.set_debug(True)
+            await asyncio.to_thread(deliver_twice)
+            await checkpoint()
+        finally:
+            loop.set_debug(previous_debug)
+
+        if first_error is None:
+            assert future.result() is message
+        else:
+            with pytest.raises(KafkaException) as exc_info:
+                future.result()
+            assert exc_info.value.args == (first_error,)
         assert errors == []
