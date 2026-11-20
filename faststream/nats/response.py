@@ -54,6 +54,7 @@ class NatsPublishCommand(BatchPublishCommand):
         stream: str | None = None,
         timeout: float = 0.5,
         schedule: Optional["Schedule"] = None,
+        batch_id: str | None = None,
         _publish_type: PublishType,
     ) -> None:
         super().__init__(
@@ -69,6 +70,7 @@ class NatsPublishCommand(BatchPublishCommand):
         self.stream = stream
         self.timeout = timeout
         self.schedule = schedule
+        self.batch_id = batch_id
 
     def headers_to_publish(self, *, js: bool = False) -> dict[str, str]:
         headers = {}

@@ -855,6 +855,7 @@ class NatsBroker(
         correlation_id: str | None = None,
         stream: str | None = None,
         timeout: float | None = None,
+        batch_id: str | None = None,
     ) -> "PubAck":
         """Publish many messages to JetStream as one atomic batch.
 
@@ -877,6 +878,9 @@ class NatsBroker(
                 This option validates that the target subject is in presented stream.
             timeout:
                 Timeout to wait for the acknowledgement of the batch.
+            batch_id:
+                Manual batch identifier setter. The server accepts 64 characters or less.
+                The broker uses `id_generator` if you do not set it.
 
         Returns:
             `faststream.nats.PubAck` of the last message of the batch.
@@ -892,6 +896,7 @@ class NatsBroker(
             headers=headers,
             stream=stream,
             timeout=timeout or 0.5,
+            batch_id=batch_id or self.config.id_generator(),
             _publish_type=PublishType.PUBLISH,
         )
 

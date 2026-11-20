@@ -201,7 +201,7 @@ class NatsJSFastProducer(NatsFastProducer):
         The stream must have `allow_atomic=True`. NATS server 2.12 or later is necessary.
         """
         bodies = cmd.batch_bodies
-        batch_id = uuid4().hex
+        batch_id = cmd.batch_id or uuid4().hex
         headers = cmd.headers_to_publish(js=True)
 
         for sequence, body in enumerate(bodies[:-1], start=1):

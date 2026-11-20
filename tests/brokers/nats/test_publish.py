@@ -169,6 +169,42 @@ class TestAtomicBatchPublish:
         ]
 
     @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("batch_id", "expected"),
+        (
+            pytest.param("manual", "manual", id="manual-batch-id"),
+            pytest.param(None, "generated", id="id-generator"),
+        ),
+    )
+    async def test_publish_batch_sets_batch_id(
+        self,
+        queue: str,
+        batch_id: str | None,
+        expected: str,
+    ) -> None:
+        broker = NatsBroker(id_generator=lambda: "generated")
+        received: list[str | None] = []
+        done = asyncio.Event()
+
+        @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
+        async def handle(msg: NatsMessage) -> None:
+            received.append(msg.headers.get("Nats-Batch-Id"))
+            if len(received) == 2:
+                done.set()
+
+        async with broker:
+            await broker.start()
+            await broker.publish_batch(
+                "first",
+                "second",
+                subject=queue,
+                batch_id=batch_id,
+            )
+            await asyncio.wait_for(done.wait(), timeout=3)
+
+        assert received == [expected, expected]
+
+    @pytest.mark.asyncio()
     async def test_publish_batch_needs_allow_atomic(self, queue: str) -> None:
         broker = NatsBroker()
 
