@@ -13,6 +13,7 @@ from typing import (
     Union,
     cast,
 )
+from weakref import ref
 
 from typing_extensions import Self, overload, override
 
@@ -127,11 +128,18 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._call_decorators: tuple[Decorator, ...] = ()
 
         self.tasks_supervisor = TasksSupervisor(self._outer_config)
+        self_ref = ref(self)
+
+        async def consume_func(msg: MsgType) -> Any:
+            if (subscriber := self_ref()) is not None:
+                return await subscriber.consume(msg)
+            return None
+
         self.consume_dispatcher: ConsumeDispatcherProto[MsgType] = (
-            DirectDispatcher(self.consume)
+            DirectDispatcher(consume_func)
             if config.max_workers <= 1
             else ConcurrentDispatcher(
-                self.tasks_supervisor, config.max_workers, self.consume
+                self.tasks_supervisor, config.max_workers, consume_func
             )
         )
 

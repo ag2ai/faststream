@@ -8,7 +8,6 @@ from nats.errors import ConnectionClosedError, TimeoutError
 from nats.js.errors import ServiceUnavailableError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.dispatcher import DirectDispatcher
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import (
     BatchParser,
@@ -89,9 +88,9 @@ class ConcurrentPullStreamSubscriber(PullStreamSubscriber):
     __slots__ = ("limiter",)
 
     def __init__(self, config: "NatsSubscriberConfig", *args: Any, **kwargs: Any) -> None:
-        super().__init__(config, *args, **kwargs)
-        self.consume_dispatcher = DirectDispatcher(self.consume)
         self.limiter = anyio.Semaphore(config.max_workers)
+        config.max_workers = 1
+        super().__init__(config, *args, **kwargs)
 
     @override
     async def _consume_pull(self) -> None:

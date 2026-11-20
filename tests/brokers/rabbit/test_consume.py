@@ -476,18 +476,18 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker()
 
+        subscriber = consume_broker.subscriber(queue, ack_policy=AckPolicy.ACK_FIRST)
+
+        @subscriber
+        async def handler(msg: Any) -> None:
+            mock(msg)
+
         with patch.object(
             RabbitSubscriber,
             "consume",
             spy_decorator(RabbitSubscriber.consume),
         ) as consume:
             consume.mock.side_effect = lambda *_, **__: event.set()
-
-            subscriber = consume_broker.subscriber(queue, ack_policy=AckPolicy.ACK_FIRST)
-
-            @subscriber
-            async def handler(msg: Any) -> None:
-                mock(msg)
 
             async with self.patch_broker(consume_broker) as br:
                 await br.start()
