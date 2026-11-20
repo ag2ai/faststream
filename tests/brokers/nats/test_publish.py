@@ -121,10 +121,10 @@ async def test_publish_with_schedule(
 
 @pytest.mark.nats()
 @pytest.mark.connected()
-class TestAtomicBatchPublish:
+class TestAtomicBatchPublish(NatsTestcaseConfig):
     @pytest.mark.asyncio()
     async def test_stream_declares_allow_atomic(self, queue: str) -> None:
-        broker = NatsBroker()
+        broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
         async def handle() -> None: ...
@@ -138,7 +138,7 @@ class TestAtomicBatchPublish:
 
     @pytest.mark.asyncio()
     async def test_publish_batch_stores_all_messages(self, queue: str) -> None:
-        broker = NatsBroker()
+        broker = self.get_broker(apply_types=True)
         received: list[tuple[str, str | None, str]] = []
         done = asyncio.Event()
 
@@ -182,7 +182,7 @@ class TestAtomicBatchPublish:
         batch_id: str | None,
         expected: str,
     ) -> None:
-        broker = NatsBroker(id_generator=lambda: "generated")
+        broker = self.get_broker(apply_types=True, id_generator=lambda: "generated")
         received: list[str | None] = []
         done = asyncio.Event()
 
@@ -206,7 +206,7 @@ class TestAtomicBatchPublish:
 
     @pytest.mark.asyncio()
     async def test_publish_batch_needs_allow_atomic(self, queue: str) -> None:
-        broker = NatsBroker()
+        broker = self.get_broker(apply_types=True)
 
         @broker.subscriber(queue, stream=JStream(queue))
         async def handle() -> None: ...
