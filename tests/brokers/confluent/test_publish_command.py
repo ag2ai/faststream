@@ -28,7 +28,7 @@ class TestPublishCommand(BatchPublishCommandTestcase):
 
         cmd.batch_bodies = cmd.batch_bodies
 
-        assert cmd.batch_bodies == ("key-present", body, body)
+        assert cmd.batch_bodies == ("present", body, body)
         assert tuple(cmd.key_for(i) for i in range(3)) == expected_keys
 
     def test_kafka_response_class(self) -> None:
