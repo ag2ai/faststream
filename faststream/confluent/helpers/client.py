@@ -120,14 +120,24 @@ class AsyncConfluentProducer:
         loop = asyncio.get_running_loop()
         result_future: asyncio.Future[Message | None] = loop.create_future()
 
+        def _set_result(msg: Message | None) -> None:
+            if not result_future.done():
+                result_future.set_result(msg)
+
+        def _set_exception(exc: Exception) -> None:
+            if not result_future.done():
+                result_future.set_exception(exc)
+
         def ack_callback(err: Any, msg: Message | None) -> None:
+            if result_future.done():
+                return
             if err or (msg is not None and (err := msg.error())):
                 loop.call_soon_threadsafe(
-                    result_future.set_exception,
+                    _set_exception,
                     KafkaException(err),
                 )
             else:
-                loop.call_soon_threadsafe(result_future.set_result, msg)
+                loop.call_soon_threadsafe(_set_result, msg)
 
         kwargs["on_delivery"] = ack_callback
 
