@@ -54,10 +54,8 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
     @abstractmethod
     async def request(self, cmd: "NatsPublishCommand") -> "Msg": ...
 
-    @override
-    async def publish_batch(self, cmd: "NatsPublishCommand") -> Optional["PubAck"]:
-        msg = "NATS doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)
+    @abstractmethod
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> "PubAck": ...
 
 
 class NatsFastProducerImpl(NatsFastProducer):
@@ -116,6 +114,11 @@ class NatsFastProducerImpl(NatsFastProducer):
             reply=cmd.reply_to,
             headers=headers_to_send,
         )
+
+    @override
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> "PubAck":
+        msg = "NATS Core doesn't support publishing in batches. Use JetStream."
+        raise FeatureNotSupportedException(msg)
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
@@ -308,6 +311,5 @@ class FakeNatsFastProducer(NatsFastProducer):
         raise NotImplementedError
 
     @override
-    async def publish_batch(self, cmd: "NatsPublishCommand") -> Optional["PubAck"]:
-        msg = "NATS doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> "PubAck":
+        raise NotImplementedError

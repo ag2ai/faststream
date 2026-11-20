@@ -56,9 +56,10 @@ class TestTestclient(NatsMemoryTestcaseConfig, BrokerTestclientTestcase):
             received.append(msg)
 
         async with self.patch_broker(broker) as br:
-            await br.publish_batch(1, "hi", {"n": 2}, subject=queue, stream=queue)
+            ack = await br.publish_batch(1, "hi", {"n": 2}, subject=queue, stream=queue)
 
         assert received == [1, "hi", {"n": 2}]
+        assert (ack.stream, ack.seq) == (queue, 3)
 
     @pytest.mark.asyncio()
     async def test_wrong_stream_publish(
