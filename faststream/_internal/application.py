@@ -156,6 +156,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(x),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             )
             for x in on_startup
@@ -164,6 +165,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(x),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             )
             for x in after_startup
@@ -172,6 +174,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(x),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             )
             for x in on_shutdown
@@ -180,6 +183,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(x),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             )
             for x in after_shutdown
@@ -189,6 +193,7 @@ class Application(StartAbleApplication):
             self.lifespan_context = apply_types(
                 func=lifespan,
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 cast_result=False,
                 context__=self.context,
             )
@@ -329,6 +334,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(func),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             ),
         )
@@ -343,6 +349,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(func),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             ),
         )
@@ -357,6 +364,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(func),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             ),
         )
@@ -371,6 +379,7 @@ class Application(StartAbleApplication):
             apply_types(
                 to_async(func),
                 serializer_cls=self.config._serializer,
+                dependency_provider=self.config.provider,
                 context__=self.context,
             ),
         )
