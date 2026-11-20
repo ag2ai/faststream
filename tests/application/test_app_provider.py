@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated, NewType
 
@@ -19,9 +20,10 @@ async def test_lifecycle_hook_uses_app_dependency_provider(hook_name: str) -> No
     Dep = NewType("Dep", str)
     received: list[str] = []
 
-    @getattr(app, hook_name)
     async def hook(dep: Annotated[Dep, Depends(Dep)]) -> None:
         received.append(dep)
+
+    getattr(app, hook_name)(hook)
 
     with provider.scope(Dep, lambda: "mock dep"):
         for func in getattr(app, f"_{hook_name}_calling"):
@@ -37,7 +39,7 @@ async def test_lifespan_uses_app_dependency_provider() -> None:
     received: list[str] = []
 
     @asynccontextmanager
-    async def lifespan(dep: Annotated[Dep, Depends(Dep)]):
+    async def lifespan(dep: Annotated[Dep, Depends(Dep)]) -> AsyncGenerator[None, None]:
         received.append(dep)
         yield
 
