@@ -14,6 +14,7 @@ from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
 from redis.asyncio.connection import (
     Connection,
+    ConnectionPool,
     DefaultParser,
     Encoder,
 )
@@ -87,6 +88,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         client_name: str | None = SERVICE_NAME,
         health_check_interval: float = 0,
         max_connections: int | None = None,
+        connection_pool_class: type["ConnectionPool[Any]"] = EMPTY,
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
         socket_read_size: int = 65536,
@@ -159,6 +161,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             health_check_interval:
                 _ ...
             max_connections:
+                _ ...
+            connection_pool_class:
                 _ ...
             socket_timeout:
                 _ ...
@@ -334,6 +338,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
             db=db,
             health_check_interval=health_check_interval,
             max_connections=max_connections,
+            connection_pool_class=connection_pool_class,
             socket_timeout=socket_timeout,
             socket_connect_timeout=socket_connect_timeout,
             socket_read_size=socket_read_size,

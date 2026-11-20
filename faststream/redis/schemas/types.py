@@ -5,7 +5,12 @@ from typing import Any
 from fast_depends import Provider
 from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
-from redis.asyncio.connection import BaseParser, Connection, Encoder
+from redis.asyncio.connection import (
+    BaseParser,
+    Connection,
+    ConnectionPool,
+    Encoder,
+)
 from redis.asyncio.retry import Retry
 from typing_extensions import Required, TypedDict
 
@@ -44,6 +49,11 @@ class RedisConnectionParams(TypedDict, total=False):
 
     max_connections: int | None
     """Max connections in pool. Defaults to ``None``."""
+
+    connection_pool_class: type["ConnectionPool[Any]"]
+    """Connection pool class (e.g. ``BlockingConnectionPool`` to wait for a free
+    connection instead of raising ``MaxConnectionsError``).
+    Defaults to ``ConnectionPool``."""
 
     socket_timeout: float | None
     """Socket operation timeout. Defaults to ``None``."""
@@ -211,6 +221,7 @@ CLUSTER_INCOMPATIBLE_PARAMS = frozenset({
     "parser_class",
     "encoder_class",
     "connection_class",
+    "connection_pool_class",
     "host",
     "port",
 })
