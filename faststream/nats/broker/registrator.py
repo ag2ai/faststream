@@ -156,7 +156,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         persistent: bool = True,
-        max_workers: None = None,
+        max_workers: Literal[1] | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information

@@ -472,7 +472,7 @@ class NatsRouter(StreamRouter["Msg"]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        max_workers: None = None,
+        max_workers: Literal[1] | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information

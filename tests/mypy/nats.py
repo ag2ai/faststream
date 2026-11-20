@@ -488,6 +488,14 @@ def check_subscriber_instance_type(
     )
     assert_type(sub4_plain, ConcurrentPullStreamSubscriber)
 
+    sub4_single = broker.subscriber("test", stream="stream", pull_sub=True, max_workers=1)
+    assert_type(sub4_single, PullStreamSubscriber)
+
+    sub4_plain_single = broker.subscriber(
+        "test", stream="stream", pull_sub=PullSub(), max_workers=1
+    )
+    assert_type(sub4_plain_single, PullStreamSubscriber)
+
     sub5 = broker.subscriber("test", stream="stream", pull_sub=True)
     assert_type(sub5, PullStreamSubscriber)
 
