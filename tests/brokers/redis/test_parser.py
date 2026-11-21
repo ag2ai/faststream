@@ -1,17 +1,52 @@
 import asyncio
 import json
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import anyio
 import pytest
 
 from faststream._internal._compat import json_dumps
 from faststream.redis import RedisBroker, TestRedisBroker
+from faststream.redis.message import RedisBatchStreamMessage, RedisStreamMessage
 from faststream.redis.parser import BinaryMessageFormatV1, MessageFormat
 from tests.brokers.base.parser import CustomParserTestcase
 
 from .basic import RedisTestcaseConfig
+
+
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+class TestCustomStreamMessage:
+    async def test_single_message_from_raw_payload(self, async_mock: AsyncMock) -> None:
+        message = RedisStreamMessage(
+            raw_message={
+                "type": "stream",
+                "channel": "orders",
+                "message_ids": [b"1-0"],
+                "data": {},
+            },
+            body=b"order",
+        )
+
+        with pytest.warns(DeprecationWarning):
+            await message.ack(redis=async_mock, group="workers")
+        async_mock.xack.assert_awaited_once_with("orders", "workers", b"1-0")
+
+    async def test_batch_message_from_raw_payload(self, async_mock: AsyncMock) -> None:
+        message = RedisBatchStreamMessage(
+            raw_message={
+                "type": "bstream",
+                "channel": "orders",
+                "message_ids": [b"1-0", b"2-0"],
+                "data": [{}, {}],
+            },
+            body=b"orders",
+        )
+
+        with pytest.warns(DeprecationWarning):
+            await message.delete(redis=async_mock)
+        async_mock.xdel.assert_awaited_once_with("orders", b"1-0", b"2-0")
 
 
 @pytest.mark.connected()

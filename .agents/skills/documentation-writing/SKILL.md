@@ -1,6 +1,6 @@
 ---
 name: documentation-writing
-description: Use when writing or editing documentation under docs/ — page layout, docs_src snippet embedding, snippet tests, link conventions, and FastStream example-code rules.
+description: Use when writing or reviewing documentation under docs/ for broker behaviour, example code, snippet tests, page layout, or links.
 ---
 
 # FastStream Documentation Writing
@@ -74,12 +74,30 @@ All example code must follow idiomatic FastStream usage:
 - Use `Annotated[str, Path()]` for subject path params and `Annotated[..., Context()]` for context access (built-ins: `broker`, `context`, `logger`, `message`).
 - Import only from public packages — never `faststream._internal`.
 
+## What review checks in docs
+
+- **Every claim is verified against the code of the current version.** When behaviour changes between releases, update the guide for the version it describes.
+- **A feature is documented for every broker that has it**, not only for the one it was written against.
+- **LLM output is checked by the author before it is committed.** Generated prose reads plausible and states things the code does not do.
+- A risky pattern is not published at all; when a snippet relies on an assumption (idempotency, ordering, a single consumer), the assumption is stated next to it.
+- **Every page is self-contained.** A reader of the Confluent page never opens the Kafka one, so near-identical kafka/confluent or redis list/stream/pubsub pages are intended. Review a copied page for the broker-specific behaviour it must carry (Confluent's `group_id`), not for being a copy; a shared include under `docs/includes/` is for text verified against every broker that embeds it.
+- The example is minimal: no test scaffolding, no defensive code around a guaranteed key, nothing the point does not need.
+
 ## Build & serve
 
 - `just docs-serve` — live dev server on port 8000.
 - `just docs-build` — build the static site.
 - `just docs-build-api` — regenerate the API reference.
 - `just docs-check` — the PR gate: strict build of the guides (broken links and anchors fail) plus `docs/check_site.py` (unique titles, canonicals, sitemap, JSON-LD, image `alt`), about 10 s. Run it before pushing a docs change.
+
+`docs.py build` appends missing GitHub releases to `docs/docs/en/release.md`. Use `just docs-check` to validate guide edits. When a full build is needed, check the file’s diff before and after the build so you can discard generated additions and keep any manual corrections.
+
+A published release dispatches the docs workflow on the default branch with `release_tag` set to the published tag. For a manual release build, supply that tag too. Leaving the input empty builds the default-branch SHA from the dispatch, which may contain unreleased changes. A non-RC build updates `/latest/`. A release candidate publishes only to its versioned path.
+
+### Indexing versioned docs
+
+- `robots.txt` has no `Disallow` for archived versions — a blocked crawl would stop Google reading their `noindex` and leave them indexed as bare URLs.
+- `canonical_version: latest` stays in `mkdocs.yml` — without it `/latest/` canonicals point at the numbered version, which becomes the indexed one after the next release.
 
 ## Related skills
 
