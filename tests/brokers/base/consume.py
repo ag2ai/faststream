@@ -579,6 +579,14 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(queue)
         sub = consume_broker.subscriber(*args, **kwargs)
+        transport_closed = asyncio.Event()
+
+        real_close_transport = sub._close_transport
+
+        async def close_transport() -> None:
+            await asyncio.sleep(0.1)
+            await real_close_transport()
+            transport_closed.set()
 
         @sub
         def subscriber(m: Any) -> None:
@@ -586,23 +594,23 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
             event.set()
             raise StopConsume
 
-        async with self.patch_broker(consume_broker) as br:
-            await br.start()
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("hello", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=self.timeout,
-            )
-            with anyio.fail_after(self.timeout):
-                while sub.running:  # ruff: ignore[async-busy-wait]
-                    await asyncio.sleep(0.01)
-            await br.publish("hello", queue)
-            await asyncio.sleep(0.5)
+        with patch.object(sub, "_close_transport", close_transport):
+            async with self.patch_broker(consume_broker) as br:
+                await br.start()
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=self.timeout,
+                )
+                await transport_closed.wait()
+                await br.publish("hello", queue)
+                await asyncio.sleep(0.5)
 
         assert event.is_set()
         mock.assert_called_once()
+        assert transport_closed.is_set()
 
     @pytest.mark.asyncio()
     async def test_iteration(

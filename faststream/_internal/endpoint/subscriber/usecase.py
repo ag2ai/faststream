@@ -273,7 +273,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
         Blocks event loop up to graceful_timeout seconds.
         """
-        if self._stop_task is None:
+        if self._stop_task is None or self._stop_task.done():
             self._stop_task = asyncio.create_task(self._stop())
         if blocking:
             await asyncio.shield(self._stop_task)
