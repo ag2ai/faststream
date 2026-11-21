@@ -19,9 +19,11 @@ if TYPE_CHECKING:
     from redis.asyncio.client import Redis
     from redis.asyncio.cluster import RedisCluster
 
+    from faststream._internal.basic_types import DecodedMessage
     from faststream._internal.parser import CodecProto
-    from faststream._internal.types import CustomCallable
+    from faststream._internal.types import Decoder, Parser
     from faststream.redis.configs import ConnectionState
+    from faststream.redis.message import PubSubMessage, RedisChannelMessage
     from faststream.redis.parser import MessageFormat
 
 
@@ -37,14 +39,14 @@ class BaseRedisFastProducer(ProducerProto[RedisPublishCommand]):
     )
 
     _connection: "ConnectionState[Any]"
-    _decoder: "ParserComposition"
-    _parser: "ParserComposition"
+    _decoder: "ParserComposition[RedisChannelMessage, DecodedMessage]"
+    _parser: "ParserComposition[PubSubMessage, RedisChannelMessage]"
 
     def __init__(
         self,
         connection: "ConnectionState[Any]",
-        parser: Optional["CustomCallable"],
-        decoder: Optional["CustomCallable"],
+        parser: Optional["Parser[PubSubMessage, RedisChannelMessage]"],
+        decoder: Optional["Decoder[RedisChannelMessage]"],
         message_format: type["MessageFormat"],
         serializer: Optional["SerializerProto"],
         codec: Optional["CodecProto"] = None,
@@ -105,8 +107,8 @@ class RedisFastProducer(BaseRedisFastProducer):
     def __init__(
         self,
         connection: "ConnectionState[Redis[bytes]]",
-        parser: Optional["CustomCallable"],
-        decoder: Optional["CustomCallable"],
+        parser: Optional["Parser[PubSubMessage, RedisChannelMessage]"],
+        decoder: Optional["Decoder[RedisChannelMessage]"],
         message_format: type["MessageFormat"],
         serializer: Optional["SerializerProto"],
     ) -> None:

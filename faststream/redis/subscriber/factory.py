@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.parser import MessageFormat
 
-SubscriberType: TypeAlias = LogicSubscriber
+SubscriberType: TypeAlias = LogicSubscriber[Any, Any]
 
 
 def create_subscriber(
@@ -58,7 +58,7 @@ def create_subscriber(
         max_workers=max_workers,
     )
 
-    subscriber_config = RedisSubscriberConfig(
+    subscriber_config = RedisSubscriberConfig[Any, Any](
         channel_sub=PubSub.validate(channel),
         list_sub=ListSub.validate(list),
         stream_sub=StreamSub.validate(stream),
@@ -74,7 +74,7 @@ def create_subscriber(
         include_in_schema=include_in_schema,
     )
 
-    calls = CallsCollection[Any]()
+    calls = CallsCollection[Any, Any]()
 
     specification: RedisSubscriberSpecification
     if subscriber_config.channel_sub:

@@ -13,7 +13,7 @@ from typing_extensions import Self
 from .source_type import SourceType
 
 if TYPE_CHECKING:
-    from faststream._internal.types import AsyncCallable
+    from faststream._internal.types import Decoder
 
 # prevent circular imports
 MsgType = TypeVar("MsgType")
@@ -60,13 +60,13 @@ class StreamMessage(Generic[MsgType]):
         self.processed = False
 
         # Setup later
-        self.__decoder: AsyncCallable | None = None
+        self.__decoder: Decoder[Self] | None = None
         self.__decoded_caches: dict[
             Any,
             Any,
         ] = {}  # Cache values between filters and tests
 
-    def set_decoder(self, decoder: "AsyncCallable") -> None:
+    def set_decoder(self, decoder: "Decoder[Self]") -> None:
         self.__decoder = decoder
 
     def clear_cache(self) -> None:
@@ -99,7 +99,7 @@ class StreamMessage(Generic[MsgType]):
 
         return f"{self.__class__.__name__}({inner})"
 
-    async def decode(self) -> Optional["Any"]:
+    async def decode(self: Self) -> Optional["Any"]:
         """Serialize the message by lazy decoder.
 
         Returns a cache after first usage. To prevent such behavior, please call

@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeAlias, cast
 
 import anyio
 from typing_extensions import override
@@ -11,10 +11,9 @@ from faststream._internal.endpoint.subscriber import (
     SubscriberSpecification,
     SubscriberUsecase,
 )
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
-from faststream.redis.message import (
-    UnifyRedisDict,
-)
+from faststream._internal.endpoint.subscriber.mixins import TasksMixin
+from faststream._internal.types import MsgType, StreamMsgType
+from faststream.redis.message import BaseRedisMsgType
 from faststream.redis.publisher.fake import RedisFakePublisher
 
 if TYPE_CHECKING:
@@ -38,7 +37,11 @@ Offset: TypeAlias = bytes
 CONSUME_ERROR_BACKOFF_SECONDS = 5
 
 
-class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
+class LogicSubscriber(
+    TasksMixin[BaseRedisMsgType, StreamMsgType],
+    SubscriberUsecase[BaseRedisMsgType, StreamMsgType],
+    Generic[BaseRedisMsgType, StreamMsgType],
+):
     """A class to represent a Redis handler."""
 
     __slots__ = ("config",)
@@ -47,9 +50,9 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[MsgType, StreamMsgType]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[MsgType, StreamMsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
         self.config = config
@@ -60,7 +63,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
 
     def _make_response_publisher(
         self,
-        message: "BrokerStreamMessage[UnifyRedisDict]",
+        message: StreamMsgType,
     ) -> Sequence["PublisherProto"]:
         return (
             RedisFakePublisher(
@@ -91,8 +94,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             start_signal.set()
 
     async def _consume(self, *args: Any, start_signal: anyio.Event) -> None:
-        connected = True
-
         while self.running:
             try:
                 await self._get_msgs(*args)
@@ -103,16 +104,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
                     message="Message fetch error",
                     exc_info=e,
                 )
-
-                if connected:
-                    connected = False
-
                 await anyio.sleep(CONSUME_ERROR_BACKOFF_SECONDS)
-
-            else:
-                if not connected:
-                    connected = True
-
             finally:
                 if not start_signal.is_set():
                     with suppress(Exception):
@@ -132,28 +124,5 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[UnifyRedisDict]):
             "message_id": getattr(message, "message_id", ""),
         }
 
-    async def consume_one(self, msg: Any) -> None:
+    async def consume_one(self, msg: BaseRedisMsgType) -> None:
         await self.consume(msg)
-
-
-class ConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage[Any]"],
-    LogicSubscriber,
-):
-    __slots__ = ()
-
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
-        max_workers: int,
-    ) -> None:
-        super().__init__(config, specification, calls, max_workers=max_workers)
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
-        await self._put_msg(msg)

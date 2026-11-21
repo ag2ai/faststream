@@ -67,7 +67,7 @@ class TaskCallbackSupervisor:
         func: Callable[..., Coroutine[Any, Any, Any]],
         func_args: tuple[Any] | None,
         func_kwargs: dict[str, Any] | None,
-        subscriber: TasksMixin,
+        subscriber: TasksMixin[Any, Any],
         *,
         ignored_exceptions: tuple[type[BaseException], ...] = (CancelledError,),
         restart_on_failure: bool = True,

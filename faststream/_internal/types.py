@@ -12,7 +12,7 @@ from typing_extensions import (
     TypeVar as TypeVar313,
 )
 
-from faststream._internal.basic_types import AsyncFuncAny
+from faststream._internal.basic_types import AsyncFuncAny, DecodedMessage
 from faststream._internal.context.repository import ContextRepo
 from faststream.message import StreamMessage
 from faststream.response.response import PublishCommand
@@ -25,7 +25,9 @@ AnyMsg = TypeVar313("AnyMsg", default=Any)
 AnyMsg_contra = TypeVar313("AnyMsg_contra", default=Any, contravariant=True)
 MiddlewareMsgType = TypeVar313("MiddlewareMsgType", default=Any | None)
 MsgType = TypeVar("MsgType")
-StreamMsg = TypeVar("StreamMsg", bound=StreamMessage[Any])
+StreamMsgType = TypeVar313(
+    "StreamMsgType", bound=StreamMessage[Any], default=StreamMessage[Any]
+)
 ConnectionType = TypeVar("ConnectionType")
 PublishCommandType = TypeVar313(
     "PublishCommandType",
@@ -39,9 +41,9 @@ PublishCommandType_contra = TypeVar313(
     contravariant=True,
 )
 
-SyncFilter: TypeAlias = Callable[[StreamMsg], bool]
-AsyncFilter: TypeAlias = Callable[[StreamMsg], Awaitable[bool]]
-Filter: TypeAlias = SyncFilter[StreamMsg] | AsyncFilter[StreamMsg]
+SyncFilter: TypeAlias = Callable[[StreamMsgType], bool]
+AsyncFilter: TypeAlias = Callable[[StreamMsgType], Awaitable[bool]]
+Filter: TypeAlias = SyncFilter[StreamMsgType] | AsyncFilter[StreamMsgType]
 
 SyncCallable: TypeAlias = Callable[
     [Any],
@@ -52,6 +54,12 @@ AsyncCustomCallable: TypeAlias = (
     AsyncFuncAny | Callable[[Any, AsyncFuncAny], Awaitable[Any]]
 )
 CustomCallable: TypeAlias = AsyncCustomCallable | SyncCallable
+
+# adapter fallback, drop it and default in the StreamMsgType when all brokers annotate parsing flow
+MsgTypeWithFallback = TypeVar313("MsgTypeWithFallback", default=Any)
+
+Parser: TypeAlias = Callable[[MsgType], Awaitable[StreamMsgType]]
+Decoder: TypeAlias = Callable[[StreamMsgType], Awaitable[DecodedMessage]]
 
 P_HandlerParams = ParamSpec("P_HandlerParams")
 T_HandlerReturn = TypeVar("T_HandlerReturn")
