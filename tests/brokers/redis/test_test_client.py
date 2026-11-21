@@ -165,6 +165,21 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             latin1_handler.mock.assert_not_called()
             latin1_ascii_handler.mock.assert_called_once_with("2")
 
+    @pytest.mark.parametrize("encoding_errors", ("replace", "ignore"))
+    async def test_pub_sub_pattern_uses_broker_encoding_errors(
+        self,
+        encoding_errors: str,
+    ) -> None:
+        broker = self.get_broker(encoding="ascii", encoding_errors=encoding_errors)
+
+        @broker.subscriber(PubSub("logs.*", pattern=True))
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("1", "logs.é")
+
+            handler.mock.assert_called_once_with("1")
+
     async def test_list(
         self,
         queue: str,

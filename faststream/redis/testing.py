@@ -179,13 +179,18 @@ class TestRedisBroker(
         sub: LogicSubscriber | None = None
 
         named_property = publisher.subscriber_property(name_only=True)
-        channel_encoding = broker.config.broker_config.connection.encoding
+        connection = broker.config.broker_config.connection
+        channel_encoding = connection.encoding
+        channel_encoding_errors = connection.encoding_errors
 
         for b in self.brokers:  # pragma: no branch
+            subscribers_connection = b.config.broker_config.connection
             visitors = (
                 ChannelVisitor(
                     channel_encoding,
-                    b.config.broker_config.connection.encoding,
+                    subscribers_connection.encoding,
+                    channel_encoding_errors,
+                    subscribers_connection.encoding_errors,
                 ),
                 ListVisitor(),
                 StreamVisitor(),
@@ -389,13 +394,18 @@ class FakeProducer(RedisFastProducer):
         session_id: uuid.UUID,
     ) -> "Iterator[tuple[Visitor, str, LogicSubscriber]]":
         published_groups: set[tuple[str, str]] = set()
-        channel_encoding = self.broker.config.broker_config.connection.encoding
+        connection = self.broker.config.broker_config.connection
+        channel_encoding = connection.encoding
+        channel_encoding_errors = connection.encoding_errors
 
         for b in self.brokers:  # pragma: no branch
+            subscribers_connection = b.config.broker_config.connection
             visitors = (
                 ChannelVisitor(
                     channel_encoding,
-                    b.config.broker_config.connection.encoding,
+                    subscribers_connection.encoding,
+                    channel_encoding_errors,
+                    subscribers_connection.encoding_errors,
                 ),
                 ListVisitor(),
                 StreamVisitor(),
@@ -650,6 +660,8 @@ def _redis_glob_matches(
     channel: str,
     pattern_encoding: str = "utf-8",
     channel_encoding: str = "utf-8",
+    pattern_encoding_errors: str = "strict",
+    channel_encoding_errors: str = "strict",
 ) -> bool:
     """Match a channel against a Redis PSUBSCRIBE glob pattern.
 
@@ -659,8 +671,8 @@ def _redis_glob_matches(
     classes consume one pattern byte and one channel byte, not code points.
     """
     return _redis_glob_match(
-        pattern.encode(pattern_encoding),
-        channel.encode(channel_encoding),
+        pattern.encode(pattern_encoding, errors=pattern_encoding_errors),
+        channel.encode(channel_encoding, errors=channel_encoding_errors),
     )
 
 
@@ -682,9 +694,13 @@ class ChannelVisitor(Visitor):
         self,
         channel_encoding: str = "utf-8",
         pattern_encoding: str = "utf-8",
+        channel_encoding_errors: str = "strict",
+        pattern_encoding_errors: str = "strict",
     ) -> None:
         self.channel_encoding = channel_encoding
         self.pattern_encoding = pattern_encoding
+        self.channel_encoding_errors = channel_encoding_errors
+        self.pattern_encoding_errors = pattern_encoding_errors
 
     @override
     def visit(
@@ -708,6 +724,8 @@ class ChannelVisitor(Visitor):
                 channel,
                 self.pattern_encoding,
                 self.channel_encoding,
+                self.pattern_encoding_errors,
+                self.channel_encoding_errors,
             ):
                 return channel
             return None
