@@ -1,6 +1,5 @@
-import re
 import uuid
-from collections.abc import AsyncGenerator, Generator, Iterable, Iterator, Sequence
+from collections.abc import AsyncGenerator, Generator, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from dataclasses import dataclass
@@ -180,16 +179,28 @@ class TestRedisBroker(
         sub: LogicSubscriber | None = None
 
         named_property = publisher.subscriber_property(name_only=True)
-        visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
+        connection = broker.config.broker_config.connection
+        channel_encoding = connection.encoding
+        channel_encoding_errors = connection.encoding_errors
 
-        for handler in (
-            s for b in self.brokers for s in b.subscribers
-        ):  # pragma: no branch
-            handler = cast("LogicSubscriber", handler)
-            for visitor in visitors:
-                if visitor.visit(**named_property, sub=handler):
-                    sub = handler
-                    break
+        for b in self.brokers:  # pragma: no branch
+            subscribers_connection = b.config.broker_config.connection
+            visitors = (
+                ChannelVisitor(
+                    channel_encoding,
+                    subscribers_connection.encoding,
+                    channel_encoding_errors,
+                    subscribers_connection.encoding_errors,
+                ),
+                ListVisitor(),
+                StreamVisitor(),
+            )
+            for handler in b.subscribers:
+                handler = cast("LogicSubscriber", handler)
+                for visitor in visitors:
+                    if visitor.visit(**named_property, sub=handler):
+                        sub = handler
+                        break
 
         if sub is None:
             is_real = False
@@ -254,10 +265,6 @@ class FakeProducer(RedisFastProducer):
         self.codec = broker.config.broker_codec or DefaultCodec()
         self.pel = pel or PEL()
 
-    @property
-    def subscribers(self) -> "Iterable[LogicSubscriber]":
-        return (cast("LogicSubscriber", s) for b in self.brokers for s in b.subscribers)
-
     @override
     def _build_child(self, **kwargs: Any) -> "FakeProducer":
         return FakeProducer(
@@ -278,11 +285,9 @@ class FakeProducer(RedisFastProducer):
             codec=self.codec,
         )
         destination = _make_destination_kwargs(cmd)
-        visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
         session_id = uuid.uuid4()
         for visitor, visited_ch, handler in self._find_handlers(
             destination=destination,
-            visitors=visitors,
             cmd=cmd,
             session_id=session_id,
         ):
@@ -308,12 +313,10 @@ class FakeProducer(RedisFastProducer):
         )
 
         destination = _make_destination_kwargs(cmd)
-        visitors = (ChannelVisitor(), ListVisitor(), StreamVisitor())
         session_id = uuid.uuid4()
 
         for visitor, visited_ch, handler in self._find_handlers(
             destination=destination,
-            visitors=visitors,
             cmd=cmd,
             session_id=session_id,
         ):
@@ -345,7 +348,6 @@ class FakeProducer(RedisFastProducer):
 
         for visitor, visited_ch, handler in self._find_handlers(
             {"list": cmd.destination},
-            (ListVisitor(),),
             cmd=cmd,
             session_id=session_id,
         ):
@@ -388,27 +390,42 @@ class FakeProducer(RedisFastProducer):
     def _find_handlers(
         self,
         destination: "_DestinationKwargs",
-        visitors: "Sequence[Visitor]",
         cmd: "RedisPublishCommand",
         session_id: uuid.UUID,
     ) -> "Iterator[tuple[Visitor, str, LogicSubscriber]]":
         published_groups: set[tuple[str, str]] = set()
+        connection = self.broker.config.broker_config.connection
+        channel_encoding = connection.encoding
+        channel_encoding_errors = connection.encoding_errors
 
-        for handler in self.subscribers:  # pragma: no branch
-            for visitor in visitors:
-                visited_ch = visitor.visit(**destination, sub=handler)
-                if visited_ch is None:
-                    continue
-                if not self._return_handlers(
-                    handler=handler,
-                    visited_ch=visited_ch,
-                    published_groups=published_groups,
-                    cmd=cmd,
-                    session_id=session_id,
-                ):
+        for b in self.brokers:  # pragma: no branch
+            subscribers_connection = b.config.broker_config.connection
+            visitors = (
+                ChannelVisitor(
+                    channel_encoding,
+                    subscribers_connection.encoding,
+                    channel_encoding_errors,
+                    subscribers_connection.encoding_errors,
+                ),
+                ListVisitor(),
+                StreamVisitor(),
+            )
+            for handler in b.subscribers:
+                handler = cast("LogicSubscriber", handler)
+                for visitor in visitors:
+                    visited_ch = visitor.visit(**destination, sub=handler)
+                    if visited_ch is None:
+                        continue
+                    if not self._return_handlers(
+                        handler=handler,
+                        visited_ch=visited_ch,
+                        published_groups=published_groups,
+                        cmd=cmd,
+                        session_id=session_id,
+                    ):
+                        break
+                    yield visitor, visited_ch, handler
                     break
-                yield visitor, visited_ch, handler
-                break
 
     def _return_handlers(
         self,
@@ -501,6 +518,164 @@ async def build_message(
     )
 
 
+def _signed_byte(value: int) -> int:
+    """Read a pattern byte as C's signed `char` on x86-64 and Windows."""
+    return value - 256 if value > 127 else value
+
+
+def _redis_glob_match_class(
+    pattern: bytes,
+    pattern_index: int,
+    subject_byte: int,
+) -> tuple[bool, int]:
+    """Match one character class, returning the result and its end index."""
+    pattern_end = len(pattern)
+    close_bracket = ord("]")
+    backslash = ord("\\")
+    negation = ord("^")
+    range_separator = ord("-")
+
+    pattern_index += 1  # skip '['
+    negate = pattern_index < pattern_end and pattern[pattern_index] == negation
+    if negate:
+        pattern_index += 1
+
+    matched = False
+    while True:
+        if (
+            pattern_index < pattern_end
+            and pattern[pattern_index] == backslash
+            and pattern_end - pattern_index >= 2
+        ):
+            pattern_index += 1
+            if pattern[pattern_index] == subject_byte:
+                matched = True
+        elif pattern_index < pattern_end and pattern[pattern_index] == close_bracket:
+            break
+        elif pattern_index >= pattern_end:
+            # An unterminated class ends with the pattern.
+            pattern_index -= 1
+            break
+        elif (
+            pattern_end - pattern_index >= 3
+            and pattern[pattern_index + 1] == range_separator
+        ):
+            # Redis reads the bounds as `char`. Sign-extend them to mirror the
+            # signed-char builds (x86-64, Windows); unsigned-char platforms
+            # differ only for non-ASCII bounds.
+            start = _signed_byte(pattern[pattern_index])
+            end = _signed_byte(pattern[pattern_index + 2])
+            subject = _signed_byte(subject_byte)
+            if start > end:
+                start, end = end, start
+            if start <= subject <= end:
+                matched = True
+            pattern_index += 2
+        elif pattern[pattern_index] == subject_byte:
+            matched = True
+        pattern_index += 1
+
+    return (not matched if negate else matched), pattern_index
+
+
+def _redis_glob_match(pattern: bytes, channel: bytes) -> bool:
+    """Match the whole channel, mirroring `stringmatchlen_impl`.
+
+    The C recursion for `*` is kept as an explicit stack of active star loops:
+    Python's own recursion limit is lower than Redis' nesting guard.
+    """
+    pattern_end = len(pattern)
+    channel_end = len(channel)
+    star = ord("*")
+    question = ord("?")
+    open_bracket = ord("[")
+    backslash = ord("\\")
+
+    pattern_index = 0
+    subject_index = 0
+    # The index after each active `*` and the next subject position to try.
+    # Redis aborts the whole match once one such loop runs out of positions,
+    # so only the innermost loop ever has to advance.
+    star_loops: list[tuple[int, int]] = []
+
+    while True:
+        while pattern_index < pattern_end and subject_index < channel_end:
+            byte = pattern[pattern_index]
+
+            if byte == star:
+                while (
+                    pattern_index + 1 < pattern_end and pattern[pattern_index + 1] == star
+                ):
+                    pattern_index += 1
+                if pattern_end - pattern_index == 1:
+                    return True
+                if len(star_loops) >= 1000:
+                    # Redis aborts once matching nests deeper than 1000.
+                    return False
+                star_loops.append((pattern_index + 1, subject_index))
+                pattern_index += 1
+                continue
+
+            if byte == question:
+                subject_index += 1
+            elif byte == open_bracket:
+                matched, pattern_index = _redis_glob_match_class(
+                    pattern, pattern_index, channel[subject_index]
+                )
+                if not matched:
+                    break
+                subject_index += 1
+            elif byte == backslash:
+                if pattern_end - pattern_index >= 2:
+                    pattern_index += 1
+                if pattern[pattern_index] != channel[subject_index]:
+                    break
+                subject_index += 1
+            elif byte != channel[subject_index]:
+                break
+            else:
+                subject_index += 1
+
+            pattern_index += 1
+            if subject_index == channel_end:
+                while pattern_index < pattern_end and pattern[pattern_index] == star:
+                    pattern_index += 1
+                break
+
+        if pattern_index == pattern_end and subject_index == channel_end:
+            return True
+
+        if not star_loops:
+            return False
+
+        pattern_index, subject_index = star_loops[-1]
+        subject_index += 1
+        if subject_index >= channel_end:
+            return False
+        star_loops[-1] = (pattern_index, subject_index)
+
+
+def _redis_glob_matches(
+    pattern: str,
+    channel: str,
+    pattern_encoding: str = "utf-8",
+    channel_encoding: str = "utf-8",
+    pattern_encoding_errors: str = "strict",
+    channel_encoding_errors: str = "strict",
+) -> bool:
+    """Match a channel against a Redis PSUBSCRIBE glob pattern.
+
+    A port of `stringmatchlen_impl` from `redis/src/util.c`: matching is done
+    over each side's configured encoding bytes. Redis encodes the subscriber's
+    pattern and the publisher's channel independently, so `?` and character
+    classes consume one pattern byte and one channel byte, not code points.
+    """
+    return _redis_glob_match(
+        pattern.encode(pattern_encoding, errors=pattern_encoding_errors),
+        channel.encode(channel_encoding, errors=channel_encoding_errors),
+    )
+
+
 class Visitor(Protocol):
     def visit(
         self,
@@ -515,6 +690,18 @@ class Visitor(Protocol):
 
 
 class ChannelVisitor(Visitor):
+    def __init__(
+        self,
+        channel_encoding: str = "utf-8",
+        pattern_encoding: str = "utf-8",
+        channel_encoding_errors: str = "strict",
+        pattern_encoding_errors: str = "strict",
+    ) -> None:
+        self.channel_encoding = channel_encoding
+        self.pattern_encoding = pattern_encoding
+        self.channel_encoding_errors = channel_encoding_errors
+        self.pattern_encoding_errors = pattern_encoding_errors
+
     @override
     def visit(
         self,
@@ -529,19 +716,21 @@ class ChannelVisitor(Visitor):
 
         sub_channel = sub.channel
 
-        if (
-            sub_channel.pattern
-            and bool(
-                re.fullmatch(
-                    # Real Redis globs match the whole channel name, not a prefix.
-                    # Escaped wholesale and then opened back up at the wildcard,
-                    # the way `REDIS_ADDRESS_SYNTAX` does it: a Broker address may
-                    # hold a literal brace, and `{2}` left bare is a quantifier.
-                    re.escape(sub_channel.name).replace(r"\*", ".*"),
-                    channel or "",
-                ),
-            )
-        ) or channel == sub_channel.name:
+        if sub_channel.pattern:
+            # A pattern is a Redis PSUBSCRIBE glob, not a broker address
+            # template: it must not fall back to literal equality.
+            if _redis_glob_matches(
+                sub_channel.name,
+                channel,
+                self.pattern_encoding,
+                self.channel_encoding,
+                self.pattern_encoding_errors,
+                self.channel_encoding_errors,
+            ):
+                return channel
+            return None
+
+        if channel == sub_channel.name:
             return channel
 
         return None

@@ -1,11 +1,12 @@
 import asyncio
 from typing import Any
+from unittest.mock import call
 
 import pytest
 
 from faststream import BaseMiddleware
 from faststream.exceptions import SetupError
-from faststream.redis import ListSub, StreamSub
+from faststream.redis import ListSub, PubSub, StreamSub
 from faststream.redis.testing import FakeProducer
 from tests.brokers.base.testclient import BrokerTestclientTestcase
 
@@ -102,6 +103,80 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             await br.publish("1", "logs.app.error")
             await br.publish("2", "logs.app.error.extra")
             await br.publish("3", "logs.app.errors")
+
+            handler.mock.assert_called_once_with("1")
+
+    async def test_pub_sub_question_mark_pattern(self) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(PubSub("logs.?", pattern=True))
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("1", "logs.a")
+            await br.publish("2", "logs.ab")
+
+            handler.mock.assert_called_once_with("1")
+
+    async def test_pub_sub_character_class_pattern(self) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(PubSub("logs.[ab]", pattern=True))
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("1", "logs.a")
+            await br.publish("2", "logs.b")
+            await br.publish("3", "logs.c")
+            await br.publish("4", "logs.[ab]")
+
+            handler.mock.assert_has_calls([call("1"), call("2")])
+            assert handler.mock.call_count == 2
+
+    async def test_pub_sub_pattern_uses_broker_encoding(self) -> None:
+        broker = self.get_broker(encoding="latin-1")
+
+        @broker.subscriber(PubSub("logs.?", pattern=True))
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("1", "logs.é")
+
+            handler.mock.assert_called_once_with("1")
+
+    async def test_pattern_encoding_uses_subscriber_broker(self) -> None:
+        publisher_broker = self.get_broker()
+        subscriber_broker = self.get_broker(encoding="latin-1")
+
+        @publisher_broker.subscriber(PubSub("logs.é?", pattern=True))
+        async def utf8_handler(msg: Any) -> None: ...
+
+        @subscriber_broker.subscriber(PubSub("logs.é?", pattern=True))
+        async def latin1_handler(msg: Any) -> None: ...
+
+        @subscriber_broker.subscriber(PubSub("logs.?", pattern=True))
+        async def latin1_ascii_handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(publisher_broker, subscriber_broker):
+            await publisher_broker.publish("1", "logs.éa")
+            await publisher_broker.publish("2", "logs.a")
+
+            utf8_handler.mock.assert_called_once_with("1")
+            latin1_handler.mock.assert_not_called()
+            latin1_ascii_handler.mock.assert_called_once_with("2")
+
+    @pytest.mark.parametrize("encoding_errors", ("replace", "ignore"))
+    async def test_pub_sub_pattern_uses_broker_encoding_errors(
+        self,
+        encoding_errors: str,
+    ) -> None:
+        broker = self.get_broker(encoding="ascii", encoding_errors=encoding_errors)
+
+        @broker.subscriber(PubSub("logs.*", pattern=True))
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("1", "logs.é")
 
             handler.mock.assert_called_once_with("1")
 
