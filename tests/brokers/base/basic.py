@@ -56,7 +56,7 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
 
             async with AsyncExitStack() as stack:
                 for br in brokers:
-                    started_brokers.append(await stack.enter_async_context(br))  # noqa: PERF401
+                    started_brokers.append(await stack.enter_async_context(br))  # ruff: ignore[manual-list-comprehension]
 
                 yield tuple(started_brokers)
 

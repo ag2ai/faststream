@@ -1,0 +1,91 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {
+    "test_1:TestTopic": {
+      "bindings": {
+        "kafka": {
+          "bindingVersion": "0.4.0",
+          "topic": "test_1"
+        }
+      },
+      "publish": {
+        "message": {
+          "$ref": "#/components/messages/test_1:TestTopic:Message"
+        }
+      },
+      "servers": [
+        "development"
+      ]
+    },
+    "test_2:Publisher": {
+      "bindings": {
+        "kafka": {
+          "bindingVersion": "0.4.0",
+          "topic": "test_2"
+        }
+      },
+      "servers": [
+        "development"
+      ],
+      "subscribe": {
+        "message": {
+          "$ref": "#/components/messages/test_2:Publisher:Message"
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "test_1:TestTopic:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/TestTopic:Message:Payload"
+        },
+        "title": "test_1:TestTopic:Message"
+      },
+      "test_2:Publisher:Message": {
+        "correlationId": {
+          "location": "$message.header#/correlation_id"
+        },
+        "payload": {
+          "$ref": "#/components/schemas/test_2:Publisher:Message:Payload"
+        },
+        "title": "test_2:Publisher:Message"
+      }
+    },
+    "schemas": {
+      "TestTopic:Message:Payload": {
+        "title": "TestTopic:Message:Payload",
+        "type": "string"
+      },
+      "test_2:Publisher:Message:Payload": {
+        "title": "test_2:Publisher:Message:Payload",
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "user-password": {
+        "type": "userPassword"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "kafka-secure",
+      "protocolVersion": "auto",
+      "security": [
+        {
+          "user-password": []
+        }
+      ],
+      "url": "localhost:9092"
+    }
+  }
+}

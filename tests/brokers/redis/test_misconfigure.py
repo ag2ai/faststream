@@ -1,12 +1,24 @@
 from typing import Any
 
 import pytest
+from redis.asyncio.client import Pipeline, Redis
 
 from faststream import AckPolicy
+from faststream._internal._compat import ExceptionGroup
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
-from faststream.redis import ListSub, RedisBroker, RedisRouter, StreamSub
+from faststream.redis import (
+    ListSub,
+    RedisBroker,
+    RedisRouter,
+    StreamSub,
+    TestRedisBroker,
+    annotations,
+)
 from faststream.redis.subscriber.usecases import StreamConcurrentSubscriber
+from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
+
+from .basic import RedisMemoryTestcaseConfig
 
 
 @pytest.mark.redis()
@@ -80,3 +92,36 @@ def test_max_workers_ignored_by_batch(destination: dict[str, Any]) -> None:
 
     # the warning points at the line that registered the subscriber
     assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
+
+
+@pytest.mark.redis()
+class TestDriverAnnotations(RedisMemoryTestcaseConfig, DriverAnnotationTestcase):
+    driver_class = Redis
+    driver_path = "redis.asyncio.client.Redis"
+    context_annotation = annotations.Redis
+    annotation_import = "from faststream.redis.annotations import Redis"
+
+
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+async def test_every_driver_class_argument_is_reported() -> None:
+    broker = RedisBroker()
+
+    @broker.subscriber("test")
+    async def handler(redis: Redis, pipe: Pipeline) -> None: ...  # type: ignore[type-arg]  # the bare driver generic is the mistake under test
+
+    with pytest.raises(ExceptionGroup) as excinfo:
+        async with TestRedisBroker(broker):
+            pass
+
+    assert excinfo.value.message == "`handler` has arguments FastStream cannot inject."
+    assert [str(e).splitlines()[0] for e in excinfo.value.exceptions] == [
+        (
+            "`redis` is annotated with `redis.asyncio.client.Redis`,"
+            " which FastStream cannot inject."
+        ),
+        (
+            "`pipe` is annotated with `redis.asyncio.client.Pipeline`,"
+            " which FastStream cannot inject."
+        ),
+    ]

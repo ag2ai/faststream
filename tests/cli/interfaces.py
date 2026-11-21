@@ -17,4 +17,5 @@ class FastStreamCLIFactory(Protocol):
         *cmd: str,
         wait_time: float = 2.0,
         extra_env: dict[str, str] | None = None,
+        readiness_url: str | None = None,
     ) -> AbstractContextManager[Any]: ...

@@ -138,6 +138,8 @@ class RedisBroker(
                 ack_policy=kwargs.get("ack_policy", EMPTY),
                 id_generator=kwargs.get("id_generator", gen_cor_id),
                 extra_context={"broker": self},
+                underlying_driver_annotations=kwargs.get("underlying_driver_annotations")
+                or {},
             ),
             specification=BrokerSpec(
                 description=kwargs.get("description"),
@@ -152,7 +154,7 @@ class RedisBroker(
     def _validate_init_params(self, kwargs: dict[str, Any]) -> None:
         """Validate constructor params. Hook for subclasses; no-op by default."""
 
-    def _make_connection_state(  # noqa: PLR6301
+    def _make_connection_state(  # ruff: ignore[no-self-use]
         self,
         connection_options: dict[str, Any],
         kwargs: dict[str, Any],

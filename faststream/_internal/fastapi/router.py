@@ -27,7 +27,7 @@ from fastapi.routing import APIRoute, APIRouter
 from fastapi.utils import generate_unique_id
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from starlette.routing import BaseRoute, _DefaultLifespan  # noqa: PLC2701
+from starlette.routing import BaseRoute, _DefaultLifespan  # ruff: ignore[import-private-name]
 from typing_extensions import override
 
 from faststream._internal.application import StartAbleApplication
@@ -398,7 +398,7 @@ class StreamRouter(APIRouter, StartAbleApplication, Generic[MsgType]):
             return Response(
                 # `json_dumps` may be orjson, which takes no `indent`:
                 # the downloaded schema stays readable
-                content=json.dumps(  # noqa: TID251
+                content=json.dumps(  # ruff: ignore[banned-api]
                     self.schema.to_specification().to_jsonable(),
                     indent=2,
                 ),

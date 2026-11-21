@@ -351,10 +351,11 @@ class FakeProducer(RedisFastProducer):
         ):
             casted_handler = cast("_ListHandlerMixin", handler)
 
-            if casted_handler.list_sub.batch:
+            messages = [data_to_send] if casted_handler.list_sub.batch else data_to_send
+            for body in messages:
                 msg = visitor.get_message(
                     visited_ch,
-                    data_to_send,
+                    body,
                     casted_handler,
                 )
                 self._put_pel(msg=msg, cmd=cmd, handler=handler, session_id=session_id)
@@ -531,7 +532,8 @@ class ChannelVisitor(Visitor):
         if (
             sub_channel.pattern
             and bool(
-                re.match(
+                re.fullmatch(
+                    # Real Redis globs match the whole channel name, not a prefix.
                     # Escaped wholesale and then opened back up at the wildcard,
                     # the way `REDIS_ADDRESS_SYNTAX` does it: a Broker address may
                     # hold a literal brace, and `{2}` left bare is a quantifier.

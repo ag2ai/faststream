@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from fastapi import __version__ as FASTAPI_VERSION  # noqa: N812
+from fastapi import __version__ as FASTAPI_VERSION  # ruff: ignore[lowercase-imported-as-non-lowercase]
 from fastapi.dependencies.utils import solve_dependencies
 from starlette.background import BackgroundTasks
 from typing_extensions import Never
@@ -73,7 +73,7 @@ else:
     ROUTER_VALIDATION_ERROR_MODEL = create_model("StreamRoute")
 
     def raise_fastapi_validation_error(errors: list[Any], body: dict[str, Any]) -> Never:
-        raise RequestValidationError(errors, ROUTER_VALIDATION_ERROR_MODEL)  # type: ignore[misc]
+        raise RequestValidationError(errors, ROUTER_VALIDATION_ERROR_MODEL)  # type: ignore[call-arg]
 
 
 if FASTAPI_v102_3:

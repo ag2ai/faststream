@@ -63,14 +63,14 @@ async def test_nested_async() -> None:
 
 
 @pytest.mark.asyncio()
-async def test_async_A() -> None:  # noqa: N802
+async def test_async_A() -> None:  # ruff: ignore[invalid-function-name]
     async with A() as a:
         with B():
             assert a.contains
 
 
 @pytest.mark.asyncio()
-async def test_async_B() -> None:  # noqa: N802
+async def test_async_B() -> None:  # ruff: ignore[invalid-function-name]
     with A() as a:
         async with B():
             assert a.contains
@@ -107,5 +107,5 @@ def test_not_broken() -> None:
         assert a.contains
 
         # test ast processes another context correctly
-        with pytest.raises(ValueError):  # noqa: PT011
+        with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
             raise ValueError

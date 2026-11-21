@@ -4,14 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Async RabbitMQ in Python with aio-pika"
 description: >-
-  FastStream RabbitMQ support built on aio-pika: exchanges, queues, routing keys and RPC
-  through an asynchronous Python decorator API.
+  Use RabbitMQ from async Python with aio-pika and FastStream. Learn how exchanges, queues, bindings, routing keys and acknowledgements control message delivery.
 search:
   boost: 10
 ---
 
-# Rabbit Routing
+# Async RabbitMQ in Python with aio-pika
+
+Use **aio-pika** to connect Python applications to RabbitMQ asynchronously. FastStream builds on this native client and adds subscriber and publisher decorators, message validation, dependency injection and in-memory testing. This guide explains the exchanges, queues, bindings and acknowledgements used by RabbitMQ; start with a [Python subscriber example](examples/index.md) or choose an [exchange routing example](examples/direct.md).
 
 !!! note ""
       **FastStream** *RabbitMQ* support is implemented on top of [**aio-pika**](https://docs.aio-pika.com/){.external-link target="_blank"}. You can always get access to objects of it, if you need to use some low-level methods, not represented in **FastStream**.

@@ -30,5 +30,5 @@ def test_model(value: Any) -> None:
 def test_model_wrong_value() -> None:
     value: Any = ("field", 1)
 
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
         cast_model(value)

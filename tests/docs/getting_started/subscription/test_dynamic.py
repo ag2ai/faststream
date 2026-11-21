@@ -38,8 +38,10 @@ async def publishing(broker: Any, destination: str) -> AsyncGenerator[None, None
 
     async with broker, anyio.create_task_group() as tg:
         _ = tg.start_soon(publish_forever)
-        yield
-        tg.cancel_scope.cancel()
+        try:
+            yield
+        finally:
+            tg.cancel_scope.cancel()
 
 
 async def consumed_message(snippet: Any, broker_name: str, destination: str) -> Any:

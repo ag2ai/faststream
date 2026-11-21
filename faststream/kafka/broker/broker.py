@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -15,7 +15,7 @@ from typing import (
 import aiokafka
 import anyio
 from aiokafka.partitioner import DefaultPartitioner
-from aiokafka.producer.producer import _missing  # noqa: PLC2701
+from aiokafka.producer.producer import _missing  # ruff: ignore[import-private-name]
 from aiokafka.structs import RecordMetadata
 from fast_depends import Provider, dependency_provider
 from typing_extensions import override
@@ -56,6 +56,7 @@ if TYPE_CHECKING:
         LoggerProto,
         SendableMessage,
     )
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -224,7 +225,7 @@ class KafkaBroker(
         partitioner: Callable[
             [bytes, list[Partition], list[Partition]],
             Partition,
-        ] = DefaultPartitioner(),  # noqa: B008
+        ] = DefaultPartitioner(),  # ruff: ignore[function-call-in-default-argument]
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
         enable_idempotence: bool = False,
@@ -255,6 +256,7 @@ class KafkaBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Kafka broker constructor.
 
@@ -387,6 +389,10 @@ class KafkaBroker(
                 Provider for FastDepends.
             context (Optional[ContextRepo]):
                 Context for FastDepends.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         if protocol is None:
             if security is not None and security.use_ssl:
@@ -487,6 +493,7 @@ class KafkaBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,
@@ -527,7 +534,7 @@ class KafkaBroker(
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
@@ -542,7 +549,7 @@ class KafkaBroker(
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
@@ -557,7 +564,7 @@ class KafkaBroker(
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -572,7 +579,7 @@ class KafkaBroker(
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -640,7 +647,7 @@ class KafkaBroker(
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
@@ -693,7 +700,7 @@ class KafkaBroker(
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[False] = False,
@@ -706,7 +713,7 @@ class KafkaBroker(
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: Literal[True] = ...,
@@ -719,7 +726,7 @@ class KafkaBroker(
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,
@@ -731,7 +738,7 @@ class KafkaBroker(
         topic: str = "",
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         correlation_id: str | None = None,
         no_confirm: bool = False,

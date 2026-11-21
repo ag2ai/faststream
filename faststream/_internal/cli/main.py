@@ -127,7 +127,7 @@ def run(
         "--log-config",
         help=(
             "Set file to configure logging. Support "
-            f"{', '.join(f'`{x.value}`' for x in LogFiles)} extensions."  # noqa: B008
+            f"{', '.join(f'`{x.value}`' for x in LogFiles)} extensions."  # ruff: ignore[function-call-in-default-argument]
         ),
         show_default=False,
     ),
