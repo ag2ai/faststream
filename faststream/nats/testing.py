@@ -16,6 +16,7 @@ from faststream.message import gen_cor_id
 from faststream.nats.broker import NatsBroker
 from faststream.nats.parser import NatsParser
 from faststream.nats.publisher.producer import NatsFastProducer
+from faststream.nats.schemas import PubAck
 from faststream.nats.schemas.js_stream import is_subject_match_wildcard
 
 if TYPE_CHECKING:
@@ -160,8 +161,19 @@ class FakeProducer(NatsFastProducer):
 
     @override
     async def publish(self, cmd: "NatsPublishCommand") -> None:
+        await self._publish_body(cmd.body, cmd)
+
+    @override
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> PubAck:
+        for body in cmd.batch_bodies:
+            await self._publish_body(body, cmd)
+
+        # The acknowledgement that a new stream sends for this batch
+        return PubAck(stream=cmd.stream or "", seq=len(cmd.batch_bodies))
+
+    async def _publish_body(self, body: Any, cmd: "NatsPublishCommand") -> None:
         incoming = await build_message(
-            message=cmd.body,
+            message=body,
             subject=cmd.destination,
             headers=cmd.headers,
             correlation_id=cmd.correlation_id,

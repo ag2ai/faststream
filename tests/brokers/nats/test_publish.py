@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+from nats.js.errors import BadRequestError
 
 from faststream import Context
 from faststream.nats import JStream, NatsBroker, NatsMessage, NatsResponse, Schedule
@@ -116,3 +117,117 @@ async def test_publish_with_schedule(
 
     assert event.is_set()
     mock.assert_called_once_with({"type": "do_something"})
+
+
+@pytest.mark.nats()
+@pytest.mark.connected()
+class TestAtomicBatchPublish(NatsTestcaseConfig):
+    @pytest.mark.asyncio()
+    async def test_stream_declares_allow_atomic(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
+        async def handle() -> None: ...
+
+        async with broker:
+            await broker.start()
+            client = await broker.connect()
+            info = await client.jetstream().stream_info(queue)
+
+        assert info.config.allow_atomic is True
+
+    @pytest.mark.asyncio()
+    async def test_publish_batch_stores_all_messages(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+        received: list[tuple[str, str | None, str]] = []
+        done = asyncio.Event()
+
+        @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
+        async def handle(body: str, msg: NatsMessage) -> None:
+            received.append((body, msg.headers.get("x-key"), msg.correlation_id))
+            if len(received) == 3:
+                done.set()
+
+        async with broker:
+            await broker.start()
+            ack = await broker.publish_batch(
+                "first",
+                "second",
+                "third",
+                subject=queue,
+                headers={"x-key": "value"},
+                correlation_id="batch",
+                stream=queue,
+            )
+            await asyncio.wait_for(done.wait(), timeout=3)
+
+        assert (ack.stream, ack.seq) == (queue, 3)
+        assert received == [
+            ("first", "value", "batch"),
+            ("second", "value", "batch"),
+            ("third", "value", "batch"),
+        ]
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("batch_id", "expected"),
+        (
+            pytest.param("manual", "manual", id="manual-batch-id"),
+            pytest.param(None, "generated", id="id-generator"),
+        ),
+    )
+    async def test_publish_batch_sets_batch_id(
+        self,
+        queue: str,
+        batch_id: str | None,
+        expected: str,
+    ) -> None:
+        broker = self.get_broker(apply_types=True, id_generator=lambda: "generated")
+        received: list[str | None] = []
+        done = asyncio.Event()
+
+        @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
+        async def handle(msg: NatsMessage) -> None:
+            received.append(msg.headers.get("Nats-Batch-Id"))
+            if len(received) == 2:
+                done.set()
+
+        async with broker:
+            await broker.start()
+            await broker.publish_batch(
+                "first",
+                "second",
+                subject=queue,
+                batch_id=batch_id,
+            )
+            await asyncio.wait_for(done.wait(), timeout=3)
+
+        assert received == [expected, expected]
+
+    @pytest.mark.asyncio()
+    async def test_publish_batch_needs_allow_atomic(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @broker.subscriber(queue, stream=JStream(queue))
+        async def handle() -> None: ...
+
+        async with broker:
+            await broker.start()
+
+            with pytest.raises(BadRequestError, match="atomic publish is disabled"):
+                await broker.publish_batch("first", "second", subject=queue)
+
+            client = await broker.connect()
+            info = await client.jetstream().stream_info(queue)
+
+        # The stream rejects the full batch, not only the commit message
+        assert info.state.messages == 0
+
+
+@pytest.mark.nats()
+@pytest.mark.asyncio()
+async def test_publish_batch_needs_a_message() -> None:
+    broker = NatsBroker()
+
+    with pytest.raises(ValueError, match="at least one message"):
+        await broker.publish_batch(subject="subject")
