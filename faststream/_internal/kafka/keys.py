@@ -100,10 +100,10 @@ def realign_keys(
     bodies_seen: dict[int, Any] = {}
     for body in new_bodies:
         index = current_bodies.index(body)
-        if bodies_seen.get(index) is None:
+        if index not in bodies_seen:
             bodies_seen.update({index: body})
             continue
-        while bodies_seen.get(index) is not None or current_bodies[index] != body:
+        while index in bodies_seen or current_bodies[index] != body:
             index += 1
         bodies_seen.update({index: body})
     return tuple(keys[i] for i in bodies_seen)
