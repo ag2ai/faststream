@@ -26,9 +26,7 @@ if TYPE_CHECKING:
     from faststream.nats.publisher.usecase import LogicPublisher
     from faststream.nats.subscriber.usecases import (
         BatchPullStreamSubscriber,
-        ConcurrentCoreSubscriber,
         ConcurrentPullStreamSubscriber,
-        ConcurrentPushStreamSubscriber,
         CoreSubscriber,
         KeyValueWatchSubscriber,
         LogicSubscriber,
@@ -80,7 +78,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         persistent: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -99,45 +97,6 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         # Core arguments
         max_msgs: int = 0,
         # JS arguments
-        durable: None = None,
-        config: None = None,
-        ordered_consumer: Literal[False] = False,
-        idle_heartbeat: None = None,
-        flow_control: None = None,
-        deliver_policy: None = None,
-        headers_only: None = None,
-        # pull arguments
-        pull_sub: Literal[False] = False,
-        kv_watch: None = None,
-        obj_watch: Literal[False] = False,
-        inbox_prefix: bytes = api.INBOX_PREFIX,
-        # custom
-        stream: None = None,
-        # broker arguments
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        persistent: bool = True,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> "ConcurrentCoreSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        subject: str = "",
-        queue: str = "",
-        pending_msgs_limit: int | None = None,
-        pending_bytes_limit: int | None = None,
-        # Core arguments
-        max_msgs: int = 0,
-        # JS arguments
         durable: str | None = None,
         config: Optional["api.ConsumerConfig"] = None,
         ordered_consumer: bool = False,
@@ -158,7 +117,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         persistent: bool = True,
-        max_workers: None = None,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -166,45 +125,6 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
     ) -> "PushStreamSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        subject: str = "",
-        queue: str = "",
-        pending_msgs_limit: int | None = None,
-        pending_bytes_limit: int | None = None,
-        # Core arguments
-        max_msgs: int = 0,
-        # JS arguments
-        durable: str | None = None,
-        config: Optional["api.ConsumerConfig"] = None,
-        ordered_consumer: bool = False,
-        idle_heartbeat: float | None = None,
-        flow_control: bool | None = None,
-        deliver_policy: Optional["api.DeliverPolicy"] = None,
-        headers_only: bool | None = None,
-        # pull arguments
-        pull_sub: Literal[False] = False,
-        kv_watch: None = None,
-        obj_watch: Literal[False] = False,
-        inbox_prefix: bytes = api.INBOX_PREFIX,
-        # custom
-        stream: Union[str, "JStream"] = ...,
-        # broker arguments
-        dependencies: Sequence["Dependant"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        persistent: bool = True,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-    ) -> "ConcurrentPushStreamSubscriber": ...
 
     @overload
     def subscriber(
@@ -236,7 +156,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
         persistent: bool = True,
-        max_workers: None = None,
+        max_workers: Literal[1] | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -263,7 +183,7 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
         deliver_policy: Optional["api.DeliverPolicy"] = None,
         headers_only: bool | None = None,
         # pull arguments
-        pull_sub: Literal[True] = ...,
+        pull_sub: Union[Literal[True], "PullSub[Literal[False]]"] = ...,
         kv_watch: None = None,
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,

@@ -64,7 +64,6 @@ if TYPE_CHECKING:
         LogicSubscriber,
     )
     from faststream.nats.subscriber.usecases.core_subscriber import (
-        ConcurrentCoreSubscriber,
         CoreSubscriber,
     )
     from faststream.nats.subscriber.usecases.key_value_subscriber import (
@@ -79,7 +78,6 @@ if TYPE_CHECKING:
         PullStreamSubscriber,
     )
     from faststream.nats.subscriber.usecases.stream_push_subscriber import (
-        ConcurrentPushStreamSubscriber,
         PushStreamSubscriber,
     )
     from faststream.security import BaseSecurity
@@ -384,7 +382,7 @@ class NatsRouter(StreamRouter["Msg"]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        max_workers: None = None,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -400,51 +398,6 @@ class NatsRouter(StreamRouter["Msg"]):
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
     ) -> "CoreSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        subject: str = "",
-        queue: str = "",
-        pending_msgs_limit: int | None = None,
-        pending_bytes_limit: int | None = None,
-        # Core arguments
-        max_msgs: int = 0,
-        # JS arguments
-        durable: None = None,
-        config: None = None,
-        ordered_consumer: Literal[False] = False,
-        idle_heartbeat: None = None,
-        flow_control: None = None,
-        deliver_policy: None = None,
-        headers_only: None = None,
-        # pull arguments
-        pull_sub: Literal[False] = False,
-        kv_watch: None = None,
-        obj_watch: Literal[False] = False,
-        inbox_prefix: bytes = api.INBOX_PREFIX,
-        # custom
-        stream: None = None,
-        # broker arguments
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-    ) -> "ConcurrentCoreSubscriber": ...
 
     @overload
     def subscriber(
@@ -474,7 +427,7 @@ class NatsRouter(StreamRouter["Msg"]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        max_workers: None = None,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -509,51 +462,6 @@ class NatsRouter(StreamRouter["Msg"]):
         deliver_policy: Optional["api.DeliverPolicy"] = None,
         headers_only: bool | None = None,
         # pull arguments
-        pull_sub: Literal[False] = False,
-        kv_watch: None = None,
-        obj_watch: Literal[False] = False,
-        inbox_prefix: bytes = api.INBOX_PREFIX,
-        # custom
-        stream: Union[str, "JStream"] = ...,
-        # broker arguments
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-    ) -> "ConcurrentPushStreamSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        subject: str = "",
-        queue: str = "",
-        pending_msgs_limit: int | None = None,
-        pending_bytes_limit: int | None = None,
-        # Core arguments
-        max_msgs: int = 0,
-        # JS arguments
-        durable: str | None = None,
-        config: Optional["api.ConsumerConfig"] = None,
-        ordered_consumer: bool = False,
-        idle_heartbeat: float | None = None,
-        flow_control: bool | None = None,
-        deliver_policy: Optional["api.DeliverPolicy"] = None,
-        headers_only: bool | None = None,
-        # pull arguments
         pull_sub: Union[Literal[True], "PullSub[Literal[False]]"] = ...,
         kv_watch: None = None,
         obj_watch: Literal[False] = False,
@@ -564,7 +472,7 @@ class NatsRouter(StreamRouter["Msg"]):
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        max_workers: None = None,
+        max_workers: Literal[1] | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # AsyncAPI information
@@ -599,7 +507,7 @@ class NatsRouter(StreamRouter["Msg"]):
         deliver_policy: Optional["api.DeliverPolicy"] = None,
         headers_only: bool | None = None,
         # pull arguments
-        pull_sub: Literal[True] = ...,
+        pull_sub: Union[Literal[True], "PullSub[Literal[False]]"] = ...,
         kv_watch: None = None,
         obj_watch: Literal[False] = False,
         inbox_prefix: bytes = api.INBOX_PREFIX,

@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator, Callable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
     Optional,
     Union,
     cast,
@@ -14,7 +15,6 @@ from confluent_kafka import KafkaException, Message
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from .config import KafkaSubscriberConfig
 
 
-class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
+class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
     __slots__ = (
@@ -160,11 +160,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._consume)
+            self.tasks_supervisor.add_task(self._consume)
 
-    async def stop(self) -> None:
-        await super().stop()
-
+    @override
+    async def _close_transport(self) -> None:
         if self.consumer is not None:
             await self.consumer.stop()
             self.consumer = None
@@ -235,9 +234,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             ),
         )
 
-    async def consume_one(self, msg: MsgType) -> None:
-        await self.consume(msg)
-
     @abstractmethod
     async def get_msg(self) -> MsgType | None:
         raise NotImplementedError
@@ -267,7 +263,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                     connected = True
 
                 if msg is not None:
-                    await self.consume_one(msg)
+                    await self.consume_dispatcher.dispatch(msg)
 
     @property
     def topic_names(self) -> list[str]:
@@ -321,17 +317,6 @@ class DefaultSubscriber(LogicSubscriber[Message]):
             topic=topic,
             group_id=self.group_id,
         )
-
-
-class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber):
-    __slots__ = ()
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "Message") -> None:
-        await self._put_msg(msg)
 
 
 class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):

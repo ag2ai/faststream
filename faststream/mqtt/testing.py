@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
     from faststream.mqtt.publisher.usecase import MQTTPublisher
-    from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
+    from faststream.mqtt.subscriber.usecase import MQTTSubscriber
 
 __all__ = ("TestMQTTBroker",)
 
@@ -44,7 +44,7 @@ class _BlockingSubscription:
     async def start(self) -> None:
         pass
 
-    async def stop(self) -> None:
+    async def stop(self, blocking: bool = True) -> None:
         pass
 
     def __aiter__(self) -> "_BlockingSubscription":
@@ -116,10 +116,10 @@ class TestMQTTBroker(
         self,
         broker: MQTTBroker,
         publisher: "MQTTPublisher",
-    ) -> tuple["MQTTBaseSubscriber", bool]:
-        sub: MQTTBaseSubscriber | None = None
+    ) -> tuple["MQTTSubscriber", bool]:
+        sub: MQTTSubscriber | None = None
         for handler in (s for b in self.brokers for s in b.subscribers):
-            handler = cast("MQTTBaseSubscriber", handler)
+            handler = cast("MQTTSubscriber", handler)
             if mqtt_topic_matches(handler.topic, publisher.topic):
                 sub = handler
                 break
@@ -140,7 +140,7 @@ class TestMQTTBroker(
         # Ensure all pre-existing subscribers use the version-correct parser
         # (preserving each subscriber's own path_regex) before patch_broker_calls
         # builds the fastdepends model.
-        for sub in cast("list[MQTTBaseSubscriber]", broker.subscribers):
+        for sub in cast("list[MQTTSubscriber]", broker.subscribers):
             parser = sub._build_parser()
             sub._parser = parser.parse_message
             sub._decoder = parser.decode_message
@@ -190,10 +190,8 @@ class FakeProducer(ZmqttBaseProducer):
         self.codec = broker.config.broker_codec or DefaultCodec()
 
     @property
-    def subscribers(self) -> Iterable["MQTTBaseSubscriber"]:
-        return (
-            cast("MQTTBaseSubscriber", s) for b in self.brokers for s in b.subscribers
-        )
+    def subscribers(self) -> Iterable["MQTTSubscriber"]:
+        return (cast("MQTTSubscriber", s) for b in self.brokers for s in b.subscribers)
 
     @property
     def _version(self) -> MQTTVersion:

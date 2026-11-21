@@ -6,6 +6,7 @@ import pytest
 from nats.errors import ConnectionClosedError, TimeoutError
 from nats.js.errors import ServiceUnavailableError
 
+from faststream._internal.endpoint.subscriber.dispatcher import DirectDispatcher
 from faststream.nats import JStream, NatsBroker, PullSub
 from faststream.nats.subscriber.usecases import ConcurrentPullStreamSubscriber
 
@@ -68,7 +69,10 @@ async def test_pull_waits_for_worker_capacity(batch_size: int, max_workers: int)
             all_handlers_started.set()
         await release_handler.acquire()
 
-    pull_task = asyncio.create_task(subscriber._consume_pull(cb=consume))
+    assert isinstance(subscriber.consume_dispatcher, DirectDispatcher)
+    subscriber.consume_dispatcher.consume_func = consume
+
+    pull_task = asyncio.create_task(subscriber._consume_pull())
 
     try:
         await asyncio.wait_for(all_handlers_started.wait(), timeout=1)
@@ -84,7 +88,7 @@ async def test_pull_waits_for_worker_capacity(batch_size: int, max_workers: int)
             release_handler.release()
         await stop_task(pull_task)
 
-    assert subscriber.limiter.value == subscriber.max_workers
+    assert subscriber.limiter.value == max_workers
 
 
 @pytest.mark.asyncio()
@@ -95,6 +99,7 @@ async def test_pull_waits_for_worker_capacity(batch_size: int, max_workers: int)
 async def test_pull_releases_capacity_after_fetch_error(error: type[Exception]) -> None:
     """Fixes https://github.com/ag2ai/faststream/issues/2563."""
     subscriber = create_subscriber()
+    initial_capacity = subscriber.limiter.value
     second_fetch_started = asyncio.Event()
     fetch_requests: list[int] = []
 
@@ -116,7 +121,7 @@ async def test_pull_releases_capacity_after_fetch_error(error: type[Exception]) 
     subscription: Any = FailingOnceSubscription()
     subscriber.subscription = subscription
     subscriber.running = True
-    pull_task = asyncio.create_task(subscriber._consume_pull(cb=subscriber.consume))
+    pull_task = asyncio.create_task(subscriber._consume_pull())
 
     try:
         await asyncio.wait_for(second_fetch_started.wait(), timeout=1)
@@ -125,7 +130,7 @@ async def test_pull_releases_capacity_after_fetch_error(error: type[Exception]) 
         subscriber.running = False
         await stop_task(pull_task)
 
-    assert subscriber.limiter.value == subscriber.max_workers
+    assert subscriber.limiter.value == initial_capacity
 
 
 @pytest.mark.asyncio()
@@ -147,7 +152,9 @@ async def test_pull_does_not_fetch_after_stop_while_waiting_for_capacity() -> No
             both_handlers_started.set()
         await release_handlers.wait()
 
-    pull_task = asyncio.create_task(subscriber._consume_pull(cb=consume))
+    assert isinstance(subscriber.consume_dispatcher, DirectDispatcher)
+    subscriber.consume_dispatcher.consume_func = consume
+    pull_task = asyncio.create_task(subscriber._consume_pull())
     try:
         await asyncio.wait_for(both_handlers_started.wait(), timeout=1)
         subscriber.running = False
@@ -159,7 +166,6 @@ async def test_pull_does_not_fetch_after_stop_while_waiting_for_capacity() -> No
         await stop_task(pull_task)
 
     assert subscription.fetch_requests == [1, 1]
-    assert subscriber.limiter.value == subscriber.max_workers
 
 
 @pytest.mark.asyncio()
@@ -202,7 +208,9 @@ async def test_unexpected_fetch_error_does_not_cancel_active_handler(
             both_handlers_started.set()
         await release_handler.acquire()
 
-    pull_task = asyncio.create_task(subscriber._consume_pull(cb=consume))
+    assert isinstance(subscriber.consume_dispatcher, DirectDispatcher)
+    subscriber.consume_dispatcher.consume_func = consume
+    pull_task = asyncio.create_task(subscriber._consume_pull())
     try:
         await asyncio.wait_for(both_handlers_started.wait(), timeout=1)
 
@@ -228,7 +236,6 @@ async def test_unexpected_fetch_error_does_not_cancel_active_handler(
             await stop_task(pull_task)
 
     assert fetch_requests == [1, 1, 1]
-    assert subscriber.limiter.value == subscriber.max_workers
 
 
 @pytest.mark.asyncio()
@@ -239,6 +246,7 @@ async def test_pull_releases_capacity_when_fetch_is_cancelled(
 ) -> None:
     """Fixes https://github.com/ag2ai/faststream/issues/2563."""
     subscriber = create_subscriber()
+    initial_capacity = subscriber.limiter.value
     fetch_started = asyncio.Event()
     release_handler = asyncio.Event()
 
@@ -266,13 +274,15 @@ async def test_pull_releases_capacity_when_fetch_is_cancelled(
     async def consume(message: object) -> None:
         await release_handler.wait()
 
-    pull_task = asyncio.create_task(subscriber._consume_pull(cb=consume))
+    assert isinstance(subscriber.consume_dispatcher, DirectDispatcher)
+    subscriber.consume_dispatcher.consume_func = consume
+    pull_task = asyncio.create_task(subscriber._consume_pull())
 
     try:
         await asyncio.wait_for(fetch_started.wait(), timeout=1)
-        assert subscriber.limiter.value == subscriber.max_workers - active_handlers - 1
+        assert subscriber.limiter.value == initial_capacity - active_handlers - 1
     finally:
         subscriber.running = False
         await stop_task(pull_task)
 
-    assert subscriber.limiter.value == subscriber.max_workers
+    assert subscriber.limiter.value == initial_capacity

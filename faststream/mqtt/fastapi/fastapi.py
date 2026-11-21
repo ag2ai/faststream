@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Awaitable, Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast, overload
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import zmqtt
 from fastapi.datastructures import Default
@@ -32,10 +32,7 @@ if TYPE_CHECKING:
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.mqtt.publisher.usecase import MQTTPublisher
-    from faststream.mqtt.subscriber.usecase import (
-        MQTTConcurrentSubscriber,
-        MQTTDefaultSubscriber,
-    )
+    from faststream.mqtt.subscriber.usecase import MQTTSubscriber
     from faststream.security import BaseSecurity
     from faststream.specification.base import SpecificationFactory
     from faststream.specification.schema.extra import Tag, TagDict
@@ -172,68 +169,8 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
             generate_unique_id_function=generate_unique_id_function,
         )
 
-    @overload  # type: ignore[override]
-    def subscriber(
-        self,
-        topic: str,
-        *,
-        qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
-        shared: str | None = None,
-        # broker arguments
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        max_workers: Literal[1] = 1,
-        persistent: bool = True,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-    ) -> "MQTTDefaultSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        topic: str,
-        *,
-        qos: zmqtt.QoS = zmqtt.QoS.AT_MOST_ONCE,
-        shared: str | None = None,
-        # broker arguments
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        codec: Optional["CodecProto"] = None,
-        max_workers: int = ...,
-        persistent: bool = True,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-    ) -> "MQTTConcurrentSubscriber": ...
-
     @override
-    def subscriber(
+    def subscriber(  # type: ignore[override]
         self,
         topic: str,
         *,
@@ -260,9 +197,9 @@ class MQTTRouter(StreamRouter[zmqtt.Message]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-    ) -> "MQTTDefaultSubscriber | MQTTConcurrentSubscriber":
+    ) -> "MQTTSubscriber":
         return cast(
-            "MQTTDefaultSubscriber | MQTTConcurrentSubscriber",
+            "MQTTSubscriber",
             super().subscriber(
                 topic,
                 qos=qos,

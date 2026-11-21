@@ -14,7 +14,6 @@ from .specification import KafkaSubscriberSpecification
 from .usecase import (
     BatchSubscriber,
     ConcurrentBetweenPartitionsSubscriber,
-    ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
 
@@ -48,7 +47,6 @@ def create_subscriber(
 ) -> Union[
     "DefaultSubscriber",
     "BatchSubscriber",
-    "ConcurrentDefaultSubscriber",
     "ConcurrentBetweenPartitionsSubscriber",
 ]:
     declared_topics = [Topic.validate(t) for t in topics]
@@ -101,12 +99,8 @@ def create_subscriber(
 
     if max_workers > 1:
         if subscriber_config.ack_first:
-            return ConcurrentDefaultSubscriber(
-                subscriber_config,
-                specification,
-                calls,
-                max_workers=max_workers,
-            )
+            subscriber_config.max_workers = max_workers
+            return DefaultSubscriber(subscriber_config, specification, calls)
 
         subscriber_config.topics = (declared_topics[0],)
         return ConcurrentBetweenPartitionsSubscriber(
