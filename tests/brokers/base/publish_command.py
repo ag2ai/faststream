@@ -113,6 +113,18 @@ SHUFFLED = (
 # (original (body, key) pairs, batch_bodies mutation, expected (body, key) pairs)
 KEY_ALIGNMENT_CASES = (
     pytest.param(
+        ((None, b"empty"), (BODY_A, b"keep")),
+        keep,
+        ((b"", b"empty"), (BODY_A, b"keep")),
+        id="none-first",
+    ),
+    pytest.param(
+        ((BODY_A, b"keep"), (None, b"empty")),
+        reverse,
+        ((b"", b"empty"), (BODY_A, b"keep")),
+        id="none-reordered-to-first",
+    ),
+    pytest.param(
         ((BODY_A, b"key-A"), (BODY_B, b"key-B")),
         reverse,
         ((BODY_B, b"key-B"), (BODY_A, b"key-A")),

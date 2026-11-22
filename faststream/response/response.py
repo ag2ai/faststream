@@ -85,6 +85,8 @@ class PublishCommand(Response):
 
 
 class BatchPublishCommand(PublishCommand):
+    _retain_null_body = False
+
     def __init__(
         self,
         body: Any,
@@ -105,13 +107,20 @@ class BatchPublishCommand(PublishCommand):
             _publish_type=_publish_type,
         )
         self.extra_bodies = bodies
+        self._has_batch_body = True
 
     @property
     def batch_bodies(self) -> tuple["Any", ...]:
+        if self._retain_null_body and self._has_batch_body:
+            return (self.body, *self.extra_bodies)
         return (*super().batch_bodies, *self.extra_bodies)
 
     @batch_bodies.setter
     def batch_bodies(self, value: Sequence["Any"]) -> None:
+        self._replace_batch_bodies(value)
+
+    def _replace_batch_bodies(self, value: Sequence[Any]) -> None:
+        self._has_batch_body = bool(value)
         if len(value) == 0:
             self.body = None
             self.extra_bodies = ()
