@@ -7,6 +7,7 @@ from typing_extensions import override
 from faststream._internal.types import AnyMsg_contra, MsgType
 
 from .supervisor import TasksSupervisor
+from .utils import MultiLock
 
 if TYPE_CHECKING:
     from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
@@ -21,6 +22,9 @@ class ConsumeDispatcherProto(Protocol[AnyMsg_contra]):
         return None
 
     async def stop(self) -> None:  # ruff: ignore[no-self-use]
+        return None
+
+    async def drain(self, timeout: float | None) -> None:  # ruff: ignore[no-self-use]
         return None
 
 
@@ -40,6 +44,7 @@ class ConcurrentDispatcher(ConsumeDispatcherProto[MsgType]):
         "consume_func",
         "limiter",
         "max_workers",
+        "pending",
         "receive_stream",
         "send_stream",
         "tasks_supervisor",
@@ -57,6 +62,7 @@ class ConcurrentDispatcher(ConsumeDispatcherProto[MsgType]):
         self.max_workers = max_workers
         self.consume_func = consume_func
         self.limiter = anyio.Semaphore(max_workers)
+        self.pending = MultiLock()
         # Closed until `start`, so a subscriber that is only declared holds nothing open
         self.send_stream, self.receive_stream = _closed_queue()
 
@@ -67,12 +73,18 @@ class ConcurrentDispatcher(ConsumeDispatcherProto[MsgType]):
         self.send_stream, self.receive_stream = anyio.create_memory_object_stream(
             max_buffer_size=self.max_workers,
         )
+        self.pending = MultiLock()
         self.tasks_supervisor.add_task(self._serve_consume_queue)
 
     @override
     async def stop(self) -> None:
         self.send_stream.close()
         self.receive_stream.close()
+
+    @override
+    async def drain(self, timeout: float | None) -> None:
+        """Wait for every dispatched message to be consumed."""
+        await self.pending.wait_release(timeout)
 
     async def _serve_consume_queue(
         self,
@@ -88,11 +100,15 @@ class ConcurrentDispatcher(ConsumeDispatcherProto[MsgType]):
     async def _consume_msg(self, msg: "MsgType") -> None:
         """Proxy method to call `self.consume` with semaphore block."""
         async with self.limiter:
-            await self.consume_func(msg)
+            try:
+                await self.consume_func(msg)
+            finally:
+                self.pending.release()
 
     @override
     async def dispatch(self, msg: "MsgType") -> None:
         async with self.limiter:
+            self.pending.acquire()
             await self.send_stream.send(msg)
 
 

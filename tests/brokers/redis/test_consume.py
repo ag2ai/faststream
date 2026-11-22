@@ -430,7 +430,8 @@ class TestConsumeList(RedisTestcaseConfig):
 
         assert event.is_set()
         assert event2.is_set()
-        assert mock.call_count == 2, mock.call_count
+        # The third message is popped while both workers are busy and must not be lost on stop
+        assert mock.call_count == 3, mock.call_count
 
     async def test_iterator(
         self,
