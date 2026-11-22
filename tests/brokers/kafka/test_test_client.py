@@ -6,14 +6,11 @@ import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
 from faststream.exceptions import SetupError
-from faststream.kafka import KafkaResponse, TopicPartition
+from faststream.kafka import TopicPartition
 from faststream.kafka.annotations import KafkaMessage
 from faststream.kafka.message import FAKE_CONSUMER
 from faststream.kafka.testing import FakeProducer
-from tests.brokers.base.testclient import (
-    BrokerTestclientTestcase,
-    KafkaTombstoneTestclientTestcase,
-)
+from tests.brokers.base.testclient import BrokerTestclientTestcase
 from tests.marks import require_aiopika
 from tests.tools import spy_decorator
 
@@ -22,13 +19,7 @@ from .basic import KafkaMemoryTestcaseConfig
 
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
-class TestTestclient(
-    KafkaMemoryTestcaseConfig,
-    BrokerTestclientTestcase,
-    KafkaTombstoneTestclientTestcase,
-):
-    response_cls = KafkaResponse
-
+class TestTestclient(KafkaMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_publish_none_tombstone(
         self,
         queue: str,

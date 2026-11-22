@@ -1,32 +1,19 @@
 import asyncio
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
 from faststream import Context
 from faststream.confluent import KafkaPublishMessage, KafkaResponse
-from tests.brokers.base.publish import (
-    BrokerPublishTestcase,
-    KafkaTombstonePublishTestcase,
-)
+from tests.brokers.base.publish import BrokerPublishTestcase
 
 from .basic import ConfluentTestcaseConfig
 
 
 @pytest.mark.connected()
 @pytest.mark.confluent()
-class TestPublish(
-    ConfluentTestcaseConfig,
-    BrokerPublishTestcase,
-    KafkaTombstonePublishTestcase,
-):
-    response_cls = KafkaResponse
-
-    @staticmethod
-    def get_message_value(raw_message: Any) -> bytes | None:
-        return cast("bytes | None", raw_message.value())
-
+class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()

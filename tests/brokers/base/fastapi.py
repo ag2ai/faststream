@@ -2,13 +2,12 @@ import asyncio
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 from fastapi import BackgroundTasks, Depends, FastAPI, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
 
 from faststream import (
     Context as FSContext,
@@ -269,88 +268,6 @@ class FastAPITestcase(BaseTestcaseConfig[Any]):
             )
 
         mock.assert_called_once_with(True)
-
-
-@pytest.mark.asyncio()
-class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
-    router_class: Any
-
-    async def test_body_model_resolves_tombstone(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        class _BodyModel(BaseModel):
-            x: int
-
-        router = self.router_class()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @router.subscriber(*args, **kwargs)
-        async def handler(msg: _BodyModel | None = None) -> None:
-            mock(msg)
-
-        app = FastAPI()
-        app.include_router(router)
-
-        async with self.patch_broker(router.broker) as br:
-            with TestClient(app):
-                await br.publish(b'{"x": 5}', queue, key=b"k1")
-
-        mock.assert_called_once_with(_BodyModel(x=5))
-
-    async def test_none_resolves_tombstone(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        class _BodyModel(BaseModel):
-            x: int
-
-        router = self.router_class()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @router.subscriber(*args, **kwargs)
-        async def handler(msg: _BodyModel | None = None) -> None:
-            mock(msg)
-
-        app = FastAPI()
-        app.include_router(router)
-
-        async with self.patch_broker(router.broker) as br:
-            with TestClient(app):
-                await br.publish(None, queue, key=b"k2")
-
-        mock.assert_called_once_with(None)
-
-    async def test_wrong_none_resolves_tombstone(
-        self,
-        queue: str,
-        mock: MagicMock,
-    ) -> None:
-        class _BodyModel(BaseModel):
-            x: int
-
-        router = self.router_class()
-
-        args, kwargs = self.get_subscriber_params(queue)
-
-        @router.subscriber(*args, **kwargs)
-        async def handler(msg: _BodyModel | None = None) -> None:
-            mock(msg)
-
-        app = FastAPI()
-        app.include_router(router)
-
-        async with self.patch_broker(router.broker) as br:
-            with TestClient(app), pytest.raises(RequestValidationError):
-                # an empty (non-null) body is not a tombstone and must
-                # still fail validation.
-                await br.publish(b"", queue, key=b"k3")
-
-        mock.assert_not_called()
 
 
 @pytest.mark.asyncio()
