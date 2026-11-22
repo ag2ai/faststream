@@ -1,6 +1,7 @@
 from typing import Annotated, Any, TypeVar
 
 from fast_depends.library import CustomField
+from typing_extensions import override
 
 
 class NoCastField(CustomField):
@@ -16,6 +17,7 @@ class NoCastField(CustomField):
     def __init__(self) -> None:
         super().__init__(cast=False)
 
+    @override
     def use(self, **kwargs: Any) -> dict[str, Any]:
         return kwargs
 

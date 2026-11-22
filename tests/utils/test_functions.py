@@ -1,13 +1,15 @@
+from typing import Any
+
 import pytest
 
 from faststream._internal.utils.functions import call_or_await
 
 
-def sync_func(a):
+def sync_func(a: Any) -> Any:
     return a
 
 
-async def async_func(a):
+async def async_func(a: Any) -> Any:
     return a
 
 

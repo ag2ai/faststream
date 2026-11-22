@@ -1,6 +1,7 @@
 import random
+import time
 
-import httpx
+import httpx2
 import psutil
 import pytest
 
@@ -10,7 +11,6 @@ from tests.marks import skip_windows
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_run(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
@@ -55,27 +55,27 @@ def test_run(
             f"{port}",
             "--test",
             f"{extra_param}",
+            readiness_url=f"http://127.0.0.1:{port}/liveness",
         ),
     ):
         # Test liveness
-        response = httpx.get(f"http://127.0.0.1:{port}/liveness")
+        response = httpx2.get(f"http://127.0.0.1:{port}/liveness")
         assert response.text == "hello world"
         assert response.status_code == 200
 
         # Test documentation
-        response = httpx.get(f"http://127.0.0.1:{port}/docs")
+        response = httpx2.get(f"http://127.0.0.1:{port}/docs")
         assert response.text.strip().startswith("<!DOCTYPE html>")
         assert len(response.text) > 1200
 
         # Test extra context
-        response = httpx.get(f"http://127.0.0.1:{port}/context")
+        response = httpx2.get(f"http://127.0.0.1:{port}/context")
         assert response.json() == {"test": extra_param, "port": port}
         assert response.status_code == 200
 
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_single_worker(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
@@ -98,9 +98,10 @@ def test_single_worker(
             f"{app_path.stem}:app",
             "--workers",
             "1",
+            readiness_url="http://127.0.0.1:8000/liveness",
         ),
     ):
-        response = httpx.get("http://127.0.0.1:8000/liveness")
+        response = httpx2.get("http://127.0.0.1:8000/liveness")
         assert response.text == "hello world"
         assert response.status_code == 200
 
@@ -132,12 +133,19 @@ def test_many_workers(
         ) as cli_thread,
     ):
         process = psutil.Process(pid=cli_thread.process.pid)
-        assert len(process.children()) == workers + 1  # 1 for the main process
+        expected = workers + 1  # 1 for the main process
+
+        # uvicorn logs its first line before it spawns the workers,
+        # so the CLI counts as started while they are still coming up
+        deadline = time.monotonic() + 10.0
+        while len(process.children()) < expected and time.monotonic() < deadline:
+            time.sleep(0.1)
+
+        assert len(process.children()) == expected
 
 
 @pytest.mark.slow()
 @skip_windows
-@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_factory(
     generate_template: interfaces.GenerateTemplateFactory,
     faststream_cli: interfaces.FastStreamCLIFactory,
@@ -161,8 +169,9 @@ def test_factory(
             "run",
             f"{app_path.stem}:app_factory",
             "--factory",
+            readiness_url="http://127.0.0.1:8000/liveness",
         ),
     ):
-        response = httpx.get("http://127.0.0.1:8000/liveness")
+        response = httpx2.get("http://127.0.0.1:8000/liveness")
         assert response.text == "hello world"
         assert response.status_code == 200

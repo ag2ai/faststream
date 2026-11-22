@@ -14,7 +14,7 @@ This chapter discusses the security options available in **FastStream** and how 
 
 ## Security Objects
 
-**FastStream** allows you to enhance the security of applications by using security objects when creating brokers. These security objects encapsulate security-related configurations and mechanisms. Security objects supported in **FastStream** are (More are planned in the future such as SASL OAuth):
+**FastStream** allows you to enhance the security of applications by using security objects when creating brokers. These security objects encapsulate security-related configurations and mechanisms. Security objects supported in **FastStream** are:
 
 ### 1. BaseSecurity Object
 

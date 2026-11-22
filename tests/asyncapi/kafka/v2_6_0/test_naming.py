@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.kafka import KafkaBroker
 from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
@@ -8,7 +9,7 @@ from tests.asyncapi.base.v2_6_0.naming import NamingTestCase
 class TestNaming(NamingTestCase):
     broker_class = KafkaBroker
 
-    def test_base(self) -> None:
+    def test_base(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber("test")
@@ -16,43 +17,9 @@ class TestNaming(NamingTestCase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert schema == {
-            "asyncapi": "2.6.0",
-            "defaultContentType": "application/json",
-            "info": {"title": "FastStream", "version": "0.1.0"},
-            "servers": {
-                "development": {
-                    "url": "localhost",
-                    "protocol": "kafka",
-                    "protocolVersion": "auto",
-                },
-            },
-            "channels": {
-                "test:Handle": {
-                    "servers": ["development"],
-                    "bindings": {"kafka": {"topic": "test", "bindingVersion": "0.4.0"}},
-                    "publish": {
-                        "message": {
-                            "$ref": "#/components/messages/test:Handle:Message",
-                        },
-                    },
-                },
-            },
-            "components": {
-                "messages": {
-                    "test:Handle:Message": {
-                        "title": "test:Handle:Message",
-                        "correlationId": {
-                            "location": "$message.header#/correlation_id",
-                        },
-                        "payload": {"$ref": "#/components/schemas/EmptyPayload"},
-                    },
-                },
-                "schemas": {"EmptyPayload": {"title": "EmptyPayload", "type": "null"}},
-            },
-        }
+        assert schema == snapshot_json
 
-    def test_pattern(self) -> None:
+    def test_pattern(self, snapshot_json: SnapshotAssertion) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(pattern="events.*")
@@ -60,11 +27,12 @@ class TestNaming(NamingTestCase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert len(schema["channels"]) == 1
-        channel = next(iter(schema["channels"].values()))
-        assert channel["bindings"]["kafka"]["topic"] == "events.*"
+        assert schema == snapshot_json
 
-    def test_pattern_template_renders_as_declared(self) -> None:
+    def test_pattern_template_renders_as_declared(
+        self,
+        snapshot_json: SnapshotAssertion,
+    ) -> None:
         broker = self.broker_class()
 
         @broker.subscriber(pattern="events.{version}")
@@ -72,6 +40,4 @@ class TestNaming(NamingTestCase):
 
         schema = self.get_spec(broker).to_jsonable()
 
-        assert len(schema["channels"]) == 1
-        channel = next(iter(schema["channels"].values()))
-        assert channel["bindings"]["kafka"]["topic"] == "events.{version}"
+        assert schema == snapshot_json

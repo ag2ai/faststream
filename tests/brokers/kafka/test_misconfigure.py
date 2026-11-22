@@ -1,16 +1,20 @@
 from typing import Any
 
 import pytest
+from aiokafka import AIOKafkaConsumer
 
 from faststream import AckPolicy
 from faststream.exceptions import SetupError
-from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition
+from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition, annotations
 from faststream.kafka.subscriber.usecase import (
     ConcurrentBetweenPartitionsSubscriber,
     ConcurrentDefaultSubscriber,
 )
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
+from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
+
+from .basic import KafkaMemoryTestcaseConfig
 
 
 @pytest.mark.kafka()
@@ -77,7 +81,10 @@ def test_max_workers_configuration(queue: str) -> None:
     sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.ACK_FIRST)
     assert isinstance(sub, ConcurrentDefaultSubscriber)
 
-    sub = broker.subscriber(queue, max_workers=3, ack_policy=AckPolicy.REJECT_ON_ERROR)
+    with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect"):
+        sub = broker.subscriber(
+            queue, max_workers=3, ack_policy=AckPolicy.REJECT_ON_ERROR
+        )
     assert isinstance(sub, ConcurrentBetweenPartitionsSubscriber)
 
     with pytest.raises(SetupError):
@@ -91,12 +98,31 @@ def test_max_workers_configuration(queue: str) -> None:
 @pytest.mark.kafka()
 def test_use_only_kafka_router() -> None:
     broker = KafkaBroker()
-    router = NatsRouter()
+    router: Any = NatsRouter()
 
     with pytest.raises(SetupError):
         broker.include_router(router)
 
-    routers = [KafkaRouter(), NatsRouter(), RabbitRouter()]
+    routers: list[Any] = [KafkaRouter(), NatsRouter(), RabbitRouter()]
 
     with pytest.raises(SetupError):
-        broker.include_routers(routers)
+        broker.include_routers(*routers)
+
+
+@pytest.mark.kafka()
+def test_max_workers_ignored_by_batch(queue: str) -> None:
+    broker = KafkaBroker()
+
+    with pytest.warns(RuntimeWarning, match="`max_workers` option is ignored") as record:
+        broker.subscriber(queue, batch=True, max_workers=2)
+
+    # the warning points at the line that registered the subscriber
+    assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
+
+
+@pytest.mark.kafka()
+class TestDriverAnnotations(KafkaMemoryTestcaseConfig, DriverAnnotationTestcase):
+    driver_class = AIOKafkaConsumer
+    driver_path = "aiokafka.consumer.consumer.AIOKafkaConsumer"
+    context_annotation = annotations.Consumer
+    annotation_import = "from faststream.kafka.annotations import Consumer"

@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Instrument FastStream with OpenTelemetry: distributed traces and metrics that follow a
+  message from publisher to subscriber across services.
 search:
   boost: 10
 ---
@@ -80,7 +83,7 @@ In the following documentation sections, you can find detailed information about
 
 You can also take a look at a pre-configured project and use it as a reference for your services and infrastructure.
 
-To see how to set up, visualize, and configure tracing for **FastStream** services, checkout the [example project](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"}.
+To see how to set up, visualize, and configure tracing for **FastStream** services, check out the [example project](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"}.
 
 The example includes:
 

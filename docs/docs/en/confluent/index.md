@@ -4,11 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Kafka in Python with confluent-kafka"
+description: >-
+  Build Kafka producers and consumers in Python with confluent-kafka and FastStream. Install the backend, connect to a broker and route messages between topics.
 search:
   boost: 10
 ---
 
-# Confluent Kafka Routing
+# Kafka in Python with confluent-kafka
+
+Use **confluent-kafka**, Confluent's Python client for Apache Kafka, through FastStream to publish and consume messages with subscriber and publisher decorators. FastStream adds message validation, dependency injection and in-memory testing. This guide installs the backend and routes messages from an input topic to an output topic.
 
 ## Confluent's Python Client for Apache Kafka
 
@@ -21,14 +26,9 @@ Developed by Confluent, this library enjoys strong support from the core team be
 
 ## Installation
 
-!!! warning "Available starting from v0.4.0rc0"
-    Support for `Confluent` is present **starting** from the version **v0.4.0rc0**.
-
-    Please run the following command to install it:
-
-    ```bash
-    pip install "faststream[confluent]>=0.4.0"
-    ```
+```bash
+pip install "faststream[confluent]"
+```
 
 ### FastStream Confluent KafkaBroker
 
@@ -50,6 +50,15 @@ Here's a simplified code example demonstrating how to establish a connection to 
 {! docs_src/index/confluent/basic.py!}
 ```
 
-This minimal example illustrates how FastStream simplifies the process of connecting to Kafka and performing basic message processing from the **in_topic** to the **out-topic**. Depending on your specific use case and requirements, you can further customize your Kafka integration with FastStream to build robust and efficient streaming applications.
+This minimal example illustrates how FastStream simplifies the process of connecting to Kafka and performing basic message processing from the **in-topic** to the **out-topic**. Depending on your specific use case and requirements, you can further customize your Kafka integration with FastStream to build robust and efficient streaming applications.
 
 For more advanced configuration options and detailed usage instructions, please refer to the FastStream Kafka documentation and the [official Kafka documentation](https://kafka.apache.org/){.external-link target="_blank"}.
+
+## Consumer defaults
+
+`faststream.confluent.KafkaBroker` defaults to `client_id="faststream-{version}"`, where `{version}` is the installed FastStream version. Its subscribers default to `auto_offset_reset="latest"` and `group_id=None`.
+
+!!! warning "Default consumer group"
+    When `group_id` is omitted, the Confluent backend uses `"faststream-consumer-group"` internally. Subscribers to the same topic using that group share its partitions. Set an explicit `group_id` to control which subscribers share work and which applications consume independently.
+
+See [Consumer defaults](../kafka/index.md#consumer-defaults){.internal-link} for the comparison with aiokafka, when `auto_offset_reset` applies, and how `client_id` differs from `group_id`.

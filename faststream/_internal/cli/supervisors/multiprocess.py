@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 class Multiprocess(BaseReload):
     """A class to represent a multiprocess."""
 
+    __slots__ = (
+        "processes",
+        "workers",
+    )
+
     def __init__(
         self,
         target: "RunFunction",

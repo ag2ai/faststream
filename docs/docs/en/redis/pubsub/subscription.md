@@ -96,6 +96,7 @@ You can also use the **Redis Pub/Sub** pattern feature to encode some data direc
 ```
 
 ### Literal braces
+{% raw %}
 
 If your channel name legitimately contains `{` or `}` characters, escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
 
@@ -106,5 +107,6 @@ channel = PubSub("cache{{shard}}.logs.{level}")
 async def handler(body: str, level: str = Path()):
     ...
 ```
+{% endraw %}
 
 This subscribes to the channel `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.

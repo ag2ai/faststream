@@ -13,6 +13,7 @@ from tests.tools import spy_decorator
 from .basic import ConfluentTestcaseConfig
 
 
+@pytest.mark.confluent()
 @pytest.mark.kafka()
 @pytest.mark.connected()
 class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
@@ -77,7 +78,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.ACK_FIRST,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
@@ -136,17 +137,18 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=ack_policy,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            commit_event = asyncio.Event()
             with patch.object(
                 AsyncConfluentConsumer,
                 "commit",
-                spy_decorator(AsyncConfluentConsumer.commit),
+                spy_decorator(AsyncConfluentConsumer.commit, commit_event),
             ) as commit:
                 await asyncio.wait(
                     (
@@ -157,12 +159,14 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                             ),
                         ),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(commit_event.wait()),
                     ),
                     timeout=self._TIMEOUT,
                 )
                 commit.mock.assert_awaited_once()
 
         assert event.is_set()
+        assert commit_event.is_set()
 
     @pytest.mark.slow()
     @pytest.mark.parametrize(
@@ -194,18 +198,19 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=ack_policy,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
-            raise Exception  # noqa: TRY002
+            raise Exception  # ruff: ignore[raise-vanilla-class]
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            commit_event = asyncio.Event()
             with patch.object(
                 AsyncConfluentConsumer,
                 "commit",
-                spy_decorator(AsyncConfluentConsumer.commit),
+                spy_decorator(AsyncConfluentConsumer.commit, commit_event),
             ) as commit:
                 await asyncio.wait(
                     (
@@ -216,12 +221,14 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                             ),
                         ),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(commit_event.wait()),
                     ),
                     timeout=self._TIMEOUT,
                 )
                 commit.mock.assert_awaited_once()
 
         assert event.is_set()
+        assert commit_event.is_set()
 
     @pytest.mark.slow()
     async def test_seek_called_on_nack_on_error(
@@ -237,14 +244,15 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             ack_policy=AckPolicy.NACK_ON_ERROR,
         )
 
-        @consume_broker.subscriber(*args, **kwargs)
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: KafkaMessage) -> None:
             event.set()
-            raise Exception  # noqa: TRY002
+            raise Exception  # ruff: ignore[raise-vanilla-class]
 
         async with self.patch_broker(consume_broker) as br:
             await br.start()
 
+            seek_event = asyncio.Event()
             with (
                 patch.object(
                     AsyncConfluentConsumer,
@@ -254,7 +262,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                 patch.object(
                     AsyncConfluentConsumer,
                     "seek",
-                    spy_decorator(AsyncConfluentConsumer.seek),
+                    spy_decorator(AsyncConfluentConsumer.seek, seek_event),
                 ) as seek,
             ):
                 await asyncio.wait(
@@ -266,6 +274,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                             ),
                         ),
                         asyncio.create_task(event.wait()),
+                        asyncio.create_task(seek_event.wait()),
                     ),
                     timeout=self._TIMEOUT,
                 )
@@ -273,6 +282,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
                 commit.mock.assert_not_called()
 
         assert event.is_set()
+        assert seek_event.is_set()
 
     async def test_reject_on_error_warning(self, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)
@@ -287,5 +297,5 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
             match="AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK.",
         ):
 
-            @consume_broker.subscriber(*args, **kwargs)
+            @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
             async def handler(msg: KafkaMessage) -> None: ...

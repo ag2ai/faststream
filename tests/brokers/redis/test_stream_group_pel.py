@@ -72,7 +72,7 @@ class TestStreamGroupPEL(RedisMemoryTestcaseConfig):
 
             @broker.subscriber(stream=StreamSub("tasks", group="workers", consumer="w1"))
             async def worker(msg: str) -> None:
-                call_order.append("worker")  # noqa: B023
+                call_order.append("worker")  # ruff: ignore[function-uses-loop-variable]
                 raise NackMessage
 
             @broker.subscriber(
@@ -84,7 +84,7 @@ class TestStreamGroupPEL(RedisMemoryTestcaseConfig):
                 ),
             )
             async def claimer(msg: str) -> None:
-                call_order.append("claimer")  # noqa: B023
+                call_order.append("claimer")  # ruff: ignore[function-uses-loop-variable]
 
             pel = PEL()
             async with self.patch_broker(broker, pel=pel) as br:

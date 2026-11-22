@@ -3,8 +3,7 @@ from typing import Any, TypeAlias
 import pytest
 from pydantic import ValidationError
 
-from faststream._internal.broker import BrokerUsecase
-from faststream._internal.endpoint.subscriber import SubscriberUsecase
+from faststream._internal.endpoint.call_wrapper import HandlerCallWrapper
 from faststream._internal.testing.broker import TestBroker
 from faststream.exceptions import SetupError
 from tests.marks import (
@@ -17,9 +16,9 @@ from tests.marks import (
 )
 
 Setup: TypeAlias = tuple[
-    BrokerUsecase[Any, Any],
-    SubscriberUsecase[Any],
-    type[TestBroker],
+    Any,
+    HandlerCallWrapper[..., Any],
+    type[TestBroker[Any]],
 ]
 
 

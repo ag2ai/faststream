@@ -1,10 +1,12 @@
+from typing import Any
+
 import pytest
 
 from faststream.rabbit import RabbitBroker, RabbitRouter
 
 
 @pytest.fixture(params=(RabbitBroker(), RabbitRouter()))
-def just_broker(request):
+def just_broker(request: pytest.FixtureRequest) -> Any:
     return request.param
 
 

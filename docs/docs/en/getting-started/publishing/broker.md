@@ -10,9 +10,9 @@ search:
 
 # Broker Publishing
 
-The easiest way to publish a message is to use a Broker, which allows you to use it as a publisher client in any applications.
+The easiest way to publish a message is to use a Broker, which allows you to use it as a publisher client in any application.
 
-In the **FastStream** project, this call is not represented in the **AsyncAPI** scheme. You can use it to send rarely-publishing messages, such as startup or shutdown events.
+In the **FastStream** project, this call is not represented in the **AsyncAPI** scheme. You can use it to send rarely published messages, such as startup or shutdown events.
 
 !!! tip "Pros and Cons"
 

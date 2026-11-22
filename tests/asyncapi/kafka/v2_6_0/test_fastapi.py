@@ -1,8 +1,8 @@
 from typing import Any
 
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.kafka.fastapi import KafkaRouter
 from faststream.kafka.testing import TestKafkaBroker
 from faststream.security import SASLPlaintext
@@ -19,32 +19,24 @@ class TestRouterArguments(FastAPITestCase, FastAPICompatible):
     router_class = KafkaRouter
     broker_wrapper = staticmethod(TestKafkaBroker)
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))
 
 
 @pytest.mark.kafka()
 class TestRouterPublisher(PublisherTestcase):
     broker_class = KafkaRouter
 
-    def get_spec(self, broker: BrokerUsecase[Any, Any]) -> Specification:
-        return super().get_spec(broker.broker)
+    def get_spec(self, *routers: Any) -> Specification:
+        return super().get_spec(*(router.broker for router in routers))
 
 
 @pytest.mark.kafka()
-def test_fastapi_security_schema() -> None:
+def test_fastapi_security_schema(snapshot_json: SnapshotAssertion) -> None:
     security = SASLPlaintext(username="user", password="pass", use_ssl=False)
 
     router = KafkaRouter("localhost:9092", security=security)
 
     schema = get_2_6_0_schema(router.broker)
 
-    assert schema["servers"]["development"] == {
-        "protocol": "kafka",
-        "protocolVersion": "auto",
-        "security": [{"user-password": []}],
-        "url": "localhost:9092",
-    }
-    assert schema["components"]["securitySchemes"] == {
-        "user-password": {"type": "userPassword"},
-    }
+    assert schema == snapshot_json

@@ -4,6 +4,9 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+description: >-
+  Collect Prometheus metrics for FastStream publishers and subscribers with the built-in
+  middleware and expose them over the ASGI endpoint.
 search:
   boost: 10
 ---
@@ -18,7 +21,7 @@ and performance of systems and applications.
 
 ### FastStream Metrics
 
-To add a metrics to your broker, you need to:
+To add metrics to your broker, you need to:
 
 1. Install `FastStream` with `prometheus-client`
 
@@ -136,7 +139,7 @@ passing in the registry that was passed to `PrometheusMiddleware`.
 | Label                             | Description                                                     | Values                                            |
 |-----------------------------------|-----------------------------------------------------------------|---------------------------------------------------|
 | app_name                          | The name of the application, which the user can specify himself | `faststream` by default                           |
-| broker                            | Broker name                                                     | `kafka`, `rabbit`, `nats`, `redis`                |
+| broker                            | Broker name                                                     | `kafka`, `rabbitmq`, `nats`, `redis`, `mqtt`      |
 | handler                           | Where the message came from                                     |                                                   |
 | status (while receiving)          | Message processing status                                       | `acked`, `nacked`, `rejected`, `skipped`, `error` |
 | exception_type (while receiving)  | Exception type when processing message                          |                                                   |
@@ -154,16 +157,66 @@ To integrate your custom metrics with FastStream, you should declare the metric,
 
 To learn about all the metric types supported by the `prometheus_client` Python library, check out the official instrumentation [**documentation**](https://prometheus.github.io/client_python/instrumenting/){.external-link target="_blank"}.
 
+### Multi-process mode
+
+When running FastStream with multiple worker processes (e.g., via `uvicorn --workers N`), you need special configuration for Prometheus metrics collection.
+
+#### Basic configuration
+
+1. Set the `PROMETHEUS_MULTIPROC_DIR` environment variable to a writable directory:
+
+    ```bash
+    export PROMETHEUS_MULTIPROC_DIR=/path/to/metrics/directory
+    ```
+
+2. Configure your broker with Prometheus middleware and create a metrics endpoint:
+
+    ```python linenums="1" hl_lines="18-21 26-37 43"
+    {!> docs_src/getting_started/prometheus/kafka_multiprocess.py!}
+    ```
+
+#### How it works
+
+The metrics endpoint is a regular [ASGI route](../asgi.md){.internal-link} declared with the `#!python @get` decorator. It checks for the `PROMETHEUS_MULTIPROC_DIR` environment variable:
+
+- **Multi-process mode**: When the variable is set, it creates a new `CollectorRegistry` with `MultiProcessCollector` that aggregates metrics from all worker processes
+- **Single-process mode**: When the variable is not set, it falls back to the registry passed to the middleware
+
+This allows the same code to work in both single and multi-process deployments.
+
+#### Running with multiple workers
+
+Start your application with uvicorn using multiple workers:
+
+```bash
+export PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+mkdir -p $PROMETHEUS_MULTIPROC_DIR
+uvicorn app:app --workers 4
+```
+
+#### Important requirements
+
+1. **The metrics directory must:**
+    - Exist before application start
+    - Be writable by all worker processes
+    - Be on a filesystem accessible to all workers
+    - Be emptied before each application start
+
+2. **For better performance:**
+    - Consider mounting the directory on `tmpfs`
+
+---
+
 ### Grafana dashboard
 
 You can import the [**Grafana dashboard**](https://grafana.com/grafana/dashboards/22130-faststream-metrics/){.external-link target="_blank"} to visualize the metrics collected by middleware.
 
 Enter the dashboard **URL** `https://grafana.com/grafana/dashboards/22130-faststream-metrics/` (or just the **ID**, `22130`), and click on **Load**.
 
-![HTML-page](../../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/import-dashboard.png){ .on-glb loading=lazy }
 `Import dashboard`
 
 An [example](https://github.com/draincoder/faststream-monitoring){.external-link target="_blank"} application with configured **metrics**, **Prometheus** and **Grafana**.
 
-![HTML-page](../../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
+![HTML-page](../../assets/img/grafana-dashboard.png){ .on-glb loading=lazy }
 `Grafana dashboard`

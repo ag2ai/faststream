@@ -1,0 +1,22 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {},
+    "securitySchemes": {}
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "rediss",
+      "protocolVersion": "custom",
+      "security": [],
+      "url": "rediss://localhost:6379/"
+    }
+  }
+}

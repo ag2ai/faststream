@@ -8,6 +8,12 @@ if TYPE_CHECKING:
 
 
 class BrokerState:
+    __slots__ = (
+        "_connected",
+        "_connection",
+        "_stream",
+    )
+
     def __init__(self) -> None:
         self._connected = False
 

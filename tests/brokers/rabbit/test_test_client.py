@@ -34,7 +34,7 @@ class TestTestclient(
         broker = self.get_broker()
 
         @broker.subscriber(queue)
-        def subscriber(m) -> None:
+        def subscriber(m: Any) -> None:
             event.set()
 
         async with self.patch_broker(broker, with_real=True) as br:
@@ -50,7 +50,6 @@ class TestTestclient(
 
     async def test_direct_not_found(
         self,
-        queue: str,
     ) -> None:
         broker = self.get_broker()
 
@@ -125,7 +124,7 @@ class TestTestclient(
         assert event3.is_set()
 
     async def test_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -135,10 +134,10 @@ class TestTestclient(
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(msg) -> None: ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(msg) -> None: ...
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker) as br:
             await br.publish("", queue)
@@ -148,7 +147,7 @@ class TestTestclient(
 
     @pytest.mark.connected()
     async def test_real_respect_middleware(self, queue: str) -> None:
-        routes = []
+        routes: list[Any] = []
 
         class Middleware(BaseMiddleware):
             async def on_receive(self) -> None:
@@ -158,10 +157,10 @@ class TestTestclient(
         broker = self.get_broker(middlewares=(Middleware,))
 
         @broker.subscriber(queue)
-        async def h1(msg) -> None: ...
+        async def h1(msg: Any) -> None: ...
 
         @broker.subscriber(queue + "1")
-        async def h2(msg) -> None: ...
+        async def h2(msg: Any) -> None: ...
 
         async with self.patch_broker(broker, with_real=True) as br:
             await br.publish("", queue)
@@ -216,14 +215,23 @@ class TestTestclient(
             assert msg.raw_message.expiration == expected
 
 
+@pytest.mark.rabbit()
 @pytest.mark.parametrize(
     ("pattern", "current", "result"),
     (
+        pytest.param("", "", True, id="empty binding and routing key"),
+        pytest.param("#", "", True, id="# - empty routing key"),
+        pytest.param("#.*", "", False, id="#.* - empty routing key"),
+        pytest.param("*.#", "", False, id="*.# - empty routing key"),
         pytest.param("#", "1.2.3", True, id="#"),
         pytest.param("*", "1", True, id="*"),
         pytest.param("*", "1.2", False, id="* - broken"),
         pytest.param("test.*", "test.1", True, id="test.*"),
         pytest.param("test.#", "test.1", True, id="test.#"),
+        pytest.param("test.#", "test", True, id="test.# - zero words"),
+        pytest.param("#.test", "test", True, id="#.test - zero words"),
+        pytest.param("#.*", "1", True, id="#.* - zero words"),
+        pytest.param("#.test", "test.test.test", True, id="#.test - repeated word"),
         pytest.param("#.test.#", "1.2.test.1.2", True, id="#.test.#"),
         pytest.param("#.test.*", "1.2.test.1", True, id="#.test.*"),
         pytest.param("#.test.*.*", "1.2.test.1.2", True, id="#.test.*."),
@@ -238,7 +246,8 @@ class TestTestclient(
         pytest.param("#.2.*.test", "1.2.2.test", True, id="#.2.*.test"),
         pytest.param("#.*.*.test", "1.2.2.test", True, id="#.*.*.test"),
         pytest.param("*.*.*.test", "1.2.test", False, id="*.*.*.test - broken"),
-        pytest.param("#.*.*.test", "1.2.test", False, id="#.*.*.test - broken"),
+        pytest.param("#.*.*.test", "1.2.test", True, id="#.*.*.test - zero words"),
+        pytest.param("#.*.*.test", "1.test", False, id="#.*.*.test - broken"),
     ),
 )
 def test(pattern: str, current: str, result: bool) -> None:

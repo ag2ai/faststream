@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
 import pytest
@@ -11,6 +11,8 @@ from faststream.response.response import (
     BatchPublishCommand,
     PublishCommand,
 )
+
+from .basic import BaseTestcaseConfig
 
 
 class BasePublishCommandTestcase:
@@ -183,7 +185,7 @@ KEY_ALIGNMENT_CASES = (
 )
 
 
-class BatchKeysTestcase:
+class BatchKeysTestcase(BaseTestcaseConfig[Any]):
     """Per-message keys must keep following their bodies when `batch_bodies` is replaced.
 
     Applies to Kafka-like brokers, where every batch element carries its own key.
@@ -194,7 +196,8 @@ class BatchKeysTestcase:
 
     @staticmethod
     def get_message_key(raw_message: Any) -> bytes:
-        return raw_message.key
+        key: bytes = raw_message.key
+        return key
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(
@@ -204,24 +207,26 @@ class BatchKeysTestcase:
     async def test_publish_middleware_keeps_keys_aligned(
         self,
         queue: str,
-        pairs,
-        mutate,
-        expected,
+        pairs: Any,
+        mutate: Any,
+        expected: Any,
     ) -> None:
         publish_command_cls = self.publish_command_cls
 
         class MutatingMiddleware(BaseMiddleware):
-            async def publish_scope(self, call_next, cmd):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
                 if isinstance(cmd, publish_command_cls):
                     cmd.batch_bodies = mutate(cmd.batch_bodies)
                 return await call_next(cmd)
 
         broker = self.get_broker(apply_types=True, middlewares=(MutatingMiddleware,))
 
-        received = []
+        received: list[Any] = []
 
         @broker.subscriber(queue, batch=True)
-        async def handler(msgs, raw=Context("message")) -> None:
+        async def handler(msgs: Any, raw: Any = Context("message")) -> None:
             received.extend(
                 zip(
                     (None if isinstance(msg, Tombstone) else msg for msg in msgs),

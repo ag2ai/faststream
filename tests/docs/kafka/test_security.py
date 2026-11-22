@@ -4,23 +4,19 @@ from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from dirty_equals import IsInstance, IsPartialDict
 
 
 @contextmanager
-def patch_aio_consumer_and_producer() -> Generator[
-    tuple[MagicMock, MagicMock], None, None
-]:
-    try:
-        producer = MagicMock(return_value=AsyncMock())
-        admin_client = MagicMock(return_value=AsyncMock())
+def patch_aio_consumer_and_producer() -> Generator[MagicMock, None, None]:
+    producer = MagicMock(return_value=AsyncMock())
+    admin_client = MagicMock(return_value=AsyncMock())
 
-        with (
-            patch("aiokafka.AIOKafkaProducer", new=producer),
-            patch("aiokafka.admin.client.AIOKafkaAdminClient", new=admin_client),
-        ):
-            yield producer
-    finally:
-        pass
+    with (
+        patch("aiokafka.AIOKafkaProducer", new=producer),
+        patch("aiokafka.admin.client.AIOKafkaAdminClient", new=admin_client),
+    ):
+        yield producer
 
 
 @pytest.mark.asyncio()
@@ -130,3 +126,19 @@ async def test_gssapi() -> None:
             assert call_kwargs.items() <= producer_call_kwargs.items()
 
             assert type(producer_call_kwargs["ssl_context"]) is ssl.SSLContext
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+async def test_oauthbearer() -> None:
+    from docs.docs_src.kafka.security.sasl_oauthbearer import (
+        broker as oauthbearer_broker,
+    )
+
+    with patch_aio_consumer_and_producer() as producer:
+        async with oauthbearer_broker:
+            assert producer.call_args.kwargs == IsPartialDict({
+                "sasl_mechanism": "OAUTHBEARER",
+                "security_protocol": "SASL_SSL",
+                "ssl_context": IsInstance(ssl.SSLContext),
+            })

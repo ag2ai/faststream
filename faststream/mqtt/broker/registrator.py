@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
 
 from typing_extensions import overload, override
@@ -12,7 +12,7 @@ from faststream.mqtt.publisher.factory import create_publisher
 from faststream.mqtt.subscriber.factory import create_subscriber
 
 if TYPE_CHECKING:
-    import zmqtt  # noqa: F401
+    import zmqtt  # ruff: ignore[unused-import]
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.parser import CodecProto
@@ -40,7 +40,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -62,7 +62,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -84,7 +84,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         codec: Optional["CodecProto"] = None,
@@ -185,7 +185,7 @@ class MQTTRegistrator(Registrator["zmqtt.Message", MQTTBrokerConfig]):
         router: "MQTTRegistrator",  # type: ignore[override]
         *,
         prefix: str = "",
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         include_in_schema: bool | None = None,
     ) -> None:

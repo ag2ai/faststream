@@ -2,10 +2,12 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Optional
 
+import anyio
 from fast_depends import Provider
 from typing_extensions import Self
 
-from faststream._internal.configs import BrokerConfigType
+from faststream._internal._compat import ExceptionGroup
+from faststream._internal.configs import BrokerConfigType_co
 from faststream._internal.types import (
     BrokerMiddleware,
     ConnectionType,
@@ -20,18 +22,22 @@ if TYPE_CHECKING:
 
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.di import FastDependsConfig
+    from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream._internal.producer import ProducerProto
     from faststream.specification.schema import BrokerSpec
 
 
 class BrokerUsecase(
-    Registrator[MsgType, BrokerConfigType],
+    Registrator[MsgType, BrokerConfigType_co],
     BrokerPublishMixin[MsgType],
-    Generic[MsgType, ConnectionType, BrokerConfigType],
+    Generic[MsgType, ConnectionType, BrokerConfigType_co],
 ):
     """Basic class for brokers-only.
 
     Extends `Registrator` by connection, publish and AsyncAPI behavior.
+
+    Unslotted on purpose: one broker exists per process, and it is the object test
+    suites mock — `patch.object(broker, "start")` needs somewhere to put the mock.
     """
 
     _connection: ConnectionType | None
@@ -39,7 +45,7 @@ class BrokerUsecase(
     def __init__(
         self,
         *,
-        config: BrokerConfigType,
+        config: BrokerConfigType_co,
         specification: "BrokerSpec",
         routers: Iterable[Registrator[Any, Any]],
         **connection_kwargs: Any,
@@ -124,10 +130,23 @@ class BrokerUsecase(
         exc_tb: Optional["TracebackType"] = None,
     ) -> None:
         """Closes the object."""
-        for sub in self.subscribers:
-            await sub.stop()
+        errors: list[Exception] = []
+
+        async def stop_subscriber(sub: "SubscriberUsecase[MsgType]") -> None:
+            try:
+                await sub.stop()
+            except Exception as e:
+                errors.append(e)
+
+        async with anyio.create_task_group() as tg:
+            for sub in self.subscribers:
+                _ = tg.start_soon(stop_subscriber, sub)
 
         self.running = False
+
+        if errors:
+            msg = "Failed to stop subscribers"
+            raise ExceptionGroup(msg, errors)
 
     @abstractmethod
     async def ping(self, timeout: float | None) -> bool:

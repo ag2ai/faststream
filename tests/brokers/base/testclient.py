@@ -2,7 +2,7 @@ import asyncio
 import gc
 import json
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import Mock
 
 import anyio
@@ -10,7 +10,7 @@ import pytest
 from dirty_equals import IsPartialDict
 from pydantic import BaseModel
 
-from faststream import Context
+from faststream import Context, Depends
 from faststream._internal.kafka import TOMBSTONE, Tombstone
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import SetupError
@@ -39,11 +39,11 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test")
-        async def handler1(msg) -> None: ...
+        async def handler1(msg: Any) -> None: ...
 
         # protect publishers from gc
-        pub1 = broker.publisher("test2")  # noqa: F841
-        pub2 = broker.publisher("test")  # noqa: F841
+        pub1 = broker.publisher("test2")  # ruff: ignore[unused-variable]
+        pub2 = broker.publisher("test")  # ruff: ignore[unused-variable]
 
         assert len(broker.subscribers) == 1, len(broker.subscribers)
 
@@ -63,9 +63,9 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         broker = self.get_broker()
 
         @broker.subscriber("test")
-        async def handler(msg) -> None: ...
+        async def handler(msg: Any) -> None: ...
 
-        pub = broker.publisher("test2")  # noqa: F841
+        pub = broker.publisher("test2")  # ruff: ignore[unused-variable]
 
         async with self.patch_broker(broker):
             pass
@@ -74,7 +74,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         # until the next collection, which is exactly what hid the bug.
         assert len(broker.subscribers) == 1, len(broker.subscribers)
 
-        second_client = self.patch_broker(broker)
+        second_client: Any = self.patch_broker(broker)
         async with second_client as br:
             # This client owns its own fake, so the collector cannot take it away
             # mid-test and leave `publish()` raising `SubscriberNotFound`.
@@ -83,13 +83,39 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             assert len(br.subscribers) == 2, len(br.subscribers)
 
     @pytest.mark.asyncio()
+    async def test_broker_dependencies_from_a_generator_reach_every_subscriber(
+        self, queue: str, mock: Mock
+    ) -> None:
+        broker = self.get_broker(
+            apply_types=True,
+            dependencies=(Depends(dep) for dep in (mock,)),
+        )
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def first(msg: Any) -> None: ...
+
+        args2, kwargs2 = self.get_subscriber_params(queue + "2")
+
+        @broker.subscriber(*args2, **kwargs2)
+        async def second(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
+            await br.publish("hello", queue + "2")
+
+        assert mock.call_count == 2
+
+    @pytest.mark.asyncio()
     async def test_subscriber_mock(self, queue: str) -> None:
         test_broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             pass
 
         async with self.patch_broker(test_broker) as br:
@@ -107,7 +133,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         @publisher
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> str:
+        async def m(msg: Any) -> str:
             return "response"
 
         async with self.patch_broker(test_broker) as br:
@@ -125,13 +151,13 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
         @publisher
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> str:
+        async def m(msg: Any) -> str:
             return "response"
 
         args2, kwargs2 = self.get_subscriber_params(queue + "resp")
 
         @test_broker.subscriber(*args2, **kwargs2)
-        async def handler_response(msg) -> None: ...
+        async def handler_response(msg: Any) -> None: ...
 
         async with self.patch_broker(test_broker) as br:
             await br.start()
@@ -151,7 +177,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             await publisher.publish("response")
 
         async with self.patch_broker(test_broker) as br:
@@ -166,64 +192,70 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg):  # pragma: no cover
+        async def m(msg: Any) -> Any:  # pragma: no cover
             raise ValueError
 
         async with self.patch_broker(test_broker) as br:
             await br.start()
 
-            with pytest.raises(ValueError):  # noqa: PT011
+            with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
                 await br.publish("hello", queue)
 
     @pytest.mark.asyncio()
     async def test_parser_exception_raises(self, queue: str) -> None:
         test_broker = self.get_broker()
 
-        def parser(msg):
+        def parser(msg: Any) -> Any:
             raise ValueError
 
         args, kwargs = self.get_subscriber_params(queue, parser=parser)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg):  # pragma: no cover
+        async def m(msg: Any) -> None:  # pragma: no cover
             pass
 
         async with self.patch_broker(test_broker) as br:
             await br.start()
 
-            with pytest.raises(ValueError):  # noqa: PT011
+            with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
                 await br.publish("hello", queue)
 
     @pytest.mark.asyncio()
-    async def test_broker_gets_patched_attrs_within_cm(self, fake_producer_cls) -> None:
+    async def test_broker_gets_patched_attrs_within_cm(
+        self, fake_producer_cls: Any
+    ) -> None:
         test_broker = self.get_broker()
-        await test_broker.start()
 
-        old_producer = test_broker._producer
+        async with test_broker:
+            await test_broker.start()
 
-        async with self.patch_broker(test_broker) as br:
-            assert isinstance(br.start, Mock)
-            assert isinstance(br._connect, Mock)
-            assert isinstance(br.stop, Mock)
-            assert isinstance(br._producer, fake_producer_cls)
+            old_producer = test_broker._producer
 
-        assert not isinstance(br.start, Mock)
-        assert not isinstance(br._connect, Mock)
-        assert not isinstance(br.stop, Mock)
-        assert br._connection is not None
-        assert br._producer == old_producer
+            async with self.patch_broker(test_broker) as br:
+                assert isinstance(br.start, Mock)
+                assert isinstance(br._connect, Mock)
+                assert isinstance(br.stop, Mock)
+                assert isinstance(br._producer, fake_producer_cls)
 
-    @pytest.mark.asyncio()
-    async def test_broker_with_real_doesnt_get_patched(self) -> None:
-        test_broker = self.get_broker()
-        await test_broker.start()
-
-        async with self.patch_broker(test_broker, with_real=True) as br:
             assert not isinstance(br.start, Mock)
             assert not isinstance(br._connect, Mock)
             assert not isinstance(br.stop, Mock)
             assert br._connection is not None
-            assert br._producer is not None
+            assert br._producer == old_producer
+
+    @pytest.mark.asyncio()
+    async def test_broker_with_real_doesnt_get_patched(self) -> None:
+        test_broker = self.get_broker()
+
+        async with test_broker:
+            await test_broker.start()
+
+            async with self.patch_broker(test_broker, with_real=True) as br:
+                assert not isinstance(br.start, Mock)
+                assert not isinstance(br._connect, Mock)
+                assert not isinstance(br.stop, Mock)
+                assert br._connection is not None
+                assert br._producer is not None
 
     @pytest.mark.asyncio()
     async def test_broker_with_real_patches_publishers_and_subscribers(
@@ -237,7 +269,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         args, kwargs = self.get_subscriber_params(queue)
 
         @test_broker.subscriber(*args, **kwargs)
-        async def m(msg) -> None:
+        async def m(msg: Any) -> None:
             await publisher.publish(f"response: {msg}")
 
         async with self.patch_broker(test_broker, with_real=True) as br:
@@ -246,7 +278,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             m.mock.assert_called_once_with("hello")
 
             with anyio.fail_after(self.timeout):
-                while not publisher.mock.called:  # noqa: ASYNC110
+                while not publisher.mock.called:  # ruff: ignore[async-busy-wait]
                     await asyncio.sleep(0.1)
 
                 publisher.mock.assert_called_once_with("response: hello")
@@ -256,9 +288,9 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
     async def test_broker_with_real_stops_fake_subscribers(self, queue: str) -> None:
         test_broker = self.get_broker()
 
-        publisher = test_broker.publisher(queue)  # noqa: F841
+        publisher = test_broker.publisher(queue)  # ruff: ignore[unused-variable]
 
-        test_client = self.patch_broker(test_broker, with_real=True)
+        test_client: Any = self.patch_broker(test_broker, with_real=True)
         async with test_client:
             (fake,) = test_client._fake_subscribers
             fake.stop = spy_decorator(fake.stop)
@@ -269,7 +301,6 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
     @pytest.mark.asyncio()
     async def test_publisher_response_with_model(self, queue: str) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/2578."""
-        from pydantic import BaseModel
 
         class ModelA(BaseModel):
             param1: int
@@ -544,16 +575,16 @@ class _TrackingCodec(DefaultCodec):
 
 # NOTE: kafka/confluent only - other brokers have no tombstone concept.
 @pytest.mark.asyncio()
-class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig):
+class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig[Any]):
     response_cls: type[Any]
 
     @staticmethod
     def get_message_value(raw_message: Any) -> bytes | None:
-        return raw_message.value
+        return cast("bytes | None", raw_message.value)
 
     @staticmethod
     def get_message_key(raw_message: Any) -> bytes:
-        return raw_message.key
+        return cast("bytes", raw_message.key)
 
     async def test_tombstone_body_reads_as_empty_bytes(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)

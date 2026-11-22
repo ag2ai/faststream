@@ -1,10 +1,12 @@
+from typing import Any
+
 from faststream import Context, ContextRepo, FastStream
 from faststream.redis import RedisBroker
 
 broker = RedisBroker("redis://localhost:6379")
 app = FastStream(broker)
 
-ml_models = {}  # fake ML model
+ml_models: dict[str, Any] = {}  # fake ML model
 
 
 def fake_answer_to_everything_ml_model(x: float) -> float:

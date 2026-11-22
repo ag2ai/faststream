@@ -27,7 +27,7 @@ class BaseConfluentPrometheusSettings(ConfluentTestcaseConfig):
 
         return topics, {
             "group_id": "test",
-            "ack_policy": AckPolicy.REJECT_ON_ERROR,
+            "ack_policy": AckPolicy.ACK,
             **kwargs,
         }
 

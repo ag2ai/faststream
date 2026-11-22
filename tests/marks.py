@@ -28,9 +28,11 @@ pydantic_v2 = pytest.mark.skipif(
 
 
 try:
-    from faststream.confluent import KafkaBroker
+    from faststream.confluent import KafkaBroker as ConfluentBroker  # ruff: ignore[unused-import]
+    from faststream.confluent._compat import CONFLUENT_V240
 except ImportError:
     HAS_CONFLUENT = False
+    CONFLUENT_V240 = False
 else:
     HAS_CONFLUENT = True
 
@@ -39,11 +41,18 @@ require_confluent = pytest.mark.skipif(
     reason="requires confluent-kafka",
 )
 
+require_confluent_v240 = pytest.mark.skipif(
+    not CONFLUENT_V240,
+    reason="requires confluent-kafka 2.4.0+ (KIP-848 group.protocol)",
+)
+
 
 try:
-    from faststream.kafka import KafkaBroker  # noqa: F401
+    from faststream.kafka import KafkaBroker  # ruff: ignore[unused-import]
+    from faststream.kafka._compat import AIOKAFKA_V014
 except ImportError:
     HAS_AIOKAFKA = False
+    AIOKAFKA_V014 = False
 else:
     HAS_AIOKAFKA = True
 
@@ -52,9 +61,14 @@ require_aiokafka = pytest.mark.skipif(
     reason="requires aiokafka",
 )
 
+require_aiokafka_v014 = pytest.mark.skipif(
+    not AIOKAFKA_V014,
+    reason="requires aiokafka 0.14.0+ (`AIOKafkaConsumer(client_rack=...)`)",
+)
+
 
 try:
-    from faststream.rabbit import RabbitBroker  # noqa: F401
+    from faststream.rabbit import RabbitBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_AIOPIKA = False
 else:
@@ -67,7 +81,7 @@ require_aiopika = pytest.mark.skipif(
 
 
 try:
-    from faststream.redis import RedisBroker  # noqa: F401
+    from faststream.redis import RedisBroker  # ruff: ignore[unused-import]
     from faststream.redis._compat import REDIS_V710
 except ImportError:
     HAS_REDIS = False
@@ -87,7 +101,7 @@ require_redis_v710 = pytest.mark.skipif(
 
 
 try:
-    from faststream.nats import NatsBroker  # noqa: F401
+    from faststream.nats import NatsBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_NATS = False
 else:
@@ -100,7 +114,7 @@ require_nats = pytest.mark.skipif(
 
 
 try:
-    from faststream.mqtt import MQTTBroker  # noqa: F401
+    from faststream.mqtt import MQTTBroker  # ruff: ignore[unused-import]
 except ImportError:
     HAS_MQTT = False
 else:

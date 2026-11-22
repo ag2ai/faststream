@@ -1,5 +1,6 @@
 import random
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -40,7 +41,7 @@ class TestKafkaMetricsSettingsProvider(
             "messages_count": 1,
         }
 
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=SimpleNamespace(topic=lambda: queue),
         )
@@ -51,7 +52,7 @@ class TestKafkaMetricsSettingsProvider(
         assert attrs == expected_attrs
 
     def test_get_consume_attrs_from_a_tombstone(self, queue: str) -> None:
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=TOMBSTONE,
             raw_message=SimpleNamespace(topic=lambda: queue),
         )
@@ -72,7 +73,7 @@ class TestBatchConfluentMetricsSettingsProvider(
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = [b"Hi ", b"again, ", b"FastStream!"]
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=[
                 SimpleNamespace(topic=lambda: queue)
@@ -95,7 +96,7 @@ class TestBatchConfluentMetricsSettingsProvider(
         queue: str,
     ) -> None:
         body = [b"Hi", TOMBSTONE]
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=[SimpleNamespace(topic=lambda: queue) for _ in body],
         )
@@ -130,7 +131,7 @@ class TestBatchConfluentMetricsSettingsProvider(
         ),
     ),
 )
-def test_settings_provider_factory(msg, expected_provider) -> None:
+def test_settings_provider_factory(msg: Any, expected_provider: Any) -> None:
     provider = settings_provider_factory(msg)
 
     assert isinstance(provider, type(expected_provider))

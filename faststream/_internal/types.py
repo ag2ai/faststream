@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 AnyMsg = TypeVar313("AnyMsg", default=Any)
 AnyMsg_contra = TypeVar313("AnyMsg_contra", default=Any, contravariant=True)
+MiddlewareMsgType = TypeVar313("MiddlewareMsgType", default=Any | None)
 MsgType = TypeVar("MsgType")
 StreamMsg = TypeVar("StreamMsg", bound=StreamMessage[Any])
 ConnectionType = TypeVar("ConnectionType")
@@ -73,6 +74,8 @@ WrappedHandlerCall: TypeAlias = (
 class BrokerMiddleware(Protocol[AnyMsg_contra, PublishCommandType]):
     """Middleware builder interface."""
 
+    __slots__ = ()
+
     def __call__(
         self,
         msg: AnyMsg_contra | None,
@@ -90,6 +93,8 @@ SubscriberMiddleware: TypeAlias = Callable[
 
 class PublisherMiddleware(Protocol[PublishCommandType]):
     """Publisher middleware interface."""
+
+    __slots__ = ()
 
     def __call__(
         self,

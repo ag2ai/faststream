@@ -49,8 +49,10 @@ def change_producer(
     producer: Any,
 ) -> Generator[None, None, None]:
     old_producer, config.producer = config.producer, producer
-    yield
-    config.producer = old_producer
+    try:
+        yield
+    finally:
+        config.producer = old_producer
 
 
 class TestBroker(Generic[Broker, EnterType]):
@@ -58,6 +60,15 @@ class TestBroker(Generic[Broker, EnterType]):
 
     # This is set so pytest ignores this class
     __test__ = False
+
+    def __init_subclass__(
+        cls,
+        broker: type[BrokerUsecase[Any, Any, Any]] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init_subclass__(**kwargs)
+        if broker is not None:
+            _TEST_BROKERS[broker] = cls
 
     def __init__(
         self,
@@ -125,10 +136,11 @@ class TestBroker(Generic[Broker, EnterType]):
                     await stack.enter_async_context(self._do_start(broker))
                 )
 
-            yield started_brokers
-
-            for sub, was_running in saved_running.items():
-                sub.running = was_running
+            try:
+                yield started_brokers
+            finally:
+                for sub, was_running in saved_running.items():
+                    sub.running = was_running
 
     @asynccontextmanager
     async def _do_start(self, broker: Broker) -> AsyncGenerator[Broker, None]:
@@ -150,23 +162,6 @@ class TestBroker(Generic[Broker, EnterType]):
     @contextmanager
     def _patch_producer(self, broker: Broker) -> Generator[None, None, None]:
         raise NotImplementedError
-
-    @contextmanager
-    def _patch_logger(self, broker: Broker) -> Generator[None, None, None]:
-        broker._setup_logger()
-
-        logger_state = broker.config.logger
-
-        old_log_object, logger_state.logger = (
-            logger_state.logger,
-            RealLoggerObject(MagicMock()),
-        )
-
-        try:
-            yield
-
-        finally:
-            logger_state.logger = old_log_object
 
     @contextmanager
     def _patch_broker(self, broker: Broker) -> Generator[None, None, None]:
@@ -191,7 +186,7 @@ class TestBroker(Generic[Broker, EnterType]):
                 new=None,
             ),
             self._patch_producer(broker),
-            self._patch_logger(broker),
+            _patch_logger(broker),
             mock.patch.object(
                 broker,
                 "ping",
@@ -268,6 +263,17 @@ class TestBroker(Generic[Broker, EnterType]):
         raise NotImplementedError
 
 
+def find_test_broker(
+    broker: BrokerUsecase[Any, Any, Any],
+) -> type[TestBroker[Any, Any]] | None:
+    """Return the TestBroker registered for the broker's class, if any."""
+    # the closest class wins: a broker subclass may register a TestBroker of its own
+    for broker_cls in type(broker).__mro__:
+        if test_broker_cls := _TEST_BROKERS.get(broker_cls):
+            return test_broker_cls
+    return None
+
+
 def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
     """Patch broker calls."""
     for sub in broker.subscribers:
@@ -275,3 +281,26 @@ def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
 
         for h in sub.calls:
             h.handler.set_test()
+
+
+@contextmanager
+def _patch_logger(
+    broker: "BrokerUsecase[Any, Any, Any]",
+) -> Generator[None, None, None]:
+    broker._setup_logger()
+
+    logger_state = broker.config.logger
+
+    old_log_object, logger_state.logger = (
+        logger_state.logger,
+        RealLoggerObject(MagicMock()),
+    )
+
+    try:
+        yield
+
+    finally:
+        logger_state.logger = old_log_object
+
+
+_TEST_BROKERS: dict[type[BrokerUsecase[Any, Any, Any]], type[TestBroker[Any, Any]]] = {}

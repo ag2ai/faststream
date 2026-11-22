@@ -1,12 +1,15 @@
+from typing import Any
+
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from faststream.rabbit import ExchangeType, RabbitBroker, RabbitExchange, RabbitQueue
+from tests.asyncapi.base.body_binding import BodyBindingTestcase
 from tests.asyncapi.base.v3_0_0.arguments import ArgumentsTestcase
 
 
 @pytest.mark.rabbit()
-class TestArguments(ArgumentsTestcase):
+class TestArguments(BodyBindingTestcase, ArgumentsTestcase):
     broker_class = RabbitBroker
 
     def test_subscriber_bindings(self, snapshot_json: SnapshotAssertion) -> None:
@@ -16,7 +19,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.TOPIC),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 
@@ -29,7 +32,7 @@ class TestArguments(ArgumentsTestcase):
             RabbitQueue("test", auto_delete=True),
             RabbitExchange("test-ex", type=ExchangeType.FANOUT),
         )
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         schema = self.get_spec(broker).to_jsonable()
 

@@ -166,11 +166,13 @@ def test_run_as_asgi_mp_with_log_level(
 
 def test_run_with_log_level(runner: CliRunner) -> None:
     app = FastStream(MagicMock())
-    app.run = AsyncMock()
 
-    with patch(
-        "faststream._internal.cli.utils.imports._import_object_or_factory",
-        return_value=(None, app),
+    with (
+        patch.object(app, "run", AsyncMock()),
+        patch(
+            "faststream._internal.cli.utils.imports._import_object_or_factory",
+            return_value=(None, app),
+        ),
     ):
         result = runner.invoke(
             faststream_app,
@@ -179,16 +181,19 @@ def test_run_with_log_level(runner: CliRunner) -> None:
 
         assert result.exit_code == 0, result.output
 
+        assert isinstance(app.logger, logging.Logger)
         assert app.logger.level == logging.WARNING
 
 
 def test_run_with_wrong_log_level(runner: CliRunner) -> None:
     app = FastStream(MagicMock())
-    app.run = AsyncMock()
 
-    with patch(
-        "faststream._internal.cli.utils.imports._import_object_or_factory",
-        return_value=(None, app),
+    with (
+        patch.object(app, "run", AsyncMock()),
+        patch(
+            "faststream._internal.cli.utils.imports._import_object_or_factory",
+            return_value=(None, app),
+        ),
     ):
         result = runner.invoke(
             faststream_app,

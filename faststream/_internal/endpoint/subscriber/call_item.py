@@ -1,5 +1,5 @@
 from collections import UserList
-from collections.abc import Iterable, Reversible
+from collections.abc import Iterable, Reversible, Sequence
 from functools import partial
 from inspect import unwrap
 from typing import (
@@ -59,7 +59,7 @@ class HandlerItem(Generic[MsgType]):
         filter: "AsyncFilter[Any]",
         item_parser: Optional["CustomCallable"],
         item_decoder: Optional["CustomCallable"],
-        dependencies: Iterable["Dependant"],
+        dependencies: Sequence["Dependant"],
     ) -> None:
         self.handler = handler
         self.filter = filter
@@ -81,7 +81,7 @@ class HandlerItem(Generic[MsgType]):
         parser: "AsyncCallable",
         decoder: "AsyncCallable",
         config: "FastDependsConfig",
-        broker_dependencies: Iterable["Dependant"],
+        broker_dependencies: Sequence["Dependant"],
         _call_decorators: Reversible["Decorator"],
     ) -> None:
         self.parser = parser
@@ -95,7 +95,7 @@ class HandlerItem(Generic[MsgType]):
 
     @property
     def name(self) -> str:
-        """Returns the name of the original call."""
+        """The name of the original call."""
         if self.handler is None:
             return ""
 
@@ -104,7 +104,7 @@ class HandlerItem(Generic[MsgType]):
 
     @property
     def description(self) -> str | None:
-        """Returns the description of original call."""
+        """The description of original call."""
         if self.handler is None:
             return None
 
@@ -168,7 +168,7 @@ class CallsCollection(UserList[HandlerItem[MsgType]]):
 
     @property
     def name(self) -> str | None:
-        """Returns the name of the handler call."""
+        """The name of the handler call."""
         if not self.data:
             return None
 

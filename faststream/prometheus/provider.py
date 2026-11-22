@@ -19,6 +19,8 @@ PublishCommandType_contra = TypeVar313(
 
 
 class MetricsSettingsProvider(Protocol[AnyMsg, PublishCommandType_contra]):
+    __slots__ = ()
+
     messaging_system: str
 
     def get_consume_attrs_from_message(

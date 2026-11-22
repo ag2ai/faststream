@@ -47,7 +47,7 @@ async def base_handler(body: str, msg: RabbitMessage):
 
 ## Message Fields Access
 
-But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context.md#existing_fields){.internal-link} feature for this reason.
+But in most cases, you don't need all message fields; you need to access some of them. You can use [Context Fields access](../getting-started/context.md#existing-fields){.internal-link} feature for this reason.
 
 For example, you can access the `correlation_id` like this:
 
@@ -83,13 +83,13 @@ But this code is too long to be reused everywhere. In this case, you can use a P
 
 ## Topic Pattern Access
 
-As you know, **Rabbit** allows you to use a pattern like this `#!python "logs.*"` with a [Topic](./examples/topic.md){.internal-link} exchange. Getting access to the real `*` value is an often-used scenario and **FastStream** provide it to you with the `Path` object (which is a shortcut to `#!python Context("message.path.*")`).
+As you know, **Rabbit** allows you to use a pattern like this `#!python "logs.*"` with a [Topic](./examples/topic.md){.internal-link} exchange. Getting access to the real `*` value is an often-used scenario and **FastStream** provides it to you with the `Path` object (which is a shortcut to `#!python Context("message.path.*")`).
 
 To use it, you just need to replace your `*` with `{variable-name}` and use `Path` as a regular `Context` object:
 
 ```python hl_lines="7 11 16"
 from faststream import Path
-from faststream import RabbitQueue, RabbitExchange, ExchangeType
+from faststream.rabbit import RabbitQueue, RabbitExchange, ExchangeType
 
 @broker.subscriber(
     RabbitQueue(
@@ -109,6 +109,7 @@ async def base_handler(
 ```
 
 ### Literal braces
+{% raw %}
 
 If your routing key legitimately contains `{` or `}` characters, escape them by doubling: `{{` and `}}`. FastStream will treat them as literal braces instead of path parameters:
 
@@ -120,5 +121,6 @@ If your routing key legitimately contains `{` or `}` characters, escape them by 
 async def handler(body: str, level: str = Path()):
     ...
 ```
+{% endraw %}
 
 This subscribes to the routing key `cache{shard}.logs.*` where `{shard}` is literal text and `{level}` is a captured parameter.

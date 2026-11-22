@@ -11,7 +11,7 @@ from tests.marks import require_aiopika
 @pytest.mark.asyncio()
 @pytest.mark.rabbit()
 @require_aiopika
-async def test_bind(monkeypatch, async_mock: AsyncMock):
+async def test_bind(monkeypatch: pytest.MonkeyPatch, async_mock: AsyncMock) -> None:
     from docs.docs_src.rabbit.bind import app, broker, some_exchange, some_queue
 
     with monkeypatch.context() as m:

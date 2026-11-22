@@ -1,19 +1,21 @@
 import logging
 from abc import abstractmethod
 from collections.abc import AsyncGenerator, Callable, Sequence
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, nullcontext
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
-from typing_extensions import ParamSpec, deprecated
+from typing_extensions import ParamSpec, Self, deprecated
 
 from faststream._internal.di import FastDependsConfig
 from faststream._internal.logger import logger
 from faststream._internal.utils import apply_types
-from faststream._internal.utils.functions import fake_context, to_async
+from faststream._internal.utils.functions import to_async
 from faststream.exceptions import SetupError
 from faststream.specification import AsyncAPI
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from faststream._internal.basic_types import (
         AnyCallable,
         AsyncFunc,
@@ -25,6 +27,8 @@ if TYPE_CHECKING:
     from faststream._internal.context import ContextRepo
     from faststream.specification.base import SpecificationFactory
 
+
+catch_startup_validation_error: Callable[[], AbstractAsyncContextManager[Any, Any]]
 
 try:
     from pydantic import ValidationError as PValidation
@@ -50,8 +54,8 @@ try:
                 invalid_fields=invalid_fields,
             ) from e
 
-except ImportError:
-    catch_startup_validation_error = fake_context
+except ImportError:  # pragma: no cover
+    catch_startup_validation_error = nullcontext
 
 
 P_HookParams = ParamSpec("P_HookParams")
@@ -59,6 +63,12 @@ T_HookReturn = TypeVar("T_HookReturn")
 
 
 class StartAbleApplication:
+    __slots__ = (
+        "brokers",
+        "config",
+        "schema",
+    )
+
     def __init__(
         self,
         *brokers: "BrokerUsecase[Any, Any, Any]",
@@ -75,7 +85,7 @@ class StartAbleApplication:
     def context(self) -> "ContextRepo":
         return self.config.context
 
-    def _init_setupable_(  # noqa: PLW3201
+    def _init_setupable_(  # ruff: ignore[bad-dunder-method-name]
         self,
         *brokers: "BrokerUsecase[Any, Any, Any]",
         specification: Optional["SpecificationFactory"] = None,
@@ -120,6 +130,12 @@ class StartAbleApplication:
 
 
 class Application(StartAbleApplication):
+    """Unslotted on purpose: an application object is the user's own.
+
+    One exists per process, so slots would save nothing, and user code and our own
+    CLI tests assign to it (`app.run` is patched in `tests/cli/test_logs.py`).
+    """
+
     def __init__(
         self,
         *brokers: "BrokerUsecase[Any, Any, Any]",
@@ -177,7 +193,19 @@ class Application(StartAbleApplication):
                 context__=self.context,
             )
         else:
-            self.lifespan_context = fake_context
+            self.lifespan_context = lambda *_, **__: nullcontext()
+
+    async def __aenter__(self) -> Self:
+        await self.start()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_val: BaseException | None = None,
+        exc_tb: Optional["TracebackType"] = None,
+    ) -> None:
+        await self.stop()
 
     @abstractmethod
     def exit(self) -> None:
@@ -221,7 +249,7 @@ class Application(StartAbleApplication):
             for func in self._on_startup_calling:
                 await func(**run_extra_options)
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         for func in self._after_startup_calling:
             await func()
@@ -237,7 +265,7 @@ class Application(StartAbleApplication):
             "FastStream app starting...",
         )
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         self._log(
             log_level,
@@ -264,7 +292,7 @@ class Application(StartAbleApplication):
         for func in self._on_shutdown_calling:
             await func()
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         for func in self._after_shutdown_calling:
             await func()
@@ -277,7 +305,7 @@ class Application(StartAbleApplication):
         """Separated startup logging."""
         self._log(log_level, "FastStream app shutting down...")
 
-        yield
+        yield  # ruff: ignore[fallible-context-manager]
 
         self._log(log_level, "FastStream app shut down gracefully.")
 

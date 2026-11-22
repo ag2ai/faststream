@@ -7,7 +7,7 @@ app = FastStream(broker)
 @broker.subscriber(
     "test",
     group_id="group",
-    ack_policy=AckPolicy.REJECT_ON_ERROR,
+    ack_policy=AckPolicy.ACK,
 )
 async def handler(msg: str, logger: Logger):
     logger.info(msg)

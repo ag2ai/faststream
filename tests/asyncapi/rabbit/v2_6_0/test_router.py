@@ -3,7 +3,6 @@ from typing import Any
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
-from faststream._internal.broker import BrokerUsecase
 from faststream.rabbit import (
     RabbitBroker,
     RabbitPublisher,
@@ -30,7 +29,7 @@ class TestRouter(RouterTestcase):
         router = self.router_class(prefix="test_")
 
         @router.subscriber(RabbitQueue("test", routing_key="key"))
-        async def handle(msg) -> None: ...
+        async def handle(msg: Any) -> None: ...
 
         broker.include_router(router)
 
@@ -43,7 +42,7 @@ class TestRouter(RouterTestcase):
 class TestRouterArguments(ArgumentsTestcase):
     broker_class = RabbitRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(RabbitBroker(routers=broker))
 
 
@@ -51,5 +50,5 @@ class TestRouterArguments(ArgumentsTestcase):
 class TestRouterPublisher(PublisherTestcase):
     broker_class = RabbitRouter
 
-    def get_spec(self, *broker: BrokerUsecase[Any, Any]) -> Specification:
+    def get_spec(self, *broker: Any) -> Specification:
         return super().get_spec(RabbitBroker(routers=broker))

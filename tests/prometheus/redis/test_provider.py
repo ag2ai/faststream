@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -54,11 +55,11 @@ class TestRedisMetricsSettingsProvider(
             "messages_count": 1,
         }
 
-        raw_message = {"data": body}
+        raw_message: dict[str, Any] = {"data": body}
         if destination:
             raw_message[destination] = queue
 
-        message = SimpleNamespace(body=body, raw_message=raw_message)
+        message: Any = SimpleNamespace(body=body, raw_message=raw_message)
 
         provider = self.get_settings_provider()
         attrs = provider.get_consume_attrs_from_message(message)
@@ -90,12 +91,12 @@ class TestBatchRedisMetricsSettingsProvider(
             "messages_count": len(decoded_body),
         }
 
-        raw_message = {"data": decoded_body}
+        raw_message: dict[str, Any] = {"data": decoded_body}
 
         if destination:
             raw_message[destination] = queue
 
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=raw_message,
         )
@@ -134,7 +135,7 @@ class TestBatchRedisMetricsSettingsProvider(
             DefaultStreamMessage(
                 type="stream",
                 channel="test-stream",
-                data=b"",
+                data={b"": b""},
                 message_ids=[],
             ),
             RedisMetricsSettingsProvider(),
@@ -152,7 +153,7 @@ class TestBatchRedisMetricsSettingsProvider(
         ),
     ),
 )
-def test_settings_provider_factory(msg, expected_provider) -> None:
+def test_settings_provider_factory(msg: Any, expected_provider: Any) -> None:
     provider = settings_provider_factory(msg)
 
     assert isinstance(provider, type(expected_provider))

@@ -41,7 +41,7 @@ Then we signed up several consumers using the advertised queues to the `exchange
 
 ### Message Distribution
 
-Now the all messages will be send to all subscribers due they are binded to the same **FANOUT** exchange:
+Now all messages will be sent to all subscribers because they are bound to the same **FANOUT** exchange:
 
 ```python linenums="30"
 {! docs_src/rabbit/subscription/fanout.py [ln:30.5,31.5,32.5,33.5] !}

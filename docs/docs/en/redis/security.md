@@ -18,7 +18,7 @@ This chapter discusses the security options available in **FastStream** and how 
 
 ### 1. BaseSecurity Object
 
-**Purpose:** The `BaseSecurity` object wraps `ssl.SSLContext` object and is used to enable SSL/TLS encryption for secure communication between FastStream services and external components such as message brokers.
+**Purpose:** The `BaseSecurity` object wraps an `ssl.SSLContext` object and is used to enable SSL/TLS encryption for secure communication between FastStream services and external components such as message brokers.
 
 **Usage:**
 

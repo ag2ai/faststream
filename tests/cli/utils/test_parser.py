@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream._internal.cli.utils.parser import is_bind_arg, parse_cli_args
@@ -65,7 +67,7 @@ def test_custom_argument_parsing(args: tuple[str]) -> None:
         pytest.param("unix:/tmp/socket.sock"),
     ),
 )
-def test_bind_arg(args: str):
+def test_bind_arg(args: str) -> None:
     assert is_bind_arg(args) is True
 
 
@@ -77,7 +79,7 @@ def test_bind_arg(args: str):
         pytest.param("examples.nats.e01_basic:app2"),
     ),
 )
-def test_not_bind_arg(args: str):
+def test_not_bind_arg(args: str) -> None:
     assert is_bind_arg(args) is False
 
 
@@ -92,6 +94,6 @@ def test_not_bind_arg(args: str):
         pytest.param(["--ke-y", "value"], {"ke_y": "value"}),
     ),
 )
-def test_parse_extra_args(args, expected_extra):
+def test_parse_extra_args(args: Any, expected_extra: Any) -> None:
     _, extra = parse_cli_args(*args)
     assert extra == expected_extra

@@ -60,6 +60,9 @@ The simplest way to use a KafkaBroker for publishing has a significant limitatio
 
 Now, when you wrap your broker into a FastStream object, the publisher will be exported to the AsyncAPI documentation.
 
+!!! note
+    A publisher accepts a `Topic` object as well as a name, but **FastStream** never creates publisher topics: see [Topic Configuration](../topic-configuration.md#publishers){.internal-link}.
+
 ## Decorating your publishing functions
 
 To publish messages effectively in the Kafka context, consider utilizing the Publisher Decorator. This approach offers an AsyncAPI representation and is ideal for rapidly developing applications.

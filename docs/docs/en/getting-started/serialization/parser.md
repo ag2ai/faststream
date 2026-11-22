@@ -12,7 +12,7 @@ search:
 
 At this stage, **FastStream** serializes an incoming message from the broker's framework into a general format called **StreamMessage**. During this stage, the message body remains in the form of raw bytes.
 
-**StreamMessage** is a general representation of a message within **FastStream**. It contains all the information required for message processing within **FastStreams**.  It is even used to represent message batches, so the primary reason to customize it is to redefine the metadata associated with **FastStream** messages.
+**StreamMessage** is a general representation of a message within **FastStream**. It contains all the information required for message processing within **FastStream**. It is even used to represent message batches, so the primary reason to customize it is to redefine the metadata associated with **FastStream** messages.
 
 For example, you can specify your own header with the `message_id` semantic. This allows you to inform **FastStream** about this custom header through parser customization.
 

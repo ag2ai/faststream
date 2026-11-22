@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from opentelemetry.semconv.trace import SpanAttributes
@@ -20,7 +21,7 @@ def _record(queue: str) -> SimpleNamespace:
 
 @pytest.mark.confluent()
 def test_get_consume_attrs_from_a_tombstone(queue: str) -> None:
-    message = SimpleNamespace(
+    message: Any = SimpleNamespace(
         body=TOMBSTONE,
         message_id="1",
         correlation_id="1",
@@ -35,7 +36,7 @@ def test_get_consume_attrs_from_a_tombstone(queue: str) -> None:
 @pytest.mark.confluent()
 def test_get_consume_attrs_from_a_batch_holding_a_tombstone(queue: str) -> None:
     body = [b"Hi", TOMBSTONE]
-    message = SimpleNamespace(
+    message: Any = SimpleNamespace(
         body=body,
         message_id="1",
         correlation_id="1",

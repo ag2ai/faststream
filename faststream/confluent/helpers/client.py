@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     class _SendKwargs(TypedDict):
         value: bytes | str | None
         key: bytes | str | None
-        headers: list[tuple[str, str | bytes]] | None
+        headers: Sequence[tuple[str, str | bytes | None]] | None
         partition: NotRequired[int]
         timestamp: NotRequired[int]
         on_delivery: NotRequired[Callable[..., None]]
@@ -52,6 +52,14 @@ class _LazyLoggerProxy(logging.Logger):
 
 class AsyncConfluentProducer:
     """An asynchronous Python Kafka client using the "confluent-kafka" package."""
+
+    __slots__ = (
+        "__running",
+        "_poll_task",
+        "config",
+        "logger_state",
+        "producer",
+    )
 
     def __init__(
         self,
@@ -93,7 +101,7 @@ class AsyncConfluentProducer:
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: list[tuple[str, str | bytes]] | None = None,
+        headers: Sequence[tuple[str, str | bytes | None]] | None = None,
         no_confirm: bool = False,
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Sends a single message to a Kafka topic."""
@@ -133,11 +141,11 @@ class AsyncConfluentProducer:
         produce_key: bytes | None = (
             kwargs["key"]
             if isinstance(kwargs["key"], (bytes, type(None)))
-            else (kwargs["key"].encode() if kwargs["key"] is not None else None)
+            else kwargs["key"].encode()
         )
-        produce_headers: (
-            dict[str, str | bytes | None] | list[tuple[str, str | bytes | None]] | None
-        ) = cast("Any", kwargs["headers"]) if kwargs.get("headers") is not None else None
+        produce_headers = (
+            list(kwargs["headers"]) if kwargs["headers"] is not None else None
+        )
         produce_kwargs: dict[str, Any] = {
             "value": produce_value,
             "key": produce_key,
@@ -154,7 +162,7 @@ class AsyncConfluentProducer:
             return result_future
         return await result_future
 
-    def create_batch(self) -> "BatchBuilder":
+    def create_batch(self) -> "BatchBuilder":  # ruff: ignore[no-self-use]
         """Creates a batch for sending multiple messages."""
         return BatchBuilder()
 
@@ -169,7 +177,7 @@ class AsyncConfluentProducer:
         """Sends a batch of messages to a Kafka topic."""
         async with anyio.create_task_group() as tg:
             for msg in batch._builder:
-                tg.start_soon(
+                _ = tg.start_soon(
                     self.send,
                     topic,
                     msg["value"],
@@ -202,6 +210,19 @@ class AsyncConfluentProducer:
 
 class AsyncConfluentConsumer:
     """An asynchronous Python Kafka client for consuming messages using the "confluent-kafka" package."""
+
+    __slots__ = (
+        "_on_assign",
+        "_on_lost",
+        "_on_revoke",
+        "_thread_pool",
+        "admin_client",
+        "config",
+        "consumer",
+        "logger_state",
+        "partitions",
+        "topics",
+    )
 
     def __init__(
         self,
@@ -271,6 +292,9 @@ class AsyncConfluentConsumer:
             "fetch.error.backoff.ms": retry_backoff_ms,
             "auto.offset.reset": auto_offset_reset,
             "enable.auto.commit": enable_auto_commit,
+            # FastStream enables auto commit only for ACK_FIRST. Other ack
+            # policies must store offsets on ack, not when records are polled.
+            "enable.auto.offset.store": enable_auto_commit,
             "auto.commit.interval.ms": auto_commit_interval_ms,
             "check.crcs": check_crcs,
             "metadata.max.age.ms": metadata_max_age_ms,
@@ -282,6 +306,20 @@ class AsyncConfluentConsumer:
             "connections.max.idle.ms": connections_max_idle_ms,
             "isolation.level": isolation_level,
         } | config.consumer_config
+
+        if config_from_params.get("group.protocol") == "consumer":
+            # KIP-848 moves assignment and timers to the broker; librdkafka rejects
+            # these classic options even when they come from the config passthrough.
+            for classic_only in (
+                "partition.assignment.strategy",
+                "session.timeout.ms",
+                "heartbeat.interval.ms",
+            ):
+                config_from_params.pop(classic_only, None)
+
+        if not enable_auto_commit and config_from_params["enable.auto.offset.store"]:
+            msg = "Manual acknowledgement requires `enable.auto.offset.store=False`."
+            raise SetupError(msg)
 
         self.config = config_from_params
         self.consumer = Consumer(self.config, logger=_LazyLoggerProxy(logger))
@@ -421,6 +459,19 @@ class AsyncConfluentConsumer:
             topic_partition.to_confluent(),
         )
 
+    async def store_offsets(self, *topic_partitions: TopicPartition) -> None:
+        """Stores the offsets to commit for the specified topic partitions."""
+        if not topic_partitions:
+            return
+
+        await run_in_executor(
+            self._thread_pool,
+            self.consumer.store_offsets,
+            offsets=[
+                topic_partition.to_confluent() for topic_partition in topic_partitions
+            ],
+        )
+
 
 def check_msg_error(msg: Message | None) -> Message | None:
     """Checks for errors in the consumed message."""
@@ -433,6 +484,8 @@ def check_msg_error(msg: Message | None) -> Message | None:
 class BatchBuilder:
     """A helper class to build a batch of messages to send to Kafka."""
 
+    __slots__ = ("_builder",)
+
     def __init__(self) -> None:
         """Initializes a new BatchBuilder instance."""
         self._builder: list[dict[str, Any]] = []
@@ -443,7 +496,7 @@ class BatchBuilder:
         value: bytes | str | None = None,
         key: bytes | str | None = None,
         timestamp: int | None = None,
-        headers: list[tuple[str, bytes]] | None = None,
+        headers: Sequence[tuple[str, bytes | None]] | None = None,
     ) -> None:
         """Appends a message to the batch with optional timestamp, key, value, and headers."""
         if key is None and value is None:

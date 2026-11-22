@@ -10,7 +10,7 @@ search:
 
 # MQTT 3.1.1 and MQTT 5.0 in FastStream
 
-FastStream selects the wire protocol with `MQTTBroker(..., version="3.1.1" | "5.0")`. The same Python API is available for both; features that require MQTT 5.0 raise `FeatureNotSupportedException` when `version="3.1.1"`.
+FastStream selects the wire protocol with `MQTTBroker(..., version="3.1.1" | "5.0")`. The same Python API is available for both; unsupported message features raise `FeatureNotSupportedException` when `version="3.1.1"`. MQTT 5.0-only CONNECT options are validated by zmqtt and raise `RuntimeError` when connecting with MQTT 3.1.1.
 
 ## Feature comparison
 
@@ -19,6 +19,9 @@ FastStream selects the wire protocol with `MQTTBroker(..., version="3.1.1" | "5.
 | **User properties / headers** | Not available | `headers=` on `publish` / publisher maps to **User Properties** |
 | **`correlation_id`**, **`reply_to`** | Not available on the wire | Mapped to **Correlation Data** and **Response Topic** in `PublishProperties` |
 | **`broker.request()`** | Supported only with an **explicit** `reply_to` topic (see [RPC](rpc.md){.internal-link}) | Uses native MQTT 5.0 request/response (zmqtt generates a private reply topic) |
+| **CONNECT properties** | Not available | Incoming receive/packet limits, ordered user properties, response/problem information flags (see [connection parameters](index.md#connection-parameters){.internal-link}) |
+| **`broker.connection_info`** | Handshake snapshot without CONNACK properties | Handshake snapshot with raw CONNACK properties and negotiated values |
+| **`subscriber.last_unsubscribe_result`** | UNSUBACK result without reason codes | Per-filter UNSUBACK codes and diagnostic properties |
 
 ## How FastStream maps metadata (MQTT 5.0)
 

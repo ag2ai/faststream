@@ -1,4 +1,4 @@
-# Dealing with message encoded by FastStream
+# Dealing with messages encoded by FastStream
 
 To provide great features like observability and more, **FastStream** needs to include extra data in your message. **Redis**, in turn, provides the ability to send any type of data within a message. Therefore, **FastStream** uses its own binary format for messages, which supports any type of data you want to use and can include any additional information.
 
@@ -114,7 +114,7 @@ async def handler(msg: dict[str, Any]) -> None:
 
 When you publish with **FastStream** (`broker.publish(...)` or a `@broker.publisher`), the message is wrapped in the binary format. A non-**FastStream** consumer can still read it, but it has to parse that format — see the [Go](#parsing-in-go) and [Java](#parsing-in-java) examples below, which decode the envelope into data + headers.
 
-If the other side cannot (or should not) parse the binary format and you only need to send a raw payload, publish bytes through the underlying **Redis** client directly. `broker._connection` is the native `redis.asyncio.Redis` instance (also available inside handlers via the `Redis` annotation from `faststream.redis.annotations`, see [Context](../getting-started/context.md)):
+If the other side cannot (or should not) parse the binary format and you only need to send a raw payload, publish bytes through the underlying **Redis** client directly. `#!python await broker.connect()` returns the native `redis.asyncio.Redis` instance (also available inside handlers via the `Redis` annotation from `faststream.redis.annotations`, see [Context](../getting-started/context.md)):
 
 ```python
 import json
@@ -132,6 +132,19 @@ async def handler(msg, redis: Redis) -> None:
 
 This bypasses the **FastStream** envelope entirely, so the external consumer receives exactly the bytes you sent. Because you are calling the native client, use the method that matches the destination type — `publish` for channels, `rpush` for [lists](./list/index.md), `xadd` for [streams](./streams/index.md):
 
+```python
+import json
+
+payload = json.dumps({"id": "1", "name": "John"}).encode()
+
+redis = await broker.connect()
+
+# List
+await redis.rpush("test-list", payload)
+
+# Stream
+await redis.xadd("test-stream", {"data": payload})
+```
 
 ### Custom message format
 
@@ -167,7 +180,7 @@ class MyMiddleware(BaseMiddleware):
     async def on_receive(self) -> None:
         data, headers = BinaryMessageFormatV1.parse(self.msg["data"])
         data *= 2
-        self.msg["data"] = BinaryMessageFormatV1.encode(
+        self.msg["data"] = await BinaryMessageFormatV1.encode(
             message=data,
             reply_to=None,
             correlation_id=headers["correlation_id"],

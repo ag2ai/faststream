@@ -3,7 +3,8 @@ import pytest
 from faststream import FastStream, TestApp
 from faststream.kafka import KafkaBroker, TestKafkaBroker
 
-app = FastStream(KafkaBroker())
+broker = KafkaBroker()
+app = FastStream(broker)
 
 
 @app.after_startup
@@ -14,7 +15,7 @@ async def handle():
 @pytest.mark.asyncio
 async def test_lifespan():
     async with (
-        TestKafkaBroker(app.broker, connect_only=True),
+        TestKafkaBroker(broker, connect_only=True),
         TestApp(app),
     ):
         # test something

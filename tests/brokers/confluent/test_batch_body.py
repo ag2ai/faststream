@@ -15,4 +15,5 @@ class TestBatchKeys(ConfluentMemoryTestcaseConfig, BatchKeysTestcase):
 
     @staticmethod
     def get_message_key(raw_message: Any) -> bytes:
-        return raw_message.key()
+        key: bytes = raw_message.key()
+        return key

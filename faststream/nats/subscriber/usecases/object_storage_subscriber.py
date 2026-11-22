@@ -37,6 +37,8 @@ class ObjStoreWatchSubscriber(
     TasksMixin,
     LogicSubscriber[ObjectInfo],
 ):
+    __slots__ = ()
+
     subscription: Optional["UnsubscribeAdapter[ObjectStore.ObjectWatcher]"]
     _fetch_sub: UnsubscribeAdapter["ObjectStore.ObjectWatcher"] | None
 
@@ -82,7 +84,7 @@ class ObjStoreWatchSubscriber(
         msg = None
         sleep_interval = timeout / 10
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
             ) is None:
                 await anyio.sleep(sleep_interval)
@@ -132,7 +134,7 @@ class ObjStoreWatchSubscriber(
         while True:
             msg = None
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     msg := await fetch_sub.obj.updates(timeout)  # type: ignore[no-untyped-call]
                 ) is None:
                     await anyio.sleep(sleep_interval)
@@ -187,6 +189,7 @@ class ObjStoreWatchSubscriber(
                     with context.scope(OBJECT_STORAGE_CONTEXT_KEY, self.bucket):
                         await self.consume(message)
 
+    @override
     def _make_response_publisher(
         self,
         message: "StreamMessage[ObjectInfo]",

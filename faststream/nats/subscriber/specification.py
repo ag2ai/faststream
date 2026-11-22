@@ -12,6 +12,8 @@ from .config import NatsSubscriberSpecificationConfig
 class NatsSubscriberSpecification(
     SubscriberSpecification[NatsBrokerConfig, NatsSubscriberSpecificationConfig],
 ):
+    __slots__ = ()
+
     @property
     def subject(self) -> "Address":
         """The subject this endpoint was declared with, and its Broker address."""
@@ -77,6 +79,8 @@ class NatsSubscriberSpecification(
 
 
 class NotIncludeSpecifation(SubscriberSpecification):
+    __slots__ = ()
+
     @property
     def include_in_schema(self) -> bool:
         return False

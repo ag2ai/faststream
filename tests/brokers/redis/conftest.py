@@ -1,15 +1,10 @@
-import pytest
+from typing import Any
 
-from faststream.redis import RedisRouter
+import pytest
 
 from .settings import Settings
 
 
 @pytest.fixture(scope="session")
-def settings():
+def settings() -> Any:
     return Settings()
-
-
-@pytest.fixture()
-def router():
-    return RedisRouter()

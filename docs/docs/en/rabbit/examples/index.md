@@ -10,7 +10,7 @@ search:
 
 # Basic Subscriber
 
-If you know nothing about *RabbitMQ* and how it works, you will still able to use **FastStream RabbitBroker**.
+If you know nothing about *RabbitMQ* and how it works, you will still be able to use **FastStream RabbitBroker**.
 
 Just use the `#!python @broker.subscriber(...)` method with a string as a routing key.
 
@@ -22,7 +22,7 @@ This is the principle all **FastStream** brokers work by: you don't need to lear
 
 ## RabbitMQ Details
 
-If you are already familiar with *RabbitMQ* logic, you should also be acquainted with the inner workings of the example mentioned above.
+If you are already familiar with *RabbitMQ* logic, you may also be interested in the inner workings of the example mentioned above.
 
 In this case, **FastStream** either creates or validates a queue with a specified **routing_key** and binds it to the default *RabbitMQ* exchange.
 

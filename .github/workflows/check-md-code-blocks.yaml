@@ -14,7 +14,7 @@ on:
     types:
       - created
       - edited
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types:
       - opened
 
@@ -25,7 +25,7 @@ jobs:
       - id: fixer
         uses: mahenzon/md-code-block-auto-lang@cf7aa43dc0026951952b6ae45609ef4539223f05 # v1.0.0
         with:
-          github-token: ${{ secrets.AUTOMERGE_TOKEN }}
+          github-token: ${{ github.token }}
           language: python
           silent: true
 

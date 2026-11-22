@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from faststream.rabbit import RabbitBroker
@@ -10,13 +12,13 @@ from tests.brokers.base.connection import BrokerConnectionTestcase
 class TestConnection(BrokerConnectionTestcase):
     broker: type[RabbitBroker] = RabbitBroker
 
-    def get_broker_args(self, settings):
+    def get_broker_args(self, settings: Any) -> Any:
         return {"url": settings.url}
 
     @pytest.mark.asyncio()
     async def test_connect_handover_config_to_init(
         self,
-        settings: dict[str, str],
+        settings: Any,
     ) -> None:
         broker = self.broker(
             host=settings.host,
@@ -26,5 +28,6 @@ class TestConnection(BrokerConnectionTestcase):
                 password=settings.password,
             ),
         )
-        assert await broker.connect()
+        connection = await broker.connect()
+        assert not connection.is_closed
         await broker.stop()

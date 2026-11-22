@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.message import _StreamMessage
+    from faststream.redis.parser.parsers import _StreamParser
     from faststream.redis.schemas import StreamSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
 
@@ -69,6 +70,18 @@ class ClaimMeta(NamedTuple):
 
 
 class _StreamHandlerMixin(LogicSubscriber):
+    __slots__ = (
+        "_stream_sub",
+        "autoclaim_start_id",
+        "claim_min_idle_time",
+        "last_id",
+        "min_idle_time",
+        "parser",
+        "read_id",
+    )
+
+    parser: "_StreamParser"
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
@@ -107,7 +120,7 @@ class _StreamHandlerMixin(LogicSubscriber):
             try:
                 await self._get_msgs(*args)
 
-            except StreamClaimUnsupportedError as e:  # noqa: PERF203
+            except StreamClaimUnsupportedError as e:  # ruff: ignore[try-except-in-loop]
                 await self._stop_on_terminal_error(e, str(e))
                 return
 
@@ -149,12 +162,9 @@ class _StreamHandlerMixin(LogicSubscriber):
     async def start(self) -> None:
         client = self._client
 
-        self.extra_watcher_options.update(
-            redis=client,
-            group=self.stream_sub.group,
-        )
-
         stream = self.stream_sub
+
+        self.parser._setup(client, stream.group)
 
         read: ReadCallable
 
@@ -236,6 +246,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 stream_message = await self._xreadgroup(
                     count=1,
                     block=math.ceil(timeout * 1000),
+                    noack=self.stream_sub.no_ack,
                 )
                 if not stream_message:
                     return None
@@ -313,6 +324,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                     stream_message = await self._xreadgroup(
                         count=1,
                         block=math.ceil(timeout * 1000),
+                        noack=self.stream_sub.no_ack,
                     )
                     if not stream_message:
                         continue
@@ -439,15 +451,17 @@ class _StreamHandlerMixin(LogicSubscriber):
 
 
 class StreamSubscriber(_StreamHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
-        parser = RedisStreamParser(config)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
+        self.parser = RedisStreamParser(config)
+        config.decoder = self.parser.decode_message
+        config.parser = self.parser.parse_message
         super().__init__(config, specification, calls)
 
     async def _get_msgs(
@@ -473,15 +487,17 @@ class StreamSubscriber(_StreamHandlerMixin):
 
 
 class StreamBatchSubscriber(_StreamHandlerMixin):
+    __slots__ = ()
+
     def __init__(
         self,
         config: "RedisSubscriberConfig",
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Any]",
     ) -> None:
-        parser = RedisBatchStreamParser(config)
-        config.decoder = parser.decode_message
-        config.parser = parser.parse_message
+        self.parser = RedisBatchStreamParser(config)
+        config.decoder = self.parser.decode_message
+        config.parser = self.parser.parse_message
         super().__init__(config, specification, calls)
 
     async def _get_msgs(
@@ -516,6 +532,8 @@ class StreamConcurrentSubscriber(
     ConcurrentMixin["BrokerStreamMessage[Any]"],
     StreamSubscriber,
 ):
+    __slots__ = ()
+
     async def start(self) -> None:
         await super().start()
         self.start_consume_task()

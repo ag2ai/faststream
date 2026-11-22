@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -43,7 +44,7 @@ class TestRouter(FastAPITestcase):
         router = self.router_class()
 
         @router.subscriber(list=ListSub(queue, batch=True, max_records=1))
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -67,7 +68,7 @@ class TestRouter(FastAPITestcase):
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, polling_interval=1000))
-        async def handler(msg):
+        async def handler(msg: Any) -> None:
             mock(msg)
             event.set()
 
@@ -92,7 +93,7 @@ class TestRouter(FastAPITestcase):
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, polling_interval=1000, batch=True))
-        async def handler(msg: list[str]):
+        async def handler(msg: list[str]) -> None:
             mock(msg)
             event.set()
 
@@ -122,7 +123,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
         router = self.router_class()
 
         @router.subscriber(list=ListSub(queue, batch=True, max_records=1))
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -144,7 +145,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
         router = self.router_class()
 
         @router.subscriber(stream=StreamSub(queue, batch=True))
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -164,7 +165,7 @@ class TestRouterLocal(RedisMemoryTestcaseConfig, FastAPILocalTestcase):
         router = self.router_class()
 
         @router.subscriber(queue + ".{name}")
-        async def hello(name):
+        async def hello(name: Any) -> Any:
             return name
 
         async with self.patch_broker(router.broker) as br:

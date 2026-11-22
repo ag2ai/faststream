@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
+from faststream._internal.kafka import encode_headers
 from faststream._internal.kafka.tombstone import (
     encode_batch_or_tombstone,
     encode_or_tombstone,
@@ -31,6 +32,8 @@ if TYPE_CHECKING:
 class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     """A class to represent Kafka producer."""
 
+    __slots__ = ()
+
     def connect(
         self,
         producer: "AsyncConfluentProducer",
@@ -41,10 +44,10 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     def __bool__(self) -> bool:
         return False
 
-    async def disconnect(self) -> None:
+    async def disconnect(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
-    async def flush(self) -> None:
+    async def flush(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
     @abstractmethod
@@ -69,6 +72,8 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
 
 
 class FakeConfluentFastProducer(AsyncConfluentFastProducer):
+    __slots__ = ()
+
     def connect(
         self,
         producer: "AsyncConfluentProducer",
@@ -100,6 +105,14 @@ class FakeConfluentFastProducer(AsyncConfluentFastProducer):
 
 class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     """A class to represent Kafka producer."""
+
+    __slots__ = (
+        "_decoder",
+        "_parser",
+        "_producer",
+        "codec",
+        "serializer",
+    )
 
     def __init__(
         self,
@@ -164,7 +177,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
-            headers=[(i, (j or "").encode()) for i, j in headers_to_send.items()],
+            headers=encode_headers(headers_to_send),
             no_confirm=cmd.no_confirm,
         )
 
@@ -192,7 +205,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
                 key=cmd.key_for(message_position),
                 value=tombstone_to_none(message),
                 timestamp=cmd.timestamp_ms,
-                headers=[(i, j.encode()) for i, j in final_headers.items()],
+                headers=encode_headers(final_headers),
             )
 
         await self._producer.producer.send_batch(

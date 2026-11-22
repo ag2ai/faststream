@@ -1,5 +1,6 @@
 import random
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -40,7 +41,9 @@ class TestKafkaMetricsSettingsProvider(
             "messages_count": 1,
         }
 
-        message = SimpleNamespace(body=body, raw_message=SimpleNamespace(topic=queue))
+        message: Any = SimpleNamespace(
+            body=body, raw_message=SimpleNamespace(topic=queue)
+        )
 
         provider = self.get_settings_provider()
         attrs = provider.get_consume_attrs_from_message(message)
@@ -48,7 +51,7 @@ class TestKafkaMetricsSettingsProvider(
         assert attrs == expected_attrs
 
     def test_get_consume_attrs_from_a_tombstone(self, queue: str) -> None:
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=TOMBSTONE,
             raw_message=SimpleNamespace(topic=queue),
         )
@@ -69,7 +72,7 @@ class TestBatchKafkaMetricsSettingsProvider(
 ):
     def test_get_consume_attrs_from_message(self, queue: str) -> None:
         body = [b"Hi ", b"again, ", b"FastStream!"]
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=[
                 SimpleNamespace(topic=queue) for _ in range(random.randint(a=2, b=10))
@@ -91,7 +94,7 @@ class TestBatchKafkaMetricsSettingsProvider(
         queue: str,
     ) -> None:
         body = [b"Hi", TOMBSTONE]
-        message = SimpleNamespace(
+        message: Any = SimpleNamespace(
             body=body,
             raw_message=[SimpleNamespace(topic=queue) for _ in body],
         )
@@ -126,7 +129,7 @@ class TestBatchKafkaMetricsSettingsProvider(
         ),
     ),
 )
-def test_settings_provider_factory(msg, expected_provider) -> None:
+def test_settings_provider_factory(msg: Any, expected_provider: Any) -> None:
     provider = settings_provider_factory(msg)
 
     assert isinstance(provider, type(expected_provider))

@@ -21,6 +21,11 @@ class EndpointSpecification(Generic[T_BrokerConfig, T_SpecificationConfig]):
     the document lists it at all.
     """
 
+    __slots__ = (
+        "_outer_config",
+        "config",
+    )
+
     def __init__(
         self,
         _outer_config: "T_BrokerConfig",

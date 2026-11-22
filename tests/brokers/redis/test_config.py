@@ -1,10 +1,12 @@
 from unittest.mock import MagicMock
 
 import pytest
+from redis.asyncio import BlockingConnectionPool
 
 from faststream import AckPolicy
 from faststream._internal.constants import EMPTY
 from faststream.redis import ListSub, PubSub, RedisBroker, RedisRouter, StreamSub
+from faststream.redis.configs import RedisConnectionState
 from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -108,6 +110,7 @@ def test_router_ack_policy() -> None:
     assert sub.ack_policy is AckPolicy.ACK
 
 
+@pytest.mark.redis()
 @pytest.mark.rabbit()
 def test_broker_ack_policy_without_router() -> None:
     broker = RedisBroker(ack_policy=AckPolicy.ACK)
@@ -158,3 +161,19 @@ def test_sub_overrides_broker_and_router() -> None:
         ack_policy=AckPolicy.ACK_FIRST,
     )
     assert sub.ack_policy is AckPolicy.ACK_FIRST
+
+
+@pytest.mark.redis()
+@pytest.mark.asyncio()
+async def test_connection_pool_class() -> None:
+    broker = RedisBroker(max_connections=2, connection_pool_class=BlockingConnectionPool)
+    connection = broker.config.broker_config.connection
+    assert isinstance(connection, RedisConnectionState)
+
+    client = await connection.connect()
+    try:
+        pool = client.connection_pool
+        assert isinstance(pool, BlockingConnectionPool)
+        assert pool.max_connections == 2
+    finally:
+        await connection.disconnect()

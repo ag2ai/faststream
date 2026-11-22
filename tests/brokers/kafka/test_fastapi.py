@@ -1,4 +1,5 @@
 import asyncio
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,12 +17,15 @@ from tests.brokers.base.fastapi import (
     _Foo,
 )
 
-from .basic import KafkaMemoryTestcaseConfig
+from .basic import KafkaMemoryTestcaseConfig, KafkaTestcaseConfig
+
+if TYPE_CHECKING:
+    from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
 
 
 @pytest.mark.kafka()
 @pytest.mark.connected()
-class TestKafkaRouter(FastAPITestcase):
+class TestKafkaRouter(KafkaTestcaseConfig, FastAPITestcase):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
 
@@ -30,8 +34,10 @@ class TestKafkaRouter(FastAPITestcase):
     ) -> None:
         router = self.router_class()
 
-        @router.subscriber(queue, batch=True)
-        async def hello(msg: list[str]):
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 
@@ -61,7 +67,9 @@ class TestKafkaRouter(FastAPITestcase):
             msg: _Foo | None = None,
             raw: KafkaMessage = Context("message"),
         ) -> None:
-            received.append((msg, raw.raw_message.value))
+            record = raw.raw_message
+            assert not isinstance(record, tuple)
+            received.append((msg, record.value))
             if len(received) == 2:
                 event.set()
 
@@ -71,7 +79,8 @@ class TestKafkaRouter(FastAPITestcase):
             await br.publish(b'{"x": 5}', queue, key=b"k1")
             # bypass the encoder to prove this works for a tombstone
             # produced by any client, not only faststream's publish(None)
-            await br._producer._producer.producer.send(
+            producer = cast("AioKafkaFastProducerImpl", br._producer)
+            await producer._producer.producer.send(
                 topic=queue,
                 key=b"k2",
                 value=None,
@@ -109,7 +118,7 @@ class TestRouterLocal(
         router = self.router_class()
 
         @router.subscriber(queue, batch=True)
-        async def hello(msg: list[str]):
+        async def hello(msg: list[str]) -> Any:
             event.set()
             return mock(msg)
 

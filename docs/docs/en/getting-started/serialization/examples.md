@@ -15,7 +15,7 @@ search:
 In this section, we will explore an example using [Protobuf](https://protobuf.dev/overview/){.external-link target="_blank"}. However, this approach is also applicable to other serialization methods.
 
 ???- note "Protobuf"
-    *Protobuf* is an alternative message serialization method commonly used in *GRPC*.  Its main advantage is that it results in much smaller message sizes[^1] compared to *JSON*, but it requires a message schema (`.proto` files) on both the client and server sides.
+    *Protobuf* is an alternative message serialization method commonly used in *GRPC*. Its main advantage is that it results in much smaller message sizes[^1] compared to *JSON*, but it requires a message schema (`.proto` files) on both the client and server sides.
 
 To begin, install the necessary dependencies:
 
@@ -120,7 +120,7 @@ Compression can significantly reduce message size, especially if there are repea
 You can still set a custom `decoder` at the Broker or Router level. However, if you want to automatically encode publishing messages as well, you should explore [Middleware](../middlewares/index.md){.internal-link} for serialization implementation.
 
 [^1]:
-    For example, a message like `#!json { "name": "John", "age": 25 }` in *JSON* takes **27** bytes, while in *Protobuf*, it takes only **11** bytes. With lists and more complex structures, the savings can be even more significant (up to 20x times).
+    For example, a message like `#!json { "name": "John", "age": 25 }` in *JSON* takes **27** bytes, while in *Protobuf*, it takes only **11** bytes. With lists and more complex structures, the savings can be even more significant (up to 20x).
 
 [^2]:
     A message with *Msgpack* serialization, such as `#!json { "name": "John", "age": 25 }`, takes **16** bytes.

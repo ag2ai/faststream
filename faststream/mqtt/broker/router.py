@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
     from faststream._internal.basic_types import SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
+    from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
 
 
@@ -69,7 +71,7 @@ class MQTTRoute(SubscriberRoute):
         # broker arguments
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         max_workers: int = 1,
@@ -78,6 +80,7 @@ class MQTTRoute(SubscriberRoute):
         title: str | None = None,
         description: str | None = None,
         include_in_schema: bool = True,
+        codec: Optional["CodecProto"] = None,
     ) -> None:
         super().__init__(
             call,
@@ -95,6 +98,7 @@ class MQTTRoute(SubscriberRoute):
             title=title,
             description=description,
             include_in_schema=include_in_schema,
+            codec=codec,
         )
 
 
@@ -109,13 +113,14 @@ class MQTTRouter(
         prefix: str = "",
         handlers: Iterable[MQTTRoute] = (),
         *,
-        dependencies: Iterable["Dependant"] = (),
+        dependencies: Sequence["Dependant"] = (),
         middlewares: Sequence["BrokerMiddleware[Any, Any]"] = (),
         routers: Iterable[MQTTRegistrator] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
         include_in_schema: bool | None = None,
         ack_policy: AckPolicy = EMPTY,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         super().__init__(
             handlers=handlers,
@@ -127,6 +132,7 @@ class MQTTRouter(
                 broker_parser=parser,
                 broker_decoder=decoder,
                 include_in_schema=include_in_schema,
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             routers=routers,
         )

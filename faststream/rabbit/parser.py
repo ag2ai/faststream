@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
 from aio_pika import Message
@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 class AioPikaParser:
     """A class for parsing, encoding, and decoding messages using aio-pika."""
 
+    __slots__ = ("pattern",)
+
     def __init__(self, pattern: Optional["Pattern[str]"] = None) -> None:
         self.pattern = pattern
 
@@ -50,7 +52,7 @@ class AioPikaParser:
             raw_message=message,
         )
 
-    async def decode_message(
+    async def decode_message(  # ruff: ignore[no-self-use]
         self,
         msg: StreamMessage["IncomingMessage"],
     ) -> "DecodedMessage":
@@ -101,7 +103,7 @@ class AioPikaParser:
             priority=priority,
             expiration=expiration,
             message_id=message_id,
-            timestamp=timestamp or datetime.datetime.now(tz=datetime.timezone.utc),
+            timestamp=timestamp or datetime.now(tz=timezone.utc),
             type=message_type,
             user_id=user_id,
             app_id=app_id,

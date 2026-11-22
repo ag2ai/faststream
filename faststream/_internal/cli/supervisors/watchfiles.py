@@ -36,6 +36,12 @@ class ExtendedFilter(watchfiles.PythonFilter):
 class WatchReloader(BaseReload):
     """A class to reload a target function when files in specified directories change."""
 
+    __slots__ = (
+        "reload_dirs",
+        "reloader_name",
+        "watcher",
+    )
+
     def __init__(
         self,
         target: "RunFunction",

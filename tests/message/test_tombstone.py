@@ -1,5 +1,7 @@
 import copy
 import pickle
+from collections.abc import Callable
+from typing import cast
 
 import pytest
 
@@ -22,7 +24,7 @@ def test_a_tombstone_says_what_it_is_however_it_is_printed() -> None:
     assert repr(TOMBSTONE) == "TOMBSTONE"
     assert str(TOMBSTONE) == "TOMBSTONE"
     assert f"{TOMBSTONE}" == "TOMBSTONE"
-    assert "%s" % TOMBSTONE == "TOMBSTONE"  # noqa: UP031
+    assert "%s" % cast("object", TOMBSTONE) == "TOMBSTONE"  # ruff: ignore[printf-string-formatting]
 
 
 @pytest.mark.parametrize(
@@ -33,7 +35,7 @@ def test_a_tombstone_says_what_it_is_however_it_is_printed() -> None:
         pytest.param(copy.deepcopy, id="deepcopy"),
     ),
 )
-def test_a_tombstone_survives_a_round_trip(clone) -> None:
+def test_a_tombstone_survives_a_round_trip(clone: Callable[[Tombstone], object]) -> None:
     restored = clone(TOMBSTONE)
 
     assert isinstance(restored, Tombstone)

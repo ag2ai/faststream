@@ -45,12 +45,17 @@ def change_producer(
         config.broker_config.js_producer,
         producer,
     )
-    yield
-    config.broker_config.producer = old_producer
-    config.broker_config.js_producer = old_js_producer
+    try:
+        yield
+    finally:
+        config.broker_config.producer = old_producer
+        config.broker_config.js_producer = old_js_producer
 
 
-class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
+class TestNatsBroker(
+    TestBroker[NatsBroker, EnterType],
+    broker=NatsBroker,
+):
     """A class to test NATS brokers."""
 
     @overload
@@ -117,6 +122,7 @@ class TestNatsBroker(TestBroker[NatsBroker, EnterType]):
             es.enter_context(change_producer(broker.config, fake_producer))
             yield
 
+    @override
     async def _fake_connect(
         self,
         broker: NatsBroker,

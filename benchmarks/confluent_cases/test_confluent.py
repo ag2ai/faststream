@@ -40,7 +40,7 @@ class TestConfluentCase:
     async def start(self) -> AsyncGenerator[float, None]:
         stop_event = asyncio.Event()
 
-        def acked(err, msg) -> None:  # noqa: ANN001
+        def acked(err, msg) -> None:  # ruff: ignore[missing-type-function-argument]
             if err is not None:
                 print(f"Failed to deliver message: {msg!s}: {err!s}")
 

@@ -21,6 +21,8 @@ class FastStreamMessageVersion(int, enum.Enum):
 class BinaryMessageFormatV1(MessageFormat):
     """Message format to encode into binary and parse it."""
 
+    __slots__ = ()
+
     IDENTITY_HEADER = b"\x89BIN\x0d\x0a\x1a\x0a"  # to avoid confusion with other formats
 
     @classmethod
@@ -106,6 +108,8 @@ class BinaryMessageFormatV1(MessageFormat):
 
 
 class BinaryWriter:
+    __slots__ = ("data",)
+
     def __init__(self) -> None:
         self.data = bytearray()
 
@@ -121,18 +125,21 @@ class BinaryWriter:
         self.write(int_bytes)
 
     def write_string(self, data: str | bytes) -> None:
-        str_len = len(data)
-        self.write_short(str_len)
-        if isinstance(data, bytes):
-            self.write(data)
-        else:
-            self.write(data.encode())
+        if isinstance(data, str):
+            data = data.encode()
+        self.write_short(len(data))
+        self.write(data)
 
     def get_bytes(self) -> bytes:
         return bytes(self.data)
 
 
 class BinaryReader:
+    __slots__ = (
+        "data",
+        "offset",
+    )
+
     def __init__(self, data: bytes) -> None:
         self.data = data
         self.offset = 0

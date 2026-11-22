@@ -1,8 +1,8 @@
-import json
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import parse_qs
 
+from faststream._internal._compat import json_loads
 from faststream._internal.constants import EMPTY
 
 if TYPE_CHECKING:
@@ -53,17 +53,14 @@ class AsgiRequest:
     async def json(self) -> Any:
         if self._json is EMPTY:
             body = await self.body()
-            self._json = json.loads(body)
+            self._json = json_loads(body)
         return self._json
 
     @property
     def query_params(self) -> dict[str, list[str]]:
         if self._query_params is None:
             query_string = self._scope.get("query_string", b"")
-            self._query_params = {
-                key.decode("latin-1"): [v.decode("latin-1") for v in value]
-                for key, value in parse_qs(query_string).items()
-            }
+            self._query_params = parse_qs(query_string.decode("latin-1"))
         return self._query_params
 
     @property
