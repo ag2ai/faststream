@@ -12,9 +12,12 @@ from .keys import (
     key_for_index,
     realign_keys,
 )
+from .tombstone import TOMBSTONE, Tombstone
 
 __all__ = (
+    "TOMBSTONE",
     "KafkaCallAssertions",
+    "Tombstone",
     "encode_headers",
     "extract_per_message_keys_and_bodies",
     "field_reader",
