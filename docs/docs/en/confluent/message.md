@@ -38,8 +38,11 @@ and its `raw_message` (the `confluent_kafka.Message`) exposes the rest through m
     For a single tombstone, `#!python msg.tombstone` is `#!python True` and `#!python msg.body` is `#!python b""`.
     With the default decoder, a FastAPI subscriber with an optional body parameter defaulting to `#!python None` receives `#!python None` for that record.
 
-    In a `#!python batch=True` subscriber, `#!python msg.tombstone` is always `#!python False`.
-    Publish a tombstone with `#!python await broker.publish(None, "topic", key=b"user-1")`.
+    In a `#!python batch=True` subscriber, `#!python msg.batch_tombstones` contains one boolean per raw record in the same order.
+
+    Import `#!python TOMBSTONE` from `#!python faststream.confluent` and publish it with `#!python await broker.publish(TOMBSTONE, "topic", key=b"user-1")`.
+    To include a tombstone in a batch, pass `#!python KafkaPublishMessage(TOMBSTONE, key=b"user-1")` to `#!python publish_batch()`.
+    An explicit tombstone requires a key. A batch containing an explicit tombstone requires per-record encoding.
 
 For example, if you would like to access the headers of an incoming message, you would do so like this:
 

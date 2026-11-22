@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.testing import MockConfluentMessage
-from tests.brokers.base.parser import CustomParserTestcase
+from tests.brokers.base.parser import CustomParserTestcase, KafkaTombstoneParserTestcase
 
 from .basic import ConfluentTestcaseConfig
 
@@ -208,3 +208,17 @@ async def test_parse_batch_reserved_headers(
         decoded if header == "content-type" else None,
         decoded if header == "correlation_id" and decoded else IsUUID(version=4),
     )
+
+
+@pytest.mark.confluent()
+class TestTombstoneParser(KafkaTombstoneParserTestcase):
+    def make_record(
+        self, value: bytes | None, content_type: str = ""
+    ) -> MockConfluentMessage:
+        return make_message(
+            [("content-type", content_type.encode())] if content_type else [],
+            value=value,
+        )
+
+    def make_parser(self) -> AsyncConfluentParser:
+        return AsyncConfluentParser()

@@ -77,6 +77,13 @@ class KafkaMessage(
         return self._no_body
 
     @property
+    def batch_tombstones(self) -> tuple[bool, ...]:
+        """Whether each record has a null Kafka value, in raw message order."""
+        if isinstance(self.raw_message, tuple):
+            return tuple(record.value() is None for record in self.raw_message)
+        return ()
+
+    @property
     def raw_headers(self) -> dict[str, bytes | None]:
         """Original header bytes, or the first message's headers for a batch."""
         raw_message = self.raw_message

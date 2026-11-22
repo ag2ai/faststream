@@ -6,7 +6,7 @@ from dirty_equals import IsUUID
 from faststream.kafka import ConsumerRecord
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
-from tests.brokers.base.parser import CustomParserTestcase
+from tests.brokers.base.parser import CustomParserTestcase, KafkaTombstoneParserTestcase
 
 from .basic import KafkaTestcaseConfig
 
@@ -208,3 +208,15 @@ async def test_parse_batch_reserved_headers(
         decoded if header == "content-type" else None,
         decoded if header == "correlation_id" and decoded else IsUUID(version=4),
     )
+
+
+@pytest.mark.kafka()
+class TestTombstoneParser(KafkaTombstoneParserTestcase):
+    def make_record(self, value: bytes | None, content_type: str = "") -> ConsumerRecord:
+        return make_message(
+            [("content-type", content_type.encode())] if content_type else [],
+            value=value,
+        )
+
+    def make_parser(self) -> AioKafkaBatchParser:
+        return AioKafkaBatchParser(msg_class=KafkaMessage, regex=None)
