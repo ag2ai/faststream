@@ -11,8 +11,6 @@ from typing import Any
 
 from faststream.response.response import Response
 
-from .tombstone import Tombstone
-
 
 @singledispatch
 def _extract_body_and_key(item: Any) -> tuple[Any, Any | None]:
@@ -99,21 +97,13 @@ def realign_keys(
     new_bodies: Sequence[Any],
 ) -> tuple[Any | None, ...]:
     """Realign per-message keys with a new batch of bodies."""
-    used_indexes: set[int] = set()
-    aligned_keys = []
+    bodies_seen: dict[int, Any] = {}
     for body in new_bodies:
-        is_tombstone = isinstance(body, Tombstone)
-        for index, candidate in enumerate(current_bodies):
-            # Empty bytes compare equal to a tombstone but have a different wire value.
-            if (
-                index not in used_indexes
-                and isinstance(candidate, Tombstone) == is_tombstone
-                and (candidate is body or candidate == body)
-            ):
-                used_indexes.add(index)
-                aligned_keys.append(keys[index])
-                break
-        else:
-            msg = f"{body!r} is not in the remaining batch bodies"
-            raise ValueError(msg)
-    return tuple(aligned_keys)
+        index = current_bodies.index(body)
+        if index not in bodies_seen:
+            bodies_seen.update({index: body})
+            continue
+        while index in bodies_seen or current_bodies[index] != body:
+            index += 1
+        bodies_seen.update({index: body})
+    return tuple(keys[i] for i in bodies_seen)

@@ -37,18 +37,13 @@ and its `raw_message` (the `aiokafka.ConsumerRecord`) contains the rest of the r
 * `#!python topic: str`
 * `#!python value: Optional[aiokafka.structs.VT]`
 
-!!! note
-    A record with a `None value` is a Kafka tombstone, the delete marker on a compacted topic. `#!python msg.tombstone` is `#!python True` for it, keeping it distinct from an empty payload (`#!python b""`), and a `#!python None`-able body parameter of a **FastAPI** subscriber resolves to `#!python None` instead of failing validation.
+!!! note "Kafka tombstones"
+    A record with a null value is a Kafka tombstone, a delete marker on a compacted topic.
+    For a single tombstone, `#!python msg.tombstone` is `#!python True` and `#!python msg.body` is `#!python b""`.
+    A FastAPI subscriber with an optional body parameter defaulting to `#!python None` receives `#!python None` for that record.
 
-    `#!python msg.body` is `#!python TOMBSTONE` for such a record: an empty `#!python bytes` subclass, so it still equals `#!python b""` and existing handlers are unaffected. `#!python isinstance(body, Tombstone)` is what tells a tombstone from an empty payload - and it is the only thing that does in a `#!python batch=True` subscriber, where each record is marked on its own and `#!python msg.tombstone` stays `#!python False` for the batch as a whole.
-
-    ```python
-    from faststream.kafka import TOMBSTONE, Tombstone
-
-    await broker.publish(TOMBSTONE, "topic", key=b"user-1")
-    ```
-
-    An explicit `#!python TOMBSTONE` requires a key, since compaction deletes per key. It can also ride in a `#!python publish_batch()`, but not together with a custom `BatchCodecProto`, whose `#!python encode_batch()` has no way to express a null value for a single record.
+    In a `#!python batch=True` subscriber, `#!python msg.tombstone` is always `#!python False`.
+    Publish a tombstone with `#!python await broker.publish(None, "topic", key=b"user-1")`.
 
 For example, if you would like to access the headers of an incoming message, you would do so like this:
 

@@ -4,7 +4,6 @@ from typing import Any
 
 import pytest
 
-from faststream._internal.kafka import TOMBSTONE
 from faststream.kafka.prometheus.provider import (
     BatchKafkaMetricsSettingsProvider,
     KafkaMetricsSettingsProvider,
@@ -50,20 +49,6 @@ class TestKafkaMetricsSettingsProvider(
 
         assert attrs == expected_attrs
 
-    def test_get_consume_attrs_from_a_tombstone(self, queue: str) -> None:
-        message: Any = SimpleNamespace(
-            body=TOMBSTONE,
-            raw_message=SimpleNamespace(topic=queue),
-        )
-
-        attrs = self.get_settings_provider().get_consume_attrs_from_message(message)
-
-        assert attrs == {
-            "destination_name": queue,
-            "message_size": 0,
-            "messages_count": 1,
-        }
-
 
 @pytest.mark.kafka()
 class TestBatchKafkaMetricsSettingsProvider(
@@ -88,24 +73,6 @@ class TestBatchKafkaMetricsSettingsProvider(
         attrs = provider.get_consume_attrs_from_message(message)
 
         assert attrs == expected_attrs
-
-    def test_get_consume_attrs_from_a_batch_holding_a_tombstone(
-        self,
-        queue: str,
-    ) -> None:
-        body = [b"Hi", TOMBSTONE]
-        message: Any = SimpleNamespace(
-            body=body,
-            raw_message=[SimpleNamespace(topic=queue) for _ in body],
-        )
-
-        attrs = self.get_settings_provider().get_consume_attrs_from_message(message)
-
-        assert attrs == {
-            "destination_name": queue,
-            "message_size": 2,
-            "messages_count": 2,
-        }
 
 
 @pytest.mark.kafka()

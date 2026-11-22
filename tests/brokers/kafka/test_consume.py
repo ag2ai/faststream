@@ -113,7 +113,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id=queue,
+            group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -180,7 +180,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id=queue,
+            group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -222,7 +222,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id=queue,
+            group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -264,7 +264,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id=queue,
+            group_id="test",
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -306,7 +306,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id=queue,
+            group_id="test",
             ack_policy=AckPolicy.MANUAL,
         )
 

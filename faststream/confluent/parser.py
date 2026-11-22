@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, Any, cast
 
-from faststream._internal.kafka.tombstone import Tombstone, value_or_tombstone
 from faststream.message import StreamMessage, decode_message
 
 from .message import FAKE_CONSUMER, KafkaMessage
@@ -45,12 +44,11 @@ class AsyncConfluentParser:
         headers = _parse_msg_headers(cast("_HeadersInput", message.headers() or ()))
 
         value = message.value()
-        body = value_or_tombstone(value)
         offset = message.offset()
         _, timestamp = message.timestamp()
 
         return KafkaMessage(
-            body=body,
+            body=value or b"",
             no_body=value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
@@ -74,7 +72,7 @@ class AsyncConfluentParser:
         last = message[-1]
 
         for m in message:
-            body.append(value_or_tombstone(m.value()))
+            body.append(m.value() or b"")
             batch_headers.append(
                 _parse_msg_headers(cast("_HeadersInput", m.headers() or ()))
             )
@@ -98,13 +96,9 @@ class AsyncConfluentParser:
 
     async def decode_message(  # ruff: ignore[no-self-use]
         self,
-        msg: "StreamMessage[Any]",
+        msg: "StreamMessage[Message]",
     ) -> "DecodedMessage":
         """Decodes a message."""
-        # NOTE: a tombstone carries no payload, so any content-type on it is a lie
-        if isinstance(msg.body, Tombstone):
-            return msg.body
-
         return decode_message(msg)
 
     async def decode_batch(
@@ -112,10 +106,7 @@ class AsyncConfluentParser:
         msg: "StreamMessage[tuple[Message, ...]]",
     ) -> "DecodedMessage":
         """Decode a batch of messages."""
-        return [
-            await self.decode_message(await self.parse_message(m))
-            for m in msg.raw_message
-        ]
+        return [decode_message(await self.parse_message(m)) for m in msg.raw_message]
 
 
 def _parse_msg_headers(headers: "_HeadersInput") -> dict[str, str]:
