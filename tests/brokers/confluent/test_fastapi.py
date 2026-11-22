@@ -77,7 +77,7 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
                 if isinstance(raw.raw_message, tuple)
                 else raw.raw_message
             )
-            mock(msg, raw_message.value)
+            mock(msg, raw_message.value())
             if mock.call_count == 2:
                 event.set()
 
