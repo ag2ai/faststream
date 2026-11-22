@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any
+from typing import Annotated, Any
 
 import pytest
 from prometheus_client import CollectorRegistry
@@ -38,7 +38,7 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
         message: NatsMessage | None = None
 
         @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        async def handler(m: NatsMessage = Context("message")) -> None:
+        async def handler(m: NatsMessage) -> None:
             nonlocal message
             message = m
             event.set()
@@ -71,7 +71,7 @@ class TestBatchPrometheus(BatchNatsPrometheusSettings, LocalPrometheusTestcase):
         message: NatsMessage | None = None
 
         @broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
-        async def handler(m: NatsMessage = Context("message")) -> None:
+        async def handler(m: NatsMessage) -> None:
             nonlocal message
             message = m
             event.set()
