@@ -104,3 +104,5 @@ Read `#!python msg.tombstone` for a single record or the booleans in `#!python m
 A FastAPI subscriber using the default decoder can declare an optional model with a default of `#!python None`. A single Kafka tombstone uses that default, including for embedded bodies and dependency bodies.
 
 With aiokafka, confirmation of a tombstone batch covers every record. The returned metadata describes the first input record.
+
+With the default FastAPI decoder, a batch subscriber declaring `#!python list[Model | None]` receives `#!python None` at each tombstone position. A `#!python list[bytes]` handler receives `#!python b""` at those positions.

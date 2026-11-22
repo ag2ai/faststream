@@ -17,6 +17,7 @@ from faststream import (
 )
 from faststream._internal.fastapi.context import Context
 from faststream._internal.fastapi.route import StreamMessage
+from faststream._internal.kafka.tombstone import TOMBSTONE
 from faststream.exceptions import SetupError
 from faststream.message import StreamMessage as NativeMessage
 
@@ -398,6 +399,49 @@ class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
             await br.publish(None, queue, key=b"key")
 
         mock.assert_called_once_with(b"")
+
+    @pytest.mark.parametrize(
+        "custom_decoder",
+        (pytest.param(False, id="default"), pytest.param(True, id="custom")),
+    )
+    async def test_tombstone_batch_binds_nullable_models(
+        self, queue: str, mock: Mock, custom_decoder: bool
+    ) -> None:
+        class Model(BaseModel):
+            x: int
+
+        async def decoder(_: NativeMessage[Any]) -> list[dict[str, int]]:
+            return [{"x": 7}, {"x": 8}]
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(
+            queue, batch=True, decoder=decoder if custom_decoder else None
+        )
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: list[Model | None]) -> None:
+            mock(msg)
+
+        publisher = router.broker.publisher(queue, batch=True, key=b"key")
+        async with self.patch_broker(router.broker):
+            await publisher.publish(b'{"x": 5}', TOMBSTONE)
+
+        expected = [Model(x=7), Model(x=8)] if custom_decoder else [Model(x=5), None]
+        mock.assert_called_once_with(expected)
+
+    async def test_tombstone_batch_preserves_bytes(self, queue: str, mock: Mock) -> None:
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: list[bytes]) -> None:
+            mock(msg)
+
+        publisher = router.broker.publisher(queue, batch=True, key=b"key")
+        async with self.patch_broker(router.broker):
+            await publisher.publish(b"keep", TOMBSTONE)
+
+        mock.assert_called_once_with([b"keep", b""])
 
 
 @pytest.mark.asyncio()

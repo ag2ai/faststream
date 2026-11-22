@@ -113,3 +113,5 @@ In `#!python publish_batch()`, a plain `#!python None` is encoded by the batch c
 Read `#!python msg.tombstone` for a single record or the booleans in `#!python msg.batch_tombstones` in batch order. With default deserialization, the body of a tombstone is `#!python b""`. An empty Kafka value and a JSON `null` payload have their tombstone flags set to `#!python False`.
 
 A FastAPI subscriber using the default decoder can declare an optional model with a default of `#!python None`. A single Kafka tombstone uses that default, including for embedded bodies and dependency bodies.
+
+With the default FastAPI decoder, a batch subscriber declaring `#!python list[Model | None]` receives `#!python None` at each tombstone position. A `#!python list[bytes]` handler receives `#!python b""` at those positions.

@@ -24,6 +24,7 @@ from ._compat import (
     FASTAPI_V106,
     FASTAPI_V121,
     create_response_field,
+    get_fastapi_tombstone_batch_body,
     get_fastapi_tombstone_body,
     raise_fastapi_validation_error,
     solve_faststream_dependency,
@@ -206,6 +207,18 @@ def build_faststream_to_fastapi_parser(
             dependency_body = get_fastapi_tombstone_body(
                 dependent,
                 fastapi_body,
+                fastapi_config.dependency_overrides_provider,
+            )
+
+        elif (
+            message.uses_default_decoder
+            and isinstance(fastapi_body, list)
+            and any(message._batch_body_missing)
+        ):
+            dependency_body = get_fastapi_tombstone_batch_body(
+                dependent,
+                fastapi_body,
+                message._batch_body_missing,
                 fastapi_config.dependency_overrides_provider,
             )
 

@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from dataclasses import dataclass
 from inspect import signature
 from types import UnionType
@@ -43,6 +44,7 @@ else:
 __all__ = (
     "RequestValidationError",
     "create_response_field",
+    "get_fastapi_tombstone_batch_body",
     "get_fastapi_tombstone_body",
     "raise_fastapi_validation_error",
     "solve_faststream_dependency",
@@ -174,32 +176,64 @@ def get_fastapi_tombstone_body(
     """Give optional models their defaults while preserving other body bindings."""
     key = next(iter(body), None) if isinstance(body, dict) else None
     overrides = getattr(dependency_overrides_provider, "dependency_overrides", {})
-    if _needs_synthetic_body(dependant, key, overrides):
+    if any(
+        _needs_synthetic_body(dep, key) for dep in _iter_dependants(dependant, overrides)
+    ):
         return body
-
     return _MISSING_BODY
 
 
-def _needs_synthetic_body(
+def get_fastapi_tombstone_batch_body(
     dependant: "Dependant",
-    key: str | None,
-    dependency_overrides: dict[Any, Any],
-) -> bool:
-    fields = dependant.body_params
-    if len(fields) > 1 or (fields and getattr(fields[0].field_info, "embed", False)):
-        fields = [field for field in fields if key in _body_param_aliases(field)]
+    body: list[Any],
+    missing: tuple[bool, ...],
+    dependency_overrides_provider: Any,
+) -> list[Any]:
+    """Bind null record slots in a list of nullable models."""
+    if len(body) != len(missing):
+        return body
+    overrides = getattr(dependency_overrides_provider, "dependency_overrides", {})
+    fields = [
+        field
+        for dep in _iter_dependants(dependant, overrides)
+        for field in dep.body_params
+    ]
+    if not fields or not all(_accepts_nullable_model_items(field) for field in fields):
+        return body
+    return [
+        None
+        if absent and (item is None or (isinstance(item, (bytes, str)) and not item))
+        else item
+        for item, absent in zip(body, missing, strict=True)
+    ]
 
-    if any(not _is_optional_model_body(field) for field in fields):
-        return True
 
+def _iter_dependants(
+    dependant: "Dependant", dependency_overrides: dict[Any, Any]
+) -> Iterator["Dependant"]:
+    yield dependant
     for original in dependant.dependencies:
         dependency = original
         if (override := dependency_overrides.get(original.call)) is not None:
             dependency = get_dependant(path=original.path or "", call=override)
-        if _needs_synthetic_body(dependency, key, dependency_overrides):
-            return True
+        yield from _iter_dependants(dependency, dependency_overrides)
 
-    return False
+
+def _needs_synthetic_body(dependant: "Dependant", key: str | None) -> bool:
+    fields = dependant.body_params
+    if len(fields) > 1 or (fields and getattr(fields[0].field_info, "embed", False)):
+        fields = [field for field in fields if key in _body_param_aliases(field)]
+    return any(not _is_optional_model_body(field) for field in fields)
+
+
+def _accepts_nullable_model_items(field: "ModelField") -> bool:
+    annotation = (
+        field.field_info.annotation if FASTAPI_V2 else getattr(field, "outer_type_", None)
+    )
+    if get_origin(annotation) is not list:
+        return False
+    (item_type,) = get_args(annotation)
+    return type(None) in get_args(item_type) and _is_model_annotation(item_type)
 
 
 def _is_optional_model_body(field: "ModelField") -> bool:
