@@ -24,6 +24,7 @@ from ._compat import (
     FASTAPI_V106,
     FASTAPI_V121,
     create_response_field,
+    get_fastapi_tombstone_body,
     raise_fastapi_validation_error,
     solve_faststream_dependency,
 )
@@ -188,13 +189,27 @@ def build_faststream_to_fastapi_parser(
             )
 
         else:
+            fastapi_body = {}
             stream_message = StreamMessage(
-                body={},
+                body=fastapi_body,
                 headers={"context__": context},
                 path={},
             )
 
-        return await consume(stream_message, message)
+        dependency_body: Any = fastapi_body
+        if (
+            not message.has_body
+            and message.uses_default_decoder
+            and (body is None or (isinstance(body, (bytes, str)) and not body))
+        ):
+            # Keep the synthetic request intact while applying FastAPI's body defaults.
+            dependency_body = get_fastapi_tombstone_body(
+                dependent,
+                fastapi_body,
+                fastapi_config.dependency_overrides_provider,
+            )
+
+        return await consume(stream_message, message, dependency_body)
 
     return parsed_consumer
 
@@ -211,7 +226,7 @@ def make_fastapi_execution(
     response_model_exclude_defaults: bool,
     response_model_exclude_none: bool,
 ) -> Callable[
-    ["StreamMessage", "NativeMessage[Any]"],
+    ["StreamMessage", "NativeMessage[Any]", Any],
     Awaitable[Response],
 ]:
     """Creates a FastAPI application."""
@@ -220,6 +235,7 @@ def make_fastapi_execution(
     async def app(
         request: "StreamMessage",
         raw_message: "NativeMessage[Any]",  # to support BackgroundTasks by middleware
+        dependency_body: Any,
     ) -> Response:
         """Consume StreamMessage and return user function result."""
         async with AsyncExitStack() as stack:
@@ -240,6 +256,7 @@ def make_fastapi_execution(
 
             solved_result = await solve_faststream_dependency(
                 request=request,
+                body=dependency_body,
                 dependant=dependent,
                 dependency_overrides_provider=fastapi_config.dependency_overrides_provider,
                 **kwargs,

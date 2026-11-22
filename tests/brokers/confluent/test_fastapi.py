@@ -6,7 +6,11 @@ import pytest
 
 from faststream.confluent import KafkaRouter
 from faststream.confluent.fastapi import KafkaRouter as StreamRouter
-from tests.brokers.base.fastapi import FastAPILocalTestcase, FastAPITestcase
+from tests.brokers.base.fastapi import (
+    FastAPILocalTestcase,
+    FastAPITestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+)
 
 from .basic import ConfluentMemoryTestcaseConfig, ConfluentTestcaseConfig
 
@@ -44,7 +48,11 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
 
 
 @pytest.mark.confluent()
-class TestRouterLocal(ConfluentMemoryTestcaseConfig, FastAPILocalTestcase):
+class TestRouterLocal(
+    ConfluentMemoryTestcaseConfig,
+    FastAPILocalTestcase,
+    KafkaTombstoneFastAPILocalTestcase,
+):
     router_class = StreamRouter
     broker_router_class = KafkaRouter
 
