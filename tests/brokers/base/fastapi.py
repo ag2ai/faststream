@@ -1,11 +1,12 @@
 import asyncio
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
+from json import JSONDecodeError
 from typing import Annotated, Any
 from unittest.mock import Mock
 
 import pytest
-from fastapi import BackgroundTasks, Depends, FastAPI, Header
+from fastapi import BackgroundTasks, Body, Depends, FastAPI, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
@@ -18,6 +19,7 @@ from faststream import (
 from faststream._internal.fastapi.context import Context
 from faststream._internal.fastapi.route import StreamMessage
 from faststream.exceptions import SetupError
+from faststream.message import StreamMessage as NativeMessage
 
 from .basic import BaseTestcaseConfig
 
@@ -297,10 +299,89 @@ class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
             with TestClient(app):
                 await br.publish(b'{"x": 5}', queue, key=b"k1")
                 await br.publish(None, queue, key=b"k2")
+                headers = {"content-type": "application/json"}
+                await br.publish(None, queue, key=b"k3", headers=headers)
                 with pytest.raises(RequestValidationError):
-                    await br.publish(b"", queue, key=b"k3")
+                    await br.publish(b"", queue, key=b"k4")
+                with pytest.raises(JSONDecodeError):
+                    await br.publish(b"", queue, key=b"k5", headers=headers)
 
-        assert received == [_BodyModel(x=5), None]
+        assert received == [_BodyModel(x=5), None, None]
+
+    async def test_tombstone_preserves_bytes_parameter(
+        self, queue: str, mock: Mock
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/1967."""
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: bytes) -> None:
+            mock(msg)
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(None, queue, key=b"key")
+
+        mock.assert_called_once_with(b"")
+
+    @pytest.mark.parametrize(
+        ("decoded", "expected"),
+        (
+            pytest.param({"msg": b"decoded"}, b"decoded", id="mapping"),
+            pytest.param(b"", b"", id="empty-bytes"),
+        ),
+    )
+    async def test_tombstone_preserves_custom_decoded_body(
+        self,
+        queue: str,
+        mock: Mock,
+        decoded: dict[str, bytes] | bytes,
+        expected: bytes,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/1967."""
+
+        class _BodyModel(BaseModel):
+            msg: bytes
+
+        async def decoder(_: NativeMessage[Any]) -> dict[str, bytes] | bytes:
+            return decoded
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue, decoder=decoder)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: _BodyModel | None = None) -> None:
+            mock(msg)
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(None, queue, key=b"key")
+
+        mock.assert_called_once_with(_BodyModel(msg=expected))
+
+    async def test_tombstone_resolves_optional_body_in_dependency(
+        self, queue: str, mock: Mock
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/1967."""
+
+        class _BodyModel(BaseModel):
+            x: int
+
+        async def parse_body(
+            msg: Annotated[_BodyModel | None, Body()] = None,
+        ) -> _BodyModel | None:
+            return msg
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: Annotated[_BodyModel | None, Depends(parse_body)]) -> None:
+            mock(msg)
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(None, queue, key=b"key")
+
+        mock.assert_called_once_with(None)
 
 
 @pytest.mark.asyncio()

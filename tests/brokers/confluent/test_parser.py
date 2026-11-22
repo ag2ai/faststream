@@ -53,25 +53,22 @@ def make_message(
 
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
-@pytest.mark.parametrize(
-    ("value", "tombstone"),
-    (
-        pytest.param(None, True, id="null"),
-        pytest.param(b"", False, id="empty"),
-        pytest.param(b"{}", False, id="payload"),
-    ),
-)
-async def test_parse_message_flags_only_a_null_value(
-    value: bytes | None, tombstone: bool
-) -> None:
-    parser = AsyncConfluentParser()
-    message = await parser.parse_message(make_message([], value=value))
-
-    assert (message.body, message.no_body, message.tombstone) == (
-        value or b"",
-        tombstone,
-        tombstone,
+class TestParseTombstones:
+    @pytest.mark.parametrize(
+        ("value", "tombstone"),
+        (
+            pytest.param(None, True, id="null"),
+            pytest.param(b"", False, id="empty"),
+            pytest.param(b"{}", False, id="payload"),
+        ),
     )
+    async def test_flags_only_a_null_value(
+        self, value: bytes | None, tombstone: bool
+    ) -> None:
+        parser = AsyncConfluentParser()
+        message = await parser.parse_message(make_message([], value=value))
+
+        assert (message.body, message.tombstone) == (value or b"", tombstone)
 
 
 @pytest.mark.confluent()

@@ -73,7 +73,8 @@ class KafkaMessage(
 
     @property
     def tombstone(self) -> bool:
-        return self.no_body
+        """Whether this single record has a null Kafka value."""
+        return self._no_body
 
     @property
     def raw_headers(self) -> dict[str, bytes | None]:

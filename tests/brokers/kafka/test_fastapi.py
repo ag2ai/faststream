@@ -1,12 +1,11 @@
 import asyncio
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, call
 
 import pytest
-from dirty_equals import IsList
+from aiokafka import AIOKafkaProducer
 from pydantic import BaseModel
 
-from faststream import Context
 from faststream.kafka import KafkaRouter
 from faststream.kafka.fastapi import (
     KafkaMessage,
@@ -21,7 +20,7 @@ from tests.brokers.base.fastapi import (
 from .basic import KafkaMemoryTestcaseConfig, KafkaTestcaseConfig
 
 if TYPE_CHECKING:
-    from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
+    from .settings import Settings
 
 
 @pytest.mark.kafka()
@@ -60,43 +59,39 @@ class TestKafkaRouter(KafkaTestcaseConfig, FastAPITestcase):
         queue: str,
         mock: MagicMock,
         event: asyncio.Event,
+        settings: "Settings",
     ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/1967."""
+
         class _BodyModel(BaseModel):
             x: int
 
-        router = self.router_class()
+        router = self.router_class(bootstrap_servers=settings.url)
+        args, kwargs = self.get_subscriber_params(queue)
 
-        @router.subscriber(queue)
-        async def handler(
-            msg: _BodyModel | None = None,
-            raw: KafkaMessage = Context("message"),
-        ) -> None:
-            raw_message = (
-                raw.raw_message[0]
-                if isinstance(raw.raw_message, tuple)
-                else raw.raw_message
-            )
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(msg: _BodyModel | None = None, *, raw: KafkaMessage) -> None:
+            raw_message = raw.raw_message
+            assert not isinstance(raw_message, tuple)
             mock(msg, raw_message.value)
             if mock.call_count == 2:
                 event.set()
 
         async with router.broker as br:
             await br.start()
+            await br.publish(b'{"x": 5}', queue, key=b"k1", partition=0)
 
-            producer = cast("AioKafkaFastProducerImpl", br._producer)
-            await br.publish(b'{"x": 5}', queue, key=b"k1")
-            # Send a null record through the native client to bypass FastStream's encoder.
-            await producer._producer.producer.send_and_wait(
-                topic=queue, key=b"k2", value=None
-            )
+            # Send the tombstone from a separate client to exercise the Kafka wire value.
+            async with AIOKafkaProducer(bootstrap_servers=settings.url) as producer:
+                _ = await producer.send_and_wait(
+                    queue, key=b"k2", value=None, partition=0
+                )
             await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-        # Kafka may deliver records from separate partitions in either order.
-        assert mock.call_args_list == IsList(
+        assert mock.call_args_list == [
             call(_BodyModel(x=5), b'{"x": 5}'),
             call(None, None),
-            check_order=False,
-        )
+        ]
 
 
 @pytest.mark.kafka()
@@ -119,24 +114,31 @@ class TestRouterLocal(
 
         assert sub._connection_args["group_instance_id"] == "instance-4"
 
+    @pytest.mark.parametrize(
+        ("payload", "expected_body", "expected_value"),
+        (
+            pytest.param("hi", ["hi"], b"hi", id="text"),
+            pytest.param(None, [b""], None, id="tombstone"),
+        ),
+    )
     async def test_batch_testclient(
-        self, mock: MagicMock, queue: str, event: asyncio.Event
+        self,
+        mock: MagicMock,
+        queue: str,
+        payload: str | None,
+        expected_body: list[str | bytes],
+        expected_value: bytes | None,
     ) -> None:
         router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
 
-        @router.subscriber(queue, batch=True)
-        async def hello(msg: list[str]) -> Any:
-            event.set()
-            return mock(msg)
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def hello(msg: list[str | bytes], *, raw: KafkaMessage) -> None:
+            records = raw.raw_message
+            assert isinstance(records, tuple)
+            mock(msg, [record.value for record in records], raw.tombstone)
 
         async with self.patch_broker(router.broker) as br:
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("hi", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=3,
-            )
+            await br.publish(payload, queue, key=b"k")
 
-        assert event.is_set()
-        mock.assert_called_with(["hi"])
+        mock.assert_called_once_with(expected_body, [expected_value], False)

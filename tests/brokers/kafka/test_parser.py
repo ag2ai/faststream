@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 from dirty_equals import IsUUID
 
@@ -48,26 +50,29 @@ def make_message(
 
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
-@pytest.mark.parametrize(
-    ("value", "tombstone"),
-    (
-        pytest.param(None, True, id="null"),
-        pytest.param(b"", False, id="empty"),
-        pytest.param(b"{}", False, id="payload"),
-    ),
-)
-async def test_parse_message_flags_only_a_null_value(
-    value: bytes | None, tombstone: bool
-) -> None:
-    parser = AioKafkaParser(msg_class=KafkaMessage, regex=None)
-    message = await parser.parse_message(make_message([], value=value))
-
-    assert isinstance(message, KafkaMessage)
-    assert (message.body, message.no_body, message.tombstone) == (
-        value or b"",
-        tombstone,
-        tombstone,
+class TestParseTombstones:
+    @pytest.mark.parametrize(
+        ("wire_value", "decoded_value", "tombstone"),
+        (
+            pytest.param(None, None, True, id="null"),
+            pytest.param(b"", b"", False, id="empty"),
+            pytest.param(b"{}", b"{}", False, id="payload"),
+            pytest.param(None, b"", True, id="null-deserialized-to-bytes"),
+            pytest.param(b"null", None, False, id="payload-deserialized-to-none"),
+        ),
     )
+    async def test_uses_the_wire_value_to_detect_tombstones(
+        self,
+        wire_value: bytes | None,
+        decoded_value: bytes | None,
+        tombstone: bool,
+    ) -> None:
+        parser = AioKafkaParser(msg_class=KafkaMessage, regex=None)
+        record = replace(make_message([], value=wire_value), value=decoded_value)
+        message = await parser.parse_message(record)
+
+        assert isinstance(message, KafkaMessage)
+        assert (message.body, message.tombstone) == (decoded_value or b"", tombstone)
 
 
 @pytest.mark.kafka()

@@ -172,11 +172,16 @@ def build_faststream_to_fastapi_parser(
         """Wrapper, that parser FastStream message to FastAPI compatible one."""
         body = await message.decode()
 
-        fastapi_body: dict[str, Any] | list[Any] | None
+        # The query and path parameters still use the decoded value when the body is absent.
+        missing_body = (
+            message._no_body
+            and message._uses_default_decoder
+            and (body is None or (isinstance(body, (bytes, str)) and not body))
+        )
+
+        fastapi_body: dict[str, Any] | list[Any]
         if first_arg is not None:
-            if message.no_body:
-                fastapi_body, path = None, {}
-            elif isinstance(body, dict):
+            if isinstance(body, dict):
                 path = fastapi_body = body or {}
             elif isinstance(body, list):
                 fastapi_body, path = body, {}
@@ -184,14 +189,14 @@ def build_faststream_to_fastapi_parser(
                 path = fastapi_body = {first_arg: body}
 
             stream_message = StreamMessage(
-                body=fastapi_body,
+                body=None if missing_body else fastapi_body,
                 headers={"context__": context, **message.headers},
                 path={**path, **message.path},
             )
 
         else:
             stream_message = StreamMessage(
-                body={},
+                body=None if missing_body else {},
                 headers={"context__": context},
                 path={},
             )

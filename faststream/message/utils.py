@@ -37,6 +37,13 @@ def decode_message(message: "StreamMessage[Any]") -> "DecodedMessage":
             isinstance(content_type, str)
             and content_type.startswith(ContentTypes.JSON.value)
         ):
+            # A null record can still carry a JSON header (see issue #1967).
+            if (
+                getattr(message, "_no_body", False)
+                and isinstance(body, bytes)
+                and not body
+            ):
+                return body
             m = json_loads(body)
 
     else:

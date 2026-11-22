@@ -39,8 +39,9 @@ and its `raw_message` (the `aiokafka.ConsumerRecord`) contains the rest of the r
 
 !!! note "Kafka tombstones"
     A record with a null value is a Kafka tombstone, a delete marker on a compacted topic.
-    For a single tombstone, `#!python msg.tombstone` is `#!python True` and `#!python msg.body` is `#!python b""`.
-    A FastAPI subscriber with an optional body parameter defaulting to `#!python None` receives `#!python None` for that record.
+    For a single tombstone, `#!python msg.tombstone` is `#!python True`.
+    With default value deserialization, `#!python msg.body` is `#!python b""`.
+    With the default decoder, a FastAPI subscriber with an optional body parameter defaulting to `#!python None` receives `#!python None` for that record.
 
     In a `#!python batch=True` subscriber, `#!python msg.tombstone` is always `#!python False`.
     Publish a tombstone with `#!python await broker.publish(None, "topic", key=b"user-1")`.

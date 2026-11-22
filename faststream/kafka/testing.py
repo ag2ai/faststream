@@ -345,7 +345,7 @@ async def build_message(
         partition=partition or 0,
         key=k,
         serialized_key_size=len(k),
-        serialized_value_size=0 if msg is None else len(msg),
+        serialized_value_size=-1 if msg is None else len(msg),
         checksum=0 if msg is None else sum(msg),
         offset=0,
         headers=encode_headers(headers),

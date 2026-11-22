@@ -51,9 +51,11 @@ class AioKafkaParser:
             if value is not None
         }
 
+        # aiokafka computes the wire size before calling a user deserializer.
+        tombstone = message.serialized_value_size == -1
         return self.msg_class(
             body=message.value or b"",
-            no_body=message.value is None,
+            _no_body=tombstone,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
