@@ -1,4 +1,5 @@
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from faststream.mqtt import MQTTBroker
 from faststream.specification import Tag
@@ -6,7 +7,7 @@ from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 
 @pytest.mark.mqtt()
-def test_base() -> None:
+def test_base(snapshot_json: SnapshotAssertion) -> None:
     broker = MQTTBroker(
         "mqtt:1884",
         version="3.1.1",
@@ -15,51 +16,23 @@ def test_base() -> None:
     )
     schema = get_2_6_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "2.6.0",
-        "channels": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "description": "Test description",
-                "protocol": "mqtt",
-                "protocolVersion": "3.1.1",
-                "tags": [{"description": "experimental", "name": "some-tag"}],
-                "url": "mqtt://mqtt:1884",
-            }
-        },
-    }, schema
+    assert schema == snapshot_json
 
 
 @pytest.mark.mqtt()
-def test_custom() -> None:
+def test_custom(snapshot_json: SnapshotAssertion) -> None:
     broker = MQTTBroker(
         "localhost:1884",
         specification_url="mqtt:1885",
     )
     schema = get_2_6_0_schema(broker)
 
-    assert schema == {
-        "asyncapi": "2.6.0",
-        "channels": {},
-        "components": {"messages": {}, "schemas": {}},
-        "defaultContentType": "application/json",
-        "info": {"title": "FastStream", "version": "0.1.0"},
-        "servers": {
-            "development": {
-                "protocol": "mqtt",
-                "protocolVersion": "5.0",
-                "url": "mqtt:1885",
-            }
-        },
-    }, schema
+    assert schema == snapshot_json
 
 
 @pytest.mark.mqtt()
-def test_tls_url() -> None:
+def test_tls_url(snapshot_json: SnapshotAssertion) -> None:
     schema = get_2_6_0_schema(MQTTBroker("mqtts://user:password@localhost"))
 
-    assert schema["servers"]["development"]["url"] == "mqtts://localhost:8883"
-    assert schema["servers"]["development"]["protocol"] == "mqtts"
+    assert schema == snapshot_json
+    assert "password" not in repr(schema)

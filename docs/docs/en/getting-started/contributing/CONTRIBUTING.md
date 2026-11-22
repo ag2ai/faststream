@@ -10,6 +10,10 @@ search:
 
 # Development
 
+Before contributing, read the [AI Policy](ai-policy.md){.internal-link}.
+It covers AI assistance and automated contribution farms. Contributors without write access may have
+one open PR, including drafts, until their first PR is merged into FastStream.
+
 After cloning the project, you'll need to set up the development environment. Here are the guidelines on how to do this.
 
 ## Install Justfile Utility
@@ -38,7 +42,7 @@ Build faststream image and install all dependencies:
 just init
 ```
 
-By default, this builds Python 3.10. If you need another version, pass it as an argument to the just command:
+By default, this builds Python 3.11. If you need another version, pass it as an argument to the just command:
 
 ```bash
 just init 3.11.5
@@ -197,6 +201,35 @@ just pre-commit-all
 ## Documentation
 
 For detailed instructions on building and serving the documentation, please refer to the [documentation contribution guide](./docs.md){.internal-link}.
+
+## Opening a pull request
+
+* **One pull request, one change.** Unrelated fixes — a typo you spotted, a lint failure in another module,
+  a dependency bump — belong in their own pull request. They are welcome; they just do not travel with a
+  feature. An unrelated change makes the diff harder to review and ties a trivial fix to a long discussion.
+* **`uv.lock` follows `pyproject.toml`.** A pull request that changes dependencies runs `uv lock` and commits
+  the result; CI fails on a lock that is out of sync. A pull request that does not touch dependencies
+  leaves `uv.lock` alone.
+* **The CLA is signed before review starts.** We do not spend a review round on a contribution we cannot merge.
+* **Discussion happens in the pull request, not in a private message.** A decision made in a chat is invisible
+  to the next contributor who hits the same question — and to us, six months later.
+* A design question with no consequence for the merge does not block it. If it can be answered afterwards,
+  we merge and answer afterwards.
+
+## When a maintainer edits your branch
+
+Maintainers sometimes push directly to a pull request branch instead of asking for another round.
+When that happens you are owed two things:
+
+* a comment listing **what** was changed and which parts were the maintainer's own preference rather than a project requirement;
+* a warning **before** any force-push, so your local branch does not diverge silently.
+
+A maintainer changing behaviour in your branch follows the same rules as you do: the change is explained
+in the pull request and comes with a test. A silent behaviour change relies on one person noticing it,
+which is not something the project can repeat.
+
+If a change was made on top of your work without an explanation, ask — the explanation is the part that
+makes the next contribution easier, and it is our job to provide it.
 
 ## Commits
 

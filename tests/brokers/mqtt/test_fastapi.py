@@ -88,7 +88,7 @@ def test_router_session_replay_config_threaded_to_broker() -> None:
     )
 
     assert router.broker._connection_kwargs["session_replay_buffer_size"] == 10
-    assert router.broker._connection_kwargs["session_replay_timeout"] == 20.0
+    assert router.broker._connection_kwargs["session_replay_timeout"] == 20
 
 
 @pytest.mark.connected()

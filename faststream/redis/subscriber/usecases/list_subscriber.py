@@ -1,11 +1,10 @@
 from abc import abstractmethod
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import StreamMsgType
 from faststream.redis.message import (
@@ -38,10 +37,7 @@ TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
 
-class _ListHandlerMixin(
-    LogicSubscriber[BaseRedisMsgType, StreamMsgType],
-    Generic[BaseRedisMsgType, StreamMsgType],
-):
+class _ListHandlerMixin(LogicSubscriber[BaseRedisMsgType, StreamMsgType]):
     __slots__ = (
         "_list_sub",
         "_read_lock",
@@ -87,10 +83,10 @@ class _ListHandlerMixin(
         await super().start(self._client)
 
     @override
-    async def stop(self) -> None:
+    async def _stop_receiving(self) -> None:
         with anyio.move_on_after(self._outer_config.graceful_timeout):
             async with self._read_lock:
-                await super().stop()
+                pass
 
     @abstractmethod
     def _wrap_raw(self, data: bytes) -> BaseRedisMsgType:
@@ -111,12 +107,12 @@ class _ListHandlerMixin(
         raw_message = None
 
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 raw_message := await self._client.lpop(name=self.list_sub.name)
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        if not raw_message:
+        if raw_message is None:
             return None
 
         redis_incoming_msg = self._wrap_raw(raw_message)
@@ -148,12 +144,12 @@ class _ListHandlerMixin(
 
         while True:
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     raw_message := await self._client.lpop(name=self.list_sub.name)
                 ) is None:
                     await anyio.sleep(sleep_interval)
 
-            if not raw_message:
+            if raw_message is None:
                 continue
 
             redis_incoming_msg = self._wrap_raw(raw_message)
@@ -191,6 +187,8 @@ class ListSubscriber(_ListHandlerMixin[DefaultListMessage, RedisListMessage]):
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:
+            if not self.running:
+                return
             raw_msg = await client.blpop(
                 self.list_sub.name,
                 timeout=self.list_sub.polling_interval,
@@ -198,7 +196,7 @@ class ListSubscriber(_ListHandlerMixin[DefaultListMessage, RedisListMessage]):
 
             if raw_msg:
                 _, msg_data = raw_msg
-                await self.consume_one(self._wrap_raw(msg_data))
+                await self.consume_dispatcher.dispatch(self._wrap_raw(msg_data))
 
 
 class ListBatchSubscriber(_ListHandlerMixin[BatchListMessage, RedisBatchListMessage]):
@@ -221,6 +219,8 @@ class ListBatchSubscriber(_ListHandlerMixin[BatchListMessage, RedisBatchListMess
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:
+            if not self.running:
+                return
             raw_msgs = await client.lpop(
                 name=self.list_sub.name,
                 count=self.list_sub.max_records,
@@ -233,21 +233,7 @@ class ListBatchSubscriber(_ListHandlerMixin[BatchListMessage, RedisBatchListMess
                     data=raw_msgs,
                 )
 
-                await self.consume_one(msg)
+                await self.consume_dispatcher.dispatch(msg)
 
         if not raw_msgs:
             await anyio.sleep(self.list_sub.polling_interval)
-
-
-class ListConcurrentSubscriber(
-    ConcurrentMixin[DefaultListMessage, RedisListMessage],
-    ListSubscriber,
-):
-    __slots__ = ()
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: DefaultListMessage) -> None:
-        await self._put_msg(msg)

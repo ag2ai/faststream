@@ -9,7 +9,6 @@ import anyio
 from redis.exceptions import ResponseError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import StreamMsgType
 from faststream.redis.exceptions import (
@@ -127,7 +126,7 @@ class _StreamHandlerMixin(
             try:
                 await self._get_msgs(*args)
 
-            except StreamClaimUnsupportedError as e:  # noqa: PERF203
+            except StreamClaimUnsupportedError as e:  # ruff: ignore[try-except-in-loop]
                 await self._stop_on_terminal_error(e, str(e))
                 return
 
@@ -161,7 +160,7 @@ class _StreamHandlerMixin(
         # would make the task supervisor restart the read in a hot loop. Stop
         # the subscriber for good and, if the broker runs inside an app, exit.
         self._log(log_level=logging.CRITICAL, message=msg, exc_info=exc)
-        await self.stop()
+        await self.stop(blocking=False)
         if app := self._outer_config.fd_config.context.get("app"):
             app.exit()
 
@@ -264,6 +263,7 @@ class _StreamHandlerMixin(
                 stream_message = await self._xreadgroup(
                     count=1,
                     block=math.ceil(timeout * 1000),
+                    noack=self.stream_sub.no_ack,
                 )
                 if not stream_message:
                     return None
@@ -336,6 +336,7 @@ class _StreamHandlerMixin(
                     stream_message = await self._xreadgroup(
                         count=1,
                         block=math.ceil(timeout * 1000),
+                        noack=self.stream_sub.no_ack,
                     )
                     if not stream_message:
                         continue
@@ -500,7 +501,7 @@ class StreamSubscriber(_StreamHandlerMixin[DefaultStreamMessage, RedisStreamMess
                 for entry in msgs:
                     message_id, raw_msg, claim_meta = self._parse_stream_entry(entry)
 
-                    await self.consume_one(
+                    await self.consume_dispatcher.dispatch(
                         self._wrap_raw(
                             stream_name.decode(), message_id, raw_msg, claim_meta
                         )
@@ -565,21 +566,7 @@ class StreamBatchSubscriber(
                 )
                 _attach_claim_metadata(msg, claim_metas)
 
-                await self.consume_one(msg)
-
-
-class StreamConcurrentSubscriber(
-    ConcurrentMixin[DefaultStreamMessage, RedisStreamMessage],
-    StreamSubscriber,
-):
-    __slots__ = ()
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: DefaultStreamMessage) -> None:
-        await self._put_msg(msg)
+                await self.consume_dispatcher.dispatch(msg)
 
 
 def _attach_claim_metadata(

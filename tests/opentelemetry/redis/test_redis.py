@@ -14,9 +14,9 @@ from faststream.redis import ListSub, RedisBroker
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from tests.brokers.redis.basic import RedisTestcaseConfig
 from tests.brokers.redis.test_consume import (
-    TestConsume,
-    TestConsumeList,
-    TestConsumeStream,
+    TestConsume as ConsumeCase,
+    TestConsumeList as ConsumeListCase,
+    TestConsumeStream as ConsumeStreamCase,
 )
 from tests.brokers.redis.test_publish import TestPublish as PublishCase
 from tests.opentelemetry.basic import (
@@ -239,7 +239,7 @@ class TestPublishWithTelemetry(PublishCase):
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestConsumeWithTelemetry(TestConsume):
+class TestConsumeWithTelemetry(ConsumeCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
         return RedisBroker(
             middlewares=(RedisTelemetryMiddleware(),),
@@ -250,7 +250,7 @@ class TestConsumeWithTelemetry(TestConsume):
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestConsumeListWithTelemetry(TestConsumeList):
+class TestConsumeListWithTelemetry(ConsumeListCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
         return RedisBroker(
             middlewares=(RedisTelemetryMiddleware(),),
@@ -261,7 +261,7 @@ class TestConsumeListWithTelemetry(TestConsumeList):
 
 @pytest.mark.connected()
 @pytest.mark.redis()
-class TestConsumeStreamWithTelemetry(TestConsumeStream):
+class TestConsumeStreamWithTelemetry(ConsumeStreamCase):
     def get_broker(self, apply_types: bool = False, **kwargs: Any) -> RedisBroker:
         return RedisBroker(
             middlewares=(RedisTelemetryMiddleware(),),

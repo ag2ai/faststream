@@ -95,7 +95,7 @@ class RedisBatchListMessage(BrokerStreamMessage[BatchListMessage]):
 
 
 DATA_KEY = "__data__"
-bDATA_KEY = DATA_KEY.encode()  # noqa: N816
+bDATA_KEY = DATA_KEY.encode()  # ruff: ignore[mixed-case-variable-in-global-scope]
 
 
 class _StreamMessage(TypedDict):
@@ -148,7 +148,7 @@ class FakeConsumer(ConsumerProtocol):
     async def xdel(self, name: str, *ids: bytes) -> None:
         pass
 
-    async def xpending_range(  # noqa: PLR6301
+    async def xpending_range(  # ruff: ignore[no-self-use]
         self, name: str, groupname: str, min: bytes, max: bytes, count: int
     ) -> list[dict[str, Any]]:
         return []
@@ -167,9 +167,15 @@ _DeprecatedType = Annotated[T, deprecated(_DEPRECATION_MESSAGE)]
 
 class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     def __init__(
-        self, *args: Any, consumer: ConsumerProtocol, group: str | None, **kwargs: Any
+        self,
+        *args: Any,
+        consumer: ConsumerProtocol = FAKE_CONSUMER,
+        group: str | None = None,
+        **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
+        self.stream = self.raw_message["channel"]
+        self.message_ids = self.raw_message["message_ids"]
         self.consumer = consumer
         self.group = group
 
@@ -199,9 +205,7 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
             and group_resolved is not None
             and redis_resolved is not None
         ):
-            ids = self.raw_message["message_ids"]
-            channel = self.raw_message["channel"]
-            await redis_resolved.xack(channel, group_resolved, *ids)
+            await redis_resolved.xack(self.stream, group_resolved, *self.message_ids)
         await super().ack()
 
     @override
@@ -227,9 +231,7 @@ class _RedisStreamMessageMixin(BrokerStreamMessage[_StreamMsgType]):
     ) -> None:
         redis_resolved, _ = self._resolve_consumer_context(redis, EMPTY)
         if redis_resolved is not None:
-            ids = self.raw_message["message_ids"]
-            channel = self.raw_message["channel"]
-            await redis_resolved.xdel(channel, *ids)
+            await redis_resolved.xdel(self.stream, *self.message_ids)
 
 
 class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
@@ -244,13 +246,12 @@ class RedisStreamMessage(_RedisStreamMessageMixin[DefaultStreamMessage]):
         entry, including acknowledged messages, return ``1``.
         """
         redis_resolved, group_resolved = self._resolve_consumer_context(redis, group)
-        message_ids = self.raw_message["message_ids"]
-        if not message_ids or redis_resolved is None or group_resolved is None:
+        if not self.message_ids or redis_resolved is None or group_resolved is None:
             return 1
 
-        message_id = message_ids[0]
+        message_id = self.message_ids[0]
         entries = await redis_resolved.xpending_range(
-            name=self.raw_message["channel"],
+            name=self.stream,
             groupname=group_resolved,
             min=message_id,
             max=message_id,

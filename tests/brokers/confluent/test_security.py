@@ -14,16 +14,13 @@ from faststream.security import BaseSecurity
 def patch_aio_consumer_and_producer() -> Generator[
     tuple[MagicMock, MagicMock], None, None
 ]:
-    try:
-        producer = MagicMock(return_value=AsyncMock())
+    producer = MagicMock(return_value=AsyncMock())
 
-        with patch(
-            "faststream.confluent.helpers.client.AsyncConfluentProducer",
-            new=producer,
-        ):
-            yield producer
-    finally:
-        pass
+    with patch(
+        "faststream.confluent.helpers.client.AsyncConfluentProducer",
+        new=producer,
+    ):
+        yield producer
 
 
 @pytest.mark.confluent()

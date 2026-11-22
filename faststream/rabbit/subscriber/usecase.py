@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator, Sequence
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
+from aio_pika.exceptions import ChannelInvalidStateError
 from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
@@ -111,23 +112,35 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
         if self.calls:
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
-                self.consume,  # type: ignore[arg-type]
+                self.consume_dispatcher.dispatch,  # type: ignore[arg-type]
                 no_ack=self.__no_ack,
                 arguments=self.consume_args,
             )
 
         self._post_start()
 
-    async def stop(self) -> None:
-        await super().stop()
+    @override
+    async def _stop_receiving(self) -> None:
+        self.running = False  # requeue messages dispatched awaiting cancelling queue
+        if self._queue_obj is not None and self._consumer_tag is not None:
+            if not self._queue_obj.channel.is_closed:
+                await self._queue_obj.cancel(self._consumer_tag)
+            self._consumer_tag = None
 
-        if self._queue_obj is not None:
-            if self._consumer_tag is not None:  # pragma: no branch
-                if not self._queue_obj.channel.is_closed:
-                    await self._queue_obj.cancel(self._consumer_tag)
-                self._consumer_tag = None
+    @override
+    async def _close_transport(self) -> None:
+        self._queue_obj = None
 
-            self._queue_obj = None
+    @override
+    async def consume(self, msg: "IncomingMessage") -> Any:
+        if not self.running and not self.__no_ack:
+            # A delivery that arrives while `stop` cancels the consumer goes back to
+            # the queue right away instead of staying unacknowledged until the channel closes.
+            with contextlib.suppress(ChannelInvalidStateError):
+                await msg.reject(requeue=True)
+            return None
+
+        return await super().consume(msg)
 
     @override
     async def get_one(
@@ -148,7 +161,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             contextlib.suppress(asyncio.exceptions.CancelledError),
             anyio.move_on_after(timeout),
         ):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 raw_message := await self._queue_obj.get(
                     fail=False,
                     no_ack=no_ack,
@@ -184,7 +197,7 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             async for raw_message in queue_iter:
                 raw_message = cast("IncomingMessage", raw_message)
 
-                msg = cast(
+                yield cast(  # ruff: ignore[yield-in-context-manager-in-async-generator]
                     "RabbitMessage",
                     await process_msg(
                         msg=raw_message,
@@ -196,7 +209,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
                         decoder=async_decoder,
                     ),
                 )
-                yield msg
 
     def _make_response_publisher(
         self,

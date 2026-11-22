@@ -4,14 +4,16 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Async NATS in Python with nats-py"
 description: >-
-  FastStream NATS support built on nats-py: core subjects, JetStream persistence, key-value
-  and object stores from asynchronous Python.
+  Use NATS from async Python with nats-py and FastStream. Learn subjects, queue groups and Core NATS delivery, then choose JetStream when you need persistence and ack.
 search:
   boost: 10
 ---
 
-# NATS
+# Async NATS in Python with nats-py
+
+Use **nats-py** to publish and subscribe to NATS subjects from asynchronous Python applications. FastStream builds on this native client and adds subscriber and publisher decorators, message validation, dependency injection and in-memory testing. Start with [subject subscriptions](examples/direct.md); use [JetStream](jetstream/index.md) when you need message storage and acknowledgements.
 
 !!! note ""
       **FastStream** *NATS* support is implemented on top of [**nats-py**](https://github.com/nats-io/nats.py){.external-link target="_blank"}. You can always get access to objects of it if you need to use some low-level methods not represented in **FastStream**.

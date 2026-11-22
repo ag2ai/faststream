@@ -1,4 +1,10 @@
-from .broker import BrokerConfig, BrokerConfigType_co, ConfigComposition
+from .broker import (
+    BrokerConfig,
+    BrokerConfigType_co,
+    ConfigComposition,
+    UnderlyingDriverAnnotation,
+    UnderlyingDriverAnnotations,
+)
 from .endpoint import PublisherUsecaseConfig, SubscriberUsecaseConfig
 from .specification import (
     PublisherSpecificationConfig,
@@ -13,4 +19,6 @@ __all__ = (
     "PublisherUsecaseConfig",
     "SubscriberSpecificationConfig",
     "SubscriberUsecaseConfig",
+    "UnderlyingDriverAnnotation",
+    "UnderlyingDriverAnnotations",
 )

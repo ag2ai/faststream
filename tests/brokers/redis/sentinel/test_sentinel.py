@@ -1,4 +1,5 @@
 import pytest
+from redis.asyncio import BlockingConnectionPool
 from redis.asyncio.sentinel import SentinelConnectionPool
 
 from faststream.exceptions import SetupError
@@ -37,6 +38,14 @@ class TestRedisSentinelBrokerUnit:
     def test_requires_master_name(self) -> None:
         with pytest.raises(SetupError, match="sentinel_master_name"):
             RedisSentinelBroker(sentinels=SENTINELS)  # type: ignore[call-arg]
+
+    def test_rejects_custom_connection_pool_class(self) -> None:
+        with pytest.raises(SetupError, match=r"connection_pool_class.*not supported"):
+            RedisSentinelBroker(
+                sentinels=SENTINELS,
+                sentinel_master_name="mymaster",
+                connection_pool_class=BlockingConnectionPool,
+            )
 
     @pytest.mark.asyncio()
     async def test_connect_builds_sentinel_pool(self) -> None:

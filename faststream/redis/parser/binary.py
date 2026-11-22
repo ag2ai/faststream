@@ -125,12 +125,10 @@ class BinaryWriter:
         self.write(int_bytes)
 
     def write_string(self, data: str | bytes) -> None:
-        str_len = len(data)
-        self.write_short(str_len)
-        if isinstance(data, bytes):
-            self.write(data)
-        else:
-            self.write(data.encode())
+        if isinstance(data, str):
+            data = data.encode()
+        self.write_short(len(data))
+        self.write(data)
 
     def get_bytes(self) -> bytes:
         return bytes(self.data)

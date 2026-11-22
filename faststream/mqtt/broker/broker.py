@@ -27,7 +27,7 @@ from faststream.mqtt.publisher.producer import (
 )
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.mqtt.security import parse_security
-from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
+from faststream.mqtt.subscriber.usecase import MQTTSubscriber
 from faststream.mqtt.utils import build_mqtt_url, parse_mqtt_url
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.mqtt.message import MQTTMessage
@@ -102,6 +103,7 @@ class MQTTBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         url_options = parse_mqtt_url(url)
         secure_kwargs = parse_security(security)
@@ -205,6 +207,7 @@ class MQTTBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,
@@ -234,7 +237,7 @@ class MQTTBroker(
     @override
     async def start(self) -> None:
         await self.connect()
-        c = MQTTBaseSubscriber.build_log_context(None, "")
+        c = MQTTSubscriber.build_log_context(None, "")
         self.config.logger.log("Connection established", logging.INFO, c)
         await super().start()
 

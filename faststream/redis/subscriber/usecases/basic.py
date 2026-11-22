@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
 
 import anyio
 from typing_extensions import override
@@ -11,8 +11,7 @@ from faststream._internal.endpoint.subscriber import (
     SubscriberSpecification,
     SubscriberUsecase,
 )
-from faststream._internal.endpoint.subscriber.mixins import TasksMixin
-from faststream._internal.types import MsgType, StreamMsgType
+from faststream._internal.types import StreamMsgType
 from faststream.redis.message import BaseRedisMsgType
 from faststream.redis.publisher.fake import RedisFakePublisher
 
@@ -37,11 +36,7 @@ Offset: TypeAlias = bytes
 CONSUME_ERROR_BACKOFF_SECONDS = 5
 
 
-class LogicSubscriber(
-    TasksMixin[BaseRedisMsgType, StreamMsgType],
-    SubscriberUsecase[BaseRedisMsgType, StreamMsgType],
-    Generic[BaseRedisMsgType, StreamMsgType],
-):
+class LogicSubscriber(SubscriberUsecase[BaseRedisMsgType, StreamMsgType]):
     """A class to represent a Redis handler."""
 
     __slots__ = ("config",)
@@ -50,9 +45,9 @@ class LogicSubscriber(
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig[MsgType, StreamMsgType]",
+        config: "RedisSubscriberConfig[BaseRedisMsgType, StreamMsgType]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[MsgType, StreamMsgType]",
+        calls: "CallsCollection[BaseRedisMsgType, StreamMsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
         self.config = config
@@ -85,7 +80,9 @@ class LogicSubscriber(
         start_signal = anyio.Event()
 
         if self.calls:
-            self.add_task(self._consume, args, {"start_signal": start_signal})
+            self.tasks_supervisor.add_task(
+                self._consume, args, {"start_signal": start_signal}
+            )
 
             with anyio.fail_after(3.0):
                 await start_signal.wait()
@@ -98,7 +95,7 @@ class LogicSubscriber(
             try:
                 await self._get_msgs(*args)
 
-            except Exception as e:  # noqa: PERF203
+            except Exception as e:  # ruff: ignore[try-except-in-loop]
                 self._log(
                     log_level=logging.ERROR,
                     message="Message fetch error",
@@ -123,6 +120,3 @@ class LogicSubscriber(
             "channel": channel,
             "message_id": getattr(message, "message_id", ""),
         }
-
-    async def consume_one(self, msg: BaseRedisMsgType) -> None:
-        await self.consume(msg)

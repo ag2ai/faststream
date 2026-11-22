@@ -36,8 +36,8 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         async def handler1(msg: Any) -> None: ...
 
         # protect publishers from gc
-        pub1 = broker.publisher("test2")  # noqa: F841
-        pub2 = broker.publisher("test")  # noqa: F841
+        pub1 = broker.publisher("test2")  # ruff: ignore[unused-variable]
+        pub2 = broker.publisher("test")  # ruff: ignore[unused-variable]
 
         assert len(broker.subscribers) == 1, len(broker.subscribers)
 
@@ -59,7 +59,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         @broker.subscriber("test")
         async def handler(msg: Any) -> None: ...
 
-        pub = broker.publisher("test2")  # noqa: F841
+        pub = broker.publisher("test2")  # ruff: ignore[unused-variable]
 
         async with self.patch_broker(broker):
             pass
@@ -192,7 +192,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         async with self.patch_broker(test_broker) as br:
             await br.start()
 
-            with pytest.raises(ValueError):  # noqa: PT011
+            with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
                 await br.publish("hello", queue)
 
     @pytest.mark.asyncio()
@@ -211,7 +211,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
         async with self.patch_broker(test_broker) as br:
             await br.start()
 
-            with pytest.raises(ValueError):  # noqa: PT011
+            with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
                 await br.publish("hello", queue)
 
     @pytest.mark.asyncio()
@@ -272,7 +272,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
             m.mock.assert_called_once_with("hello")
 
             with anyio.fail_after(self.timeout):
-                while not publisher.mock.called:  # noqa: ASYNC110
+                while not publisher.mock.called:  # ruff: ignore[async-busy-wait]
                     await asyncio.sleep(0.1)
 
                 publisher.mock.assert_called_once_with("response: hello")
@@ -282,7 +282,7 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
     async def test_broker_with_real_stops_fake_subscribers(self, queue: str) -> None:
         test_broker = self.get_broker()
 
-        publisher = test_broker.publisher(queue)  # noqa: F841
+        publisher = test_broker.publisher(queue)  # ruff: ignore[unused-variable]
 
         test_client: Any = self.patch_broker(test_broker, with_real=True)
         async with test_client:

@@ -85,8 +85,9 @@ class RedisConnectionState(ConnectionState["Redis[bytes]"]):
 
     async def connect(self) -> "Redis[bytes]":
         connection_kwargs = self._options | _get_driver_info()
+        pool_class = connection_kwargs.pop("connection_pool_class", ConnectionPool)
 
-        pool = ConnectionPool(**connection_kwargs)
+        pool = pool_class(**connection_kwargs)
         client: Redis[bytes] = Redis.from_pool(pool)  # type: ignore[attr-defined]
 
         self._client = client

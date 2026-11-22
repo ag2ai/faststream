@@ -4,11 +4,12 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from faststream.nats import NatsBroker
+from tests.asyncapi.base.body_binding import BodyBindingTestcase
 from tests.asyncapi.base.v2_6_0.arguments import ArgumentsTestcase
 
 
 @pytest.mark.nats()
-class TestArguments(ArgumentsTestcase):
+class TestArguments(BodyBindingTestcase, ArgumentsTestcase):
     broker_class = NatsBroker
 
     def test_subscriber_bindings(self, snapshot_json: SnapshotAssertion) -> None:

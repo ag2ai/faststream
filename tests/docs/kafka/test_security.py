@@ -9,17 +9,14 @@ from dirty_equals import IsInstance, IsPartialDict
 
 @contextmanager
 def patch_aio_consumer_and_producer() -> Generator[MagicMock, None, None]:
-    try:
-        producer = MagicMock(return_value=AsyncMock())
-        admin_client = MagicMock(return_value=AsyncMock())
+    producer = MagicMock(return_value=AsyncMock())
+    admin_client = MagicMock(return_value=AsyncMock())
 
-        with (
-            patch("aiokafka.AIOKafkaProducer", new=producer),
-            patch("aiokafka.admin.client.AIOKafkaAdminClient", new=admin_client),
-        ):
-            yield producer
-    finally:
-        pass
+    with (
+        patch("aiokafka.AIOKafkaProducer", new=producer),
+        patch("aiokafka.admin.client.AIOKafkaAdminClient", new=admin_client),
+    ):
+        yield producer
 
 
 @pytest.mark.asyncio()

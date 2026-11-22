@@ -1,6 +1,7 @@
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+import anyio
 import pytest
 
 from faststream import BaseMiddleware
@@ -54,7 +55,20 @@ class RedisRequestsTestcase(RequestsTestcase):
 @pytest.mark.connected()
 @pytest.mark.redis()
 class TestRealRequests(RedisTestcaseConfig, RedisRequestsTestcase):
-    pass
+    async def test_request_without_timeout_waits_for_reply(self, queue: str) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber(queue)
+        async def handler(msg: Any) -> str:
+            await anyio.sleep(0.1)
+            return "Response"
+
+        async with self.patch_broker(broker):
+            await broker.start()
+
+            response = await broker.request(None, queue, timeout=None)
+
+        assert await response.decode() == "Response"
 
 
 @pytest.mark.redis()

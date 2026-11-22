@@ -12,6 +12,8 @@ search:
 
 To start consuming from a **Kafka** topic, simply decorate your consuming function with a `#!python @broker.subscriber(...)` decorator, passing a string as a topic key.
 
+See [Consumer defaults](../index.md#consumer-defaults){.internal-link} for the default group, starting offset policy, and client ID, including how they compare with the Confluent backend.
+
 In the following example, we will create a simple FastStream app that will consume `HelloWorld` messages from a `#!python "hello_world"` topic.
 
 The full app code looks like this:

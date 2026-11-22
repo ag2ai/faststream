@@ -32,6 +32,8 @@ class SubscriberUsecaseConfig(
     parser: "Parser[MsgTypeWithFallback, StreamMsgType]" = field(init=False)
     decoder: "Decoder[StreamMsgType]" = field(init=False)
 
+    max_workers: int = 1
+
     @property
     def auto_ack_disabled(self) -> bool:
         return self.ack_policy is AckPolicy.MANUAL

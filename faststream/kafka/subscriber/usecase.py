@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Callable, Sequence
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Generic, Optional, Union, cast
 
 import anyio
 from aiokafka import (
@@ -12,7 +12,6 @@ from aiokafka import (
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import overload, override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
@@ -45,7 +44,7 @@ KAFKA_ADDRESS_SYNTAX = AddressSyntax(
 )
 
 
-class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
+class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
     __slots__ = (
@@ -258,11 +257,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._run_consume_loop, (self.consumer,))
+            self.tasks_supervisor.add_task(self._run_consume_loop, (self.consumer,))
 
-    async def stop(self) -> None:
-        await super().stop()
-
+    @override
+    async def _close_transport(self) -> None:
         if self.consumer is not None:
             await self.consumer.stop()
             self.consumer = None
@@ -314,7 +312,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async for raw_message in self.consumer:
-            msg = cast(
+            yield cast(
                 "KafkaMessage",
                 await process_msg(
                     msg=raw_message,
@@ -325,7 +323,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                     decoder=async_decoder,
                 ),
             )
-            yield msg
 
     def _make_response_publisher(
         self,
@@ -350,7 +347,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             try:
                 msg = await self.get_msg(consumer)
 
-            except UnsupportedCodecError as e:  # noqa: PERF203
+            except UnsupportedCodecError as e:  # ruff: ignore[try-except-in-loop]
                 self._log(
                     logging.ERROR,
                     "There is no suitable compression library available. Please refer to the Kafka "
@@ -376,10 +373,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                     connected = True
 
                 if msg:
-                    await self.consume_one(msg)
-
-    async def consume_one(self, msg: MsgType) -> None:
-        await self.consume(msg)
+                    await self.consume_dispatcher.dispatch(msg)
 
     @property
     def topic_names(self) -> list[str]:
@@ -516,17 +510,6 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
         )
 
 
-class ConcurrentDefaultSubscriber(ConcurrentMixin["ConsumerRecord"], DefaultSubscriber):
-    __slots__ = ()
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "ConsumerRecord") -> None:
-        await self._put_msg(msg)
-
-
 class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
     __slots__ = (
         "consumer_subgroup",
@@ -592,17 +575,17 @@ class ConcurrentBetweenPartitionsSubscriber(DefaultSubscriber):
 
         if self.calls:
             for c in self.consumer_subgroup:
-                self.add_task(self._run_consume_loop, (c,))
+                self.tasks_supervisor.add_task(self._run_consume_loop, (c,))
 
-    async def stop(self) -> None:
+    @override
+    async def _close_transport(self) -> None:
         if self.consumer_subgroup:
             async with anyio.create_task_group() as tg:
                 for consumer in self.consumer_subgroup:
                     _ = tg.start_soon(consumer.stop)
 
             self.consumer_subgroup = []
-
-        await super().stop()
+            self.consumer = None
 
     @override
     async def get_msg(self, consumer: "AIOKafkaConsumer") -> "KafkaRawMessage":

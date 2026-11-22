@@ -16,6 +16,7 @@ Please delete options that are not relevant.
 
 ## Checklist
 
+- [ ] I have read and followed the [AI Policy](https://github.com/ag2ai/faststream/blob/main/.github/AI_POLICY.md)
 - [ ] My code adheres to the style guidelines of this project (`just lint` shows no errors)
 - [ ] I have conducted a self-review of my own code
 - [ ] I have made the necessary changes to the documentation
@@ -24,3 +25,11 @@ Please delete options that are not relevant.
 - [ ] Both new and existing unit tests pass successfully on my local environment by running `just test-coverage`
 - [ ] I have ensured that static analysis tests are passing by running `just static-analysis`
 - [ ] I have included code examples to illustrate the modifications
+
+## AI assistance
+
+<!-- AI-assisted contributions must follow the AI Policy linked above. Contributors remain responsible for everything they submit. -->
+
+- [ ] I understand these changes and can explain them in my own words.
+- [ ] I checked the PR description against the actual diff.
+- [ ] If I used AI, I reviewed, tested, and validated its generated code or text before submitting.

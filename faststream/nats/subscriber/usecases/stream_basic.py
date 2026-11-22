@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class StreamSubscriber(DefaultSubscriber["Msg"]):
-    __slots__ = ()
+    __slots__ = ("queue", "stream")
 
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
 
@@ -139,7 +139,7 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                 )
             )[0]
 
-            msg = cast(
+            yield cast(
                 "NatsMessage",
                 await process_msg(
                     msg=raw_message,
@@ -150,4 +150,3 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
                     decoder=async_decoder,
                 ),
             )
-            yield msg

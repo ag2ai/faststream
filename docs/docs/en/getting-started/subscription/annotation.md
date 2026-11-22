@@ -101,6 +101,16 @@ For this reason, **FastStream** supports per-argument message serialization: you
 
 ### Serialization details
 
+The body parameters are the handler's ordinary inputs plus the external inputs
+of its dependencies, including extra subscriber dependencies. Dependency results
+and injected `Header`, `Path`, and `Context` values do not count as body parameters.
+For example, one body input together with a header still receives the whole body;
+it does not require an object wrapping that input under its parameter name.
+
+The same body parameter selection is used for handler invocation and AsyncAPI
+payload generation. A header's Python parameter name does not hide a body input
+with the same name in a dependency.
+
 #### Simple message
 
 If you expect to consume a simple message like `#!python b"1"` or `#!python b"any_string"`, use a single argument as the function annotation.
