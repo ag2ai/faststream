@@ -1,9 +1,13 @@
 import asyncio
+from abc import abstractmethod
+from json import JSONDecodeError
+from typing import Any
 from unittest.mock import MagicMock
 
 import anyio
 import pytest
 
+from faststream._internal.kafka import TOMBSTONE, Tombstone
 from faststream.message.message import StreamMessage
 
 from .basic import BaseTestcaseConfig
@@ -313,3 +317,58 @@ class CustomParserTestcase(LocalCustomParserTestcase):
 
             assert event.is_set()
             mock.assert_called_once_with(b"hello")
+
+
+@pytest.mark.asyncio()
+class KafkaTombstoneParserTestcase:
+    @abstractmethod
+    def make_parser(self) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def make_record(self, value: bytes | None, content_type: str = "") -> Any:
+        raise NotImplementedError
+
+    async def test_parse_batch_marks_the_null_records_one_by_one(self) -> None:
+        parser = self.make_parser()
+        parsed = await parser.parse_batch((
+            self.make_record(b"{}"),
+            self.make_record(None),
+            self.make_record(b""),
+        ))
+
+        assert (
+            parsed.no_body,
+            parsed.tombstone,
+            parsed.body,
+            list(map(type, parsed.body)),
+        ) == (
+            False,
+            False,
+            [b"{}", b"", b""],
+            [bytes, Tombstone, bytes],
+        )
+
+    async def test_decode_keeps_a_tombstone_empty_with_json_content_type(self) -> None:
+        parser = self.make_parser()
+
+        tombstone = await parser.parse_message(self.make_record(None, "application/json"))
+        assert await parser.decode_message(tombstone) is TOMBSTONE
+
+        empty = await parser.parse_message(self.make_record(b"", "application/json"))
+        with pytest.raises(JSONDecodeError):
+            await parser.decode_message(empty)
+
+    async def test_decode_batch_keeps_only_the_tombstone_empty(self) -> None:
+        parser = self.make_parser()
+        records = (
+            self.make_record(b'{"x": 1}', "application/json"),
+            self.make_record(None, "application/json"),
+        )
+
+        decoded = await parser.decode_batch(await parser.parse_batch(records))
+
+        assert (decoded, list(map(type, decoded))) == (
+            [{"x": 1}, b""],
+            [dict, Tombstone],
+        )

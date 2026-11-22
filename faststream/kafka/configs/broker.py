@@ -8,6 +8,7 @@ import aiokafka.admin
 
 from faststream.__about__ import SERVICE_NAME
 from faststream._internal.configs import BrokerConfig
+from faststream._internal.kafka.tombstone import Tombstone
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.utils.data import filter_by_dict
 from faststream.exceptions import IncorrectState
@@ -19,6 +20,16 @@ from faststream.kafka.schemas.params import (
     AdminClientConnectionParams,
     ConsumerConnectionParams,
 )
+
+
+def _serialize_value(
+    value: bytes | None,
+    *,
+    serializer: Callable[[Any], bytes] | None,
+) -> bytes | None:
+    if isinstance(value, Tombstone):
+        return None
+    return value if serializer is None else serializer(value)
 
 
 @dataclass(kw_only=True)
@@ -45,7 +56,13 @@ class KafkaBrokerConfig(BrokerConfig):
         # admin permissions, so skip creating those clients to allow callers
         # to use credentials scoped to read-only ACLs.
         if not self.consumer_only:
-            producer = aiokafka.AIOKafkaProducer(**connection_kwargs)
+            producer_kwargs = {
+                **connection_kwargs,
+                "value_serializer": partial(
+                    _serialize_value, serializer=connection_kwargs.get("value_serializer")
+                ),
+            }
+            producer = aiokafka.AIOKafkaProducer(**producer_kwargs)
             await self.producer.connect(
                 producer,
                 serializer=self.fd_config._serializer,

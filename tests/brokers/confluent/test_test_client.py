@@ -32,6 +32,10 @@ class TestTestclient(
     def get_message_value(raw_message: Any) -> bytes | None:
         return raw_message.value()
 
+    @staticmethod
+    def get_message_key(raw_message: Any) -> bytes:
+        return raw_message.key()
+
     async def test_publish_none_tombstone(
         self,
         queue: str,

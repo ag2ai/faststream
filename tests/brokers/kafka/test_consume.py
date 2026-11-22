@@ -108,7 +108,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         @consume_broker.subscriber(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
@@ -169,7 +169,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         @consume_broker.subscriber(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
@@ -207,7 +207,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         @consume_broker.subscriber(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
@@ -245,7 +245,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         @consume_broker.subscriber(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
         async def handler(msg: KafkaMessage) -> None:
@@ -283,7 +283,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         @consume_broker.subscriber(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.MANUAL,
         )
         async def handler(msg: KafkaMessage) -> None:

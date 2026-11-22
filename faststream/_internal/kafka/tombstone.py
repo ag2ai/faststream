@@ -57,6 +57,11 @@ def value_or_tombstone(value: bytes | None) -> bytes:
     return TOMBSTONE if value is None else value
 
 
+def tombstone_to_none(value: bytes | None) -> bytes | None:
+    """Return the raw Kafka value for an encoded body."""
+    return None if isinstance(value, Tombstone) else value
+
+
 async def encode_or_tombstone(
     message: "SendableMessage",
     codec: "CodecProto",
@@ -65,7 +70,7 @@ async def encode_or_tombstone(
     key: bytes | str | None = None,
     none_is_tombstone: bool = False,
 ) -> tuple[bytes | None, str | None]:
-    """Encode a body, or answer with a null value for a tombstone.
+    """Encode a body, retaining an explicit tombstone until native serialization.
 
     An explicit tombstone requires a key, since compaction deletes per key.
     `none_is_tombstone` carries each broker's own legacy rule for a `None`
@@ -75,7 +80,7 @@ async def encode_or_tombstone(
         if key is None:
             msg = "a Kafka tombstone requires a key"
             raise ValueError(msg)
-        return None, None
+        return TOMBSTONE, None
 
     if none_is_tombstone and message is None:
         return None, None
@@ -103,6 +108,11 @@ async def encode_batch_or_tombstone(
     # NOTE: no `none_is_tombstone` here - a bare None in a batch encodes
     # normally, exactly as it did before tombstones existed
     return [
-        await encode_or_tombstone(body, codec, serializer, key=key_for(position))
+        await encode_or_tombstone(
+            body,
+            codec,
+            serializer,
+            key=key_for(position),
+        )
         for position, body in enumerate(bodies)
     ]

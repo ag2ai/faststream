@@ -13,6 +13,7 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka.tombstone import (
     encode_batch_or_tombstone,
     encode_or_tombstone,
+    tombstone_to_none,
 )
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import (
@@ -209,7 +210,7 @@ class FakeProducer(AioKafkaFastProducer):
         ):
             msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
 
-            await self._execute_handler(msg_to_send, cmd.destination, handler)
+            await handler.process_message(msg_to_send)
 
     @override
     async def request(self, cmd: "KafkaPublishCommand") -> "ConsumerRecord":
@@ -234,10 +235,16 @@ class FakeProducer(AioKafkaFastProducer):
             msg_to_send = [incoming] if isinstance(handler, BatchSubscriber) else incoming
 
             with anyio.fail_after(cmd.timeout):
-                return await self._execute_handler(
-                    msg_to_send,
-                    cmd.destination,
-                    handler,
+                result = await handler.process_message(msg_to_send)
+                return await build_message(
+                    topic=cmd.destination,
+                    message=result.body,
+                    key=result.get_publish_key(),
+                    headers=result.headers,
+                    correlation_id=result.correlation_id,
+                    serializer=self.broker.config.fd_config._serializer,
+                    codec=self.codec,
+                    id_generator=self.broker.config.id_generator,
                 )
 
         raise SubscriberNotFound
@@ -276,29 +283,11 @@ class FakeProducer(AioKafkaFastProducer):
             ]
 
             if isinstance(handler, BatchSubscriber):
-                await self._execute_handler(list(messages), cmd.destination, handler)
+                await handler.process_message(list(messages))
 
             else:
                 for m in messages:
-                    await self._execute_handler(m, cmd.destination, handler)
-
-    async def _execute_handler(
-        self,
-        msg: Any,
-        topic: str,
-        handler: "LogicSubscriber[Any]",
-    ) -> "ConsumerRecord":
-        result = await handler.process_message(msg)
-
-        return await build_message(
-            topic=topic,
-            message=result.body,
-            headers=result.headers,
-            correlation_id=result.correlation_id,
-            serializer=self.broker.config.fd_config._serializer,
-            codec=self.codec,
-            id_generator=self.broker.config.id_generator,
-        )
+                    await handler.process_message(m)
 
 
 async def build_message(
@@ -324,6 +313,7 @@ async def build_message(
         # aiokafka needs a key or a value, so only a keyed None tombstones
         none_is_tombstone=key is not None,
     )
+    msg = tombstone_to_none(msg)
 
     k = key or b""
 
@@ -363,6 +353,7 @@ def _build_record(
     reply_to: str = "",
     id_generator: IdGenerator = gen_cor_id,
 ) -> "ConsumerRecord":
+    body = tombstone_to_none(body)
     k = key or b""
     h = {
         "content-type": content_type or "",

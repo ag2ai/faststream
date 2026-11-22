@@ -551,6 +551,10 @@ class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig):
     def get_message_value(raw_message: Any) -> bytes | None:
         return raw_message.value
 
+    @staticmethod
+    def get_message_key(raw_message: Any) -> bytes:
+        return raw_message.key
+
     async def test_tombstone_body_reads_as_empty_bytes(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
@@ -559,8 +563,9 @@ class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig):
         args, kwargs = self.get_subscriber_params(queue)
 
         @broker.subscriber(*args, **kwargs)
-        async def handler(msg: bytes) -> None:
+        async def handler(msg: bytes) -> bytes:
             await bodies.put(msg)
+            return msg
 
         async with self.patch_broker(broker) as br:
             await br.publish(TOMBSTONE, queue, key=b"tombstone-key")
@@ -612,6 +617,23 @@ class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig):
             with pytest.raises(ValueError, match="requires a key"):
                 await br.publish(TOMBSTONE, queue)
 
+    async def test_request_preserves_tombstone_response_key(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler() -> Any:
+            return self.response_cls(TOMBSTONE, key=b"delete")
+
+        async with self.patch_broker(broker) as br:
+            response = await br.request(b"trigger", queue)
+
+        raw = response.raw_message
+        assert (self.get_message_key(raw), self.get_message_value(raw)) == (
+            b"delete",
+            None,
+        )
+
     async def test_tombstone_never_reaches_a_custom_codec(self, queue: str) -> None:
         codec = _TrackingCodec()
         broker = self.get_broker(apply_types=True, codec=codec)
@@ -628,37 +650,12 @@ class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig):
             await br.publish(TOMBSTONE, queue, key=b"tombstone-key")
             value = await asyncio.wait_for(values.get(), timeout=self.timeout)
 
-        assert value is None
-        # the handler's own `None` return still goes through the codec; the
-        # tombstone never does
-        assert not any(isinstance(msg, Tombstone) for msg in codec.encoded)
+        assert (value, codec.encoded) == (None, [])
 
     async def test_publish_batch_with_tombstone(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)
 
-        values: list[bytes] = []
-
-        args, kwargs = self.get_subscriber_params(queue, batch=True)
-
-        @broker.subscriber(*args, **kwargs)
-        async def handler(msg: list[bytes]) -> None:
-            values.extend(msg)
-
-        async with self.patch_broker(broker) as br:
-            await br.publish_batch(
-                b"hi",
-                self.response_cls(TOMBSTONE, key=b"batch-tombstone-key"),
-                topic=queue,
-            )
-
-        assert values == [b"hi", b""]
-        assert [isinstance(value, Tombstone) for value in values] == [False, True]
-
-    async def test_plain_none_in_a_batch_is_not_a_tombstone(self, queue: str) -> None:
-        broker = self.get_broker(apply_types=True)
-
-        values: list[bytes] = []
-        raw_values: list[bytes | None] = []
+        received: list[tuple[type[bytes], bytes, bytes | None]] = []
 
         args, kwargs = self.get_subscriber_params(queue, batch=True)
 
@@ -667,16 +664,41 @@ class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig):
             msg: list[bytes],
             raw: Any = Context("message"),
         ) -> None:
-            values.extend(msg)
-            raw_values.extend(self.get_message_value(m) for m in raw.raw_message)
+            received.extend(
+                (type(body), body, self.get_message_value(record))
+                for body, record in zip(msg, raw.raw_message, strict=True)
+            )
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(
+                b"hi",
+                self.response_cls(TOMBSTONE, key=b"batch-tombstone-key"),
+                topic=queue,
+            )
+
+        assert received == [(bytes, b"hi", b"hi"), (Tombstone, b"", None)]
+
+    async def test_plain_none_in_a_batch_is_not_a_tombstone(self, queue: str) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        received: list[tuple[type[bytes], bytes, bytes | None]] = []
+
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(
+            msg: list[bytes],
+            raw: Any = Context("message"),
+        ) -> None:
+            received.extend(
+                (type(body), body, self.get_message_value(record))
+                for body, record in zip(msg, raw.raw_message, strict=True)
+            )
 
         async with self.patch_broker(broker) as br:
             await br.publish_batch(b"hi", None, topic=queue)
 
-        # a None body encodes like any other value, so nothing on the wire is
-        # null and nothing arrives as a tombstone
-        assert None not in raw_values
-        assert not any(isinstance(value, Tombstone) for value in values)
+        assert received == [(bytes, b"hi", b"hi"), (bytes, b"", b"")]
 
     async def test_batch_tombstone_with_custom_batch_codec_raises(
         self,

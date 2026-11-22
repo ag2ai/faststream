@@ -152,7 +152,10 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         encoded_batch = await encode_batch_or_tombstone(
-            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for
+            cmd.batch_bodies,
+            self.codec,
+            self.serializer,
+            cmd.key_for,
         )
 
         for message_position, (message, content_type) in enumerate(encoded_batch):
