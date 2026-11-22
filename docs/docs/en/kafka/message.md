@@ -95,10 +95,12 @@ async def base_handler(
 
 ## Publishing a tombstone
 
-Import `#!python TOMBSTONE` from `#!python faststream.kafka`. Call `#!python await broker.publish(TOMBSTONE, "users", key=b"user-1")` to send a keyed record with a null Kafka value. This marks the key for removal on a compacted topic. The explicit marker requires a key. In `#!python publish_batch()`, wrap the marker in `#!python KafkaPublishMessage(TOMBSTONE, key=b"user-1")` and specify `#!python partition`. A batch codec that only encodes byte values cannot publish these batches.
+Import `#!python TOMBSTONE` from `#!python faststream.kafka`. Call `#!python await broker.publish(TOMBSTONE, "users", key=b"user-1")` to send a keyed record with a null Kafka value. This marks the key for removal on a compacted topic. The explicit marker requires a key. In `#!python publish_batch()`, wrap the marker in `#!python KafkaPublishMessage(TOMBSTONE, key=b"user-1")`. Without an explicit partition, each record in a tombstone batch follows the producer’s normal key-based routing. A batch codec that only encodes byte values cannot publish these batches.
 
 In `#!python publish_batch()`, a plain `#!python None` is encoded by the batch codec. With the default codec, its record has a zero-byte value.
 
 Read `#!python msg.tombstone` for a single record or the booleans in `#!python msg.batch_tombstones` in batch order. With default deserialization, the body of a tombstone is `#!python b""`. An empty Kafka value and a JSON `null` payload have their tombstone flags set to `#!python False`.
 
 A FastAPI subscriber using the default decoder can declare an optional model with a default of `#!python None`. A single Kafka tombstone uses that default, including for embedded bodies and dependency bodies.
+
+With aiokafka, confirmation of a tombstone batch covers every record. The returned metadata describes the first input record.

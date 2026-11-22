@@ -578,7 +578,7 @@ class KafkaTombstoneTestclientTestcase(BrokerTestclientTestcase):
         async with self.patch_broker(broker) as test:
             with pytest.raises(ValueError, match="requires a key"):
                 await test.publish(TOMBSTONE, queue)
-            with pytest.raises(ValueError, match="require an explicit partition"):
+            with pytest.raises(ValueError, match="requires a key"):
                 await test.publish_batch(b"keep", TOMBSTONE, topic=queue)
 
     async def test_rejects_tombstones_with_batch_codec(self, queue: str) -> None:

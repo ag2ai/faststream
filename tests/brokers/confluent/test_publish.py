@@ -5,15 +5,23 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream import Context
-from faststream.confluent import TOMBSTONE, KafkaPublishMessage, KafkaResponse
-from tests.brokers.base.publish import BrokerPublishTestcase
+from faststream.confluent import TOMBSTONE, KafkaPublishMessage, KafkaResponse, Topic
+from tests.brokers.base.publish import (
+    BrokerPublishTestcase,
+    KafkaTombstoneRoutingTestcase,
+)
 
 from .basic import ConfluentTestcaseConfig
 
 
 @pytest.mark.connected()
 @pytest.mark.confluent()
-class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
+class TestPublish(
+    ConfluentTestcaseConfig, BrokerPublishTestcase, KafkaTombstoneRoutingTestcase
+):
+    topic_cls = Topic
+    publish_message_cls = KafkaPublishMessage
+
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()

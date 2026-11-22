@@ -172,7 +172,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         encoded_batch, explicit = await encode_kafka_batch(
-            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for, cmd.partition
+            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for
         )
         producer = self._producer.producer
         batch = None if explicit else producer.create_batch()
@@ -188,8 +188,8 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
                 final_headers = headers_to_send.copy()
 
             if batch is None:
-                pending.append(
-                    await producer.send(
+                try:
+                    confirmation = await producer.send(
                         cmd.destination,
                         key=cmd.key_for(message_position),
                         value=message,
@@ -197,7 +197,10 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
                         timestamp_ms=cmd.timestamp_ms,
                         headers=encode_headers(final_headers),
                     )
-                )
+                except Exception:
+                    await asyncio.gather(*pending, return_exceptions=True)
+                    raise
+                pending.append(confirmation)
                 continue
 
             metadata = batch.append(

@@ -211,7 +211,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         serializer = self.broker.config.fd_config._serializer
 
         encoded, _ = await encode_kafka_batch(
-            cmd.batch_bodies, self.codec, serializer, cmd.key_for, cmd.partition
+            cmd.batch_bodies, self.codec, serializer, cmd.key_for
         )
 
         for handler in _find_handler(

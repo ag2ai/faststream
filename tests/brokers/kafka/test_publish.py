@@ -1,22 +1,68 @@
 import asyncio
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from aiokafka.structs import RecordMetadata
 
 from faststream import Context
-from faststream.kafka import TOMBSTONE, KafkaPublishMessage, KafkaResponse
+from faststream.kafka import TOMBSTONE, KafkaPublishMessage, KafkaResponse, Topic
 from faststream.kafka.exceptions import BatchBufferOverflowException
-from tests.brokers.base.publish import BrokerPublishTestcase
+from tests.brokers.base.publish import (
+    BrokerPublishTestcase,
+    KafkaTombstoneRoutingTestcase,
+)
 
 from .basic import KafkaTestcaseConfig
+
+if TYPE_CHECKING:
+    from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
 
 
 @pytest.mark.kafka()
 @pytest.mark.connected()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
-class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
+class TestPublish(
+    KafkaTestcaseConfig, BrokerPublishTestcase, KafkaTombstoneRoutingTestcase
+):
+    topic_cls = Topic
+    publish_message_cls = KafkaPublishMessage
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        "no_confirm",
+        (pytest.param(False, id="confirmed"), pytest.param(True, id="future")),
+    )
+    async def test_tombstone_batch_surfaces_later_ack_error(
+        self, queue: str, no_confirm: bool
+    ) -> None:
+        loop = asyncio.get_running_loop()
+        first = loop.create_future()
+        failed = loop.create_future()
+        first.set_result(MagicMock(spec=RecordMetadata))
+        failed.set_exception(RuntimeError("later record failed"))
+        broker = self.get_broker()
+
+        async with self.patch_broker(broker) as br:
+            driver = cast("AioKafkaFastProducerImpl", br._producer)._producer.producer
+
+            async def publish() -> None:
+                result = await br.publish_batch(
+                    KafkaPublishMessage(TOMBSTONE, key=b"delete"),
+                    KafkaPublishMessage(b"keep", key=b"keep"),
+                    topic=queue,
+                    no_confirm=no_confirm,
+                )
+                if isinstance(result, asyncio.Future):
+                    await result
+
+            with (
+                patch.object(driver, "send", side_effect=(first, failed)) as send,
+                pytest.raises(RuntimeError, match="later record failed"),
+            ):
+                await publish()
+            assert send.await_count == 2
+
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()

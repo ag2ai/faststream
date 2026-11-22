@@ -60,7 +60,6 @@ async def encode_kafka_batch(
     codec: "CodecProto",
     serializer: "SerializerProto | None",
     key_for: Callable[[int], object],
-    partition: int | None,
 ) -> tuple[Sequence[tuple[bytes | None, str | None]], bool]:
     # A response without a key can still wrap a message body.
     encoded_inputs = [
@@ -72,9 +71,6 @@ async def encode_kafka_batch(
             msg = "TOMBSTONE batches require per-record encoding, not BatchCodecProto"
             raise ValueError(msg)
         return await codec.encode_batch(encoded_inputs, serializer), False
-    if has_tombstones and partition is None:
-        msg = "TOMBSTONE batches require an explicit partition"
-        raise ValueError(msg)
 
     return [
         await encode_or_tombstone(

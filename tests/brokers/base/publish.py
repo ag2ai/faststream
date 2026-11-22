@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, FastStream, Response, TestApp
 from faststream._internal._compat import dump_json, model_to_json
+from faststream._internal.kafka.tombstone import TOMBSTONE
 from faststream.context import ContextRepo
 from faststream.exceptions import SubscriberNotFound
 
@@ -657,3 +658,67 @@ class BrokerPublishTestcase(BaseTestcaseConfig[Any]):
         assert event2.is_set()
         mock.assert_called_once_with("APP", "BROKER 1")
         mock2.assert_called_once_with("APP", "BROKER 2")
+
+
+@pytest.mark.asyncio()
+class KafkaTombstoneRoutingTestcase(BaseTestcaseConfig[Any]):
+    topic_cls: type[Any]
+    publish_message_cls: type[Any]
+
+    @pytest.mark.parametrize(
+        "no_confirm",
+        (pytest.param(False, id="confirmed"), pytest.param(True, id="future")),
+    )
+    async def test_tombstone_batch_uses_key_routing(
+        self, queue: str, no_confirm: bool
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+        records: asyncio.Queue[tuple[bytes, bytes | None, int, int]] = asyncio.Queue()
+
+        @broker.subscriber(
+            self.topic_cls(queue, num_partitions=3),
+            group_id=queue,
+            auto_offset_reset="earliest",
+        )
+        async def handle(message: Any = Context("message")) -> None:
+            raw = message.raw_message
+            if callable(raw.key):
+                records.put_nowait((
+                    raw.key(),
+                    raw.value(),
+                    raw.partition(),
+                    raw.offset(),
+                ))
+            else:
+                records.put_nowait((raw.key, raw.value, raw.partition, raw.offset))
+
+        keys = tuple(str(index).encode() for index in range(8))
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            for key in keys:
+                await br.publish(b"before", queue, key=key)
+            partitions = {}
+            for _ in keys:
+                key, _, partition, _ = await asyncio.wait_for(records.get(), self.timeout)
+                partitions[key] = partition
+            first = keys[0]
+            other = next(key for key in keys if partitions[key] != partitions[first])
+            metadata = await br.publish_batch(
+                self.publish_message_cls(TOMBSTONE, key=first),
+                self.publish_message_cls(b"after", key=other),
+                topic=queue,
+                no_confirm=no_confirm,
+            )
+            if isinstance(metadata, asyncio.Future):
+                metadata = await asyncio.wait_for(metadata, self.timeout)
+            received = {}
+            for _ in range(2):
+                key, value, partition, offset = await asyncio.wait_for(
+                    records.get(), self.timeout
+                )
+                received[key] = (value, partition, offset)
+
+        assert received[first][:2] == (None, partitions[first])
+        assert received[other][:2] == (b"after", partitions[other])
+        if metadata is not None:
+            assert (metadata.partition, metadata.offset) == received[first][1:]
