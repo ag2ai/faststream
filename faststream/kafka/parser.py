@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from faststream._internal.kafka.tombstone import Tombstone, value_or_tombstone
 from faststream._internal.utils.path import match_path
@@ -51,11 +51,10 @@ class AioKafkaParser:
             for key, value in message.headers
             if value is not None
         }
-        value = message.value
 
         return self.msg_class(
-            body=value_or_tombstone(value),
-            no_body=value is None,
+            body=value_or_tombstone(message.value),
+            no_body=message.value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
@@ -120,10 +119,9 @@ class AioKafkaBatchParser(AioKafkaParser):
         msg: "StreamMessage[tuple[ConsumerRecord, ...]]",
     ) -> "DecodedMessage":
         """Decode a batch of messages."""
-        # super() should be here due python can't find it in comprehension
-        super_obj = cast("AioKafkaParser", super())
-
         return [
-            await super_obj.decode_message(await super_obj.parse_message(m))
+            await super(AioKafkaBatchParser, self).decode_message(
+                await super(AioKafkaBatchParser, self).parse_message(m),
+            )
             for m in msg.raw_message
         ]

@@ -660,7 +660,6 @@ class BrokerPublishTestcase(BaseTestcaseConfig[Any]):
         mock2.assert_called_once_with("APP", "BROKER 2")
 
 
-# NOTE: kafka/confluent only - other brokers have no tombstone concept.
 @pytest.mark.asyncio()
 class KafkaTombstonePublishTestcase(BaseTestcaseConfig[Any]):
     response_cls: type[Any]

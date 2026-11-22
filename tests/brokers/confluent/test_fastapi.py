@@ -1,8 +1,9 @@
 import asyncio
 from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
+from pydantic import BaseModel
 
 from faststream import Context
 from faststream.confluent import KafkaRouter
@@ -14,7 +15,6 @@ from tests.brokers.base.fastapi import (
     FastAPILocalTestcase,
     FastAPITestcase,
     KafkaTombstoneFastAPILocalTestcase,
-    _Foo,
 )
 
 from .basic import ConfluentMemoryTestcaseConfig, ConfluentTestcaseConfig
@@ -57,37 +57,54 @@ class TestConfluentRouter(ConfluentTestcaseConfig, FastAPITestcase):
     async def test_external_tombstone_resolves_to_none(
         self,
         queue: str,
+        mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
+        class _BodyModel(BaseModel):
+            x: int
+
         router = self.router_class()
-        received: list[tuple[object, bytes | None]] = []
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(
-            msg: _Foo | None = None,
+            msg: _BodyModel | None = None,
             raw: KafkaMessage = Context("message"),
         ) -> None:
-            record = raw.raw_message
-            assert not isinstance(record, tuple)
-            received.append((msg, record.value()))
-            if len(received) == 2:
+            raw_message = (
+                raw.raw_message[0]
+                if isinstance(raw.raw_message, tuple)
+                else raw.raw_message
+            )
+            mock(msg, raw_message.value)
+            if mock.call_count == 2:
                 event.set()
 
         async with self.patch_broker(router.broker) as br:
             await br.start()
 
-            await br.publish(b'{"x": 5}', queue, key=b"k1")
-            # bypass the encoder to prove this works for a tombstone
-            # produced by any client, not only faststream's publish(None)
             producer = cast("AsyncConfluentFastProducerImpl", br._producer)
-            await producer._producer.producer.send(topic=queue, key=b"k2", value=None)
 
-            await asyncio.wait_for(event.wait(), timeout=self.timeout)
+            await asyncio.wait(
+                (
+                    asyncio.create_task(br.publish(b'{"x": 5}', queue, key=b"k1")),
+                    # bypass the encoder to prove this works for a tombstone
+                    # produced by any client, not only faststream's publish(None)
+                    asyncio.create_task(
+                        producer._producer.producer.send(
+                            topic=queue, key=b"k2", value=None
+                        )
+                    ),
+                    asyncio.create_task(event.wait()),
+                ),
+                timeout=self.timeout,
+            )
 
-        assert (_Foo(x=5), b'{"x": 5}') in received
-        assert (None, None) in received
+        assert mock.call_args_list == [
+            call(_BodyModel(x=5), b'{"x": 5}'),
+            call(None, None),
+        ]
 
 
 @pytest.mark.confluent()

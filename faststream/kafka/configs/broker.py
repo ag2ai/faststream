@@ -63,7 +63,7 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     )
 
 
-def _serialize_value(
+def _value_serializer(
     value: bytes | None,
     *,
     serializer: Callable[[Any], bytes] | None,
@@ -100,7 +100,8 @@ class KafkaBrokerConfig(BrokerConfig):
             producer_kwargs = {
                 **connection_kwargs,
                 "value_serializer": partial(
-                    _serialize_value, serializer=connection_kwargs.get("value_serializer")
+                    _value_serializer,
+                    serializer=connection_kwargs.get("value_serializer"),
                 ),
             }
             producer = aiokafka.AIOKafkaProducer(**producer_kwargs)

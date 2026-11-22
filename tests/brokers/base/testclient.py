@@ -573,7 +573,6 @@ class _TrackingCodec(DefaultCodec):
         return await super().encode(msg, serializer)
 
 
-# NOTE: kafka/confluent only - other brokers have no tombstone concept.
 @pytest.mark.asyncio()
 class KafkaTombstoneTestclientTestcase(BaseTestcaseConfig[Any]):
     response_cls: type[Any]
