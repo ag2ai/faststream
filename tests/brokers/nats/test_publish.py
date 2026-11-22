@@ -137,16 +137,17 @@ class TestAtomicBatchPublish(NatsTestcaseConfig):
         assert info.config.allow_atomic is True
 
     @pytest.mark.asyncio()
-    async def test_publish_batch_stores_all_messages(self, queue: str) -> None:
+    async def test_publish_batch_stores_all_messages(
+        self, queue: str, event: asyncio.Event
+    ) -> None:
         broker = self.get_broker(apply_types=True)
         received: list[tuple[str, str | None, str]] = []
-        done = asyncio.Event()
 
         @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
         async def handle(body: str, msg: NatsMessage) -> None:
             received.append((body, msg.headers.get("x-key"), msg.correlation_id))
             if len(received) == 3:
-                done.set()
+                event.set()
 
         async with broker:
             await broker.start()
@@ -159,7 +160,7 @@ class TestAtomicBatchPublish(NatsTestcaseConfig):
                 correlation_id="batch",
                 stream=queue,
             )
-            await asyncio.wait_for(done.wait(), timeout=3)
+            await asyncio.wait_for(event.wait(), timeout=3)
 
         assert (ack.stream, ack.seq) == (queue, 3)
         assert received == [
@@ -181,16 +182,16 @@ class TestAtomicBatchPublish(NatsTestcaseConfig):
         queue: str,
         batch_id: str | None,
         expected: str,
+        event: asyncio.Event,
     ) -> None:
         broker = self.get_broker(apply_types=True, id_generator=lambda: "generated")
         received: list[str | None] = []
-        done = asyncio.Event()
 
         @broker.subscriber(queue, stream=JStream(queue, allow_atomic=True))
         async def handle(msg: NatsMessage) -> None:
             received.append(msg.headers.get("Nats-Batch-Id"))
             if len(received) == 2:
-                done.set()
+                event.set()
 
         async with broker:
             await broker.start()
@@ -200,7 +201,7 @@ class TestAtomicBatchPublish(NatsTestcaseConfig):
                 subject=queue,
                 batch_id=batch_id,
             )
-            await asyncio.wait_for(done.wait(), timeout=3)
+            await asyncio.wait_for(event.wait(), timeout=3)
 
         assert received == [expected, expected]
 
