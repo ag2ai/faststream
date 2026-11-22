@@ -1,10 +1,9 @@
 import asyncio
-from typing import Annotated, Any
+from typing import Any
 
 import pytest
 from prometheus_client import CollectorRegistry
 
-from faststream import Context
 from faststream.nats import JStream, NatsBroker, NatsMessage, PullSub
 from faststream.nats.prometheus.middleware import NatsPrometheusMiddleware
 from tests.brokers.nats.test_consume import TestConsume as ConsumeCase
