@@ -57,13 +57,10 @@ if TYPE_CHECKING:
     )
     from faststream.redis.subscriber.factory import SubscriberType
     from faststream.redis.subscriber.usecases import (
-        ChannelConcurrentSubscriber,
         ChannelSubscriber,
         ListBatchSubscriber,
-        ListConcurrentSubscriber,
         ListSubscriber,
         StreamBatchSubscriber,
-        StreamConcurrentSubscriber,
         StreamSubscriber,
     )
     from faststream.security import BaseSecurity
@@ -417,36 +414,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "ChannelSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        channel: str | PubSub,
-        *,
-        list: None = None,
-        stream: None = None,
-        # broker arguments
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-        max_workers: int,
-    ) -> "ChannelConcurrentSubscriber": ...
 
     @overload
     def subscriber(
@@ -473,7 +442,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "ListSubscriber": ...
 
     @overload
@@ -501,7 +470,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "ListBatchSubscriber": ...
 
     @overload
@@ -529,36 +498,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> Union["ListSubscriber", "ListBatchSubscriber"]: ...
-
-    @overload
-    def subscriber(
-        self,
-        channel: None = None,
-        *,
-        list: str | ListSub,
-        stream: None = None,
-        # broker arguments
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-        max_workers: int,
-    ) -> "ListConcurrentSubscriber": ...
 
     @overload
     def subscriber(
@@ -585,7 +526,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "StreamSubscriber": ...
 
     @overload
@@ -613,7 +554,7 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> "StreamBatchSubscriber": ...
 
     @overload
@@ -641,36 +582,8 @@ class RedisRouter(StreamRouter[UnifyRedisDict]):
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
         response_model_exclude_none: bool = False,
-        max_workers: None = None,
+        max_workers: int | None = None,
     ) -> Union["StreamSubscriber", "StreamBatchSubscriber"]: ...
-
-    @overload
-    def subscriber(
-        self,
-        channel: None = None,
-        *,
-        list: None = None,
-        stream: str | StreamSub,
-        # broker arguments
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # AsyncAPI information
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-        max_workers: int,
-    ) -> "StreamConcurrentSubscriber": ...
 
     @override
     def subscriber(

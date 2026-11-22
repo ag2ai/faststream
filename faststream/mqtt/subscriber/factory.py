@@ -7,13 +7,11 @@ from faststream.mqtt.path import build_mqtt_address
 
 from .config import MQTTSubscriberConfig, MQTTSubscriberSpecificationConfig
 from .specification import MQTTSubscriberSpecification
-from .usecase import MQTTConcurrentSubscriber, MQTTDefaultSubscriber
+from .usecase import MQTTSubscriber
 
 if TYPE_CHECKING:
     from faststream.middlewares import AckPolicy
     from faststream.mqtt.broker.config import MQTTBrokerConfig
-
-SubscriberType = MQTTDefaultSubscriber | MQTTConcurrentSubscriber
 
 
 def create_subscriber(
@@ -30,7 +28,7 @@ def create_subscriber(
     title_: str | None = None,
     description_: str | None = None,
     include_in_schema: bool = True,
-) -> SubscriberType:
+) -> MQTTSubscriber:
     address = build_mqtt_address(topic)
 
     subscriber_config = MQTTSubscriberConfig(
@@ -38,6 +36,7 @@ def create_subscriber(
         qos=qos,
         shared=shared,
         no_reply=no_reply,
+        max_workers=max_workers,
         _outer_config=config,
         _ack_policy=ack_policy,
     )
@@ -59,12 +58,4 @@ def create_subscriber(
         calls,
     )
 
-    if max_workers > 1:
-        return MQTTConcurrentSubscriber(
-            subscriber_config,
-            specification,
-            calls,
-            max_workers=max_workers,
-        )
-
-    return MQTTDefaultSubscriber(subscriber_config, specification, calls)
+    return MQTTSubscriber(subscriber_config, specification, calls)

@@ -13,10 +13,6 @@ from faststream.mqtt import (
 )
 from faststream.mqtt.fastapi import MQTTRouter as FastAPIRouter
 from faststream.mqtt.message import MQTTMessage
-from faststream.mqtt.subscriber.usecase import (
-    MQTTConcurrentSubscriber,
-    MQTTDefaultSubscriber,
-)
 
 
 async def on_connection_recovery_failed() -> None:
@@ -69,12 +65,8 @@ async def check_subscriber_message_type(broker: MQTTBroker | MQTTRouter) -> None
 
 
 def check_subscriber_instance_type(broker: MQTTBroker | MQTTRouter) -> None:
-    sub1 = broker.subscriber("test")
-    assert_type(sub1, MQTTDefaultSubscriber)
-
-    sub2 = broker.subscriber("test", max_workers=2)
-    assert_type(sub2, MQTTConcurrentSubscriber)
-    assert_type(sub2.last_unsubscribe_result, UnsubscribeResult | None)
+    sub = broker.subscriber("test")
+    assert_type(sub.last_unsubscribe_result, UnsubscribeResult | None)
 
 
 def check_connection_info(broker: MQTTBroker) -> None:
