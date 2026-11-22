@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
 from functools import wraps
@@ -18,12 +19,17 @@ class SmartMock(Protocol[P, T_co]):
     def __call__(self, *args: P.args, **kwds: P.kwargs) -> T_co: ...
 
 
-def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
+def spy_decorator(
+    method: Callable[P, T],
+    event: asyncio.Event | None = None,
+) -> SmartMock[P, T]:
     mock = AsyncMock()
 
     @wraps(method)
     async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
         await mock(*args, **kwargs)
+        if event is not None:
+            event.set()
         return await cast("Callable[P, Awaitable[Any]]", method)(*args, **kwargs)
 
     @wraps(method)
@@ -33,6 +39,8 @@ def spy_decorator(method: Callable[P, T]) -> SmartMock[P, T]:
             match="coroutine 'AsyncMockMixin._execute_mock_call' was never awaited",
         ):
             mock(*args, **kwargs)
+        if event is not None:
+            event.set()
         return method(*args, **kwargs)
 
     wrapper = cast(

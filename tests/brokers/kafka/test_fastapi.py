@@ -1,8 +1,10 @@
 import asyncio
-from typing import Any
-from unittest.mock import MagicMock
+from typing import TYPE_CHECKING, Any, cast
+from unittest.mock import MagicMock, call
 
 import pytest
+from dirty_equals import IsList
+from pydantic import BaseModel
 
 from faststream import Context
 from faststream.kafka import KafkaRouter
@@ -14,10 +16,12 @@ from tests.brokers.base.fastapi import (
     FastAPILocalTestcase,
     FastAPITestcase,
     KafkaTombstoneFastAPILocalTestcase,
-    _Foo,
 )
 
 from .basic import KafkaMemoryTestcaseConfig, KafkaTestcaseConfig
+
+if TYPE_CHECKING:
+    from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
 
 
 @pytest.mark.kafka()
@@ -54,36 +58,45 @@ class TestKafkaRouter(KafkaTestcaseConfig, FastAPITestcase):
     async def test_external_tombstone_resolves_to_none(
         self,
         queue: str,
+        mock: MagicMock,
         event: asyncio.Event,
     ) -> None:
+        class _BodyModel(BaseModel):
+            x: int
+
         router = self.router_class()
-        received: list[tuple[object, bytes | None]] = []
 
         @router.subscriber(queue)
         async def handler(
-            msg: _Foo | None = None,
+            msg: _BodyModel | None = None,
             raw: KafkaMessage = Context("message"),
         ) -> None:
-            received.append((msg, raw.raw_message.value))
-            if len(received) == 2:
+            raw_message = (
+                raw.raw_message[0]
+                if isinstance(raw.raw_message, tuple)
+                else raw.raw_message
+            )
+            mock(msg, raw_message.value)
+            if mock.call_count == 2:
                 event.set()
 
         async with router.broker as br:
             await br.start()
 
+            producer = cast("AioKafkaFastProducerImpl", br._producer)
             await br.publish(b'{"x": 5}', queue, key=b"k1")
-            # bypass the encoder to prove this works for a tombstone
-            # produced by any client, not only faststream's publish(None)
-            await br._producer._producer.producer.send(
-                topic=queue,
-                key=b"k2",
-                value=None,
+            # Send a null record through the native client to bypass FastStream's encoder.
+            await producer._producer.producer.send_and_wait(
+                topic=queue, key=b"k2", value=None
             )
+            await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
-            await asyncio.wait_for(event.wait(), timeout=3)
-
-        assert (_Foo(x=5), b'{"x": 5}') in received
-        assert (None, None) in received
+        # Kafka may deliver records from separate partitions in either order.
+        assert mock.call_args_list == IsList(
+            call(_BodyModel(x=5), b'{"x": 5}'),
+            call(None, None),
+            check_order=False,
+        )
 
 
 @pytest.mark.kafka()

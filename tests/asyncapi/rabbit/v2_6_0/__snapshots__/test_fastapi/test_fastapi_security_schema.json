@@ -24,7 +24,7 @@
           "user-password": []
         }
       ],
-      "url": "amqp://user:pass@localhost:5672/"
+      "url": "amqp://localhost:5672/"
     }
   }
 }

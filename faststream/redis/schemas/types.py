@@ -5,11 +5,17 @@ from typing import Any
 from fast_depends import Provider
 from fast_depends.dependencies import Dependant
 from fast_depends.library.serializer import SerializerProto
-from redis.asyncio.connection import BaseParser, Connection, Encoder
+from redis.asyncio.connection import (
+    BaseParser,
+    Connection,
+    ConnectionPool,
+    Encoder,
+)
 from redis.asyncio.retry import Retry
 from typing_extensions import Required, TypedDict
 
 from faststream._internal.basic_types import LoggerProto
+from faststream._internal.configs import UnderlyingDriverAnnotations
 from faststream._internal.context.repository import ContextRepo
 from faststream._internal.parser import CodecProto
 from faststream._internal.types import BrokerMiddleware, CustomCallable, IdGenerator
@@ -43,6 +49,11 @@ class RedisConnectionParams(TypedDict, total=False):
 
     max_connections: int | None
     """Max connections in pool. Defaults to ``None``."""
+
+    connection_pool_class: type["ConnectionPool[Any]"]
+    """Connection pool class (e.g. ``BlockingConnectionPool`` to wait for a free
+    connection instead of raising ``MaxConnectionsError``).
+    Defaults to ``ConnectionPool``."""
 
     socket_timeout: float | None
     """Socket operation timeout. Defaults to ``None``."""
@@ -154,6 +165,12 @@ class RedisBrokerParams(RedisConnectionParams, total=False):
     context: ContextRepo | None
     """Context repository. Defaults to ``None``."""
 
+    underlying_driver_annotations: UnderlyingDriverAnnotations | None
+    """Extra driver type hints that FastStream cannot inject, mapped to the annotation to use instead.
+
+    Merged over the broker's own rows. Defaults to ``None``.
+    """
+
 
 class RedisClusterParams(RedisBrokerParams, total=False):
     startup_nodes: Iterable[tuple[str, int]]
@@ -204,6 +221,7 @@ CLUSTER_INCOMPATIBLE_PARAMS = frozenset({
     "parser_class",
     "encoder_class",
     "connection_class",
+    "connection_pool_class",
     "host",
     "port",
 })
@@ -237,4 +255,5 @@ NON_CONNECTION_PARAMS = frozenset({
     "serializer",
     "provider",
     "context",
+    "underlying_driver_annotations",
 })

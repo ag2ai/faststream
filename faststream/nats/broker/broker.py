@@ -81,6 +81,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.nats.configs.broker import JsInitOptions
@@ -438,6 +439,7 @@ class NatsBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         """Initialize the NatsBroker object.
 
@@ -551,6 +553,10 @@ class NatsBroker(
                 Provider for FastDepends.
             context:
                 Context for FastDepends.
+            underlying_driver_annotations: Extra driver type hints that
+                FastStream cannot inject, mapped to the annotation to use
+                instead. Merged over the broker's own rows. Wrap a value in
+                `UnderlyingDriverAnnotation` to name the import to suggest.
         """
         servers = [servers] if isinstance(servers, str) else list(servers)
 
@@ -565,6 +571,10 @@ class NatsBroker(
             nkeys_seed_str=nkeys_seed_str,
         )
 
+        parsed_servers = [
+            urlparse(server if "://" in server else f"//{server}") for server in servers
+        ]
+
         if (
             security is not None
             and type(security)
@@ -572,10 +582,7 @@ class NatsBroker(
                 BaseSecurity,
                 NatsSecurity,
             }
-            and any(
-                urlparse(url if "://" in url else f"//{url}").username is not None
-                for url in servers
-            )
+            and any(parsed.username is not None for parsed in parsed_servers)
         ):
             msg = "URL credentials conflict with `security`."
             raise SetupError(msg)
@@ -590,7 +597,10 @@ class NatsBroker(
             else:
                 specification_url = list(specification_url)
         else:
-            specification_url = servers
+            specification_url = [
+                server.replace(parsed.netloc, parsed.netloc.rpartition("@")[-1], 1)
+                for server, parsed in zip(servers, parsed_servers, strict=True)
+            ]
 
         js_producer = NatsJSFastProducer(
             parser=parser,
@@ -660,6 +670,7 @@ class NatsBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,
@@ -706,7 +717,7 @@ class NatsBroker(
                     subjects=list(subjects),
                 )
 
-            except BadRequestError as e:  # noqa: PERF203
+            except BadRequestError as e:  # ruff: ignore[try-except-in-loop]
                 self._setup_logger()
 
                 log_context = LogicSubscriber.build_log_context(
@@ -834,6 +845,65 @@ class NatsBroker(
             result = await super()._basic_publish(cmd, producer=self.config.js_producer)
         else:
             result = await super()._basic_publish(cmd, producer=self.config.producer)
+        return result
+
+    async def publish_batch(  # type: ignore[override]
+        self,
+        *messages: "SendableMessage",
+        subject: str,
+        headers: dict[str, str] | None = None,
+        correlation_id: str | None = None,
+        stream: str | None = None,
+        timeout: float | None = None,
+        batch_id: str | None = None,
+    ) -> "PubAck":
+        """Publish many messages to JetStream as one atomic batch.
+
+        The stream stores all the messages or none of them.
+        The stream must have `allow_atomic=True`. NATS server 2.12 or later is necessary.
+
+        Args:
+            *messages:
+                Message bodies to send.
+                Can be any encodable object (native python types or `pydantic.BaseModel`).
+            subject:
+                NATS subject to send messages.
+            headers:
+                Message headers to store metainformation.
+                The broker adds them to each message of the batch.
+            correlation_id:
+                Manual message **correlation_id** setter.
+                All messages of the batch have the same **correlation_id**.
+            stream:
+                This option validates that the target subject is in presented stream.
+            timeout:
+                Timeout to wait for the acknowledgement of the batch.
+            batch_id:
+                Manual batch identifier setter. The server accepts 64 characters or less.
+                The broker uses `id_generator` if you do not set it.
+
+        Returns:
+            `faststream.nats.PubAck` of the last message of the batch.
+        """
+        if not messages:
+            msg = "Atomic batch publish needs at least one message."
+            raise ValueError(msg)
+
+        cmd = NatsPublishCommand(
+            *messages,
+            correlation_id=correlation_id or self.config.id_generator(),
+            subject=subject,
+            headers=headers,
+            stream=stream,
+            timeout=timeout or 0.5,
+            batch_id=batch_id or self.config.id_generator(),
+            _publish_type=PublishType.PUBLISH,
+        )
+
+        result: PubAck = await super()._basic_publish_batch(
+            cmd,
+            producer=self.config.js_producer,
+        )
         return result
 
     @override

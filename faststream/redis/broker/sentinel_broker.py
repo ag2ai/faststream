@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from typing_extensions import Unpack, override
 
+from faststream._internal.constants import EMPTY
 from faststream.exceptions import SetupError
 from faststream.redis.broker import RedisBroker
 from faststream.redis.configs.state import RedisSentinelConnectionState
@@ -39,6 +40,9 @@ class RedisSentinelBroker(RedisBroker):
             raise SetupError(msg)
         if not kwargs.get("sentinel_master_name"):
             msg = "`sentinel_master_name` is required for RedisSentinelBroker."
+            raise SetupError(msg)
+        if kwargs.get("connection_pool_class", EMPTY) is not EMPTY:
+            msg = "`connection_pool_class` is not supported by RedisSentinelBroker."
             raise SetupError(msg)
 
     @override

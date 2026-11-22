@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional, Union
 from typing_extensions import override
 
 from faststream.response.publish_type import PublishType
-from faststream.response.response import PublishCommand, Response
+from faststream.response.response import BatchPublishCommand, PublishCommand, Response
 
 if TYPE_CHECKING:
     from faststream._internal.basic_types import SendableMessage
@@ -42,11 +42,11 @@ class NatsResponse(Response):
         )
 
 
-class NatsPublishCommand(PublishCommand):
+class NatsPublishCommand(BatchPublishCommand):
     def __init__(
         self,
         message: "SendableMessage",
-        *,
+        *messages: "SendableMessage",
         subject: str = "",
         correlation_id: str | None = None,
         headers: dict[str, str] | None = None,
@@ -54,10 +54,12 @@ class NatsPublishCommand(PublishCommand):
         stream: str | None = None,
         timeout: float = 0.5,
         schedule: Optional["Schedule"] = None,
+        batch_id: str | None = None,
         _publish_type: PublishType,
     ) -> None:
         super().__init__(
-            body=message,
+            message,
+            *messages,
             destination=subject,
             correlation_id=correlation_id,
             headers=headers,
@@ -68,6 +70,7 @@ class NatsPublishCommand(PublishCommand):
         self.stream = stream
         self.timeout = timeout
         self.schedule = schedule
+        self.batch_id = batch_id
 
     def headers_to_publish(self, *, js: bool = False) -> dict[str, str]:
         headers = {}
@@ -88,13 +91,18 @@ class NatsPublishCommand(PublishCommand):
     def from_cmd(
         cls,
         cmd: Union["PublishCommand", "NatsPublishCommand"],
+        *,
+        batch: bool = False,
     ) -> "NatsPublishCommand":
         if isinstance(cmd, NatsPublishCommand):
             # NOTE: Should return a copy probably.
             return cmd
 
+        body, extra_bodies = cls._parse_bodies(cmd.body, batch=batch)
+
         return cls(
-            message=cmd.body,
+            body,
+            *extra_bodies,
             subject=cmd.destination,
             correlation_id=cmd.correlation_id,
             headers=cmd.headers,

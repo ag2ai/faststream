@@ -1,6 +1,8 @@
 import asyncio
 from abc import abstractmethod
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Optional
+from uuid import uuid4
 
 import anyio
 import nats
@@ -52,10 +54,8 @@ class NatsFastProducer(ProducerProto[NatsPublishCommand]):
     @abstractmethod
     async def request(self, cmd: "NatsPublishCommand") -> "Msg": ...
 
-    @override
-    async def publish_batch(self, cmd: "NatsPublishCommand") -> None:
-        msg = "NATS doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)
+    @abstractmethod
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> "PubAck": ...
 
 
 class NatsFastProducerImpl(NatsFastProducer):
@@ -114,6 +114,11 @@ class NatsFastProducerImpl(NatsFastProducer):
             reply=cmd.reply_to,
             headers=headers_to_send,
         )
+
+    @override
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> "PubAck":
+        msg = "NATS Core doesn't support publishing in batches. Use JetStream."
+        raise FeatureNotSupportedException(msg)
 
     @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
@@ -192,6 +197,47 @@ class NatsJSFastProducer(NatsFastProducer):
         )
 
     @override
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> "PubAck":
+        """Publish all messages of the command as one atomic batch.
+
+        The stream stores all the messages or none of them.
+        The stream must have `allow_atomic=True`. NATS server 2.12 or later is necessary.
+        """
+        bodies = cmd.batch_bodies
+        batch_id = cmd.batch_id or uuid4().hex
+        headers = cmd.headers_to_publish(js=True)
+
+        for sequence, body in enumerate(bodies[:-1], start=1):
+            payload, content_type = await self.codec.encode(body, self.serializer)
+            await self.__state.connection._nc.publish(
+                subject=cmd.destination,
+                payload=payload,
+                headers={
+                    "content-type": content_type or "",
+                    **headers,
+                    "Nats-Batch-Id": batch_id,
+                    "Nats-Batch-Sequence": str(sequence),
+                },
+            )
+
+        # The server stores the batch when it gets the commit message.
+        # Its acknowledgement tells if the stream accepted the full batch.
+        payload, content_type = await self.codec.encode(bodies[-1], self.serializer)
+        return await self.__state.connection.publish(
+            subject=cmd.destination,
+            payload=payload,
+            headers={
+                "content-type": content_type or "",
+                **headers,
+                "Nats-Batch-Id": batch_id,
+                "Nats-Batch-Sequence": str(len(bodies)),
+                "Nats-Batch-Commit": "1",
+            },
+            stream=cmd.stream,
+            timeout=cmd.timeout,
+        )
+
+    @override
     async def request(self, cmd: "NatsPublishCommand") -> "Msg":
         payload, content_type = await self.codec.encode(cmd.body, self.serializer)
 
@@ -202,31 +248,44 @@ class NatsJSFastProducer(NatsFastProducer):
             future=future,
             max_msgs=1,
         )
-        await sub.unsubscribe(limit=1)
+        try:
+            await sub.unsubscribe(limit=1)
 
-        headers_to_send = {
-            "content-type": content_type or "",
-            "reply_to": reply_to,
-            **cmd.headers_to_publish(js=False),
-        }
+            headers_to_send = {
+                "content-type": content_type or "",
+                "reply_to": reply_to,
+                **cmd.headers_to_publish(js=False),
+            }
 
-        with anyio.fail_after(cmd.timeout):
-            await self.__state.connection.publish(
-                subject=cmd.destination,
-                payload=payload,
-                headers=headers_to_send,
-                stream=cmd.stream,
-                timeout=cmd.timeout,
-            )
+            with anyio.fail_after(cmd.timeout):
+                await self.__state.connection.publish(
+                    subject=cmd.destination,
+                    payload=payload,
+                    headers=headers_to_send,
+                    stream=cmd.stream,
+                    timeout=cmd.timeout,
+                )
 
-            msg = await future
+                msg = await future
 
-            if (  # pragma: no cover
-                msg.headers and (msg.headers.get(Header.STATUS) == NO_RESPONDERS_STATUS)
+                if (  # pragma: no cover
+                    msg.headers
+                    and (msg.headers.get(Header.STATUS) == NO_RESPONDERS_STATUS)
+                ):
+                    raise nats.errors.NoRespondersError
+
+                return msg
+        finally:
+            future.cancel()
+            # The one-message limit cannot remove an inbox that never receives a reply.
+            with (
+                anyio.CancelScope(shield=True),
+                suppress(
+                    nats.errors.ConnectionClosedError,
+                    nats.errors.ConnectionDrainingError,
+                ),
             ):
-                raise nats.errors.NoRespondersError
-
-            return msg
+                await sub.unsubscribe()
 
 
 class FakeNatsFastProducer(NatsFastProducer):
@@ -252,6 +311,5 @@ class FakeNatsFastProducer(NatsFastProducer):
         raise NotImplementedError
 
     @override
-    async def publish_batch(self, cmd: "NatsPublishCommand") -> None:
-        msg = "NATS doesn't support publishing in batches."
-        raise FeatureNotSupportedException(msg)
+    async def publish_batch(self, cmd: "NatsPublishCommand") -> "PubAck":
+        raise NotImplementedError

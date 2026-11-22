@@ -12,7 +12,6 @@ from .config import KafkaSubscriberConfig, KafkaSubscriberSpecificationConfig
 from .specification import KafkaSubscriberSpecification
 from .usecase import (
     BatchSubscriber,
-    ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
 
@@ -39,7 +38,7 @@ def create_subscriber(
     title_: str | None,
     description_: str | None,
     include_in_schema: bool,
-) -> BatchSubscriber | ConcurrentDefaultSubscriber | DefaultSubscriber:
+) -> BatchSubscriber | DefaultSubscriber:
     declared_topics = [Topic.validate(t) for t in topics]
 
     _validate_input_for_misconfigure(
@@ -58,6 +57,8 @@ def create_subscriber(
         group_id=group_id,
         connection_data=connection_data,
         no_reply=no_reply,
+        # batch subscribers ignore `max_workers`
+        max_workers=1 if batch else max_workers,
         _outer_config=config,
         _ack_policy=ack_policy,
     )
@@ -81,14 +82,6 @@ def create_subscriber(
             specification,
             calls,
             max_records=max_records,
-        )
-
-    if max_workers > 1:
-        return ConcurrentDefaultSubscriber(
-            subscriber_config,
-            specification,
-            calls,
-            max_workers=max_workers,
         )
 
     return DefaultSubscriber(subscriber_config, specification, calls)

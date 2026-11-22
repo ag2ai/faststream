@@ -1,5 +1,6 @@
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union
 
+from faststream._internal.kafka.tombstone import Tombstone, value_or_tombstone
 from faststream._internal.utils.path import match_path
 from faststream.kafka.message import (
     FAKE_CONSUMER,
@@ -45,12 +46,15 @@ class AioKafkaParser:
         message: Union["ConsumerRecord", "KafkaRawMessage"],
     ) -> "StreamMessage[ConsumerRecord]":
         """Parses a Kafka message."""
-        headers = {i: j.decode() for i, j in message.headers}
-        value = message.value
+        headers = {
+            key: value.decode(errors="replace")
+            for key, value in message.headers
+            if value is not None
+        }
 
         return self.msg_class(
-            body=value or b"",
-            no_body=value is None,
+            body=value_or_tombstone(message.value),
+            no_body=message.value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
@@ -61,11 +65,15 @@ class AioKafkaParser:
             consumer=getattr(message, "consumer", self._consumer),
         )
 
-    async def decode_message(  # noqa: PLR6301
+    async def decode_message(  # ruff: ignore[no-self-use]
         self,
         msg: "StreamMessage[ConsumerRecord]",
     ) -> "DecodedMessage":
         """Decodes a message."""
+        # NOTE: a tombstone carries no payload, so any content-type on it is a lie
+        if isinstance(msg.body, Tombstone):
+            return msg.body
+
         return decode_message(msg)
 
 
@@ -84,8 +92,12 @@ class AioKafkaBatchParser(AioKafkaParser):
         last = message[-1]
 
         for m in message:
-            body.append(m.value or b"")
-            batch_headers.append({i: j.decode() for i, j in m.headers})
+            body.append(value_or_tombstone(m.value))
+            batch_headers.append({
+                key: value.decode(errors="replace")
+                for key, value in m.headers
+                if value is not None
+            })
 
         headers = next(iter(batch_headers), {})
 
@@ -107,7 +119,9 @@ class AioKafkaBatchParser(AioKafkaParser):
         msg: "StreamMessage[tuple[ConsumerRecord, ...]]",
     ) -> "DecodedMessage":
         """Decode a batch of messages."""
-        # super() should be here due python can't find it in comprehension
-        super_obj = cast("AioKafkaParser", super())
-
-        return [decode_message(await super_obj.parse_message(m)) for m in msg.raw_message]
+        return [
+            await super(AioKafkaBatchParser, self).decode_message(
+                await super(AioKafkaBatchParser, self).parse_message(m),
+            )
+            for m in msg.raw_message
+        ]

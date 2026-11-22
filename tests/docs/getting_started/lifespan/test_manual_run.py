@@ -16,7 +16,7 @@ from tests.marks import (
 
 async def wait_started(broker: Any) -> None:
     # the fake broker exposes no "started" event, so poll the subscribers
-    while not all(sub.running for sub in broker.subscribers):  # noqa: ASYNC110
+    while not all(sub.running for sub in broker.subscribers):  # ruff: ignore[async-busy-wait]
         await asyncio.sleep(0)
 
 

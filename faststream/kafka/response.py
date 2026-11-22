@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from typing_extensions import override
@@ -78,7 +78,7 @@ class KafkaPublishCommand(BatchPublishCommand):
         key: bytes | Any | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -90,7 +90,7 @@ class KafkaPublishCommand(BatchPublishCommand):
             destination=topic,
             reply_to=reply_to,
             correlation_id=correlation_id,
-            headers=headers,
+            headers=dict(headers) if headers is not None else None,
             _publish_type=_publish_type,
         )
 
@@ -134,8 +134,8 @@ class KafkaPublishCommand(BatchPublishCommand):
     def key_for(self, index: int) -> Any | None:
         return key_for_index(self._per_message_keys, self.key, index)
 
-    def headers_to_publish(self) -> dict[str, str]:
-        headers = {}
+    def headers_to_publish(self) -> dict[str, str | bytes | None]:
+        headers: dict[str, str | bytes | None] = {}
 
         if self.correlation_id:
             headers["correlation_id"] = self.correlation_id

@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import suppress
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 
@@ -6,7 +7,7 @@ import anyio
 import pytest
 from pydantic import BaseModel
 
-from faststream import AckPolicy, Context, Depends, FastStream, TestApp
+from faststream import AckPolicy, BaseMiddleware, Context, Depends, FastStream, TestApp
 from faststream.exceptions import StopConsume
 from faststream.message import StreamMessage
 from tests.tools import spy_decorator
@@ -483,6 +484,42 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig[Any]):
         ack.mock.assert_not_awaited()
         reject.mock.assert_not_awaited()
 
+    async def test_consume_acks_on_middleware_error(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        if not self.supports_cancel_ack_skip:
+            pytest.skip("broker default subscriber has no acknowledgement middleware")
+
+        class FailingMiddleware(BaseMiddleware):
+            async def on_receive(self) -> None:
+                raise ValueError
+
+        broker = self.get_broker()
+        broker.add_middleware(FailingMiddleware)
+        args, kwargs = self.get_subscriber_params(
+            queue,
+            ack_policy=AckPolicy.ACK,
+            **self.get_cancel_ack_subscriber_kwargs(queue),
+        )
+
+        @broker.subscriber(*args, **kwargs)
+        async def handler(_msg: Any) -> None: ...
+
+        with patch.object(StreamMessage, "ack", spy_decorator(StreamMessage.ack)) as ack:
+            ack.mock.side_effect = lambda *_, **__: event.set()
+
+            async with self.patch_broker(broker) as br:
+                await br.start()
+
+                with suppress(ValueError):
+                    await br.publish("hello", queue)
+
+                await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        ack.mock.assert_awaited_once()
+
 
 @pytest.mark.asyncio()
 class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
@@ -541,28 +578,39 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
         consume_broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
+        sub = consume_broker.subscriber(*args, **kwargs)
+        transport_closed = asyncio.Event()
 
-        @consume_broker.subscriber(*args, **kwargs)
+        real_close_transport = sub._close_transport
+
+        async def close_transport() -> None:
+            await asyncio.sleep(0.1)
+            await real_close_transport()
+            transport_closed.set()
+
+        @sub
         def subscriber(m: Any) -> None:
             mock()
             event.set()
             raise StopConsume
 
-        async with self.patch_broker(consume_broker) as br:
-            await br.start()
-            await asyncio.wait(
-                (
-                    asyncio.create_task(br.publish("hello", queue)),
-                    asyncio.create_task(event.wait()),
-                ),
-                timeout=self.timeout,
-            )
-            await asyncio.sleep(0.5)
-            await br.publish("hello", queue)
-            await asyncio.sleep(0.5)
+        with patch.object(sub, "_close_transport", close_transport):
+            async with self.patch_broker(consume_broker) as br:
+                await br.start()
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=self.timeout,
+                )
+                await transport_closed.wait()
+                await br.publish("hello", queue)
+                await asyncio.sleep(0.5)
 
         assert event.is_set()
         mock.assert_called_once()
+        assert transport_closed.is_set()
 
     @pytest.mark.asyncio()
     async def test_iteration(

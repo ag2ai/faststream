@@ -1,5 +1,6 @@
-from collections.abc import AsyncIterator, Callable, Coroutine
+from collections.abc import AsyncIterator
 from contextlib import suppress
+from time import monotonic
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 import anyio
@@ -7,7 +8,6 @@ from nats.errors import ConnectionClosedError, TimeoutError
 from nats.js.errors import ServiceUnavailableError
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.nats.parser import (
     BatchParser,
@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from nats.aio.msg import Msg
     from nats.js import JetStreamContext
 
-    from faststream._internal.basic_types import SendableMessage
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream.nats.message import NatsMessage
@@ -28,11 +27,8 @@ if TYPE_CHECKING:
     from faststream.nats.subscriber.config import NatsSubscriberConfig
 
 
-class PullStreamSubscriber(
-    TasksMixin,
-    StreamSubscriber,
-):
-    __slots__ = ()
+class PullStreamSubscriber(StreamSubscriber):
+    __slots__ = ("pull_sub",)
 
     subscription: Optional["JetStreamContext.PullSubscription"]
 
@@ -68,12 +64,9 @@ class PullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self.consume})
+        self.tasks_supervisor.add_task(self._consume_pull)
 
-    async def _consume_pull(
-        self,
-        cb: Callable[["Msg"], Coroutine[Any, Any, "SendableMessage"]],
-    ) -> None:
+    async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription
 
@@ -88,35 +81,78 @@ class PullStreamSubscriber(
             if messages:
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
-                        _ = tg.start_soon(cb, msg)
+                        _ = tg.start_soon(self.consume_dispatcher.dispatch, msg)
 
 
-class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
-    __slots__ = ()
+class ConcurrentPullStreamSubscriber(PullStreamSubscriber):
+    __slots__ = ("limiter",)
+
+    def __init__(self, config: "NatsSubscriberConfig", *args: Any, **kwargs: Any) -> None:
+        self.limiter = anyio.Semaphore(config.max_workers)
+        config.max_workers = 1
+        super().__init__(config, *args, **kwargs)
 
     @override
-    async def _create_subscription(self) -> None:
-        """Create NATS subscription and start consume task."""
-        if self.subscription:
+    async def _consume_pull(self) -> None:
+        """Hold a worker slot from the pull request through message processing."""
+        if not self.running:
             return
 
-        self.start_consume_task()
+        assert self.subscription
+        fetch_error: Exception | None = None
 
-        self.subscription = await self.jetstream.pull_subscribe(
-            subject=self.subject.broker_address,
-            config=self.config,
-            **self.extra_options,
-        )
-        self.add_task(self._consume_pull, func_kwargs={"cb": self._put_msg})
+        async with anyio.create_task_group() as tg:
+            while self.running:  # pragma: no branch
+                await self.limiter.acquire()
+                slot_reserved = True
+
+                try:
+                    if not self.running:
+                        continue
+
+                    try:
+                        # Batch fetches can leave extra server pulls active (see issue #2563).
+                        (msg,) = await self.subscription.fetch(
+                            batch=1,
+                            timeout=self.pull_sub.timeout,
+                        )
+                    except (
+                        TimeoutError,
+                        ConnectionClosedError,
+                        ServiceUnavailableError,
+                    ):
+                        continue
+                    except Exception as exc:
+                        fetch_error = exc
+                        break
+
+                    _ = tg.start_soon(self._consume_with_release, msg)
+                    slot_reserved = False
+
+                finally:
+                    if slot_reserved:
+                        self.limiter.release()
+
+        if fetch_error is not None and self.running:
+            raise fetch_error
+
+    async def _consume_with_release(
+        self,
+        msg: "Msg",
+    ) -> None:
+        """Release reserved capacity only after message processing finishes."""
+        try:
+            await self.consume_dispatcher.dispatch(msg)
+        finally:
+            self.limiter.release()
 
 
 class BatchPullStreamSubscriber(
-    TasksMixin,
     DefaultSubscriber[list["Msg"]],
 ):
     """Batch-message consumer class."""
 
-    __slots__ = ()
+    __slots__ = ("pull_sub", "stream")
 
     subscription: Optional["JetStreamContext.PullSubscription"]
     _fetch_sub: Optional["JetStreamContext.PullSubscription"]
@@ -139,7 +175,7 @@ class BatchPullStreamSubscriber(
         self.pull_sub = pull_sub
 
     @override
-    async def get_one(
+    async def get_one(  # type: ignore[override]
         self,
         *,
         timeout: float = 5,
@@ -181,7 +217,7 @@ class BatchPullStreamSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
@@ -224,18 +260,40 @@ class BatchPullStreamSubscriber(
             config=self.config,
             **self.extra_options,
         )
-        self.add_task(self._consume_pull)
+        self.tasks_supervisor.add_task(self._consume_pull)
 
     async def _consume_pull(self) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription, "You should call `create_subscription` at first."
 
-        while self.running:  # pragma: no branch
-            with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
-                messages = await self.subscription.fetch(
-                    batch=self.pull_sub.batch_size,
-                    timeout=self.pull_sub.timeout,
-                )
+        batch_size = self.pull_sub.batch_size
+        timeout = self.pull_sub.timeout
 
-                if messages:
-                    await self.consume(messages)
+        while self.running:  # pragma: no branch
+            deadline = monotonic() + timeout if timeout is not None else None
+            messages: list[Msg] = []
+            remaining = None if deadline is None else deadline - monotonic()
+
+            # nats-py may return a partial batch before timeout; keep fetching.
+            # See https://github.com/nats-io/nats.py/issues/1034.
+            while (
+                len(messages) < batch_size
+                and (remaining is None or remaining > 0)
+                and self.running
+            ):
+                try:
+                    messages += await self.subscription.fetch(
+                        batch=batch_size - len(messages),
+                        timeout=remaining,
+                    )
+                except TimeoutError:
+                    break
+                except (ConnectionClosedError, ServiceUnavailableError):
+                    # Unprocessed messages stay unacknowledged for server redelivery.
+                    messages.clear()
+                    break
+
+                remaining = None if deadline is None else deadline - monotonic()
+
+            if messages and self.running:
+                await self.consume_dispatcher.dispatch(messages)

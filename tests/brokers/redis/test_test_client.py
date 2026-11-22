@@ -92,6 +92,19 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             assert await (await br.request(1, "test.name.useless")).decode() == 1
             handler.mock.assert_called_once_with(1)
 
+    async def test_pub_sub_pattern_matches_whole_channel(self) -> None:
+        broker = self.get_broker()
+
+        @broker.subscriber("logs.*.error")
+        async def handler(msg: Any) -> None: ...
+
+        async with self.patch_broker(broker) as br:
+            await br.publish("1", "logs.app.error")
+            await br.publish("2", "logs.app.error.extra")
+            await br.publish("3", "logs.app.errors")
+
+            handler.mock.assert_called_once_with("1")
+
     async def test_list(
         self,
         queue: str,
@@ -148,6 +161,19 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
             # A batch has one header set per message, so there is no single answer
             with pytest.raises(SetupError, match="received a batch"):
                 await m.assert_called_once_with(headers={"key": "value"})
+
+    async def test_publish_batch_to_single_list(self, queue: str) -> None:
+        broker = self.get_broker()
+        received: list[Any] = []
+
+        @broker.subscriber(list=queue)
+        async def handler(msg: Any) -> None:
+            received.append(msg)
+
+        async with self.patch_broker(broker) as br:
+            await br.publish_batch(1, "hi", {"n": 2}, list=queue)
+
+        assert received == [1, "hi", {"n": 2}]
 
     async def test_batch_publisher_mock(
         self,
@@ -323,7 +349,7 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
         broker = self.get_broker()
 
         async with self.patch_broker(broker) as br:
-            with pytest.raises(ValueError):  # noqa: PT011
+            with pytest.raises(ValueError):  # ruff: ignore[pytest-raises-too-broad]
                 await br.publish("hello")
 
     @pytest.mark.connected()

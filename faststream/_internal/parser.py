@@ -100,10 +100,10 @@ class BatchCodecProto(Protocol):
 class DefaultCodec:
     __slots__ = ()
 
-    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # noqa: PLR6301
+    async def decode(self, msg: "StreamMessage[Any]") -> "DecodedMessage":  # ruff: ignore[no-self-use]
         return decode_message(msg)
 
-    async def encode(  # noqa: PLR6301
+    async def encode(  # ruff: ignore[no-self-use]
         self,
         msg: "SendableMessage",
         serializer: "SerializerProto | None" = None,

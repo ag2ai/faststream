@@ -19,7 +19,7 @@ def resolve_context_by_name(
         value = context.resolve(name)
 
     except (KeyError, AttributeError):
-        if EMPTY != default:  # noqa: SIM300
+        if EMPTY != default:  # ruff: ignore[yoda-conditions]
             value = default
 
         elif initial is not None:

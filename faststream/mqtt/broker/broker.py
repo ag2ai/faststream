@@ -27,7 +27,7 @@ from faststream.mqtt.publisher.producer import (
 )
 from faststream.mqtt.response import MQTTPublishCommand
 from faststream.mqtt.security import parse_security
-from faststream.mqtt.subscriber.usecase import MQTTBaseSubscriber
+from faststream.mqtt.subscriber.usecase import MQTTSubscriber
 from faststream.mqtt.utils import build_mqtt_url, parse_mqtt_url
 from faststream.response.publish_type import PublishType
 from faststream.specification.schema import BrokerSpec
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.basic_types import LoggerProto, SendableMessage
+    from faststream._internal.configs import UnderlyingDriverAnnotations
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import BrokerMiddleware, CustomCallable
     from faststream.mqtt.message import MQTTMessage
@@ -70,6 +71,11 @@ class MQTTBroker(
         on_connection_recovery_failed: Callable[[], Awaitable[None]] | None = None,
         mqtt_connect_timeout: float = 30.0,
         session_expiry_interval: int = 0,
+        receive_maximum: int | None = None,
+        maximum_packet_size: int | None = None,
+        user_properties: Sequence[tuple[str, str]] = (),
+        request_response_information: bool | None = None,
+        request_problem_information: bool | None = None,
         session_replay_buffer_size: int = 1000,
         session_replay_timeout: float = 30.0,
         stripped_prefixes: tuple[str, ...] | None = None,
@@ -97,6 +103,7 @@ class MQTTBroker(
         serializer: Optional["SerializerProto"] = EMPTY,
         provider: Optional["Provider"] = None,
         context: Optional["ContextRepo"] = None,
+        underlying_driver_annotations: "UnderlyingDriverAnnotations | None" = None,
     ) -> None:
         url_options = parse_mqtt_url(url)
         secure_kwargs = parse_security(security)
@@ -125,6 +132,11 @@ class MQTTBroker(
             "password": password,
             "tls": connection_tls,
             "will": will,
+            "receive_maximum": receive_maximum,
+            "maximum_packet_size": maximum_packet_size,
+            "user_properties": user_properties,
+            "request_response_information": request_response_information,
+            "request_problem_information": request_problem_information,
         }
         if stripped_prefixes is not None:
             connection_kwargs["stripped_prefixes"] = stripped_prefixes
@@ -195,6 +207,7 @@ class MQTTBroker(
                 extra_context={
                     "broker": self,
                 },
+                underlying_driver_annotations=underlying_driver_annotations or {},
             ),
             specification=BrokerSpec(
                 description=description,
@@ -206,6 +219,14 @@ class MQTTBroker(
             ),
         )
 
+    @property
+    def connection_info(self) -> zmqtt.ConnectionInfo:
+        """Current handshake snapshot; raises MQTTDisconnectedError when disconnected."""
+        if self._connection is None:
+            msg = "No active connection information"
+            raise zmqtt.MQTTDisconnectedError(msg)
+        return self._connection.connection_info
+
     @override
     async def _connect(self) -> zmqtt.MQTTClient:
         client = zmqtt.MQTTClient(**self._connection_kwargs)
@@ -216,7 +237,7 @@ class MQTTBroker(
     @override
     async def start(self) -> None:
         await self.connect()
-        c = MQTTBaseSubscriber.build_log_context(None, "")
+        c = MQTTSubscriber.build_log_context(None, "")
         self.config.logger.log("Connection established", logging.INFO, c)
         await super().start()
 

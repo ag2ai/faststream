@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Collection, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +14,7 @@ from typing import (
 from aiokafka import ConsumerRecord
 from aiokafka.coordinator.assignors.roundrobin import RoundRobinPartitionAssignor
 from aiokafka.partitioner import DefaultPartitioner
-from aiokafka.producer.producer import _missing  # noqa: PLC2701
+from aiokafka.producer.producer import _missing  # ruff: ignore[import-private-name]
 from fastapi.datastructures import Default
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
@@ -50,11 +50,10 @@ if TYPE_CHECKING:
         BatchPublisher,
         DefaultPublisher,
     )
-    from faststream.kafka.schemas import TopicPartition
+    from faststream.kafka.schemas import Topic, TopicPartition
     from faststream.kafka.subscriber.usecase import (
         BatchSubscriber,
         ConcurrentBetweenPartitionsSubscriber,
-        ConcurrentDefaultSubscriber,
         DefaultSubscriber,
     )
     from faststream.security import BaseSecurity
@@ -86,6 +85,7 @@ class KafkaRouter(
         sasl_oauth_token_provider: Optional["AbstractTokenProvider"] = None,
         loop: Optional["AbstractEventLoop"] = None,
         client_id: str | None = SERVICE_NAME,
+        allow_auto_create_topics: bool = True,
         # publisher args
         acks: Literal[0, 1, -1, "all"] | object = _missing,
         key_serializer: Callable[[Any], bytes] | None = None,
@@ -95,7 +95,7 @@ class KafkaRouter(
         partitioner: Callable[
             [bytes, list[Partition], list[Partition]],
             Partition,
-        ] = DefaultPartitioner(),  # noqa: B008
+        ] = DefaultPartitioner(),  # ruff: ignore[function-call-in-default-argument]
         max_request_size: int = 1024 * 1024,
         linger_ms: int = 0,
         enable_idempotence: bool = False,
@@ -224,6 +224,10 @@ class KafkaRouter(
                 etc., may write duplicates of the retried message in the stream.
                 Note that enabling idempotence acks to set to ``all``. If it is not
                 explicitly set by the user it will be chosen.
+            allow_auto_create_topics: Allow FastStream to create topics through the admin client when a subscriber starts.
+                Unlike ``faststream.confluent``, this flag is FastStream-side only: aiokafka has no
+                ``allow.auto.create.topics`` consumer option, so the cluster's own
+                ``auto.create.topics.enable`` is a separate switch.
             # broker base args
             graceful_timeout: Graceful shutdown timeout. Broker waits for all running subscribers completion before shut down.
             id_generator: Factory used to generate `correlation_id` when a publish/request call doesn't set one explicitly.
@@ -342,6 +346,7 @@ class KafkaRouter(
             enable_idempotence=enable_idempotence,
             transactional_id=transactional_id,
             transaction_timeout_ms=transaction_timeout_ms,
+            allow_auto_create_topics=allow_auto_create_topics,
             # broker args
             graceful_timeout=graceful_timeout,
             id_generator=id_generator,
@@ -385,7 +390,63 @@ class KafkaRouter(
     @overload  # type: ignore[override]
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
+        batch: Literal[False] = False,
+        group_id: str,
+        group_instance_id: str | None = None,
+        client_rack: str | None = None,
+        key_deserializer: Callable[[bytes], Any] | None = None,
+        value_deserializer: Callable[[bytes], Any] | None = None,
+        fetch_max_bytes: int = 50 * 1024 * 1024,
+        fetch_min_bytes: int = 1,
+        fetch_max_wait_ms: int = 500,
+        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
+        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
+        auto_commit_interval_ms: int = 5 * 1000,
+        check_crcs: bool = True,
+        partition_assignment_strategy: Sequence[type["AbstractPartitionAssignor"]] = (
+            RoundRobinPartitionAssignor,
+        ),
+        max_poll_interval_ms: int = 5 * 60 * 1000,
+        rebalance_timeout_ms: int | None = None,
+        session_timeout_ms: int = 10 * 1000,
+        heartbeat_interval_ms: int = 3 * 1000,
+        consumer_timeout_ms: int = 200,
+        max_poll_records: int | None = None,
+        exclude_internal_topics: bool = True,
+        isolation_level: Literal[
+            "read_uncommitted", "read_committed"
+        ] = "read_uncommitted",
+        batch_timeout_ms: int = 200,
+        max_records: int | None = None,
+        listener: Optional["ConsumerRebalanceListener"] = None,
+        pattern: str | None = None,
+        partitions: Collection["TopicPartition"] = (),
+        # broker args
+        dependencies: Iterable["params.Depends"] = (),
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        max_workers: int,
+        ack_policy: AckPolicy = EMPTY,
+        no_reply: bool = False,
+        # Specification args
+        title: str | None = None,
+        description: str | None = None,
+        include_in_schema: bool = True,
+        # FastAPI args
+        response_model: Any = Default(None),
+        response_model_include: Optional["IncEx"] = None,
+        response_model_exclude: Optional["IncEx"] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+    ) -> "ConcurrentBetweenPartitionsSubscriber": ...
+
+    @overload
+    def subscriber(
+        self,
+        *topics: Union[str, "Topic"],
         batch: Literal[False] = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -421,7 +482,7 @@ class KafkaRouter(
         dependencies: Iterable["params.Depends"] = (),
         parser: Optional["CustomCallable"] = None,
         decoder: Optional["CustomCallable"] = None,
-        max_workers: None = None,
+        max_workers: int | None = None,
         ack_policy: AckPolicy = EMPTY,
         no_reply: bool = False,
         # Specification args
@@ -441,7 +502,7 @@ class KafkaRouter(
     @overload
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: Literal[True] = ...,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -497,119 +558,7 @@ class KafkaRouter(
     @overload
     def subscriber(
         self,
-        *topics: str,
-        batch: Literal[False] = False,
-        group_id: None = None,
-        group_instance_id: str | None = None,
-        client_rack: str | None = None,
-        key_deserializer: Callable[[bytes], Any] | None = None,
-        value_deserializer: Callable[[bytes], Any] | None = None,
-        fetch_max_bytes: int = 50 * 1024 * 1024,
-        fetch_min_bytes: int = 1,
-        fetch_max_wait_ms: int = 500,
-        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
-        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit_interval_ms: int = 5 * 1000,
-        check_crcs: bool = True,
-        partition_assignment_strategy: Sequence[type["AbstractPartitionAssignor"]] = (
-            RoundRobinPartitionAssignor,
-        ),
-        max_poll_interval_ms: int = 5 * 60 * 1000,
-        rebalance_timeout_ms: int | None = None,
-        session_timeout_ms: int = 10 * 1000,
-        heartbeat_interval_ms: int = 3 * 1000,
-        consumer_timeout_ms: int = 200,
-        max_poll_records: int | None = None,
-        exclude_internal_topics: bool = True,
-        isolation_level: Literal[
-            "read_uncommitted", "read_committed"
-        ] = "read_uncommitted",
-        batch_timeout_ms: int = 200,
-        max_records: int | None = None,
-        listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
-        partitions: Collection["TopicPartition"] = (),
-        # broker args
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # Specification args
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-    ) -> "ConcurrentDefaultSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        *topics: str,
-        batch: Literal[False] = False,
-        group_id: str = ...,
-        group_instance_id: str | None = None,
-        client_rack: str | None = None,
-        key_deserializer: Callable[[bytes], Any] | None = None,
-        value_deserializer: Callable[[bytes], Any] | None = None,
-        fetch_max_bytes: int = 50 * 1024 * 1024,
-        fetch_min_bytes: int = 1,
-        fetch_max_wait_ms: int = 500,
-        max_partition_fetch_bytes: int = 1 * 1024 * 1024,
-        auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
-        auto_commit_interval_ms: int = 5 * 1000,
-        check_crcs: bool = True,
-        partition_assignment_strategy: Sequence[type["AbstractPartitionAssignor"]] = (
-            RoundRobinPartitionAssignor,
-        ),
-        max_poll_interval_ms: int = 5 * 60 * 1000,
-        rebalance_timeout_ms: int | None = None,
-        session_timeout_ms: int = 10 * 1000,
-        heartbeat_interval_ms: int = 3 * 1000,
-        consumer_timeout_ms: int = 200,
-        max_poll_records: int | None = None,
-        exclude_internal_topics: bool = True,
-        isolation_level: Literal[
-            "read_uncommitted", "read_committed"
-        ] = "read_uncommitted",
-        batch_timeout_ms: int = 200,
-        max_records: int | None = None,
-        listener: Optional["ConsumerRebalanceListener"] = None,
-        pattern: str | None = None,
-        partitions: Collection["TopicPartition"] = (),
-        # broker args
-        dependencies: Iterable["params.Depends"] = (),
-        parser: Optional["CustomCallable"] = None,
-        decoder: Optional["CustomCallable"] = None,
-        max_workers: int = ...,
-        ack_policy: AckPolicy = EMPTY,
-        no_reply: bool = False,
-        # Specification args
-        title: str | None = None,
-        description: str | None = None,
-        include_in_schema: bool = True,
-        # FastAPI args
-        response_model: Any = Default(None),
-        response_model_include: Optional["IncEx"] = None,
-        response_model_exclude: Optional["IncEx"] = None,
-        response_model_by_alias: bool = True,
-        response_model_exclude_unset: bool = False,
-        response_model_exclude_defaults: bool = False,
-        response_model_exclude_none: bool = False,
-    ) -> "ConcurrentBetweenPartitionsSubscriber": ...
-
-    @overload
-    def subscriber(
-        self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -663,14 +612,13 @@ class KafkaRouter(
     ) -> Union[
         "DefaultSubscriber",
         "BatchSubscriber",
-        "ConcurrentDefaultSubscriber",
         "ConcurrentBetweenPartitionsSubscriber",
     ]: ...
 
     @override
     def subscriber(
         self,
-        *topics: str,
+        *topics: Union[str, "Topic"],
         batch: bool = False,
         group_id: str | None = None,
         group_instance_id: str | None = None,
@@ -724,13 +672,13 @@ class KafkaRouter(
     ) -> Union[
         "DefaultSubscriber",
         "BatchSubscriber",
-        "ConcurrentDefaultSubscriber",
         "ConcurrentBetweenPartitionsSubscriber",
     ]:
         """Create a subscriber for Kafka topics.
 
         Args:
-            *topics: Kafka topics to consume messages from.
+            *topics: Kafka topics to consume messages from. Pass a `Topic` object
+                instead of a plain name to configure how the topic is created.
             batch: Whether to consume messages in batches or not.
             group_id:
                 Name of the consumer group to join for dynamic
@@ -1035,9 +983,7 @@ class KafkaRouter(
         if batch:
             return cast("BatchSubscriber", subscriber)
 
-        if workers > 1:
-            if ack_policy is AckPolicy.ACK_FIRST:
-                return cast("ConcurrentDefaultSubscriber", subscriber)
+        if workers > 1 and ack_policy is not AckPolicy.ACK_FIRST:
             return cast("ConcurrentBetweenPartitionsSubscriber", subscriber)
 
         return cast("DefaultSubscriber", subscriber)
@@ -1045,11 +991,11 @@ class KafkaRouter(
     @overload  # type: ignore[override]
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[False] = False,
         # basic args
@@ -1064,11 +1010,11 @@ class KafkaRouter(
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: Literal[True] = ...,
         # basic args
@@ -1082,11 +1028,11 @@ class KafkaRouter(
     @overload
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args
@@ -1104,11 +1050,11 @@ class KafkaRouter(
     @override
     def publisher(
         self,
-        topic: str,
+        topic: Union[str, "Topic"],
         *,
         key: bytes | Any | None = None,
         partition: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         reply_to: str = "",
         batch: bool = False,
         # basic args
@@ -1129,7 +1075,9 @@ class KafkaRouter(
         Or you can create a publisher object to call it lately - `broker.publisher(...).publish(...)`.
 
         Args:
-            topic: Topic where the message will be published."
+            topic: Topic where the message will be published. A `Topic` object is
+                accepted as well, but **FastStream** never creates publisher topics,
+                so its creation settings are ignored.
             key:
                 A key to associate with the message. Can be used to
                 determine which partition to send the message to. If partition

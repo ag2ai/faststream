@@ -18,7 +18,7 @@ def test_base_security_schema(snapshot_json: SnapshotAssertion) -> None:
 
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
-    assert broker.specification.url == ["amqps://guest:guest@localhost:5672/"]
+    assert broker.specification.url == ["amqps://localhost:5672/"]
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
     schema = get_2_6_0_schema(broker)
@@ -38,7 +38,7 @@ def test_plaintext_security_schema(snapshot_json: SnapshotAssertion) -> None:
 
     broker = RabbitBroker("amqp://guest:guest@localhost/", security=security)
 
-    assert broker.specification.url == ["amqps://admin:password@localhost:5671/"]
+    assert broker.specification.url == ["amqps://localhost:5671/"]
     assert broker._connection_kwargs.get("ssl_context") is ssl_context
 
     schema = get_2_6_0_schema(broker)
@@ -55,7 +55,7 @@ def test_plaintext_security_schema_without_ssl(snapshot_json: SnapshotAssertion)
 
     broker = RabbitBroker("amqp://guest:guest@localhost:5672/", security=security)
 
-    assert broker.specification.url == ["amqp://admin:password@localhost:5672/"]
+    assert broker.specification.url == ["amqp://localhost:5672/"]
 
     schema = get_2_6_0_schema(broker)
 

@@ -56,8 +56,10 @@ class TestRabbitCase:
             routing_key="in",
         )
 
-        yield start_time
-        await connection.close()
+        try:
+            yield start_time
+        finally:
+            await connection.close()
 
     async def test_consume_message(self) -> None:
         async with self.start():

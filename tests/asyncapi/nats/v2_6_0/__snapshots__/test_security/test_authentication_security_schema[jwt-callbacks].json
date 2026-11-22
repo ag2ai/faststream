@@ -1,0 +1,33 @@
+{
+  "asyncapi": "2.6.0",
+  "channels": {},
+  "components": {
+    "messages": {},
+    "schemas": {},
+    "securitySchemes": {
+      "nats-jwt": {
+        "description": "NATS user JWT authentication with NKey challenge signing.",
+        "type": "asymmetricEncryption",
+        "x-nats-auth": "jwt-nkey",
+        "x-nats-credential-source": "callbacks"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "FastStream",
+    "version": "0.1.0"
+  },
+  "servers": {
+    "development": {
+      "protocol": "nats",
+      "protocolVersion": "custom",
+      "security": [
+        {
+          "nats-jwt": []
+        }
+      ],
+      "url": "nats://localhost:4222"
+    }
+  }
+}

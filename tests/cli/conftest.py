@@ -10,6 +10,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any
 
+import httpx2
 import pytest
 
 from faststream import FastStream
@@ -136,6 +137,23 @@ class CLIThread:
         # the process can exit before the poll thread drains its stderr pipe
         self.__std_poll_thread.join(timeout)
 
+    def wait_for_http(self, url: str, timeout: float = 10.0) -> None:
+        deadline = time.monotonic() + timeout
+
+        with httpx2.Client(timeout=0.5, trust_env=False) as client:
+            while time.monotonic() < deadline:
+                with suppress(httpx2.ConnectError, httpx2.TimeoutException):
+                    client.get(url).raise_for_status()
+                    return
+                if self.process.poll() is not None:
+                    break
+                time.sleep(0.05)
+
+        pytest.fail(
+            f"CLI did not serve {url} within {timeout}s "
+            f"(exit code: {self.process.poll()}). Stderr:\n{self.stderr}",
+        )
+
     def signint(self) -> None:
         if IS_WINDOWS:
             self.process.terminate()
@@ -169,6 +187,7 @@ def faststream_cli(
         *cmd: str,
         wait_time: float = 2.0,
         extra_env: dict[str, str] | None = None,
+        readiness_url: str | None = None,
     ) -> Generator[CLIThread, None, None]:
         env = (
             os.environ.copy()
@@ -184,6 +203,8 @@ def faststream_cli(
         wait_for_startup(cli, wait_time)
 
         try:
+            if readiness_url is not None:
+                cli.wait_for_http(readiness_url)
             yield cli
         finally:
             cli.stop()

@@ -1,6 +1,7 @@
 from importlib.util import find_spec
 from typing import TYPE_CHECKING, Any, TypeAlias
 
+from faststream._internal.kafka import TOMBSTONE, Tombstone
 from faststream._internal.parser import ParserProto
 from faststream._internal.testing.app import TestApp
 
@@ -16,7 +17,7 @@ try:
     from .annotations import KafkaMessage
     from .broker import KafkaBroker, KafkaPublisher, KafkaRoute, KafkaRouter
     from .response import KafkaPublishCommand, KafkaPublishMessage, KafkaResponse
-    from .schemas import TopicPartition
+    from .schemas import Topic, TopicPartition
     from .testing import TestKafkaBroker
 
 except ImportError as e:
@@ -29,6 +30,7 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_KAFKA) from e
 
 __all__ = (
+    "TOMBSTONE",
     "ConsumerRecord",
     "KafkaBroker",
     "KafkaMessage",
@@ -42,5 +44,7 @@ __all__ = (
     "RecordMetadata",
     "TestApp",
     "TestKafkaBroker",
+    "Tombstone",
+    "Topic",
     "TopicPartition",
 )

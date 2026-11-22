@@ -12,6 +12,98 @@ hide:
 ---
 
 # Release Notes
+## 0.7.9
+
+The main change in FastStream 0.7.9 is official support for Python 3.15.
+
+* feat: support Python 3.15 by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#3273](https://github.com/ag2ai/faststream/pull/3273){.external-link target="_blank"}
+* feat(redis): allow custom connection_pool_class in RedisBroker by [@MikhailGulkin](https://github.com/MikhailGulkin){.external-link target="_blank"} in [#3374](https://github.com/ag2ai/faststream/pull/3374){.external-link target="_blank"}
+* fix(deps): allow watchfiles 1.2 and 1.3 for Python 3.15 by [@hasansezertasan](https://github.com/hasansezertasan){.external-link target="_blank"} in [#3292](https://github.com/ag2ai/faststream/pull/3292){.external-link target="_blank"}
+* fix: support binary Kafka headers without decoding errors by [@Bazarovinc](https://github.com/Bazarovinc){.external-link target="_blank"} in [#2459](https://github.com/ag2ai/faststream/pull/2459){.external-link target="_blank"}
+* fix(deps): allow aiokafka 0.15 by [@lesnik512](https://github.com/lesnik512){.external-link target="_blank"} in [#3326](https://github.com/ag2ai/faststream/pull/3326){.external-link target="_blank"}
+* fix(rabbit): cancel the consumer before waiting for in-flight handlers on stop by [@benedikt-bartscher](https://github.com/benedikt-bartscher){.external-link target="_blank"} in [#3298](https://github.com/ag2ai/faststream/pull/3298){.external-link target="_blank"}
+* fix(nats): bound pull fetches by worker capacity by [@lxingy3](https://github.com/lxingy3){.external-link target="_blank"} in [#3091](https://github.com/ag2ai/faststream/pull/3091){.external-link target="_blank"}
+* fix(confluent): drop classic-only keys under group.protocol=consumer by [@harlemmuniz](https://github.com/harlemmuniz){.external-link target="_blank"} in [#3330](https://github.com/ag2ai/faststream/pull/3330){.external-link target="_blank"}
+* fix(rabbit): let `#` match zero words in TestRabbitBroker topic routing by [@krish-goradia](https://github.com/krish-goradia){.external-link target="_blank"} in [#3336](https://github.com/ag2ai/faststream/pull/3336){.external-link target="_blank"}
+* fix(redis): match the whole channel name against psubscribe patterns in TestRedisBroker by [@hemtilva](https://github.com/hemtilva){.external-link target="_blank"} in [#3337](https://github.com/ag2ai/faststream/pull/3337){.external-link target="_blank"}
+* fix(confluent): store offsets explicitly on manual ack (#3312) by [@agustin18](https://github.com/agustin18){.external-link target="_blank"} in [#3317](https://github.com/ag2ai/faststream/pull/3317){.external-link target="_blank"}
+* fix(asgi): fix encode ASGI query params by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#3363](https://github.com/ag2ai/faststream/pull/3363){.external-link target="_blank"}
+* fix(redis): fix encode redis binary message format by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#3362](https://github.com/ag2ai/faststream/pull/3362){.external-link target="_blank"}
+* docs: add dependency overrides by [@IvanKirpichnikov](https://github.com/IvanKirpichnikov){.external-link target="_blank"} in [#3293](https://github.com/ag2ai/faststream/pull/3293){.external-link target="_blank"}
+* docs: add Prometheus metrics configuration for multi-process mode by [@Peopl3s](https://github.com/Peopl3s){.external-link target="_blank"} in [#2275](https://github.com/ag2ai/faststream/pull/2275){.external-link target="_blank"}
+* docs: add Wordfully to adopters by [@vlbaluk](https://github.com/vlbaluk){.external-link target="_blank"} in [#3299](https://github.com/ag2ai/faststream/pull/3299){.external-link target="_blank"}
+* docs: align broker guides with Python search intent by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3256](https://github.com/ag2ai/faststream/pull/3256){.external-link target="_blank"}
+* docs: add Skan.ai usage report to adopters by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3307](https://github.com/ag2ai/faststream/pull/3307){.external-link target="_blank"}
+* docs: list additional community extensions by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3308](https://github.com/ag2ai/faststream/pull/3308){.external-link target="_blank"}
+* Update connection.md by [@JustKirill](https://github.com/JustKirill){.external-link target="_blank"} in [#3313](https://github.com/ag2ai/faststream/pull/3313){.external-link target="_blank"}
+* docs: list faststream-gcp-pubsub among community extensions by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#3323](https://github.com/ag2ai/faststream/pull/3323){.external-link target="_blank"}
+* docs(kafka): explain consumer defaults across backends by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3324](https://github.com/ag2ai/faststream/pull/3324){.external-link target="_blank"}
+* docs: document yield dependencies and dependency overrides by [@Wayfarer545](https://github.com/Wayfarer545){.external-link target="_blank"} in [#3325](https://github.com/ag2ai/faststream/pull/3325){.external-link target="_blank"}
+* refactor: share body binding rules between runtime and AsyncAPI by [@Siyet](https://github.com/Siyet){.external-link target="_blank"} in [#3333](https://github.com/ag2ai/faststream/pull/3333){.external-link target="_blank"}
+
+### New Contributors
+
+* [@hasansezertasan](https://github.com/hasansezertasan){.external-link target="_blank"} made their first contribution in [#3292](https://github.com/ag2ai/faststream/pull/3292){.external-link target="_blank"}
+* [@vlbaluk](https://github.com/vlbaluk){.external-link target="_blank"} made their first contribution in [#3299](https://github.com/ag2ai/faststream/pull/3299){.external-link target="_blank"}
+* [@JustKirill](https://github.com/JustKirill){.external-link target="_blank"} made their first contribution in [#3313](https://github.com/ag2ai/faststream/pull/3313){.external-link target="_blank"}
+* [@agustin18](https://github.com/agustin18){.external-link target="_blank"}
+* [@Wayfarer545](https://github.com/Wayfarer545){.external-link target="_blank"}
+* [@Siyet](https://github.com/Siyet){.external-link target="_blank"} made their first contribution in [#3333](https://github.com/ag2ai/faststream/pull/3333){.external-link target="_blank"}
+* [@harlemmuniz](https://github.com/harlemmuniz){.external-link target="_blank"} made their first contribution in [#3330](https://github.com/ag2ai/faststream/pull/3330){.external-link target="_blank"}
+* [@krish-goradia](https://github.com/krish-goradia){.external-link target="_blank"} made their first contribution in [#3336](https://github.com/ag2ai/faststream/pull/3336){.external-link target="_blank"}
+* [@hemtilva](https://github.com/hemtilva){.external-link target="_blank"} made their first contribution in [#3337](https://github.com/ag2ai/faststream/pull/3337){.external-link target="_blank"}
+* [@MikhailGulkin](https://github.com/MikhailGulkin){.external-link target="_blank"} made their first contribution in [#3374](https://github.com/ag2ai/faststream/pull/3374){.external-link target="_blank"}
+
+**Full Changelog**: [#0.7.8...0.7.9](https://github.com/ag2ai/faststream/compare/0.7.8...0.7.9){.external-link target="_blank"}
+
+## 0.7.8
+
+### What's Changed
+* fix: stop subscribers concurrently on broker shutdown by [@davidsmfreire](https://github.com/davidsmfreire){.external-link target="_blank"} in [#3225](https://github.com/ag2ai/faststream/pull/3225){.external-link target="_blank"}
+* fix(nats): batch consuming by [@draincoder](https://github.com/draincoder){.external-link target="_blank"} in [#3238](https://github.com/ag2ai/faststream/pull/3238){.external-link target="_blank"}
+* fix: do not re-raise exceptions in FakeContext by [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} in [#3244](https://github.com/ag2ai/faststream/pull/3244){.external-link target="_blank"}
+* fix(redis): stop ListBatchPublisher from passing as a ListPublisher by [@vyhuholl](https://github.com/vyhuholl){.external-link target="_blank"} in [#3242](https://github.com/ag2ai/faststream/pull/3242){.external-link target="_blank"}
+* fix(kafka): log partition assignment when a custom rebalance listener… by [@vyhuholl](https://github.com/vyhuholl){.external-link target="_blank"} in [#3241](https://github.com/ag2ai/faststream/pull/3241){.external-link target="_blank"}
+* fix(mqtt): import MQTT when only the OpenTelemetry API is installed by [@SinitsynAndrey](https://github.com/SinitsynAndrey){.external-link target="_blank"} in [#3261](https://github.com/ag2ai/faststream/pull/3261){.external-link target="_blank"}
+* Fix: exit already entered middlewares if one fails to enter by [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} in [#3252](https://github.com/ag2ai/faststream/pull/3252){.external-link target="_blank"}
+* fix: strip credentials from AsyncAPI specification URLs by [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} in [#3239](https://github.com/ag2ai/faststream/pull/3239){.external-link target="_blank"}
+* fix(redis): wait for the actual reply in request by [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} in [#3277](https://github.com/ag2ai/faststream/pull/3277){.external-link target="_blank"}
+* fix(kafka): rewind every partition of a batch on nack by [@powersemmi](https://github.com/powersemmi){.external-link target="_blank"} in [#3281](https://github.com/ag2ai/faststream/pull/3281){.external-link target="_blank"}
+* fix(redis): deliver test batches to non-batch list subscribers by [@zhechen-cs](https://github.com/zhechen-cs){.external-link target="_blank"} in [#3276](https://github.com/ag2ai/faststream/pull/3276){.external-link target="_blank"}
+* fix: apply ack_policy if error occurs before handler (in middleware/parser) by [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} in [#3272](https://github.com/ag2ai/faststream/pull/3272){.external-link target="_blank"}
+* fix(nats): clean up failed JetStream request subscriptions by [@Kuang-xianxin](https://github.com/Kuang-xianxin){.external-link target="_blank"} in [#3097](https://github.com/ag2ai/faststream/pull/3097){.external-link target="_blank"}
+* fix(redis): preserve empty messages in manual list reads by [@zhechen-cs](https://github.com/zhechen-cs){.external-link target="_blank"} in [#3275](https://github.com/ag2ai/faststream/pull/3275){.external-link target="_blank"}
+* fix(redis): honor no_ack in manual stream reads by [@zhechen-cs](https://github.com/zhechen-cs){.external-link target="_blank"} in [#3274](https://github.com/ag2ai/faststream/pull/3274){.external-link target="_blank"}
+* feat (#3065): name the context annotation when a handler is hinted with a driver class by [@MannXo](https://github.com/MannXo){.external-link target="_blank"} in [#3068](https://github.com/ag2ai/faststream/pull/3068){.external-link target="_blank"}
+* feat(mqtt): Support CONNECT MQTT5 properties, expose UNSUBACK and CONNACK properties by [@borisalekseev](https://github.com/borisalekseev){.external-link target="_blank"} in [#3247](https://github.com/ag2ai/faststream/pull/3247){.external-link target="_blank"}
+* feat(kafka): add Topic schema and hang declare on TopicPartition by [@ce1ebrimbor](https://github.com/ce1ebrimbor){.external-link target="_blank"} in [#3223](https://github.com/ag2ai/faststream/pull/3223){.external-link target="_blank"}
+* feat(testing): Kafka handlers and publishers assert on `key` and `partition` by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3113](https://github.com/ag2ai/faststream/pull/3113){.external-link target="_blank"}
+* Feature: Implementation of the AsyncContextManager interface for Application  #3228 by [@ProstoKiReal](https://github.com/ProstoKiReal){.external-link target="_blank"} in [#3233](https://github.com/ag2ai/faststream/pull/3233){.external-link target="_blank"}
+* feat: 2978 snapshot redis and nats by [@StepanKatin](https://github.com/StepanKatin){.external-link target="_blank"} in [#3260](https://github.com/ag2ai/faststream/pull/3260){.external-link target="_blank"}
+* feat(rabbit): add connection event callbacks by [@C3EQUALZz](https://github.com/C3EQUALZz){.external-link target="_blank"} in [#3266](https://github.com/ag2ai/faststream/pull/3266){.external-link target="_blank"}
+* Add MWS to ADOPTERS.md by [@dolfinus](https://github.com/dolfinus){.external-link target="_blank"} in [#3248](https://github.com/ag2ai/faststream/pull/3248){.external-link target="_blank"}
+* Pass `api_version` and `client_rack` only to an aiokafka that takes them by [@vyhuholl](https://github.com/vyhuholl){.external-link target="_blank"} in [#3237](https://github.com/ag2ai/faststream/pull/3237){.external-link target="_blank"}
+* Handover the message for the middleware for the on_receive method by [@ApusBerliozi](https://github.com/ApusBerliozi){.external-link target="_blank"} in [#3235](https://github.com/ag2ai/faststream/pull/3235){.external-link target="_blank"}
+* Require a destination in subscriber() and publisher() overloads by [@vyhuholl](https://github.com/vyhuholl){.external-link target="_blank"} in [#3234](https://github.com/ag2ai/faststream/pull/3234){.external-link target="_blank"}
+* refactor(redis): bind client and group to stream messages by [@Vitaly312](https://github.com/Vitaly312){.external-link target="_blank"} in [#3264](https://github.com/ag2ai/faststream/pull/3264){.external-link target="_blank"}
+* refactor: replace FakeContext with contextlib.nullcontext by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3246](https://github.com/ag2ai/faststream/pull/3246){.external-link target="_blank"}
+* test: add syrupy JSON snapshot across NATS by [@StepanKatin](https://github.com/StepanKatin){.external-link target="_blank"} in [#3249](https://github.com/ag2ai/faststream/pull/3249){.external-link target="_blank"}
+* ci: check the docs links 4 at a time and cap the lychee retry wait by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3250](https://github.com/ag2ai/faststream/pull/3250){.external-link target="_blank"}
+* ci: drop stale zizmor ignores and keep trigger suppressions inline by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3232](https://github.com/ag2ai/faststream/pull/3232){.external-link target="_blank"}
+* docs: expand international FastStream adoption evidence by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3258](https://github.com/ag2ai/faststream/pull/3258){.external-link target="_blank"}
+* docs(nats): document broker event callbacks by [@C3EQUALZz](https://github.com/C3EQUALZz){.external-link target="_blank"} in [#3265](https://github.com/ag2ai/faststream/pull/3265){.external-link target="_blank"}
+* docs(nats): say that a pull batch is not filled up to batch_size by waiting by [@Lancetnik](https://github.com/Lancetnik){.external-link target="_blank"} in [#3236](https://github.com/ag2ai/faststream/pull/3236){.external-link target="_blank"}
+
+### New Contributors
+* [@davidsmfreire](https://github.com/davidsmfreire){.external-link target="_blank"} made their first contribution in [#3225](https://github.com/ag2ai/faststream/pull/3225){.external-link target="_blank"}
+* [@ProstoKiReal](https://github.com/ProstoKiReal){.external-link target="_blank"} made their first contribution in [#3233](https://github.com/ag2ai/faststream/pull/3233){.external-link target="_blank"}
+* [@SinitsynAndrey](https://github.com/SinitsynAndrey){.external-link target="_blank"} made their first contribution in [#3261](https://github.com/ag2ai/faststream/pull/3261){.external-link target="_blank"}
+* [@zhechen-cs](https://github.com/zhechen-cs){.external-link target="_blank"} made their first contribution in [#3276](https://github.com/ag2ai/faststream/pull/3276){.external-link target="_blank"}
+* [@Kuang-xianxin](https://github.com/Kuang-xianxin){.external-link target="_blank"} made their first contribution in [#3097](https://github.com/ag2ai/faststream/pull/3097){.external-link target="_blank"}
+* [@MannXo](https://github.com/MannXo){.external-link target="_blank"} made their first contribution in [#3068](https://github.com/ag2ai/faststream/pull/3068){.external-link target="_blank"}
+
+**Full Changelog**: [#0.7.7...0.7.8](https://github.com/ag2ai/faststream/compare/0.7.7...0.7.8){.external-link target="_blank"}
+
 ## 0.7.7
 
 ### What's Changed

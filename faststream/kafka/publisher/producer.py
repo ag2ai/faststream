@@ -4,7 +4,12 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.kafka import encode_headers
+from faststream._internal.kafka.tombstone import (
+    encode_batch_or_tombstone,
+    encode_or_tombstone,
+)
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
 from faststream.kafka.exceptions import BatchBufferOverflowException
@@ -44,7 +49,7 @@ class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
     def closed(self) -> bool:
         return True
 
-    async def flush(self) -> None:  # noqa: PLR6301
+    async def flush(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
     @abstractmethod
@@ -121,12 +126,14 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        if cmd.body is None and cmd.key is not None:
-            # keyed None is a tombstone: aiokafka requires at least key or value,
-            # so a keyless None still goes through the codec as b""
-            message, content_type = None, None
-        else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+        message, content_type = await encode_or_tombstone(
+            cmd.body,
+            self.codec,
+            self.serializer,
+            key=cmd.key,
+            # aiokafka needs a key or a value, so only a keyed None tombstones
+            none_is_tombstone=cmd.key is not None,
+        )
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -139,7 +146,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
-            headers=[(i, (j or "").encode()) for i, j in headers_to_send.items()],
+            headers=encode_headers(headers_to_send),
         )
 
         if not cmd.no_confirm:
@@ -156,15 +163,12 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
-        if isinstance(self.codec, BatchCodecProto):
-            encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer
-            )
-        else:
-            encoded_batch = [
-                await self.codec.encode(body, self.serializer)
-                for body in cmd.batch_bodies
-            ]
+        encoded_batch = await encode_batch_or_tombstone(
+            cmd.batch_bodies,
+            self.codec,
+            self.serializer,
+            cmd.key_for,
+        )
 
         for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:
@@ -179,7 +183,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
                 key=cmd.key_for(message_position),
                 value=message,
                 timestamp=cmd.timestamp_ms,
-                headers=[(i, j.encode()) for i, j in final_headers.items()],
+                headers=encode_headers(final_headers),
             )
             if metadata is None:
                 raise BatchBufferOverflowException(message_position=message_position)

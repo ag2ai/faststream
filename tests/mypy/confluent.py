@@ -1,4 +1,6 @@
 import asyncio
+from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from confluent_kafka import Message
 from typing_extensions import assert_type
@@ -8,9 +10,11 @@ from faststream.confluent import (
     KafkaBroker,
     KafkaMessage,
     KafkaPublishMessage,
+    KafkaPublisher,
     KafkaRouter,
     TestKafkaBroker,
 )
+from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.fastapi import KafkaRouter as FastAPIRouter
 from faststream.confluent.publisher.usecase import (
     BatchPublisher,
@@ -18,9 +22,11 @@ from faststream.confluent.publisher.usecase import (
 )
 from faststream.confluent.subscriber.usecase import (
     BatchSubscriber,
-    ConcurrentDefaultSubscriber,
     DefaultSubscriber,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 async def check_multiple_test_brokers() -> None:
@@ -64,6 +70,45 @@ async def check_publish_type(fake_bool: bool = True) -> None:
 
     publish_confirm_bool = await broker.publish(None, topic="test", no_confirm=fake_bool)
     assert_type(publish_confirm_bool, Message | asyncio.Future[Message | None] | None)
+
+
+async def check_publish_headers() -> None:
+    broker = KafkaBroker()
+    text_headers: dict[str, str] = {"text": "value"}
+    binary_headers: dict[str, bytes] = {"binary": b"\xff\x00"}
+    headers: Mapping[str, str | bytes | None] = MappingProxyType({
+        "text": "value",
+        "binary": b"\xff\x00",
+        "null": None,
+    })
+
+    await broker.publish("body", "test", headers=text_headers)
+    await broker.publish("body", "test", headers=binary_headers)
+    await broker.publish("body", "test", headers=headers)
+    await broker.publish_batch("one", "two", topic="test", headers=headers)
+    await broker.request("body", "test", headers=headers)
+    KafkaPublishMessage("body", headers=binary_headers)
+
+
+async def check_publisher_headers(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    headers: Mapping[str, str | bytes | None] = MappingProxyType({
+        "binary": b"\xff\x00",
+        "null": None,
+    })
+    publisher = broker.publisher("test", headers=headers)
+    await publisher.publish("body", headers=headers)
+    await publisher.request("body", headers=headers)
+    await broker.publisher("test", batch=True, headers=headers).publish(
+        "one", "two", headers=headers
+    )
+    KafkaPublisher("test", headers=headers)
+
+
+def check_raw_header_types(message: KafkaMessage) -> None:
+    assert_type(message.raw_headers, dict[str, bytes | None])
+    assert_type(message.batch_raw_headers, list[dict[str, bytes | None]])
 
 
 async def check_publish_batch_per_message_attributes() -> None:
@@ -148,7 +193,32 @@ def check_subscriber_instance_type(
     assert_type(sub2, BatchSubscriber)
 
     sub3 = broker.subscriber("test", max_workers=2)
-    assert_type(sub3, ConcurrentDefaultSubscriber)
+    assert_type(sub3, DefaultSubscriber)
+
+
+async def check_call_assertions_take_the_kafka_fields(
+    broker: KafkaBroker | FastAPIRouter | KafkaRouter,
+) -> None:
+    # A sync handler: mypy and pyright spell an `async def`'s return type differently
+    @broker.subscriber("test")
+    def handle() -> None: ...
+
+    assert_type(handle, KafkaHandlerCallWrapper[[], None])
+    await handle.assert_called_once_with(None, key=b"k", partition=0)
+    await handle.assert_called_with(key=b"k")
+    await handle.assert_any_call(partition=0)
+
+    # The publisher's own type is pinned in `check_publisher_instance_type`; here its
+    # methods take the two fields, which only the Kafka mixin gives them
+    publisher = broker.publisher("test")
+
+    @publisher
+    def published() -> None: ...
+
+    assert_type(published, KafkaHandlerCallWrapper[[], None])
+    await publisher.assert_called_once_with(None, key=b"k", partition=0)
+    await publisher.assert_called_with(key=b"k")
+    await publisher.assert_any_call(partition=0)
 
 
 config: ConfluentConfig = {"topic.metadata.refresh.fast.interval.ms": 300}

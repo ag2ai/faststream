@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING, Any, Optional
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.kafka import encode_headers
+from faststream._internal.kafka.tombstone import (
+    encode_batch_or_tombstone,
+    encode_or_tombstone,
+    tombstone_to_none,
+)
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
@@ -38,10 +44,10 @@ class AsyncConfluentFastProducer(ProducerProto[KafkaPublishCommand]):
     def __bool__(self) -> bool:
         return False
 
-    async def disconnect(self) -> None:  # noqa: PLR6301
+    async def disconnect(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
-    async def flush(self) -> None:  # noqa: PLR6301
+    async def flush(self) -> None:  # ruff: ignore[no-self-use]
         return None
 
     @abstractmethod
@@ -151,10 +157,14 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        if cmd.body is None:
-            message, content_type = None, None
-        else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+        message, content_type = await encode_or_tombstone(
+            cmd.body,
+            self.codec,
+            self.serializer,
+            key=cmd.key,
+            # confluent tombstones any None body, keyed or not, unlike aiokafka
+            none_is_tombstone=True,
+        )
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -163,11 +173,11 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         return await self._producer.producer.send(
             topic=cmd.destination,
-            value=message,
+            value=tombstone_to_none(message),
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
-            headers=[(i, (j or "").encode()) for i, j in headers_to_send.items()],
+            headers=encode_headers(headers_to_send),
             no_confirm=cmd.no_confirm,
         )
 
@@ -178,14 +188,9 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         headers_to_send = cmd.headers_to_publish()
 
-        if isinstance(self.codec, BatchCodecProto):
-            encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer
-            )
-        else:
-            encoded_batch = [
-                await self.codec.encode(msg, self.serializer) for msg in cmd.batch_bodies
-            ]
+        encoded_batch = await encode_batch_or_tombstone(
+            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for
+        )
 
         for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:
@@ -198,9 +203,9 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
             batch.append(
                 key=cmd.key_for(message_position),
-                value=message,
+                value=tombstone_to_none(message),
                 timestamp=cmd.timestamp_ms,
-                headers=[(i, j.encode()) for i, j in final_headers.items()],
+                headers=encode_headers(final_headers),
             )
 
         await self._producer.producer.send_batch(

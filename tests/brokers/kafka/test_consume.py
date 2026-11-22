@@ -113,7 +113,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -180,7 +180,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -222,7 +222,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -264,7 +264,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.REJECT_ON_ERROR,
         )
 
@@ -306,7 +306,7 @@ class TestConsume(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         args, kwargs = self.get_subscriber_params(
             queue,
-            group_id="test",
+            group_id=queue,
             ack_policy=AckPolicy.MANUAL,
         )
 
@@ -620,7 +620,7 @@ class TestListener(KafkaTestcaseConfig):
                 mock.on_partitions_assigned()
                 event.set()
 
-        sub = consume_broker.subscriber(  # noqa: F841
+        sub = consume_broker.subscriber(  # ruff: ignore[unused-variable]
             queue,
             ack_policy=AckPolicy.MANUAL,
             group_id="service_1",
@@ -646,7 +646,7 @@ class TestListener(KafkaTestcaseConfig):
             async def on_partitions_assigned(self, assigned: set[str]) -> None:
                 mock.on_partitions_assigned()
 
-        sub = consume_broker.subscriber(  # noqa: F841
+        sub = consume_broker.subscriber(  # ruff: ignore[unused-variable]
             queue,
             ack_policy=AckPolicy.MANUAL,
             group_id="service_1",

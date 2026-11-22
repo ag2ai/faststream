@@ -34,7 +34,7 @@ class TestConsumerOnly:
                 "faststream.kafka.configs.broker.aiokafka.AIOKafkaProducer"
             ) as producer_cls,
             patch(
-                "faststream.kafka.configs.broker.aiokafka.admin.client.AIOKafkaAdminClient"
+                "faststream.kafka.helpers.admin.aiokafka.admin.client.AIOKafkaAdminClient"
             ) as admin_cls,
         ):
             await config.connect(bootstrap_servers="localhost:9092")
@@ -56,7 +56,7 @@ class TestConsumerOnly:
                 "faststream.kafka.configs.broker.aiokafka.AIOKafkaProducer"
             ) as producer_cls,
             patch(
-                "faststream.kafka.configs.broker.aiokafka.admin.client.AIOKafkaAdminClient"
+                "faststream.kafka.helpers.admin.aiokafka.admin.client.AIOKafkaAdminClient"
             ) as admin_cls,
         ):
             admin_cls.return_value.start = AsyncMock()

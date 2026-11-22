@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin
 from faststream._internal.endpoint.utils import process_msg
 from faststream.redis.message import (
     BatchListMessage,
@@ -80,10 +79,12 @@ class _ListHandlerMixin(LogicSubscriber):
         await super().start(self._client)
 
     @override
-    async def stop(self) -> None:
-        with anyio.move_on_after(self._outer_config.graceful_timeout):
+    async def _stop_receiving(self) -> None:
+        timeout = self._outer_config.graceful_timeout
+        with anyio.move_on_after(timeout):
             async with self._read_lock:
-                await super().stop()
+                # A popped message has no ack, so handle the queued ones before `consume` skips them
+                await self.consume_dispatcher.drain(timeout)
 
     @override
     async def get_one(
@@ -99,12 +100,12 @@ class _ListHandlerMixin(LogicSubscriber):
         raw_message = None
 
         with anyio.move_on_after(timeout):
-            while (  # noqa: ASYNC110
+            while (  # ruff: ignore[async-busy-wait]
                 raw_message := await self._client.lpop(name=self.list_sub.name)
             ) is None:
                 await anyio.sleep(sleep_interval)
 
-        if not raw_message:
+        if raw_message is None:
             return None
 
         redis_incoming_msg = DefaultListMessage(
@@ -141,12 +142,12 @@ class _ListHandlerMixin(LogicSubscriber):
 
         while True:
             with anyio.move_on_after(timeout):
-                while (  # noqa: ASYNC110
+                while (  # ruff: ignore[async-busy-wait]
                     raw_message := await self._client.lpop(name=self.list_sub.name)
                 ) is None:
                     await anyio.sleep(sleep_interval)
 
-            if not raw_message:
+            if raw_message is None:
                 continue
 
             redis_incoming_msg = DefaultListMessage(
@@ -183,6 +184,8 @@ class ListSubscriber(_ListHandlerMixin):
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:
+            if not self.running:
+                return
             raw_msg = await client.blpop(
                 self.list_sub.name,
                 timeout=self.list_sub.polling_interval,
@@ -197,7 +200,7 @@ class ListSubscriber(_ListHandlerMixin):
                     channel=self.list_sub.name,
                 )
 
-                await self.consume_one(msg)
+                await self.consume_dispatcher.dispatch(msg)
 
 
 class ListBatchSubscriber(_ListHandlerMixin):
@@ -216,6 +219,8 @@ class ListBatchSubscriber(_ListHandlerMixin):
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:
+            if not self.running:
+                return
             raw_msgs = await client.lpop(
                 name=self.list_sub.name,
                 count=self.list_sub.max_records,
@@ -228,21 +233,7 @@ class ListBatchSubscriber(_ListHandlerMixin):
                     data=raw_msgs,
                 )
 
-                await self.consume_one(msg)
+                await self.consume_dispatcher.dispatch(msg)
 
         if not raw_msgs:
             await anyio.sleep(self.list_sub.polling_interval)
-
-
-class ListConcurrentSubscriber(
-    ConcurrentMixin["BrokerStreamMessage[Any]"],
-    ListSubscriber,
-):
-    __slots__ = ()
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "BrokerStreamMessage[Any]") -> None:
-        await self._put_msg(msg)

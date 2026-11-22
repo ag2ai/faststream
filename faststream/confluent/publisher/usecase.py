@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 
 from confluent_kafka import Message
@@ -9,6 +9,9 @@ from faststream._internal.endpoint.publisher import (
     PublisherSpecification,
     PublisherUsecase,
 )
+from faststream._internal.kafka import KafkaCallAssertions
+from faststream._internal.types import P_HandlerParams, T_HandlerReturn
+from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.response import KafkaPublishCommand
 from faststream.response.publish_type import PublishType
 
@@ -23,7 +26,7 @@ if TYPE_CHECKING:
     from .producer import AsyncConfluentFastProducer
 
 
-class LogicPublisher(PublisherUsecase):
+class LogicPublisher(KafkaCallAssertions, PublisherUsecase):
     """A class to publish messages to a Kafka topic."""
 
     __slots__ = (
@@ -32,6 +35,9 @@ class LogicPublisher(PublisherUsecase):
         "partition",
         "reply_to",
     )
+
+    _call_wrapper_class = KafkaHandlerCallWrapper
+    _read_field = KafkaHandlerCallWrapper._read_field
 
     def __init__(
         self,
@@ -43,7 +49,18 @@ class LogicPublisher(PublisherUsecase):
         self._topic = config.topic
         self.partition = config.partition
         self.reply_to = config.reply_to
-        self.headers = config.headers or {}
+        self.headers = dict(config.headers or {})
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+    ) -> "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]":
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+            super().__call__(func),
+        )
 
     @property
     def topic(self) -> str:
@@ -58,7 +75,7 @@ class LogicPublisher(PublisherUsecase):
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
@@ -67,7 +84,7 @@ class LogicPublisher(PublisherUsecase):
             topic=topic or self.topic,
             key=key,
             partition=partition if partition is not None else self.partition,
-            headers=self.headers | (headers or {}),
+            headers=self.headers | dict(headers or {}),
             correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             timeout=timeout,
@@ -106,7 +123,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[False] = False,
@@ -121,7 +138,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: Literal[True] = ...,
@@ -136,7 +153,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -151,7 +168,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -162,7 +179,7 @@ class DefaultPublisher(LogicPublisher):
             key=key or self.key,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
-            headers=self.headers | (headers or {}),
+            headers=self.headers | dict(headers or {}),
             correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
@@ -207,7 +224,7 @@ class DefaultPublisher(LogicPublisher):
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         timeout: float = 0.5,
     ) -> "KafkaMessage":
@@ -242,7 +259,7 @@ class BatchPublisher(LogicPublisher):
         key: bytes | str | None = None,
         partition: int | None = None,
         timestamp_ms: int | None = None,
-        headers: dict[str, str] | None = None,
+        headers: Mapping[str, str | bytes | None] | None = None,
         correlation_id: str | None = None,
         reply_to: str = "",
         no_confirm: bool = False,
@@ -253,7 +270,7 @@ class BatchPublisher(LogicPublisher):
             topic=topic or self.topic,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
-            headers=self.headers | (headers or {}),
+            headers=self.headers | dict(headers or {}),
             correlation_id=correlation_id or self._outer_config.id_generator(),
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,

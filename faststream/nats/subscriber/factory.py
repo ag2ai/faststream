@@ -21,9 +21,7 @@ from .config import NatsSubscriberConfig, NatsSubscriberSpecificationConfig
 from .specification import NatsSubscriberSpecification, NotIncludeSpecifation
 from .usecases import (
     BatchPullStreamSubscriber,
-    ConcurrentCoreSubscriber,
     ConcurrentPullStreamSubscriber,
-    ConcurrentPushStreamSubscriber,
     CoreSubscriber,
     KeyValueWatchSubscriber,
     LogicSubscriber,
@@ -200,40 +198,27 @@ def create_subscriber(
             kv_watch=kv_watch,
         )
 
-    if stream is None:
-        if max_workers > 1:
-            return ConcurrentCoreSubscriber(
-                **subscriber_options,
-                max_workers=max_workers,
-                queue=queue,
-            )
+    # KV and Obj above are sequential; batch pull below only without `max_workers`
+    subscriber_config.max_workers = max_workers
 
+    if stream is None:
         return CoreSubscriber(
             **subscriber_options,
             queue=queue,
         )
 
-    if max_workers > 1:
-        if pull_sub is not None:
-            return ConcurrentPullStreamSubscriber(
-                **subscriber_options,
-                max_workers=max_workers,
-                queue=queue,
-                stream=stream,
-                pull_sub=pull_sub,
-            )
-
-        return ConcurrentPushStreamSubscriber(
-            **subscriber_options,
-            max_workers=max_workers,
-            queue=queue,
-            stream=stream,
-        )
-
     if pull_sub is not None:
-        if pull_sub.batch:
+        if pull_sub.batch and max_workers <= 1:
             return BatchPullStreamSubscriber(
                 **subscriber_options,
+                pull_sub=pull_sub,
+                stream=stream,
+            )
+
+        if max_workers > 1:
+            return ConcurrentPullStreamSubscriber(
+                **subscriber_options,
+                queue=queue,
                 pull_sub=pull_sub,
                 stream=stream,
             )
@@ -252,7 +237,7 @@ def create_subscriber(
     )
 
 
-def _validate_input_for_misconfigure(  # noqa: PLR0915
+def _validate_input_for_misconfigure(  # ruff: ignore[too-many-statements]
     subject: str,
     queue: str,  # default ""
     pending_msgs_limit: int | None,

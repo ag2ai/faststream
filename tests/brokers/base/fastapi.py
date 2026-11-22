@@ -1,8 +1,8 @@
 import asyncio
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from fastapi import BackgroundTasks, Depends, FastAPI, Header
@@ -20,10 +20,6 @@ from faststream._internal.fastapi.route import StreamMessage
 from faststream.exceptions import SetupError
 
 from .basic import BaseTestcaseConfig
-
-
-class _Foo(BaseModel):
-    x: int
 
 
 @pytest.mark.asyncio()
@@ -275,23 +271,25 @@ class FastAPITestcase(BaseTestcaseConfig[Any]):
         mock.assert_called_once_with(True)
 
 
-# NOTE: kafka/confluent only - other brokers have no tombstone concept.
 @pytest.mark.asyncio()
-class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig):
-    router_class: type[StreamRouter[BrokerUsecase]]
+class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
+    router_class: Any
 
-    async def test_optional_body_resolves_to_none_for_tombstone(
+    async def test_body_model_resolves_tombstone(
         self,
         queue: str,
+        mock: MagicMock,
     ) -> None:
+        class _BodyModel(BaseModel):
+            x: int
+
         router = self.router_class()
-        received: list[_Foo | None] = []
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def handler(msg: _Foo | None = None) -> None:
-            received.append(msg)
+        async def handler(msg: _BodyModel | None = None) -> None:
+            mock(msg)
 
         app = FastAPI()
         app.include_router(router)
@@ -299,14 +297,60 @@ class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig):
         async with self.patch_broker(router.broker) as br:
             with TestClient(app):
                 await br.publish(b'{"x": 5}', queue, key=b"k1")
+
+        mock.assert_called_once_with(_BodyModel(x=5))
+
+    async def test_none_resolves_tombstone(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        class _BodyModel(BaseModel):
+            x: int
+
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: _BodyModel | None = None) -> None:
+            mock(msg)
+
+        app = FastAPI()
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker) as br:
+            with TestClient(app):
                 await br.publish(None, queue, key=b"k2")
 
+        mock.assert_called_once_with(None)
+
+    async def test_wrong_none_resolves_tombstone(
+        self,
+        queue: str,
+        mock: MagicMock,
+    ) -> None:
+        class _BodyModel(BaseModel):
+            x: int
+
+        router = self.router_class()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: _BodyModel | None = None) -> None:
+            mock(msg)
+
+        app = FastAPI()
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker) as br:
+            with TestClient(app), pytest.raises(RequestValidationError):
                 # an empty (non-null) body is not a tombstone and must
                 # still fail validation.
-                with pytest.raises(RequestValidationError):
-                    await br.publish(b"", queue, key=b"k3")
+                await br.publish(b"", queue, key=b"k3")
 
-        assert received == [_Foo(x=5), None]
+        mock.assert_not_called()
 
 
 @pytest.mark.asyncio()
@@ -396,9 +440,8 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app.include_router(router)
 
         async with self.patch_broker(router.broker) as br:
-            with TestClient(app):
-                with pytest.raises(RequestValidationError):
-                    await br.publish("hi", queue)
+            with TestClient(app), pytest.raises(RequestValidationError):
+                await br.publish("hi", queue)
 
     async def test_headers(self, queue: str) -> None:
         router = self.router_class()
@@ -484,7 +527,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -502,7 +545,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -537,7 +580,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -553,7 +596,7 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
         app = FastAPI()
         app.include_router(router)
 
-        with pytest.raises(SetupError):  # noqa: PT012
+        with pytest.raises(SetupError):  # ruff: ignore[pytest-raises-with-multiple-statements]
             async with self.patch_broker(router.broker):
                 with TestClient(app):
                     ...
@@ -702,10 +745,12 @@ class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
 
     async def test_existed_lifespan_startup(self, mock: Mock) -> None:
         @asynccontextmanager
-        async def lifespan(app: Any) -> AsyncIterator[Any]:
+        async def lifespan(app: Any) -> AsyncGenerator[Any, None]:
             mock.start()
-            yield {"lifespan": True}
-            mock.close()
+            try:
+                yield {"lifespan": True}
+            finally:
+                mock.close()
 
         router = self.router_class(lifespan=lifespan)
 

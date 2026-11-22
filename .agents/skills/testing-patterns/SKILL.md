@@ -1,6 +1,6 @@
 ---
 name: testing-patterns
-description: Choosing which tests to run after a change, or writing tests under tests/ — base testcases, markers, in-memory vs connected brokers.
+description: Use when selecting tests for a change, writing or reviewing FastStream tests, or diagnosing flaky broker tests and resource leaks.
 ---
 
 # FastStream Testing Patterns
@@ -32,11 +32,7 @@ publishing, acks, bindings, reconnects. A change to a specification, a config,
 or a declaration-time check is decided in memory, in seconds. Broker-backed
 runs take minutes and share state between runs.
 
-When a `connected` run does fail, **re-run the failures alone before believing
-them**. The brokers are shared and accumulate topics, queues and consumer
-groups; a failure that passes in isolation is the container, not the code. To
-tell them apart, run the same set against the committed tree (`git stash`) and
-compare counts.
+When a `connected` test fails, rerun the failing case in isolation. If it only fails in a group, rerun that group in the same order on the base revision to check for shared state. For Kafka failures, see [Kafka diagnostics](troubleshooting.md#kafka-connected-tests).
 
 ## Commands
 
@@ -68,6 +64,18 @@ Marks pick the CI job, so a wrong one drops a test silently. `just misplaced-mar
 - a test under a `<broker>/` directory anywhere in `tests/` without the `<broker>` mark (`redis_cluster` under `redis/cluster/`). A test imported from `docs_src` or `examples` is marked through `pytestmark` in the importing module.
 - a `connected` test whose module is built on one broker package, without that broker's mark. An unmarked test still runs in `test-basic`; a `connected` one runs only in its broker's job, so there it never runs at all.
 - `connected` on a whole `*MemoryTestcaseConfig` class (or its module). When an in-memory class inherits a test that does open a connection, mark that test — in the base testcase if it is inherited.
+
+## Name parametrized cases
+
+Write every case in `@pytest.mark.parametrize` as `pytest.param(..., id="...")`,
+including single-argument cases. Give each case an explicit, descriptive `id`
+naming the scenario so failures are identifiable in pytest output.
+
+## Group tests by behavior
+
+Group related tests into `Test...` classes by logical behavior, including utility
+tests. Name each class for the behavior it covers and its methods for individual
+expected outcomes.
 
 ## Shared base testcases
 
@@ -127,7 +135,7 @@ unpacks, `==` on tuples).
 The name is the behaviour, so a test carries no docstring by default, and an assertion
 that needs explaining gets a single `#` comment directly over it. Two cases earn one:
 
-- the regression pattern below — the docstring is the issue URL and nothing else;
+- a regression for a reported bug (see [Regression tests](#regression-tests));
 - the rare test that is unreadable without it, because what it guards is invisible from
   the body. `tests/utils/test_lazy_imports.py` runs an import in a subprocess: only the
   docstring can say what that protects, how it broke before, and why nothing else goes
@@ -170,29 +178,28 @@ mirror. An equality that already fails on a missing delivery stands alone; the
 - **An awaitable dropped on purpose is written `_ = ...`**: `_ = tg.start_soon(app.run)`, `_ = await br.publish(..., no_confirm=True)`. A bare statement reads as a forgotten `await`, which is what `unused-awaitable` reports.
 - **`# type: ignore[code]` is for what nothing else expresses**, always with its code and before any `# noqa`: `subscriber(*args, **kwargs)` from `get_subscriber_params()` resolves to `Any` (`untyped-decorator`), a test overriding a base test with other fixtures (`override`), a name redefined on purpose (`no-redef`), a call missing a required argument to prove it raises (`call-arg`).
 
+- **A declaration-only handler with a return type** (`-> int: ...`) is covered by the `empty-body` override for `tests.asyncapi.*`, and a dynamic model used as an annotation (`msg: create_model(...)`) becomes a real `class ...(BaseModel)`.
+- mypy's incremental cache can report phantom errors right after an edit; a cold run (`rm -rf .mypy_cache`) is the source of truth.
+
 A typing problem that turns out to live in `faststream/` is fixed there, in its own PR with a case in `tests/mypy/`, not papered over in the test.
 
 ## Regression tests
 
-A test defending a fixed bug names the issue by **full URL**, so the case it pins is one click away:
+Name the test for the expected behaviour and use `Fixes <full issue URL>.` as its docstring. If the reported bug requires an `xfail` or `skip` mark, use the URL as the reason.
 
 ```python
-@pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/2513")
+@pytest.mark.xfail(reason="https://github.com/ag2ai/faststream/issues/<number>")
 async def test_publisher_without_destination(self) -> None:
-    """Fixes https://github.com/ag2ai/faststream/issues/2513."""
+    """Fixes https://github.com/ag2ai/faststream/issues/<number>."""
 ```
 
-The URL is the whole docstring — no explanation of the behavior underneath it. `xfail`/`skip` reasons take the same URL. A comment inside the test body follows the **code-architecture** rule: one line, directly over the assertion it explains.
+Verify the regression with the same pytest node ID and test code on both revisions. Create a separate worktree at the revision immediately before the fix and apply the regression test there, including any fixtures it needs.
 
-A test written after the fix earns its place by going **red** on the old code — revert the fix, run, restore:
-
-```bash
-git show <fix-commit> -- faststream/ | git apply -R -
-uv run pytest tests/... -m "not slow and not connected"
-git checkout -- faststream/
-```
+Run `uv run pytest -m "" --runxfail '<node-id>'` in each worktree with the same broker setup. On the old revision, confirm that the failure shows the reported bug (the wrong result or the unexpected exception). On the fixed revision, confirm that the selected case passes.
 
 The same run grades the tests already there, and it is how a suite shrinks. Two tests red for one reason are one test: keep the one whose declaration carries more (an escaped brace *beside* a Path parameter over an escaped brace alone), delete the other, and check what a broker already gets from `test_router.py` or `test_path.py` before keeping a third.
+
+When reviewing a potentially redundant white-box test, identify the public call that reaches the guarded state. Introduce one mutation that breaks the behaviour and run the white-box test alongside the public-path tests that could replace it. Keep the white-box test if the state is reachable and only that test fails on the mutation. Restore the implementation and verify the selected tests pass.
 
 ## In-memory vs real broker
 
@@ -208,6 +215,24 @@ The same run grades the tests already there, and it is how a suite shrinks. Two 
 - `freezegun` is available as a test dep.
 
 **Never import from a `conftest.py`.** pytest loads conftest modules specially (their fixtures are injected into the collected files), so importing from one — `from .conftest import Settings` or `from tests.brokers.redis.conftest import ...` — can produce a duplicated/mismatched module and confusing collection errors. When conftest and a test file need the same object, declare it in a plain helper module next to them (e.g. `tests/brokers/redis/settings.py`, `basic.py`) and import it from both.
+
+## What a change must cover
+
+- For a background consumer, assert on the handler mock from the test after delivery. An assertion raised in the consumer task can leave the test green. With an in-memory broker that propagates handler errors through `await broker.publish(...)`, the test can assert on that exception directly.
+- Exercise the feature through the **public API**, end to end, not by calling internals directly.
+- Match the test to the documented behaviour. Verify delivery, acknowledgements and consumer-group semantics against a real broker. Check generated schemas and registration-time validation locally.
+- A Redis feature is covered on **Cluster** as well, not only on the standalone broker.
+- Behaviour gated by a broker/driver version carries the gate on **every** test it affects, with the marker declared in `tests/marks.py`.
+- A drive-by fix shipped inside a feature PR gets its own regression test — otherwise it silently reverts later.
+- **When a replacement flag reverses the meaning of the old flag, test both values through each affected call path.** For example, `passive=True` corresponds to `declare=False`.
+- A flaky test is fixed by its cause, never by a retry, a sleep or a wider timeout — see **Flakes and leaks**.
+- Base testcases take their subscriber arguments from `self.get_subscriber_params(...)` — a hard-coded signature passes on the base broker and fails on Confluent.
+
+## Flakes and leaks
+
+**De-flaking removes the race and keeps the path.** Cut the nondeterminism around the behaviour — who triggers it, when, what races what — and keep the production path the test exercised. For a shutdown handler, send a real `SIGINT` from the test once the workers are ready. Setting `should_exit` directly bypasses the handler. Verify that the test fails when the handler ignores the signal.
+
+For an unraisable `ResourceWarning`, see [how to identify the leaking test](troubleshooting.md#resource-warnings).
 
 ## Related skills
 

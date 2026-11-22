@@ -32,11 +32,11 @@ class BaseSecurity:
         self.use_ssl = use_ssl
         self.ssl_context = ssl_context
 
-    def get_requirement(self) -> list["dict[str, Any]"]:  # noqa: PLR6301
+    def get_requirement(self) -> list["dict[str, Any]"]:  # ruff: ignore[no-self-use]
         """Get the security requirements."""
         return []
 
-    def get_schema(self) -> dict[str, dict[str, str]]:  # noqa: PLR6301
+    def get_schema(self) -> dict[str, dict[str, str]]:  # ruff: ignore[no-self-use]
         """Get the security schema."""
         return {}
 

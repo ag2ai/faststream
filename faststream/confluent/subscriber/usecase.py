@@ -1,29 +1,35 @@
 import logging
 from abc import abstractmethod
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
     Optional,
+    Union,
     cast,
 )
 
 import anyio
 from confluent_kafka import KafkaException, Message
-from typing_extensions import override
+from typing_extensions import overload, override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
-from faststream._internal.endpoint.subscriber.mixins import ConcurrentMixin, TasksMixin
+from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import MsgType
+from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
+from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
 
 if TYPE_CHECKING:
+    from fast_depends.dependencies import Dependant
+
     from faststream._internal.endpoint.publisher import PublisherProto
     from faststream._internal.endpoint.subscriber import SubscriberSpecification
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+    from faststream._internal.types import CustomCallable, Filter
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
     from faststream.confluent.message import KafkaMessage
@@ -32,7 +38,7 @@ if TYPE_CHECKING:
     from .config import KafkaSubscriberConfig
 
 
-class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
+class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
     __slots__ = (
@@ -45,6 +51,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
     )
 
     _outer_config: "KafkaBrokerConfig"
+    _call_wrapper_class = KafkaHandlerCallWrapper
 
     group_id: str | None
 
@@ -68,6 +75,61 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
 
         self.consumer = None
         self.polling_interval = config.polling_interval
+
+    @overload
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn],
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Sequence["Dependant"] = (),
+    ) -> "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]": ...
+
+    @overload
+    def __call__(
+        self,
+        func: None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Sequence["Dependant"] = (),
+    ) -> Callable[
+        [Callable[P_HandlerParams, T_HandlerReturn]],
+        "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+    ]: ...
+
+    @override
+    def __call__(
+        self,
+        func: Callable[P_HandlerParams, T_HandlerReturn] | None = None,
+        *,
+        filter: "Filter[Any]" = default_filter,
+        parser: Optional["CustomCallable"] = None,
+        decoder: Optional["CustomCallable"] = None,
+        dependencies: Sequence["Dependant"] = (),
+    ) -> Union[
+        "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        Callable[
+            [Callable[P_HandlerParams, T_HandlerReturn]],
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]",
+        ],
+    ]:
+        # The base builds the wrapper from `_call_wrapper_class`; this only narrows the name
+        return cast(
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn] | Callable["
+            "[Callable[P_HandlerParams, T_HandlerReturn]], "
+            "KafkaHandlerCallWrapper[P_HandlerParams, T_HandlerReturn]]",
+            super().__call__(
+                func,
+                filter=filter,
+                parser=parser,
+                decoder=decoder,
+                dependencies=dependencies,
+            ),
+        )
 
     @property
     def client_id(self) -> str | None:
@@ -98,11 +160,10 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
         self._post_start()
 
         if self.calls:
-            self.add_task(self._consume)
+            self.tasks_supervisor.add_task(self._consume)
 
-    async def stop(self) -> None:
-        await super().stop()
-
+    @override
+    async def _close_transport(self) -> None:
         if self.consumer is not None:
             await self.consumer.stop()
             self.consumer = None
@@ -173,9 +234,6 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             ),
         )
 
-    async def consume_one(self, msg: MsgType) -> None:
-        await self.consume(msg)
-
     @abstractmethod
     async def get_msg(self) -> MsgType | None:
         raise NotImplementedError
@@ -188,7 +246,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
             try:
                 msg = await self.get_msg()
 
-            except KafkaException as e:  # pragma: no cover  # noqa: PERF203
+            except KafkaException as e:  # pragma: no cover  # ruff: ignore[try-except-in-loop]
                 self._log(
                     logging.ERROR,
                     message="Message fetch error",
@@ -205,7 +263,7 @@ class LogicSubscriber(TasksMixin, SubscriberUsecase[MsgType]):
                     connected = True
 
                 if msg is not None:
-                    await self.consume_one(msg)
+                    await self.consume_dispatcher.dispatch(msg)
 
     @property
     def topic_names(self) -> list[str]:
@@ -259,17 +317,6 @@ class DefaultSubscriber(LogicSubscriber[Message]):
             topic=topic,
             group_id=self.group_id,
         )
-
-
-class ConcurrentDefaultSubscriber(ConcurrentMixin["Message"], DefaultSubscriber):
-    __slots__ = ()
-
-    async def start(self) -> None:
-        await super().start()
-        self.start_consume_task()
-
-    async def consume_one(self, msg: "Message") -> None:
-        await self._put_msg(msg)
 
 
 class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):

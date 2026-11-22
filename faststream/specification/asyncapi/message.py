@@ -10,6 +10,7 @@ from faststream._internal._compat import (
     get_model_fields,
     model_schema,
 )
+from faststream._internal.di.body import BodyBinding
 
 if TYPE_CHECKING:
     from fast_depends.core import CallModel
@@ -21,13 +22,17 @@ def parse_handler_params(call: "CallModel", prefix: str = "") -> dict[str, Any]:
     model = cast("type[BaseModel] | None", getattr(model_container, "model", None))
     assert model
 
-    body = get_model_schema(
-        create_model(
-            model.__name__,
-            **{p.field_name: (p.field_type, p.default_value) for p in call.flat_params},  # type: ignore[call-overload]
-        ),
+    binding = BodyBinding(call)
+    body_model = create_model(
+        model.__name__,
+        **{p.field_name: (p.field_type, p.default_value) for p in binding.params},  # type: ignore[call-overload]
+    )
+    single = binding.single_parameter
+    body = _get_model_schema(
+        body_model,
+        get_model_fields(body_model),
+        single.field_name if single is not None else None,
         prefix=prefix,
-        exclude=tuple(call.custom_fields.keys()),
     )
 
     if body is None:
@@ -85,16 +90,32 @@ def get_model_schema(
         return None
 
     params = {k: v for k, v in get_model_fields(call).items() if k not in exclude}
-    params_number = len(params)
+    return _get_model_schema(
+        call,
+        params,
+        next(iter(params)) if len(params) == 1 else None,
+        prefix=prefix,
+        exclude=exclude,
+    )
 
-    if params_number == 0:
+
+def _get_model_schema(
+    call: type[BaseModel],
+    params: dict[str, Any],
+    single_parameter: str | None,
+    *,
+    prefix: str,
+    exclude: Sequence[str] = (),
+) -> dict[str, Any] | None:
+    if not params:
         return None
 
     model = None
     use_original_model = False
-    name, param = next(iter(params.items()))
+    name = single_parameter
+    param = params[name] if name is not None else None
     if (
-        params_number == 1
+        param is not None
         and param.annotation
         and isclass(param.annotation)
         and issubclass(param.annotation, BaseModel)  # NOTE: 3.7-3.10 compatibility
@@ -112,9 +133,12 @@ def get_model_schema(
     if required := body.get("required"):
         body["required"] = list(filter(lambda x: x not in exclude, required))
 
-    if params_number == 1 and not use_original_model:
+    if name is not None and param is not None and not use_original_model:
         param_body: dict[str, Any] = body.get("properties", {})
-        param_body = param_body[name]
+        # Validation aliases can change the single emitted property's name.
+        param_body = (
+            next(iter(param_body.values())) if len(param_body) == 1 else param_body[name]
+        )
 
         if defs := body.get(DEF_KEY):
             # single argument with useless reference

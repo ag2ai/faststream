@@ -1,7 +1,16 @@
 from importlib.util import find_spec
 
 try:
-    from zmqtt import QoS, ReconnectConfig, Will, WillProperties
+    from zmqtt import (
+        ConnAckProperties,
+        ConnectionInfo,
+        QoS,
+        ReconnectConfig,
+        UnsubAckProperties,
+        UnsubscribeResult,
+        Will,
+        WillProperties,
+    )
 
     from faststream.mqtt.annotations import MQTTMessage
     from faststream.mqtt.broker.broker import MQTTBroker
@@ -18,6 +27,8 @@ except ImportError as e:
     raise ImportError(INSTALL_FASTSTREAM_MQTT) from e
 
 __all__ = (
+    "ConnAckProperties",
+    "ConnectionInfo",
     "MQTTBroker",
     "MQTTMessage",
     "MQTTPublisher",
@@ -26,6 +37,8 @@ __all__ = (
     "QoS",
     "ReconnectConfig",
     "TestMQTTBroker",
+    "UnsubAckProperties",
+    "UnsubscribeResult",
     "Will",
     "WillProperties",
 )

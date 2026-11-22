@@ -4,15 +4,20 @@
 # 3 - Contributing
 # 5 - Template Page
 # 10 - Default
+title: "Redis Stream Consumer Groups in Python"
+description: >-
+  Distribute Redis Stream messages across Python workers with XREADGROUP and FastStream. Configure group and consumer names, acknowledge messages and recover pending work.
 search:
   boost: 10
 ---
 
-# Redis Stream Consumer Groups
+# Redis Stream Consumer Groups in Python
 
-Consuming messages from a **Redis** stream can be accomplished by using a Consumer Group. This allows multiple consumers to divide the workload of processing messages in a stream and provides a form of message acknowledgment, ensuring that messages are not processed repeatedly.
+A **Redis Stream consumer group** distributes messages across Python workers instead of broadcasting each entry to every subscriber. FastStream uses **redis-py** and `XREADGROUP` when you configure a `StreamSub` with `group` and `consumer`. Each worker in the group needs a unique consumer name; separate groups can independently process the same stream.
 
-Consumer Groups in Redis enable a group of clients to cooperatively consume different portions of the same stream of messages. When using `#!python group="..."` (which internally uses `XREADGROUP`), messages are distributed among different consumers in a group and are not delivered to any other consumer in that group again, unless they are not acknowledged (i.e., the client fails to process and does not call `msg.ack()` or `XACK`). This is in contrast to a normal consumer (also known as `XREAD`), where every consumer sees all the messages. `XREAD` is useful for broadcasting to multiple consumers, while `XREADGROUP` is better suited for workload distribution.
+`XREADGROUP` assigns new entries to consumers in the same group and tracks entries awaiting acknowledgement in the Pending Entries List (PEL). `XACK` removes an entry from the group's PEL; it does not delete the entry from the stream. Without a group, `XREAD` lets independent subscribers read the same entries.
+
+Acknowledgement does not make processing exactly once. A worker may complete a side effect and fail before acknowledging, leaving the entry available for [claiming and recovery](claiming.md). Make handlers idempotent when repeated processing would be harmful. Multiple workers can finish out of order even though stream entries have ordered IDs.
 
 In the following example, we will create a simple FastStream app that utilizes a Redis stream with a Consumer Group. It will consume messages sent to the `#!python "test-stream"` as part of the `#!python "test-group"` consumer group.
 

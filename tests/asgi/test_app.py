@@ -9,6 +9,7 @@ behaviour (message delivery, healthchecks, try-it-out dispatch) lives in
 
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from fast_depends import Depends
@@ -26,7 +27,9 @@ from faststream.asgi import (
     post,
 )
 from faststream.asgi.params import Header, Query
+from faststream.asgi.response import JSONResponse
 from faststream.asgi.types import ASGIApp, Scope
+from faststream.rabbit import RabbitBroker
 from faststream.specification import AsyncAPI
 
 
@@ -97,6 +100,21 @@ def test_asyncapi_json_disabled() -> None:
     assert client.get("/docs").status_code == 200
     # but the JSON endpoint is not registered
     assert client.get("/docs.json").status_code == 404
+
+
+@pytest.mark.asyncio()
+async def test_async_context_manager(mock: MagicMock) -> None:
+    app = AsgiFastStream(
+        MagicMock(spec=RabbitBroker),
+        on_startup=[mock.on],
+        on_shutdown=[mock.off],
+    )
+
+    async with app as context_app:
+        assert context_app is app
+
+    mock.on.assert_called_once()
+    mock.off.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -187,3 +205,32 @@ def test_validation_error_handled(dependency: Context) -> None:
     response = client.get("/test")
     assert response.status_code == 422
     assert response.text == "Validation error"
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    (
+        pytest.param(
+            "name=Anna+Vanna&name=A%2BB",
+            {"name": ["Anna Vanna", "A+B"]},
+            id="ascii",
+        ),
+        pytest.param(
+            "name=%C3%A9&name=%E6%9D%B1%E4%BA%AC",
+            {"name": ["\u00e9", "\u6771\u4eac"]},
+            id="utf8-values",
+        ),
+        pytest.param("%C3%A9=value", {"\u00e9": ["value"]}, id="utf8-key"),
+    ),
+)
+def test_correct_encode_query_params(query: str, expected: dict[str, list[str]]) -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/3344."""
+
+    @get
+    async def handler(request: Request) -> AsgiResponse:
+        return JSONResponse(request.query_params)
+
+    client = TestClient(AsgiFastStream(asgi_routes=[("/test", handler)]))
+    response = client.get(f"/test?{query}")
+    assert response.status_code == 200
+    assert response.json() == expected
