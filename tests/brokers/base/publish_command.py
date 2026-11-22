@@ -5,7 +5,6 @@ from typing import Any
 import pytest
 
 from faststream import BaseMiddleware, Context, Response
-from faststream._internal.kafka import TOMBSTONE, Tombstone
 from faststream.response import ensure_response
 from faststream.response.response import (
     BatchPublishCommand,
@@ -113,12 +112,6 @@ SHUFFLED = (
 
 # (original (body, key) pairs, batch_bodies mutation, expected (body, key) pairs)
 KEY_ALIGNMENT_CASES = (
-    pytest.param(
-        ((b"", b"keep"), (TOMBSTONE, b"delete")),
-        reverse,
-        ((None, b"delete"), (b"", b"keep")),
-        id="reversed-tombstone-and-empty-value",
-    ),
     pytest.param(
         ((BODY_A, b"key-A"), (BODY_B, b"key-B")),
         reverse,
@@ -229,7 +222,7 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
         async def handler(msgs: Any, raw: Any = Context("message")) -> None:
             received.extend(
                 zip(
-                    (None if isinstance(msg, Tombstone) else msg for msg in msgs),
+                    msgs,
                     (self.get_message_key(m) for m in raw.raw_message),
                     strict=True,
                 ),

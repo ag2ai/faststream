@@ -51,13 +51,13 @@ class StreamMessage(Request):
     scope: "dict[str, Any]"
     _cookies: "dict[str, Any]"
     _headers: "dict[str, Any]"  # type: ignore[assignment]
-    _body: Union["dict[str, Any]", list[Any], None]  # type: ignore[assignment]
+    _body: Union["dict[str, Any]", list[Any]]  # type: ignore[assignment]
     _query_params: "dict[str, Any]"  # type: ignore[assignment]
 
     def __init__(
         self,
         *,
-        body: Union["dict[str, Any]", list[Any], None],
+        body: Union["dict[str, Any]", list[Any]],
         headers: "dict[str, Any]",
         path: "dict[str, Any]",
     ) -> None:
@@ -172,11 +172,9 @@ def build_faststream_to_fastapi_parser(
         """Wrapper, that parser FastStream message to FastAPI compatible one."""
         body = await message.decode()
 
-        fastapi_body: dict[str, Any] | list[Any] | None
+        fastapi_body: dict[str, Any] | list[Any]
         if first_arg is not None:
-            if message.no_body:
-                fastapi_body, path = None, {}
-            elif isinstance(body, dict):
+            if isinstance(body, dict):
                 path = fastapi_body = body or {}
             elif isinstance(body, list):
                 fastapi_body, path = body, {}

@@ -1,19 +1,15 @@
 import asyncio
-from typing import Any, cast
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from faststream import AckPolicy, BaseMiddleware, Context
-from faststream.confluent import KafkaResponse
 from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
 from faststream.exceptions import SetupError
-from tests.brokers.base.testclient import (
-    BrokerTestclientTestcase,
-    KafkaTombstoneTestclientTestcase,
-)
+from tests.brokers.base.testclient import BrokerTestclientTestcase
 from tests.marks import require_aiopika
 from tests.tools import spy_decorator
 
@@ -22,21 +18,7 @@ from .basic import ConfluentMemoryTestcaseConfig
 
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
-class TestTestclient(
-    ConfluentMemoryTestcaseConfig,
-    BrokerTestclientTestcase,
-    KafkaTombstoneTestclientTestcase,
-):
-    response_cls = KafkaResponse
-
-    @staticmethod
-    def get_message_value(raw_message: Any) -> bytes | None:
-        return cast("bytes | None", raw_message.value())
-
-    @staticmethod
-    def get_message_key(raw_message: Any) -> bytes:
-        return cast("bytes", raw_message.key())
-
+class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
     async def test_publish_none_tombstone(
         self,
         queue: str,
@@ -52,22 +34,6 @@ class TestTestclient(
             await br.publish(None, queue, key=b"tombstone-key")
 
         mock.assert_called_once_with(None)
-
-    async def test_publish_keyless_none_still_tombstones(self, queue: str) -> None:
-        # confluent tombstones any None body, keyed or not, unlike aiokafka
-        broker = self.get_broker(apply_types=True)
-
-        values: asyncio.Queue[bytes | None] = asyncio.Queue()
-
-        @broker.subscriber(queue)
-        async def handler(msg: Any = Context("message")) -> None:
-            await values.put(msg.raw_message.value())
-
-        async with self.patch_broker(broker) as br:
-            await br.publish(None, queue)
-            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
-
-        assert value is None
 
     async def test_message_nack_seek(self, queue: str) -> None:
         broker = self.get_broker(apply_types=True)

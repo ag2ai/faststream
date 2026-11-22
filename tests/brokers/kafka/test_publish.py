@@ -4,15 +4,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from aiokafka.structs import RecordMetadata
-from dirty_equals import IsDict
 
 from faststream import Context
-from faststream.kafka import TOMBSTONE, KafkaPublishMessage, KafkaResponse
+from faststream.kafka import KafkaPublishMessage, KafkaResponse
 from faststream.kafka.exceptions import BatchBufferOverflowException
-from tests.brokers.base.publish import (
-    BrokerPublishTestcase,
-    KafkaTombstonePublishTestcase,
-)
+from tests.brokers.base.publish import BrokerPublishTestcase
 
 from .basic import KafkaTestcaseConfig
 
@@ -20,70 +16,7 @@ from .basic import KafkaTestcaseConfig
 @pytest.mark.kafka()
 @pytest.mark.connected()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
-class TestPublish(
-    KafkaTestcaseConfig,
-    BrokerPublishTestcase,
-    KafkaTombstonePublishTestcase,
-):
-    response_cls = KafkaResponse
-
-    async def test_explicit_tombstone_bypasses_value_serializer(self, queue: str) -> None:
-        def serialize(value: bytes | None) -> bytes:
-            return b"serialized:" + (value or b"")
-
-        broker = self.get_broker(apply_types=True, value_serializer=serialize)
-        records: asyncio.Queue[tuple[bytes, bytes | None]] = asyncio.Queue()
-
-        @broker.subscriber(queue)
-        async def handler(msg: Any = Context("message")) -> None:
-            await records.put((msg.raw_message.key, msg.raw_message.value))
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-
-            await br.publish(TOMBSTONE, queue, key=b"delete")
-            await br.publish(None, queue, key=b"keep")
-
-            received = dict(
-                [
-                    await asyncio.wait_for(records.get(), timeout=self.timeout)
-                    for _ in range(2)
-                ],
-            )
-
-        assert received == IsDict({b"delete": None, b"keep": b"serialized:"})
-
-    async def test_explicit_tombstone_bypasses_value_serializer_batch(
-        self, queue: str
-    ) -> None:
-        def serialize(value: bytes | None) -> bytes:
-            return b"serialized:" + (value or b"")
-
-        broker = self.get_broker(apply_types=True, value_serializer=serialize)
-        records: asyncio.Queue[tuple[bytes, bytes | None]] = asyncio.Queue()
-
-        @broker.subscriber(queue)
-        async def handler(msg: Any = Context("message")) -> None:
-            await records.put((msg.raw_message.key, msg.raw_message.value))
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-
-            await br.publish_batch(
-                KafkaPublishMessage(TOMBSTONE, key=b"delete"),
-                KafkaPublishMessage(b"", key=b"keep"),
-                topic=queue,
-            )
-
-            received = dict(
-                [
-                    await asyncio.wait_for(records.get(), timeout=self.timeout)
-                    for _ in range(2)
-                ],
-            )
-
-        assert received == IsDict({b"delete": None, b"keep": b"serialized:"})
-
+class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()
