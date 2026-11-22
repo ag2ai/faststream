@@ -109,3 +109,5 @@ async def base_handler(
 Import `#!python TOMBSTONE` from `#!python faststream.confluent`. Call `#!python await broker.publish(TOMBSTONE, "users", key=b"user-1")` to send a keyed record with a null Kafka value. This marks the key for removal on a compacted topic. The explicit marker requires a key and a single-record publish call.
 
 In `#!python publish_batch()`, a plain `#!python None` is encoded by the batch codec. With the default codec, its record has a zero-byte value.
+
+Read `#!python msg.tombstone` for a single record or the booleans in `#!python msg.batch_tombstones` in batch order. With default deserialization, the body of a tombstone is `#!python b""`. An empty Kafka value and a JSON `null` payload have their tombstone flags set to `#!python False`.

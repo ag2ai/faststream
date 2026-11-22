@@ -72,6 +72,16 @@ class KafkaMessage(
             self.committed = AckStatus.ACKED
 
     @property
+    def tombstone(self) -> bool:
+        """Whether this single record has a null Kafka value."""
+        return not self.has_body
+
+    @property
+    def batch_tombstones(self) -> tuple[bool, ...]:
+        """Whether each record has a null Kafka value, in raw message order."""
+        return self._batch_body_missing
+
+    @property
     def raw_headers(self) -> dict[str, bytes | None]:
         """Original header bytes, or the first message's headers for a batch."""
         raw_message = self.raw_message
