@@ -13,11 +13,11 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka import encode_headers
 from faststream._internal.kafka.tombstone import (
     Tombstone,
+    encode_kafka_batch,
     encode_or_tombstone,
-    reject_batch_tombstones,
     tombstone_to_none,
 )
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
     TestBroker,
@@ -256,15 +256,11 @@ class FakeProducer(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
-        reject_batch_tombstones(cmd.batch_bodies)
         serializer = self.broker.config.fd_config._serializer
 
-        if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
-        else:
-            encoded = [
-                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
-            ]
+        encoded, _ = await encode_kafka_batch(
+            cmd.batch_bodies, self.codec, serializer, cmd.key_for, cmd.partition
+        )
 
         for handler in _find_handler(
             self.subscribers,
@@ -365,7 +361,7 @@ async def build_message(
 
 
 def _build_record(
-    body: bytes,
+    body: bytes | None,
     content_type: str | None,
     topic: str,
     partition: int | None = None,
@@ -376,6 +372,7 @@ def _build_record(
     reply_to: str = "",
     id_generator: IdGenerator = gen_cor_id,
 ) -> "ConsumerRecord":
+    body = tombstone_to_none(body)
     k = key or b""
     h = {
         "content-type": content_type or "",
@@ -390,8 +387,8 @@ def _build_record(
         partition=partition or 0,
         key=k,
         serialized_key_size=len(k),
-        serialized_value_size=len(body),
-        checksum=sum(body),
+        serialized_value_size=-1 if body is None else len(body),
+        checksum=0 if body is None else sum(body),
         offset=0,
         headers=encode_headers(h),
         timestamp_type=1,

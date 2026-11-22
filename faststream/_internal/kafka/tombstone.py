@@ -1,8 +1,9 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
 from typing_extensions import Self
 
+from faststream._internal.parser import BatchCodecProto
 from faststream.response import Response
 
 if TYPE_CHECKING:
@@ -54,10 +55,34 @@ async def encode_or_tombstone(
     return await codec.encode(body, serializer)
 
 
-def reject_batch_tombstones(bodies: Sequence[object]) -> None:
-    if any(
-        isinstance(body.body if isinstance(body, Response) else body, Tombstone)
-        for body in bodies
-    ):
-        msg = "TOMBSTONE requires single-record publishing"
+async def encode_kafka_batch(
+    bodies: Sequence["SendableMessage | Response"],
+    codec: "CodecProto",
+    serializer: "SerializerProto | None",
+    key_for: Callable[[int], object],
+    partition: int | None,
+) -> tuple[Sequence[tuple[bytes | None, str | None]], bool]:
+    # A response without a key can still wrap a message body.
+    encoded_inputs = [
+        body.body if isinstance(body, Response) else body for body in bodies
+    ]
+    has_tombstones = any(isinstance(body, Tombstone) for body in encoded_inputs)
+    if isinstance(codec, BatchCodecProto):
+        if has_tombstones:
+            msg = "TOMBSTONE batches require per-record encoding, not BatchCodecProto"
+            raise ValueError(msg)
+        return await codec.encode_batch(encoded_inputs, serializer), False
+    if has_tombstones and partition is None:
+        msg = "TOMBSTONE batches require an explicit partition"
         raise ValueError(msg)
+
+    return [
+        await encode_or_tombstone(
+            body,
+            codec,
+            serializer,
+            key=key_for(index),
+            none_is_tombstone=False,
+        )
+        for index, body in enumerate(encoded_inputs)
+    ], has_tombstones

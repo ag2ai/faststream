@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from faststream import BaseMiddleware, Context, Response
+from faststream._internal.kafka.tombstone import TOMBSTONE
 from faststream.response import ensure_response
 from faststream.response.response import (
     BatchPublishCommand,
@@ -113,6 +114,24 @@ SHUFFLED = (
 # (original (body, key) pairs, batch_bodies mutation, expected (body, key) pairs)
 KEY_ALIGNMENT_CASES = (
     pytest.param(
+        ((None, b"keep"), (TOMBSTONE, b"delete")),
+        keep,
+        ((b"", b"keep"), (None, b"delete")),
+        id="none-then-tombstone",
+    ),
+    pytest.param(
+        ((TOMBSTONE, b"delete"), (None, b"keep")),
+        keep,
+        ((None, b"delete"), (b"", b"keep")),
+        id="tombstone-then-none",
+    ),
+    pytest.param(
+        ((b"", b"keep"), (TOMBSTONE, b"delete")),
+        reverse,
+        ((None, b"delete"), (b"", b"keep")),
+        id="reversed-tombstone-and-empty-value",
+    ),
+    pytest.param(
         ((None, b"empty"), (BODY_A, b"keep")),
         keep,
         ((b"", b"empty"), (BODY_A, b"keep")),
@@ -204,6 +223,11 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
         key: bytes = raw_message.key
         return key
 
+    @staticmethod
+    def get_message_value(raw_message: Any) -> Any:
+        value = raw_message.value
+        return value() if callable(value) else value
+
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(
         ("pairs", "mutate", "expected"),
@@ -233,11 +257,11 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
         @broker.subscriber(queue, batch=True)
         async def handler(msgs: Any, raw: Any = Context("message")) -> None:
             received.extend(
-                zip(
-                    msgs,
-                    (self.get_message_key(m) for m in raw.raw_message),
-                    strict=True,
-                ),
+                (
+                    None if self.get_message_value(record) is None else msg,
+                    self.get_message_key(record),
+                )
+                for msg, record in zip(msgs, raw.raw_message, strict=True)
             )
 
         async with self.patch_broker(broker) as br:
@@ -245,5 +269,6 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
             await br.publish_batch(
                 *(self.publish_message_cls(body, key=key) for body, key in pairs),
                 topic=queue,
+                partition=0,
             )
         assert Counter(received) == Counter(expected)

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from faststream import Context, Depends
 from faststream._internal.kafka.tombstone import TOMBSTONE
+from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import SetupError
 from tests.tools import spy_decorator
 
@@ -577,5 +578,18 @@ class KafkaTombstoneTestclientTestcase(BrokerTestclientTestcase):
         async with self.patch_broker(broker) as test:
             with pytest.raises(ValueError, match="requires a key"):
                 await test.publish(TOMBSTONE, queue)
-            with pytest.raises(ValueError, match="requires single-record publishing"):
+            with pytest.raises(ValueError, match="require an explicit partition"):
                 await test.publish_batch(b"keep", TOMBSTONE, topic=queue)
+
+    async def test_rejects_tombstones_with_batch_codec(self, queue: str) -> None:
+        class BatchCodec(DefaultCodec):
+            async def encode_batch(self, *_: Any) -> Any:
+                pytest.fail("A batch with a tombstone must be rejected before encoding")
+
+            async def decode_batch(self, *_: Any) -> Any:
+                pytest.fail("A rejected batch cannot reach the decoder")
+
+        broker = self.get_broker(codec=BatchCodec())
+        async with self.patch_broker(broker) as test:
+            with pytest.raises(ValueError, match="BatchCodecProto"):
+                await test.publish_batch(b"keep", TOMBSTONE, topic=queue, partition=0)

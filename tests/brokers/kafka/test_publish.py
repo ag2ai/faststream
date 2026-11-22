@@ -374,10 +374,15 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(
-        "body", (pytest.param(None, id="legacy"), pytest.param(TOMBSTONE, id="explicit"))
+        ("body", "batch"),
+        (
+            pytest.param(None, False, id="legacy"),
+            pytest.param(TOMBSTONE, False, id="explicit"),
+            pytest.param(TOMBSTONE, True, id="batch"),
+        ),
     )
     async def test_publish_sends_a_real_tombstone(
-        self, queue: str, body: bytes | None
+        self, queue: str, body: bytes | None, batch: bool
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
@@ -391,7 +396,14 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
-            await br.publish(body, queue, key=b"tombstone-key")
+            if batch:
+                await br.publish_batch(
+                    KafkaPublishMessage(body, key=b"tombstone-key"),
+                    topic=queue,
+                    partition=0,
+                )
+            else:
+                await br.publish(body, queue, key=b"tombstone-key")
             value = await asyncio.wait_for(values.get(), timeout=self.timeout)
 
         assert value is None
