@@ -10,6 +10,12 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka import encode_headers
+from faststream._internal.kafka.tombstone import (
+    Tombstone,
+    encode_or_tombstone,
+    reject_batch_tombstones,
+    tombstone_to_none,
+)
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
@@ -202,6 +208,7 @@ class FakeProducer(AsyncConfluentFastProducer):
     @override
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to the Kafka broker."""
+        reject_batch_tombstones(cmd.batch_bodies)
         serializer = self.broker.config.fd_config._serializer
 
         if isinstance(self.codec, BatchCodecProto):
@@ -283,6 +290,7 @@ class FakeProducer(AsyncConfluentFastProducer):
         return await build_message(
             topic=topic,
             message=result.body,
+            key=result.get_publish_key() if isinstance(result.body, Tombstone) else None,
             headers=result.headers,
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
@@ -368,12 +376,14 @@ async def build_message(
     id_generator: IdGenerator = gen_cor_id,
 ) -> MockConfluentMessage:
     """Build a mock confluent_kafka.Message for a sendable message."""
-    if message is None:
-        # keep a real tombstone (message.value() is None) distinct from b""
-        msg, content_type = None, None
-    else:
-        codec_instance = codec or DefaultCodec()
-        msg, content_type = await codec_instance.encode(message, serializer)
+    msg, content_type = await encode_or_tombstone(
+        message,
+        codec or DefaultCodec(),
+        serializer,
+        key=key,
+        none_is_tombstone=True,
+    )
+    msg = tombstone_to_none(msg)
     k = key or b""
     headers = {
         "content-type": content_type or "",

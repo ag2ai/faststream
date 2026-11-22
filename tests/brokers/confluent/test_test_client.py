@@ -9,7 +9,7 @@ from faststream.confluent.annotations import KafkaMessage
 from faststream.confluent.message import FAKE_CONSUMER
 from faststream.confluent.testing import FakeProducer
 from faststream.exceptions import SetupError
-from tests.brokers.base.testclient import BrokerTestclientTestcase
+from tests.brokers.base.testclient import KafkaTombstoneTestclientTestcase
 from tests.marks import require_aiopika
 from tests.tools import spy_decorator
 
@@ -18,7 +18,7 @@ from .basic import ConfluentMemoryTestcaseConfig
 
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
-class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
+class TestTestclient(ConfluentMemoryTestcaseConfig, KafkaTombstoneTestclientTestcase):
     async def test_publish_none_tombstone(
         self,
         queue: str,

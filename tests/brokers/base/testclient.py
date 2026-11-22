@@ -10,7 +10,8 @@ import pytest
 from dirty_equals import IsPartialDict
 from pydantic import BaseModel
 
-from faststream import Depends
+from faststream import Context, Depends
+from faststream._internal.kafka.tombstone import TOMBSTONE
 from faststream.exceptions import SetupError
 from tests.tools import spy_decorator
 
@@ -540,3 +541,36 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
             with pytest.raises(AssertionError, match="Called 2 times"):
                 await publisher.assert_called_once_with({"name": "Jane", "age": 20})
+
+
+@pytest.mark.asyncio()
+class KafkaTombstoneTestclientTestcase(BrokerTestclientTestcase):
+    @pytest.mark.parametrize(
+        "use_publisher",
+        (pytest.param(False, id="broker"), pytest.param(True, id="publisher")),
+    )
+    async def test_publish_tombstone(self, queue: str, use_publisher: bool) -> None:
+        broker = self.get_broker(apply_types=True)
+        seen = []
+
+        @broker.subscriber(queue)
+        async def handler(raw: Any = Context("message")) -> None:
+            value = raw.raw_message.value
+            seen.append(value() if callable(value) else value)
+
+        publisher = broker.publisher(queue, key=b"delete")
+        async with self.patch_broker(broker) as test:
+            if use_publisher:
+                await publisher.publish(TOMBSTONE)
+            else:
+                await test.publish(TOMBSTONE, queue, key=b"delete")
+
+        assert seen == [None]
+
+    async def test_rejects_keyless_and_batched_tombstones(self, queue: str) -> None:
+        broker = self.get_broker()
+        async with self.patch_broker(broker) as test:
+            with pytest.raises(ValueError, match="requires a key"):
+                await test.publish(TOMBSTONE, queue)
+            with pytest.raises(ValueError, match="requires single-record publishing"):
+                await test.publish_batch(b"keep", TOMBSTONE, topic=queue)

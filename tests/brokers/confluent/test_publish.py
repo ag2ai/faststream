@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from faststream import Context
-from faststream.confluent import KafkaPublishMessage, KafkaResponse
+from faststream.confluent import TOMBSTONE, KafkaPublishMessage, KafkaResponse
 from tests.brokers.base.publish import BrokerPublishTestcase
 
 from .basic import ConfluentTestcaseConfig
@@ -297,7 +297,12 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
         assert messages_queue.empty()
 
     @pytest.mark.asyncio()
-    async def test_publish_none_sends_a_real_tombstone(self, queue: str) -> None:
+    @pytest.mark.parametrize(
+        "body", (pytest.param(None, id="legacy"), pytest.param(TOMBSTONE, id="explicit"))
+    )
+    async def test_publish_sends_a_real_tombstone(
+        self, queue: str, body: bytes | None
+    ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
         values: asyncio.Queue[bytes | None] = asyncio.Queue()
@@ -310,7 +315,7 @@ class TestPublish(ConfluentTestcaseConfig, BrokerPublishTestcase):
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
-            await br.publish(None, queue, key=b"tombstone-key")
+            await br.publish(body, queue, key=b"tombstone-key")
             value = await asyncio.wait_for(values.get(), timeout=self.timeout)
 
         assert value is None
