@@ -91,6 +91,23 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig[RedisClusterBroker]):
     def get_router(self, **kwargs: Any) -> RedisRouter:
         return RedisRouter(**kwargs)
 
+    @override
+    def get_ack_subscriber_params(
+        self,
+        queue: str,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        # A channel subscriber forces MANUAL ack, so ack needs a consumer group.
+        return (), {"stream": StreamSub(queue, group=queue, consumer=queue)}
+
+    @override
+    async def publish_to_ack_subscriber(
+        self,
+        broker: Any,
+        queue: str,
+        message: str,
+    ) -> None:
+        await broker.publish(message, stream=queue)
+
 
 class RedisClusterMemoryTestcaseConfig(RedisClusterTestcaseConfig):
     @overload
