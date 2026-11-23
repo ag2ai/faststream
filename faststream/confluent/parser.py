@@ -67,13 +67,16 @@ class AsyncConfluentParser:
     ) -> KafkaMessage:
         """Parses a batch of messages from a Kafka consumer."""
         body: list[Any] = []
+        missing: list[bool] = []
         batch_headers: list[dict[str, str]] = []
 
         first = message[0]
         last = message[-1]
 
         for m in message:
-            body.append(m.value() or b"")
+            value = m.value()
+            body.append(value or b"")
+            missing.append(value is None)
             batch_headers.append(
                 _parse_msg_headers(cast("_HeadersInput", m.headers() or ()))
             )
@@ -86,7 +89,7 @@ class AsyncConfluentParser:
             body=body,
             headers=headers,
             batch_headers=batch_headers,
-            _batch_body_missing=tuple(record.value() is None for record in message),
+            _batch_body_missing=tuple(missing),
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
             message_id=f"{first.offset()}-{last.offset()}-{first_timestamp}",

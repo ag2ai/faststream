@@ -68,8 +68,6 @@ class KafkaResponse(Response):
 
 
 class KafkaPublishCommand(BatchPublishCommand):
-    _retain_null_body = True
-
     def __init__(
         self,
         message: "KafkaSendableMessage",
@@ -85,7 +83,9 @@ class KafkaPublishCommand(BatchPublishCommand):
         reply_to: str = "",
         no_confirm: bool = False,
         timeout: float = 0.5,
+        _batch: bool = False,
     ) -> None:
+        self._retain_null_body = _batch or bool(messages)
         super().__init__(
             message,
             *messages,
@@ -131,8 +131,9 @@ class KafkaPublishCommand(BatchPublishCommand):
             headers=cmd.headers,
             reply_to=cmd.reply_to,
             _publish_type=cmd.publish_type,
+            _batch=batch,
         )
-        if body is None and not extra_bodies and not cmd.body:
+        if batch and body is None and (cmd.body is None or len(cmd.body) == 0):
             result.batch_bodies = ()
         return result
 
@@ -152,7 +153,7 @@ class KafkaPublishCommand(BatchPublishCommand):
 
     @BatchPublishCommand.batch_bodies.setter  # type: ignore[attr-defined, untyped-decorator]
     def batch_bodies(self, value: Sequence["Any"]) -> None:
-        if value:
+        if len(value) > 0:
             self._align_keys(value)
         self._replace_batch_bodies(value)
 

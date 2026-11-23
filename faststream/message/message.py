@@ -65,7 +65,7 @@ class StreamMessage(Generic[MsgType]):
 
         # Setup later
         self.__decoder: AsyncCallable | None = None
-        self.__default_decoder: AsyncCallable | None = None
+        self.__uses_default_decoder = False
         self.__decoded_caches: dict[
             Any,
             Any,
@@ -79,19 +79,16 @@ class StreamMessage(Generic[MsgType]):
     @property
     def uses_default_decoder(self) -> bool:
         """Whether the active decoder is the subscriber's default."""
-        return (
-            self.__default_decoder is not None
-            and self.__decoder is self.__default_decoder
-        )
+        return self.__uses_default_decoder
 
     def set_decoder(self, decoder: "AsyncCallable") -> None:
         self.__decoder = decoder
-        self.__default_decoder = None
+        self.__uses_default_decoder = False
 
     def set_default_decoder(self, decoder: "AsyncCallable") -> None:
         """Install the broker's decoder through the usual decoder hook."""
         self.set_decoder(decoder)
-        self.__default_decoder = decoder
+        self.__uses_default_decoder = True
 
     def clear_cache(self) -> None:
         self.__decoded_caches.clear()
