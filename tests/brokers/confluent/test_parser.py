@@ -1,6 +1,8 @@
+import asyncio
 from typing import TYPE_CHECKING, cast
 
 import pytest
+from confluent_kafka import Producer
 from dirty_equals import IsUUID
 
 if TYPE_CHECKING:
@@ -10,7 +12,7 @@ if TYPE_CHECKING:
 
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.testing import MockConfluentMessage
-from tests.brokers.base.parser import CustomParserTestcase, KafkaTombstoneParserTestcase
+from tests.brokers.base.parser import CustomParserTestcase, KafkaTombstoneConsumeTestcase
 
 from .basic import ConfluentTestcaseConfig
 
@@ -211,14 +213,21 @@ async def test_parse_batch_reserved_headers(
 
 
 @pytest.mark.confluent()
-class TestTombstoneParser(KafkaTombstoneParserTestcase):
-    def make_record(
-        self, value: bytes | None, content_type: str = ""
-    ) -> MockConfluentMessage:
-        return make_message(
-            [("content-type", content_type.encode())] if content_type else [],
-            value=value,
-        )
-
-    def make_parser(self) -> AsyncConfluentParser:
-        return AsyncConfluentParser()
+@pytest.mark.connected()
+class TestTombstoneConsume(ConfluentTestcaseConfig, KafkaTombstoneConsumeTestcase):
+    async def publish_native_records(
+        self,
+        url: str,
+        topic: str,
+        records: tuple[tuple[bytes, bytes | None, str], ...],
+    ) -> None:
+        producer = Producer({"bootstrap.servers": url})
+        for key, value, content_type in records:
+            producer.produce(
+                topic,
+                value=value,
+                key=key,
+                headers=[("content-type", content_type)],
+                partition=0,
+            )
+        assert await asyncio.to_thread(producer.flush, self.timeout) == 0

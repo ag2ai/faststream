@@ -63,16 +63,6 @@ def _context_annotations_factory() -> UnderlyingDriverAnnotations:
     )
 
 
-def _serialize_value(
-    value: bytes | None,
-    *,
-    serializer: Callable[[Any], bytes] | None,
-) -> bytes | None:
-    if isinstance(value, Tombstone):
-        return None
-    return value if serializer is None else serializer(value)
-
-
 @dataclass(kw_only=True)
 class KafkaBrokerConfig(BrokerConfig):
     producer: "AioKafkaFastProducer" = field(default_factory=FakeAioKafkaFastProducer)
@@ -127,3 +117,13 @@ class KafkaBrokerConfig(BrokerConfig):
 
         if not self.consumer_only:
             await self.producer.disconnect()
+
+
+def _serialize_value(
+    value: bytes | None,
+    *,
+    serializer: Callable[[Any], bytes] | None,
+) -> bytes | None:
+    if isinstance(value, Tombstone):
+        return None
+    return value if serializer is None else serializer(value)
