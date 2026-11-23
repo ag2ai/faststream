@@ -87,6 +87,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         "_no_reply",
         "_parser",
         "_stop_task",
+        "_subscriber_config",
         "ack_policy",
         "calls",
         "consume_dispatcher",
@@ -115,6 +116,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._parser = config.parser
         self._decoder = config.decoder
 
+        # include_router composes the broker config after this constructor.
+        self._subscriber_config = config
         self.ack_policy = config.ack_policy
         self.__auto_ack_disabled = config.auto_ack_disabled
 
@@ -163,8 +166,24 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     ) -> None:
         await self.stop()
 
+    def _resolve_ack(self) -> None:
+        """Re-read the policy now that include_router has composed the config."""
+        self.ack_policy = self._subscriber_config.ack_policy
+        self.__auto_ack_disabled = self._subscriber_config.auto_ack_disabled
+        self._on_ack_resolved()
+
+    def _on_ack_resolved(self) -> None:
+        """Broker hook: re-derive state from the resolved ack policy."""
+
+    def _pre_start(self) -> None:
+        """Broker hook: refuse to start with an unsafe configuration.
+
+        Runs before start() changes any state.
+        """
+
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
+        self._pre_start()
         self.lock = MultiLock()
         self._stop_task = None
 
@@ -239,6 +258,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return async_parser, async_decoder
 
     def _build_fastdepends_model(self) -> None:
+        # Also reached from schema() and the test broker, which skip start().
+        self._resolve_ack()
         fd_config = self._outer_config.fd_config
         # nothing is injected without FastDepends, and FastAPI builds its own model
         driver_annotations = (

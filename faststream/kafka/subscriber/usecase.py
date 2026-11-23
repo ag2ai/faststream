@@ -12,11 +12,13 @@ from aiokafka import (
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import overload, override
 
+from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address, AddressSyntax
+from faststream.exceptions import SetupError
 from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
@@ -33,9 +35,8 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream._internal.types import CustomCallable, Filter
     from faststream.kafka.configs import KafkaBrokerConfig
+    from faststream.kafka.subscriber.config import KafkaSubscriberConfig
     from faststream.message import StreamMessage
-
-    from .config import KafkaSubscriberConfig
 
 
 KAFKA_ADDRESS_SYNTAX = AddressSyntax(
@@ -82,6 +83,25 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
         self._connection_args = config.connection_args
 
         self.consumer = None
+
+    @override
+    def _on_ack_resolved(self) -> None:
+        config = cast("KafkaSubscriberConfig", self._subscriber_config)
+        self._connection_args["enable_auto_commit"] = config.ack_first
+        # Mutate, don't replace: handlers already hold bound methods of this parser.
+        self.parser.msg_class = KafkaMessage if config.ack_first else KafkaAckableMessage
+
+    @override
+    def _pre_start(self) -> None:
+        config = cast("KafkaSubscriberConfig", self._subscriber_config)
+        concurrent = isinstance(self.consume_dispatcher, ConcurrentDispatcher)
+        if concurrent and not config.ack_first:
+            msg = (
+                f"max_workers={config.max_workers} needs ACK_FIRST, but ack_policy "
+                f"{config.ack_policy.value!r} is inherited from the broker. "
+                "Set max_workers=1, or declare ack_policy= on the subscriber."
+            )
+            raise SetupError(msg)
 
     @overload
     def __call__(

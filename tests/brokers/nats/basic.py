@@ -3,7 +3,7 @@ from typing import Any, overload
 
 from typing_extensions import override
 
-from faststream.nats import NatsBroker, NatsRouter, TestNatsBroker
+from faststream.nats import JStream, NatsBroker, NatsRouter, TestNatsBroker
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
@@ -19,6 +19,23 @@ class NatsTestcaseConfig(BaseTestcaseConfig[NatsBroker]):
 
     def get_router(self, **kwargs: Any) -> NatsRouter:
         return NatsRouter(**kwargs)
+
+    @override
+    def get_ack_subscriber_params(
+        self,
+        queue: str,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        # Core subjects force MANUAL ack; JetStream carries the acknowledgement.
+        return (queue,), {"stream": JStream(queue)}
+
+    @override
+    async def publish_to_ack_subscriber(
+        self,
+        broker: Any,
+        queue: str,
+        message: str,
+    ) -> None:
+        await broker.publish(message, queue, stream=queue)
 
 
 class NatsMemoryTestcaseConfig(NatsTestcaseConfig):

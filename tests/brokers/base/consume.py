@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import suppress
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import MagicMock, call, patch
 
 import anyio
@@ -519,6 +519,97 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig[Any]):
                 await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         ack.mock.assert_awaited_once()
+
+
+class HandlerError(Exception): ...
+
+
+# In-memory only: TestBroker awaits the handler inside publish, so the
+# acknowledgement has settled when publish returns or raises.
+@pytest.mark.asyncio()
+class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
+    @pytest.mark.parametrize(
+        ("broker_policy", "router_policy", "subscriber_policy", "settled"),
+        (
+            pytest.param(
+                AckPolicy.NACK_ON_ERROR,
+                None,
+                None,
+                "nack",
+                id="inherits_broker_policy",
+            ),
+            pytest.param(
+                AckPolicy.ACK,
+                AckPolicy.NACK_ON_ERROR,
+                None,
+                "nack",
+                id="router_policy_overrides_broker",
+                marks=[
+                    pytest.mark.filterwarnings("ignore:MQTT has no nack primitive"),
+                ],
+            ),
+            pytest.param(
+                AckPolicy.NACK_ON_ERROR,
+                AckPolicy.NACK_ON_ERROR,
+                AckPolicy.ACK,
+                "ack",
+                id="subscriber_policy_overrides_router",
+            ),
+        ),
+    )
+    async def test_failed_handler_settles_with_resolved_policy(
+        self,
+        queue: str,
+        broker_policy: AckPolicy,
+        router_policy: AckPolicy | None,
+        subscriber_policy: AckPolicy | None,
+        settled: Literal["ack", "nack"],
+    ) -> None:
+        broker = self.get_broker(apply_types=True, ack_policy=broker_policy)
+        router_kwargs = {} if router_policy is None else {"ack_policy": router_policy}
+        router = self.get_router(**router_kwargs)
+        args, kwargs = self.get_ack_subscriber_params(queue)
+
+        subscriber_kwargs = (
+            {} if subscriber_policy is None else {"ack_policy": subscriber_policy}
+        )
+
+        @router.subscriber(*args, **kwargs, **subscriber_kwargs)
+        async def handler(_msg: Any) -> None:
+            raise HandlerError
+
+        broker.include_router(router)
+
+        with (
+            patch.object(
+                StreamMessage,
+                "ack",
+                spy_decorator(StreamMessage.ack),
+            ) as ack,
+            patch.object(
+                StreamMessage,
+                "nack",
+                spy_decorator(StreamMessage.nack),
+            ) as nack,
+            patch.object(
+                StreamMessage,
+                "reject",
+                spy_decorator(StreamMessage.reject),
+            ) as reject,
+        ):
+            async with self.patch_broker(broker) as br:
+                await br.start()
+                with suppress(HandlerError):
+                    await self.publish_to_ack_subscriber(br, queue, "hello")
+
+        reject.mock.assert_not_awaited()
+        if settled == "ack":
+            ack.mock.assert_awaited_once()
+            nack.mock.assert_not_awaited()
+        else:
+            ack.mock.assert_not_awaited()
+            if self.nack_is_observable:
+                nack.mock.assert_awaited_once()
 
 
 @pytest.mark.asyncio()

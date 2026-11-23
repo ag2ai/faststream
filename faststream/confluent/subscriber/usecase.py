@@ -15,6 +15,7 @@ from confluent_kafka import KafkaException, Message
 from typing_extensions import overload, override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
+from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
@@ -22,6 +23,7 @@ from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
+from faststream.exceptions import SetupError
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -33,9 +35,8 @@ if TYPE_CHECKING:
     from faststream.confluent.configs import KafkaBrokerConfig
     from faststream.confluent.helpers.client import AsyncConfluentConsumer
     from faststream.confluent.message import KafkaMessage
+    from faststream.confluent.subscriber.config import KafkaSubscriberConfig
     from faststream.message import StreamMessage
-
-    from .config import KafkaSubscriberConfig
 
 
 class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
@@ -75,6 +76,25 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
 
         self.consumer = None
         self.polling_interval = config.polling_interval
+
+    @override
+    def _on_ack_resolved(self) -> None:
+        config = cast("KafkaSubscriberConfig", self._subscriber_config)
+        self.__connection_data["enable_auto_commit"] = config.ack_first
+        # Mutate, don't replace: handlers already hold bound methods of this parser.
+        self.parser.is_manual = not config.ack_first
+
+    @override
+    def _pre_start(self) -> None:
+        config = cast("KafkaSubscriberConfig", self._subscriber_config)
+        concurrent = isinstance(self.consume_dispatcher, ConcurrentDispatcher)
+        if concurrent and not config.ack_first:
+            msg = (
+                f"max_workers={config.max_workers} needs ACK_FIRST, but ack_policy "
+                f"{config.ack_policy.value!r} is inherited from the broker. "
+                "Set max_workers=1, or declare ack_policy= on the subscriber."
+            )
+            raise SetupError(msg)
 
     @overload
     def __call__(
@@ -336,7 +356,6 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         config.decoder = self.parser.decode_batch
         config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
-
         self.max_records = max_records
 
     async def get_msg(self) -> tuple["Message", ...] | None:

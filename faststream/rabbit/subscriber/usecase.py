@@ -26,8 +26,7 @@ if TYPE_CHECKING:
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.schemas import RabbitQueue
-
-    from .config import RabbitSubscriberConfig
+    from faststream.rabbit.subscriber.config import RabbitSubscriberConfig
 
 
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
@@ -110,6 +109,8 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             )
 
         if self.calls:
+            config = cast("RabbitSubscriberConfig", self._subscriber_config)
+            self.__no_ack = config.ack_first
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
                 self.consume_dispatcher.dispatch,  # type: ignore[arg-type]

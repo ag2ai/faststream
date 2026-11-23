@@ -119,6 +119,23 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
 
 @pytest.mark.kafka()
+@pytest.mark.asyncio()
+async def test_concurrent_router_subscriber_refuses_inherited_manual_ack() -> None:
+    # Refused before a consumer is built, so the bootstrap is never dialled.
+    broker = KafkaBroker(ack_policy=AckPolicy.ACK)
+    router = KafkaRouter()
+
+    @router.subscriber("test", max_workers=2)
+    async def handler(body: str) -> None: ...
+
+    broker.include_router(router)
+    sub = next(iter(broker.subscribers))
+
+    with pytest.raises(SetupError, match="ack_policy"):
+        await sub.start()
+
+
+@pytest.mark.kafka()
 class TestDriverAnnotations(KafkaMemoryTestcaseConfig, DriverAnnotationTestcase):
     driver_class = AIOKafkaConsumer
     driver_path = "aiokafka.consumer.consumer.AIOKafkaConsumer"

@@ -19,6 +19,7 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
     # Default channel/list/core subscribers that force MANUAL ack have no
     # AcknowledgementMiddleware, so cancel cannot hit the shared ack skip path.
     supports_cancel_ack_skip: bool = True
+    nack_is_observable: bool = True
 
     @abstractmethod
     def get_broker(
@@ -75,6 +76,22 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
     def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
         """Extra subscriber kwargs for cancel acknowledgement-skip consume tests."""
         return {}
+
+    def get_ack_subscriber_params(
+        self,
+        queue: str,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        """Subscriber whose acknowledgement the in-memory ack tests observe."""
+        return self.get_subscriber_params(queue)
+
+    async def publish_to_ack_subscriber(
+        self,
+        broker: Any,
+        queue: str,
+        message: str,
+    ) -> None:
+        """Publish to the destination that `get_ack_subscriber_params` declared."""
+        await broker.publish(message, queue)
 
     @abstractmethod
     def get_router(self, **kwargs: Any) -> Any:

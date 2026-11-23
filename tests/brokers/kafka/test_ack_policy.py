@@ -266,6 +266,39 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         assert event.is_set()
 
+    @pytest.mark.slow()
+    async def test_batch_commit_called_on_success(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        consume_broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.ACK)
+
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
+
+        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(msg: list[str]) -> None:
+            event.set()
+
+        async with self.patch_broker(consume_broker) as br:
+            await br.start()
+
+            with patch.object(
+                AIOKafkaConsumer,
+                "commit",
+                spy_decorator(AIOKafkaConsumer.commit),
+            ) as commit:
+                await asyncio.wait(
+                    (
+                        asyncio.create_task(br.publish("hello", queue)),
+                        asyncio.create_task(event.wait()),
+                    ),
+                    timeout=10,
+                )
+                commit.mock.assert_awaited_once()
+
+        assert event.is_set()
+
     async def test_reject_on_error_warning(self, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
