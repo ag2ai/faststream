@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
+from functools import partial
 from typing import Annotated, Any
 from unittest.mock import Mock
 
@@ -417,8 +418,10 @@ class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
         class Model(BaseModel):
             msg: bytes = b""
 
-        async def original() -> str:
-            return ""
+        async def original_dependency() -> AsyncGenerator[str, None]:
+            yield ""
+
+        original = partial(original_dependency)
 
         async def parent(value: Annotated[str, Depends(original)]) -> str:
             return value
