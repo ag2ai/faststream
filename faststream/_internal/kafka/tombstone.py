@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from typing_extensions import Self
 
@@ -10,6 +10,9 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
+
+
+_Key = TypeVar("_Key")
 
 
 class Tombstone(bytes):
@@ -30,6 +33,12 @@ class Tombstone(bytes):
 
 
 TOMBSTONE = Tombstone()
+
+
+def resolve_publish_key(body: object, key: _Key, default: _Key) -> _Key:
+    if isinstance(body, Tombstone) and key is not None:
+        return key
+    return key or default
 
 
 def tombstone_to_none(body: bytes | None) -> bytes | None:

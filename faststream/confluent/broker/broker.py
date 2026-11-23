@@ -489,6 +489,7 @@ class KafkaBroker(
             no_confirm=no_confirm,
             correlation_id=correlation_id or self.config.id_generator(),
             _publish_type=PublishType.PUBLISH,
+            _batch=True,
         )
 
         await self._basic_publish_batch(cmd, producer=self.config.producer)
