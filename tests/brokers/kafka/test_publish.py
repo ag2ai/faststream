@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from aiokafka import AIOKafkaProducer
+from aiokafka.errors import MessageSizeTooLargeError
 from aiokafka.structs import RecordMetadata
 
 from faststream import Context
@@ -97,6 +98,41 @@ class TestPublish(
                 assert not first.done()
                 first.set_exception(RuntimeError("first delivery failed"))
                 await asyncio.wait_for(observed.wait(), self.timeout)
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("options", "error", "message"),
+        (
+            pytest.param(
+                {"max_request_size": 1024},
+                MessageSizeTooLargeError,
+                "exceeding max_request_size",
+                id="later-record-too-large",
+            ),
+            pytest.param(
+                {"key_serializer": lambda _: None},
+                ValueError,
+                "requires a key that serializes to bytes",
+                id="serializer-removes-key",
+            ),
+        ),
+    )
+    async def test_tombstone_batch_validates_before_enqueue(
+        self, queue: str, options: dict[str, Any], error: type[Exception], message: str
+    ) -> None:
+        broker = self.get_broker(**options)
+        async with self.patch_broker(broker) as br:
+            with (
+                patch.object(AIOKafkaProducer, "send") as send,
+                pytest.raises(error, match=message),
+            ):
+                await br.publish_batch(
+                    KafkaPublishMessage(TOMBSTONE, key=b"delete"),
+                    KafkaPublishMessage(bytes(2048), key=b"large"),
+                    topic=queue,
+                )
+
+        send.assert_not_called()
 
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:

@@ -77,7 +77,7 @@ class AioKafkaDriver(AIOKafkaProducer):  # type: ignore[misc]
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class _Serialized:
     value: bytes | None
 
