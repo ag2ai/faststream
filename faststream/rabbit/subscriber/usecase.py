@@ -64,8 +64,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         self.consume_args = config.consume_args or {}
 
-        self.__no_ack = config.ack_first
-
         self._consumer_tag: str | None = None
         self._queue_obj: RobustQueue | None = None
         self.channel = config.channel
@@ -76,6 +74,11 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     def routing(self) -> str:
         return f"{self._outer_config.prefix}{self.queue.routing()}"
+
+    @override
+    def _on_ack_resolved(self) -> None:
+        config = cast("RabbitSubscriberConfig", self._subscriber_config)
+        self.__no_ack = config.ack_first
 
     @override
     async def start(self) -> None:
@@ -109,8 +112,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
             )
 
         if self.calls:
-            config = cast("RabbitSubscriberConfig", self._subscriber_config)
-            self.__no_ack = config.ack_first
             self._consumer_tag = await self._queue_obj.consume(
                 # NOTE: aio-pika expects AbstractIncomingMessage, not IncomingMessage
                 self.consume_dispatcher.dispatch,  # type: ignore[arg-type]

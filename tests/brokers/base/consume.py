@@ -611,6 +611,22 @@ class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
             if self.nack_is_observable:
                 nack.mock.assert_awaited_once()
 
+    async def test_ack_policy_reads_composed_config_before_start(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker(ack_policy=AckPolicy.NACK_ON_ERROR)
+        router = self.get_router()
+        args, kwargs = self.get_ack_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(_msg: Any) -> None: ...
+
+        broker.include_router(router)
+        sub = next(iter(broker.subscribers))
+
+        assert sub.ack_policy is AckPolicy.NACK_ON_ERROR
+
 
 @pytest.mark.asyncio()
 class BrokerRealConsumeTestcase(BrokerConsumeTestcase):

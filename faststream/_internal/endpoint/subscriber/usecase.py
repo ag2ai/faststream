@@ -31,7 +31,7 @@ from faststream._internal.types import (
 )
 from faststream._internal.utils.functions import to_async
 from faststream.exceptions import StopConsume, SubscriberNotFound
-from faststream.middlewares import AcknowledgementMiddleware
+from faststream.middlewares import AckPolicy, AcknowledgementMiddleware
 from faststream.middlewares.logging import CriticalLogMiddleware
 from faststream.response import ensure_response
 
@@ -80,7 +80,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     """A class representing an asynchronous handler."""
 
     __slots__ = (
-        "__auto_ack_disabled",
         "_call_decorators",
         "_call_options",
         "_decoder",
@@ -88,7 +87,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         "_parser",
         "_stop_task",
         "_subscriber_config",
-        "ack_policy",
         "calls",
         "consume_dispatcher",
         "lock",
@@ -116,10 +114,9 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._parser = config.parser
         self._decoder = config.decoder
 
-        # include_router composes the broker config after this constructor.
+        # include_router composes the broker config after this constructor, so the
+        # ack policy is read from the config on demand, never copied here.
         self._subscriber_config = config
-        self.ack_policy = config.ack_policy
-        self.__auto_ack_disabled = config.auto_ack_disabled
 
         self._call_options = _CallOptions(
             parser=None,
@@ -154,6 +151,14 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     def _broker_middlewares(self) -> Sequence["BrokerMiddleware[MsgType]"]:
         return self._outer_config.broker_middlewares
 
+    @property
+    def ack_policy(self) -> AckPolicy:
+        return self._subscriber_config.ack_policy
+
+    @property
+    def __auto_ack_disabled(self) -> bool:
+        return self._subscriber_config.auto_ack_disabled
+
     async def __aenter__(self) -> Self:
         await self.start()
         return self
@@ -166,14 +171,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     ) -> None:
         await self.stop()
 
-    def _resolve_ack(self) -> None:
-        """Re-read the policy now that include_router has composed the config."""
-        self.ack_policy = self._subscriber_config.ack_policy
-        self.__auto_ack_disabled = self._subscriber_config.auto_ack_disabled
-        self._on_ack_resolved()
-
     def _on_ack_resolved(self) -> None:
-        """Broker hook: re-derive state from the resolved ack policy."""
+        """Broker hook: derive state from the ack policy before consuming."""
 
     def _pre_start(self) -> None:
         """Broker hook: refuse to start with an unsafe configuration.
@@ -184,6 +183,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
         self._pre_start()
+        self._on_ack_resolved()
         self.lock = MultiLock()
         self._stop_task = None
 
@@ -258,8 +258,6 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         return async_parser, async_decoder
 
     def _build_fastdepends_model(self) -> None:
-        # Also reached from schema() and the test broker, which skip start().
-        self._resolve_ack()
         fd_config = self._outer_config.fd_config
         # nothing is injected without FastDepends, and FastAPI builds its own model
         driver_annotations = (

@@ -279,6 +279,7 @@ def find_test_broker(
 def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
     """Patch broker calls."""
     for sub in broker.subscribers:
+        sub._on_ack_resolved()
         sub._build_fastdepends_model()
 
         for h in sub.calls:
