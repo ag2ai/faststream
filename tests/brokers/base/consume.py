@@ -560,6 +560,7 @@ class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
     async def test_failed_handler_settles_with_resolved_policy(
         self,
         queue: str,
+        event: asyncio.Event,
         broker_policy: AckPolicy,
         router_policy: AckPolicy | None,
         subscriber_policy: AckPolicy | None,
@@ -576,6 +577,7 @@ class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
 
         @router.subscriber(*args, **kwargs, **subscriber_kwargs)
         async def handler(_msg: Any) -> None:
+            event.set()
             raise HandlerError
 
         broker.include_router(router)
@@ -601,6 +603,8 @@ class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
                 await br.start()
                 with suppress(HandlerError):
                     await self.publish_to_ack_subscriber(br, queue, "hello")
+
+        assert event.is_set()
 
         reject.mock.assert_not_awaited()
         if settled == "ack":
