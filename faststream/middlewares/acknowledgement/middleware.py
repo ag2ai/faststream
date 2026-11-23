@@ -1,33 +1,42 @@
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+
+from typing_extensions import ParamSpec
 
 from faststream._internal.middlewares import BaseMiddleware
+from faststream._internal.types import MiddlewareMsgType
 from faststream.exceptions import (
     AckMessage,
     HandlerException,
     NackMessage,
     RejectMessage,
 )
+from faststream.response.response import PublishCommand
 
 from .config import AckPolicy
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
     from types import TracebackType
 
-    from faststream._internal.basic_types import AsyncFunc, AsyncFuncAny
+    from faststream._internal.basic_types import AsyncFuncAny
     from faststream._internal.context.repository import ContextRepo
     from faststream._internal.logger import LoggerState
-    from faststream._internal.types import AsyncCallable
+    from faststream._internal.types import Parser
     from faststream.message import StreamMessage
 
 
-class AcknowledgementMiddleware:
+_CallParams = ParamSpec("_CallParams")
+_ReturnT = TypeVar("_ReturnT")
+
+
+class AcknowledgementMiddleware(Generic[MiddlewareMsgType]):
     def __init__(
         self,
         logger: "LoggerState",
         ack_policy: "AckPolicy",
-        fallback_parser: "AsyncCallable",
+        fallback_parser: "Parser[MiddlewareMsgType, StreamMessage[Any]]",
     ) -> None:
         self.ack_policy = ack_policy
         self.logger = logger
@@ -35,9 +44,9 @@ class AcknowledgementMiddleware:
 
     def __call__(
         self,
-        msg: Any | None,
+        msg: MiddlewareMsgType | None,
         context: "ContextRepo",
-    ) -> "_AcknowledgementMiddleware":
+    ) -> "_AcknowledgementMiddleware[MiddlewareMsgType]":
         return _AcknowledgementMiddleware(
             msg,
             logger=self.logger,
@@ -47,19 +56,21 @@ class AcknowledgementMiddleware:
         )
 
 
-class _AcknowledgementMiddleware(BaseMiddleware):
+class _AcknowledgementMiddleware(
+    BaseMiddleware[PublishCommand, MiddlewareMsgType | None],
+):
     __slots__ = ("ack_policy", "fallback_parser", "logger", "message")
 
     def __init__(
         self,
-        msg: Any | None,
+        msg: MiddlewareMsgType | None,
         /,
         *,
         logger: "LoggerState",
         context: "ContextRepo",
         # can't be created with AckPolicy.MANUAL
         ack_policy: AckPolicy,
-        fallback_parser: "AsyncCallable",
+        fallback_parser: "Parser[MiddlewareMsgType, StreamMessage[Any]]",
     ) -> None:
         super().__init__(msg, context=context)
 
@@ -123,8 +134,12 @@ class _AcknowledgementMiddleware(BaseMiddleware):
         return False
 
     async def __do_with_logging(
-        self, func: "AsyncFunc", /, *args: Any, **kwargs: Any
-    ) -> Any:
+        self,
+        func: "Callable[_CallParams, Awaitable[_ReturnT]]",
+        /,
+        *args: _CallParams.args,
+        **kwargs: _CallParams.kwargs,
+    ) -> _ReturnT | None:
         try:
             return await func(*args, **kwargs)
         except Exception as er:
@@ -133,9 +148,11 @@ class _AcknowledgementMiddleware(BaseMiddleware):
         return None
 
     async def __resolve_message(self) -> "StreamMessage[Any] | None":
-        return self.message or await self.__do_with_logging(
-            self.fallback_parser, self.msg
-        )
+        if self.message is not None:
+            return self.message
+        if self.msg is None:
+            return None
+        return await self.__do_with_logging(self.fallback_parser, self.msg)
 
     async def __ack(self, **exc_extra_options: Any) -> None:
         if message := await self.__resolve_message():

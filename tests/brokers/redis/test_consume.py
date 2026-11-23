@@ -330,12 +330,17 @@ class TestConsumeList(RedisTestcaseConfig):
 
         assert [{1, "hi"}] == [set(r.result()) for r in result]
 
+    @pytest.mark.parametrize(
+        "batch",
+        (pytest.param(False, id="single"), pytest.param(True, id="batch")),
+    )
     async def test_get_one(
         self,
         queue: str,
+        batch: bool,
     ) -> None:
         broker = self.get_broker(apply_types=True)
-        subscriber = broker.subscriber(list=queue)
+        subscriber = broker.subscriber(list=ListSub(queue, batch=batch))
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -358,7 +363,9 @@ class TestConsumeList(RedisTestcaseConfig):
             )
 
             assert message is not None
-            assert await message.decode() == "test_message"
+            assert await message.decode() == (
+                ["test_message"] if batch else "test_message"
+            )
 
     async def test_get_one_timeout(
         self,
@@ -432,14 +439,19 @@ class TestConsumeList(RedisTestcaseConfig):
         assert event2.is_set()
         assert mock.call_count == 2, mock.call_count
 
+    @pytest.mark.parametrize(
+        "batch",
+        (pytest.param(False, id="single"), pytest.param(True, id="batch")),
+    )
     async def test_iterator(
         self,
         queue: str,
+        batch: bool,
     ) -> None:
         expected_messages = ("test_message_1", "test_message_2")
 
         broker = self.get_broker(apply_types=True)
-        subscriber = broker.subscriber(list=queue)
+        subscriber = broker.subscriber(list=ListSub(queue, batch=batch))
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -454,7 +466,8 @@ class TestConsumeList(RedisTestcaseConfig):
             async for msg in subscriber:
                 result_message = await msg.decode()
 
-                assert result_message == expected_messages[index_message]
+                expected = expected_messages[index_message]
+                assert result_message == ([expected] if batch else expected)
 
                 index_message += 1
                 if index_message >= len(expected_messages):
@@ -1007,12 +1020,17 @@ class TestConsumeStream(RedisTestcaseConfig):
                 f"Redis stream must be empty here, found {queue_len} messages"
             )
 
+    @pytest.mark.parametrize(
+        "batch",
+        (pytest.param(False, id="single"), pytest.param(True, id="batch")),
+    )
     async def test_get_one(
         self,
         queue: str,
+        batch: bool,
     ) -> None:
         broker = self.get_broker(apply_types=True)
-        subscriber = broker.subscriber(stream=queue)
+        subscriber = broker.subscriber(stream=StreamSub(queue, batch=batch))
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -1036,7 +1054,9 @@ class TestConsumeStream(RedisTestcaseConfig):
             )
 
             assert message is not None
-            assert await message.decode() == "test_message"
+            assert await message.decode() == (
+                ["test_message"] if batch else "test_message"
+            )
 
     async def test_get_one_timeout(
         self,
@@ -1117,15 +1137,20 @@ class TestConsumeStream(RedisTestcaseConfig):
 
         assert (peak, sorted(received)) == (workers, list(range(message_count)))
 
+    @pytest.mark.parametrize(
+        "batch",
+        (pytest.param(False, id="single"), pytest.param(True, id="batch")),
+    )
     async def test_iterator(
         self,
         queue: str,
         mock: MagicMock,
+        batch: bool,
     ) -> None:
         expected_messages = ("test_message_1", "test_message_2")
 
         broker = self.get_broker(apply_types=True)
-        subscriber = broker.subscriber(stream=queue)
+        subscriber = broker.subscriber(stream=StreamSub(queue, batch=batch))
 
         async with self.patch_broker(broker) as br:
             await br.start()
@@ -1154,7 +1179,7 @@ class TestConsumeStream(RedisTestcaseConfig):
                 timeout=self.timeout,
             )
 
-            calls = [call(msg) for msg in expected_messages]
+            calls = [call([msg] if batch else msg) for msg in expected_messages]
             mock.assert_has_calls(calls=calls)
 
     @pytest.mark.parametrize("no_ack", (False, True))

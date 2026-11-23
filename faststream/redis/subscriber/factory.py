@@ -19,7 +19,6 @@ from .usecases import (
     ChannelSubscriber,
     ListBatchSubscriber,
     ListSubscriber,
-    LogicSubscriber,
     StreamBatchSubscriber,
     StreamSubscriber,
 )
@@ -28,7 +27,13 @@ if TYPE_CHECKING:
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.parser import MessageFormat
 
-SubscriberType: TypeAlias = LogicSubscriber[Any, Any]
+SubscriberType: TypeAlias = (
+    ChannelSubscriber
+    | ListSubscriber
+    | ListBatchSubscriber
+    | StreamSubscriber
+    | StreamBatchSubscriber
+)
 
 
 def create_subscriber(

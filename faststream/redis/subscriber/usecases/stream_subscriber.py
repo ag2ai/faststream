@@ -3,20 +3,18 @@ import logging
 import math
 from abc import abstractmethod
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, TypeAlias, TypeVar
 
 import anyio
 from redis.exceptions import ResponseError
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import process_msg
-from faststream._internal.types import StreamMsgType
 from faststream.redis.exceptions import (
     StreamClaimUnsupportedError,
     StreamGroupNotFoundError,
 )
 from faststream.redis.message import (
-    BaseRedisMsgType,
     BatchStreamMessage,
     DefaultStreamMessage,
     RedisBatchStreamMessage,
@@ -37,7 +35,9 @@ if TYPE_CHECKING:
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.message import _StreamMessage
+    from faststream.redis.message import (
+        _StreamMessage,
+    )
     from faststream.redis.parser.parsers import _StreamParser
     from faststream.redis.schemas import StreamSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
@@ -72,10 +72,15 @@ class ClaimMeta(NamedTuple):
     """Previous deliveries: 0 for a new entry, XPENDING's `times_delivered` - 1."""
 
 
-class _StreamHandlerMixin(
-    LogicSubscriber[BaseRedisMsgType, StreamMsgType],
-    Generic[BaseRedisMsgType, StreamMsgType],
-):
+BaseStreamMsgType = TypeVar(
+    "BaseStreamMsgType", bound="BatchStreamMessage | DefaultStreamMessage"
+)
+BaseRedisStreamMsgType = TypeVar(
+    "BaseRedisStreamMsgType", bound="RedisStreamMessage | RedisBatchStreamMessage"
+)
+
+
+class _StreamHandlerMixin(LogicSubscriber[BaseStreamMsgType, BaseRedisStreamMsgType]):
     __slots__ = (
         "_stream_sub",
         "autoclaim_start_id",
@@ -86,13 +91,13 @@ class _StreamHandlerMixin(
         "read_id",
     )
 
-    parser: "_StreamParser[Any, Any]"
+    parser: "_StreamParser[BaseStreamMsgType, BaseRedisStreamMsgType]"
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig[BaseRedisMsgType, StreamMsgType]",
+        config: "RedisSubscriberConfig[BaseStreamMsgType, BaseRedisStreamMsgType]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[BaseRedisMsgType, StreamMsgType]",
+        calls: "CallsCollection[BaseStreamMsgType, BaseRedisStreamMsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
 
@@ -243,7 +248,7 @@ class _StreamHandlerMixin(
         message_id: bytes,
         data: dict[bytes, bytes],
         claim_meta: "ClaimMeta | None",
-    ) -> BaseRedisMsgType:
+    ) -> BaseStreamMsgType:
         """Wrap a single read stream entry into this subscriber's raw message."""
         raise NotImplementedError
 
@@ -252,7 +257,7 @@ class _StreamHandlerMixin(
         self,
         *,
         timeout: float = 5.0,
-    ) -> "StreamMsgType | None":
+    ) -> "BaseRedisStreamMsgType | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -316,7 +321,7 @@ class _StreamHandlerMixin(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["StreamMsgType"]:
+    async def __aiter__(self) -> AsyncIterator["BaseRedisStreamMsgType"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
