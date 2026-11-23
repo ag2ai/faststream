@@ -23,8 +23,8 @@ from faststream.response import Response, ensure_response
 from ._compat import (
     FASTAPI_V106,
     FASTAPI_V121,
+    bind_tombstone_body,
     create_response_field,
-    get_fastapi_tombstone_body,
     raise_fastapi_validation_error,
     solve_faststream_dependency,
 )
@@ -189,27 +189,19 @@ def build_faststream_to_fastapi_parser(
             )
 
         else:
-            fastapi_body = {}
             stream_message = StreamMessage(
-                body=fastapi_body,
+                body={},
                 headers={"context__": context},
                 path={},
             )
 
-        dependency_body: Any = fastapi_body
-        if (
+        return await consume(
+            stream_message,
+            message,
             not message.has_body
             and message.uses_default_decoder
-            and (body is None or (isinstance(body, (bytes, str)) and not body))
-        ):
-            # Keep the synthetic request intact while applying FastAPI's body defaults.
-            dependency_body = get_fastapi_tombstone_body(
-                dependent,
-                fastapi_body,
-                fastapi_config.dependency_overrides_provider,
-            )
-
-        return await consume(stream_message, message, dependency_body)
+            and (body is None or (isinstance(body, (bytes, str)) and not body)),
+        )
 
     return parsed_consumer
 
@@ -226,7 +218,7 @@ def make_fastapi_execution(
     response_model_exclude_defaults: bool,
     response_model_exclude_none: bool,
 ) -> Callable[
-    ["StreamMessage", "NativeMessage[Any]", Any],
+    ["StreamMessage", "NativeMessage[Any]", bool],
     Awaitable[Response],
 ]:
     """Creates a FastAPI application."""
@@ -235,11 +227,11 @@ def make_fastapi_execution(
     async def app(
         request: "StreamMessage",
         raw_message: "NativeMessage[Any]",  # to support BackgroundTasks by middleware
-        dependency_body: Any,
+        tombstone: bool,
     ) -> Response:
         """Consume StreamMessage and return user function result."""
         async with AsyncExitStack() as stack:
-            kwargs = {}
+            kwargs: dict[str, Any] = {}
             if FASTAPI_V121:
                 request.scope["fastapi_inner_astack"] = stack
                 function_stack = AsyncExitStack()
@@ -254,11 +246,19 @@ def make_fastapi_execution(
 
             request.scope["app"] = fastapi_config.application
 
+            solver_dependant = dependent
+            overrides = fastapi_config.dependency_overrides_provider
+            if tombstone:
+                solver_dependant, kwargs["dependency_cache"] = bind_tombstone_body(
+                    dependent, overrides
+                )
+                overrides = None
+
             solved_result = await solve_faststream_dependency(
                 request=request,
-                body=dependency_body,
-                dependant=dependent,
-                dependency_overrides_provider=fastapi_config.dependency_overrides_provider,
+                body=request._body,
+                dependant=solver_dependant,
+                dependency_overrides_provider=overrides,
                 **kwargs,
             )
 

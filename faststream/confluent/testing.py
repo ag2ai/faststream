@@ -203,7 +203,7 @@ class FakeProducer(AsyncConfluentFastProducer):
                 (incoming,) if isinstance(handler, BatchSubscriber) else incoming
             )
 
-            await self._execute_handler(msg_to_send, cmd.destination, handler)
+            await handler.process_message(msg_to_send)
 
     @override
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
@@ -236,11 +236,11 @@ class FakeProducer(AsyncConfluentFastProducer):
             ]
 
             if isinstance(handler, BatchSubscriber):
-                await self._execute_handler(tuple(messages), cmd.destination, handler)
+                await handler.process_message(tuple(messages))
 
             else:
                 for m in messages:
-                    await self._execute_handler(m, cmd.destination, handler)
+                    await handler.process_message(m)
 
     @override
     async def request(self, cmd: "KafkaPublishCommand") -> "MockConfluentMessage":

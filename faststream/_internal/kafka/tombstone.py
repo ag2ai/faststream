@@ -1,5 +1,5 @@
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import Self
 
@@ -11,6 +11,9 @@ if TYPE_CHECKING:
 
     from faststream._internal.basic_types import SendableMessage
     from faststream._internal.parser import CodecProto
+
+
+_Key = TypeVar("_Key")
 
 
 class Tombstone(bytes):
@@ -31,6 +34,20 @@ class Tombstone(bytes):
 
 
 TOMBSTONE = Tombstone()
+
+
+def resolve_publish_key(body: object, key: _Key, default: _Key) -> _Key:
+    if isinstance(body, Tombstone) and key is not None:
+        return key
+    return key or default
+
+
+def resolve_batch_publish_key(bodies: Sequence[object], key: _Key, default: _Key) -> _Key:
+    if key is not None and any(
+        isinstance(_batch_body(body), Tombstone) for body in bodies
+    ):
+        return key
+    return key or default
 
 
 def tombstone_to_none(body: bytes | None) -> bytes | None:
@@ -56,16 +73,13 @@ async def encode_or_tombstone(
 
 
 async def encode_kafka_batch(
-    bodies: Sequence["SendableMessage | Response"],
+    bodies: Sequence[Any],
     codec: "CodecProto",
     serializer: "SerializerProto | None",
     key_for: Callable[[int], object],
     partition: int | None,
 ) -> tuple[Sequence[tuple[bytes | None, str | None]], bool]:
-    # A response without a key can still wrap a message body.
-    encoded_inputs = [
-        body.body if isinstance(body, Response) else body for body in bodies
-    ]
+    encoded_inputs = [_batch_body(body) for body in bodies]
     has_tombstones = any(isinstance(body, Tombstone) for body in encoded_inputs)
     if isinstance(codec, BatchCodecProto):
         if has_tombstones:
@@ -86,3 +100,9 @@ async def encode_kafka_batch(
         )
         for index, body in enumerate(encoded_inputs)
     ], has_tombstones
+
+
+def _batch_body(body: Any) -> Any:
+    if isinstance(body, Response) and isinstance(body.body, Tombstone):
+        return body.body
+    return body

@@ -1,11 +1,13 @@
 import asyncio
 from abc import abstractmethod
-from json import JSONDecodeError
+from contextlib import aclosing
 from typing import Any
 from unittest.mock import MagicMock
 
 import anyio
 import pytest
+
+from faststream import Context
 
 from .basic import BaseTestcaseConfig
 
@@ -318,55 +320,82 @@ class CustomParserTestcase(LocalCustomParserTestcase):
 
 
 @pytest.mark.asyncio()
-class KafkaTombstoneParserTestcase:
+class KafkaTombstoneConsumeTestcase(BaseTestcaseConfig[Any]):
     @abstractmethod
-    def make_parser(self) -> Any:
+    async def publish_native_records(
+        self,
+        url: str,
+        topic: str,
+        records: tuple[tuple[bytes, bytes | None, str], ...],
+    ) -> None:
         raise NotImplementedError
 
-    @abstractmethod
-    def make_record(self, value: bytes | None, content_type: str = "") -> Any:
-        raise NotImplementedError
-
-    async def test_parse_batch_marks_the_null_records_one_by_one(self) -> None:
-        parser = self.make_parser()
-        parsed = await parser.parse_batch((
-            self.make_record(b"{}"),
-            self.make_record(None),
-            self.make_record(b""),
-        ))
-
-        assert (
-            parsed.tombstone,
-            parsed.batch_tombstones,
-            parsed.body,
-            list(map(type, parsed.body)),
-        ) == (
-            False,
-            (False, True, False),
-            [b"{}", b"", b""],
-            [bytes, bytes, bytes],
+    @pytest.mark.parametrize(
+        "delivery",
+        (
+            pytest.param("single", id="single"),
+            pytest.param("batch", id="batch"),
+            pytest.param("poll", id="get-one"),
+            pytest.param("iterate", id="iterator"),
+        ),
+    )
+    async def test_decodes_and_marks_native_tombstones(
+        self, queue: str, settings: Any, delivery: str
+    ) -> None:
+        batch = delivery == "batch"
+        broker = self.get_broker(apply_types=True)
+        received: asyncio.Queue[tuple[Any, bool, bytes, bytes | None, int]] = (
+            asyncio.Queue()
         )
-
-    async def test_decode_keeps_a_tombstone_empty_with_json_content_type(self) -> None:
-        parser = self.make_parser()
-
-        tombstone = await parser.parse_message(self.make_record(None, "application/json"))
-        assert await parser.decode_message(tombstone) == b""
-
-        empty = await parser.parse_message(self.make_record(b"", "application/json"))
-        with pytest.raises(JSONDecodeError):
-            await parser.decode_message(empty)
-
-    async def test_decode_batch_keeps_only_the_tombstone_empty(self) -> None:
-        parser = self.make_parser()
         records = (
-            self.make_record(b'{"x": 1}', "application/json"),
-            self.make_record(None, "application/json"),
+            (b"object", b'{"x": 1}', "application/json"),
+            (b"delete", None, "application/json"),
+            (b"empty", b"", ""),
+            (b"null", b"null", "application/json"),
         )
+        args, kwargs = self.get_subscriber_params(queue, batch=batch, group_id=queue)
 
-        decoded = await parser.decode_batch(await parser.parse_batch(records))
+        subscriber = broker.subscriber(*args, **kwargs)
 
-        assert (decoded, list(map(type, decoded))) == (
-            [{"x": 1}, b""],
-            [dict, bytes],
-        )
+        async def handler(message: Any = Context("message")) -> None:
+            decoded = await message.decode()
+            items = (
+                zip(decoded, message.batch_tombstones, message.raw_message, strict=True)
+                if batch
+                else ((decoded, message.tombstone, message.raw_message),)
+            )
+            for body, tombstone, raw in items:
+                wire = (
+                    (raw.key(), raw.value(), raw.partition())
+                    if callable(raw.key)
+                    else (raw.key, raw.value, raw.partition)
+                )
+                received.put_nowait((body, tombstone, *wire))
+
+        if delivery in {"single", "batch"}:
+            subscriber(handler)
+
+        async with self.patch_broker(broker) as br:
+            await self.publish_native_records(settings.url, queue, records)
+            await br.start()
+            if delivery == "poll":
+                for _ in records:
+                    message = await subscriber.get_one(timeout=self.timeout)
+                    assert message is not None
+                    await handler(message)
+            elif delivery == "iterate":
+                async with aclosing(aiter(subscriber)) as messages:
+                    for _ in records:
+                        await handler(
+                            await asyncio.wait_for(anext(messages), self.timeout)
+                        )
+            actual = [
+                await asyncio.wait_for(received.get(), self.timeout) for _ in records
+            ]
+
+        assert actual == [
+            ({"x": 1}, False, b"object", b'{"x": 1}', 0),
+            (b"", True, b"delete", None, 0),
+            (b"", False, b"empty", b"", 0),
+            (None, False, b"null", b"null", 0),
+        ]

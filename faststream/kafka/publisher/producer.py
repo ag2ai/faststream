@@ -1,4 +1,3 @@
-import asyncio
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Optional, Union
 
@@ -9,10 +8,12 @@ from faststream._internal.kafka import encode_headers
 from faststream._internal.kafka.tombstone import (
     encode_kafka_batch,
     encode_or_tombstone,
+    tombstone_to_none,
 )
 from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
+from faststream.kafka._compat import AIOKAFKA_V011
 from faststream.kafka.exceptions import BatchBufferOverflowException
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaParser
@@ -21,24 +22,14 @@ from faststream.kafka.response import KafkaPublishCommand
 from .state import EmptyProducerState, ProducerState, RealProducer
 
 if TYPE_CHECKING:
+    import asyncio
+
     from aiokafka import AIOKafkaProducer
     from aiokafka.structs import RecordMetadata
     from fast_depends.library.serializer import SerializerProto
 
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import CustomCallable
-
-
-async def _confirm_batch(
-    pending: list[asyncio.Future["RecordMetadata"]],
-) -> "RecordMetadata":
-    results = await asyncio.gather(*pending, return_exceptions=True)
-    for result in results:
-        if isinstance(result, BaseException):
-            raise result
-    first = results[0]
-    assert not isinstance(first, BaseException)
-    return first
 
 
 class AioKafkaFastProducer(ProducerProto[KafkaPublishCommand]):
@@ -171,50 +162,28 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         """Publish a batch of messages to a topic."""
         headers_to_send = cmd.headers_to_publish()
 
-        encoded_batch, explicit = await encode_kafka_batch(
+        encoded_batch, _ = await encode_kafka_batch(
             cmd.batch_bodies, self.codec, self.serializer, cmd.key_for, cmd.partition
         )
         producer = self._producer.producer
-        batch = None if explicit else producer.create_batch()
-
-        pending: list[asyncio.Future[RecordMetadata]] = []
-        for message_position, (message, content_type) in enumerate(encoded_batch):
-            if content_type:
-                final_headers = {
-                    "content-type": content_type,
-                    **headers_to_send,
-                }
-            else:
-                final_headers = headers_to_send.copy()
-
-            if batch is None:
-                pending.append(
-                    await producer.send(
-                        cmd.destination,
-                        key=cmd.key_for(message_position),
-                        value=message,
-                        partition=cmd.partition,
-                        timestamp_ms=cmd.timestamp_ms,
-                        headers=encode_headers(final_headers),
-                    )
-                )
-                continue
-
+        batch = producer.create_batch()
+        for index, (value, content_type) in enumerate(encoded_batch):
+            final_headers = (
+                {"content-type": content_type, **headers_to_send}
+                if content_type
+                else headers_to_send
+            )
             metadata = batch.append(
-                key=cmd.key_for(message_position),
-                value=message,
+                key=cmd.key_for(index),
+                value=value if AIOKAFKA_V011 else tombstone_to_none(value),
                 timestamp=cmd.timestamp_ms,
                 headers=encode_headers(final_headers),
             )
             if metadata is None:
-                raise BatchBufferOverflowException(message_position=message_position)
-
-        if batch is None:
-            send_future = asyncio.create_task(_confirm_batch(pending))
-        else:
-            send_future = await producer.send_batch(
-                batch, cmd.destination, partition=cmd.partition
-            )
+                raise BatchBufferOverflowException(message_position=index)
+        send_future = await producer.send_batch(
+            batch, cmd.destination, partition=cmd.partition
+        )
         if not cmd.no_confirm:
             return await send_future
         return send_future
