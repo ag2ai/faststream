@@ -545,27 +545,32 @@ class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
 
 @pytest.mark.asyncio()
 class KafkaTombstoneTestclientTestcase(BrokerTestclientTestcase):
-    @pytest.mark.parametrize(
-        "use_publisher",
-        (pytest.param(False, id="broker"), pytest.param(True, id="publisher")),
-    )
-    async def test_publish_tombstone(self, queue: str, use_publisher: bool) -> None:
+    async def test_broker_publish_tombstone(self, queue: str, mock: Mock) -> None:
         broker = self.get_broker(apply_types=True)
-        seen = []
 
         @broker.subscriber(queue)
         async def handler(raw: Any = Context("message")) -> None:
             value = raw.raw_message.value
-            seen.append(value() if callable(value) else value)
+            mock(value() if callable(value) else value)
+
+        async with self.patch_broker(broker) as test:
+            await test.publish(TOMBSTONE, queue, key=b"delete")
+
+        mock.assert_called_once_with(None)
+
+    async def test_publisher_publish_tombstone(self, queue: str, mock: Mock) -> None:
+        broker = self.get_broker(apply_types=True)
+
+        @broker.subscriber(queue)
+        async def handler(raw: Any = Context("message")) -> None:
+            value = raw.raw_message.value
+            mock(value() if callable(value) else value)
 
         publisher = broker.publisher(queue, key=b"delete")
-        async with self.patch_broker(broker) as test:
-            if use_publisher:
-                await publisher.publish(TOMBSTONE)
-            else:
-                await test.publish(TOMBSTONE, queue, key=b"delete")
+        async with self.patch_broker(broker):
+            await publisher.publish(TOMBSTONE)
 
-        assert seen == [None]
+        mock.assert_called_once_with(None)
 
     async def test_rejects_keyless_and_batched_tombstones(self, queue: str) -> None:
         broker = self.get_broker()
