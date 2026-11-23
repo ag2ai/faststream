@@ -73,6 +73,9 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             if inbox_prefix := self.extra_options.get("inbox_prefix"):
                 extra_options["inbox_prefix"] = inbox_prefix
 
+            if priority_group := self.extra_options.get("priority_group"):
+                extra_options["priority_group"] = priority_group
+
             self._fetch_sub = await self.jetstream.pull_subscribe(
                 subject=self.subject.broker_address,
                 config=self.config,
@@ -117,6 +120,9 @@ class StreamSubscriber(DefaultSubscriber["Msg"]):
             }
             if inbox_prefix := self.extra_options.get("inbox_prefix"):
                 extra_options["inbox_prefix"] = inbox_prefix
+
+            if priority_group := self.extra_options.get("priority_group"):
+                extra_options["priority_group"] = priority_group
 
             self._fetch_sub = await self.jetstream.pull_subscribe(
                 subject=self.subject.broker_address,

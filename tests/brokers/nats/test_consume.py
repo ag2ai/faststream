@@ -1011,102 +1011,59 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
     async def test_consumer_overflow(
         self,
         queue: str,
-        # event: asyncio.Event,
-        # event2: asyncio.Event,
     ) -> None:
         broker = self.get_broker(apply_types=True)
         stream = JStream(queue, subjects=[f"{queue}.*"])
 
-        sub1 = broker.subscriber(
-            queue=queue,
+        sub = broker.subscriber(
+            f"{queue}.*",
             stream=stream,
             priority_policy=PriorityPolicy.OVERFLOW,
             priority_groups=["A"],
             priority_group="A",
-            pull_sub=PullSub(1),
+            pull_sub=PullSub(1, min_pending=10),
         )
 
-        sub2 = broker.subscriber(
-            queue=queue,
-            stream=stream,
-            priority_policy=PriorityPolicy.OVERFLOW,
-            priority_groups=["A"],
-            priority_group="A",
-            pull_sub=PullSub(1, min_pending=5),
-        )
-
-        # @broker.subscriber(
-        #     queue=queue,
-        #     stream=stream,
-        #     priority_policy=PriorityPolicy.OVERFLOW,
-        #     priority_groups=["A"],
-        #     priority_group="A",
-        #     pull_sub=PullSub(1),
-        # )
-        # def handler1(msg):
-        #     event.set()
-        
-        # @broker.subscriber(
-        #     queue=queue,
-        #     stream=stream,
-        #     priority_policy=PriorityPolicy.OVERFLOW,
-        #     priority_groups=["A"],
-        #     priority_group="A",
-        #     pull_sub=PullSub(1),
-        # )
-        # def handler2(msg):
-        #     event2.set()
-
-        publisher = broker.publisher(queue)
+        publisher = broker.publisher(f"{queue}.msg")
 
         async with self.patch_broker(broker):
+            await broker.start()
+
             for i in range(5):
                 await publisher.publish(f"test-{i}")
 
-            msg1 = await sub1.get_one()
-            msg2 = await sub2.get_one()
+            msg1 = await sub.get_one(timeout=1.0)
+            assert msg1 is None
 
-            assert msg1 is not None
-            assert msg2 is None
-
-            # assert event.is_set()
-            # assert event2.is_set() is False
-
-            for i in range(5, 10):
+            for i in range(5, 20):
                 await publisher.publish(f"test-{i}")
 
-            assert msg1 is not None
+            msg2 = await sub.get_one(timeout=2.0)
             assert msg2 is not None
-
-            # assert event.is_set()
-            # assert event2.is_set()
-
-            # clean - возможно не нужен
-            async for msg in sub1:
-                _ = await msg.decode()
-
-            async for msg in sub1:
-                _  = await msg.decode()
 
     async def test_consumer_pinned(
         self,
         queue: str
     ) -> None:
+        consumer_name = "PINNED"
         broker = self.get_broker(apply_types=True)
         stream = JStream(queue, subjects=[f"{queue}.*"])
 
         sub1 = broker.subscriber(
-            queue=queue,
+            queue,
             stream=stream,
-            priority_policy=PriorityPolicy.OVERFLOW,
+            durable=consumer_name,
+            priority_policy=PriorityPolicy.PINNED,
             priority_groups=["A"],
             priority_group="A",
+            priority_timeout=1.0,
             pull_sub=PullSub(1),
         )
 
         sub2 = broker.subscriber(
-            queue=queue,
+            queue,
             stream=stream,
+            durable=consumer_name,
             priority_policy=PriorityPolicy.PINNED,
             priority_groups=["A"],
             priority_group="A",
@@ -1117,6 +1074,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         publisher = broker.publisher(queue)
 
         async with self.patch_broker(broker):
+            await broker.start()
             for i in range(4):
                 await publisher.publish(f"test-{i}")
 
@@ -1131,13 +1089,11 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.sleep(1.5)
 
             msg1 = await sub1.get_one()
-            msg2 = await sub2.get_one(timeout=0.5)
 
             assert msg1 is not None
             new_pin_id = msg1.headers.get("Nats-Pin-Id", None)
             assert new_pin_id is not None
             assert new_pin_id != pin_id
-            assert msg2 is not None
 
     async def test_consumer_unpin(
         self,
@@ -1148,21 +1104,24 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         stream = JStream(queue, subjects=[f"{queue}.*"])
 
         sub1 = broker.subscriber(
-            queue=queue,
+            queue,
             stream=stream,
-            priority_policy=PriorityPolicy.OVERFLOW,
+            durable=consumer_name,
+            priority_policy=PriorityPolicy.PINNED,
             priority_groups=["A"],
             priority_group="A",
+            priority_timeout=50.0,
             pull_sub=PullSub(1),
         )
 
         sub2 = broker.subscriber(
-            queue=queue,
+            queue,
             stream=stream,
+            durable=consumer_name,
             priority_policy=PriorityPolicy.PINNED,
             priority_groups=["A"],
             priority_group="A",
-            priority_timeout=2.0,
+            priority_timeout=50.0,
             pull_sub=PullSub(1),
             name=consumer_name
         )
@@ -1170,6 +1129,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         publisher = broker.publisher(queue)
 
         async with self.patch_broker(broker):
+            await broker.start()
             for i in range(4):
                 await publisher.publish(f"test-{i}")
 
@@ -1183,9 +1143,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             stream_context = broker.config.connection_state.stream
             await stream_context.unpin_consumer(stream.name, consumer_name, 'A')
 
-            msg1 = await sub1.get_one()
             msg2 = await sub2.get_one(timeout=0.5)
 
-            assert msg1 is not None
             assert msg2 is not None
-

@@ -74,7 +74,6 @@ class PullStreamSubscriber(
     ) -> None:
         """Endless task consuming messages using NATS Pull subscriber."""
         assert self.subscription
-
         while self.running:  # pragma: no branch
             messages = []
             with suppress(TimeoutError, ConnectionClosedError, ServiceUnavailableError):
@@ -89,6 +88,56 @@ class PullStreamSubscriber(
                 async with anyio.create_task_group() as tg:
                     for msg in messages:
                         tg.start_soon(cb, msg)
+
+    @override
+    async def get_one(self, *, timeout: float = 5) -> Optional["NatsMessage"]:
+        assert not self.calls, (
+            "You can't use `get_one` method if subscriber has registered handlers."
+        )
+
+        if not self._fetch_sub:
+            extra_options = {
+                "pending_bytes_limit": self.extra_options["pending_bytes_limit"],
+                "pending_msgs_limit": self.extra_options["pending_msgs_limit"],
+                "durable": self.extra_options["durable"],
+                "stream": self.extra_options["stream"],
+            }
+            if inbox_prefix := self.extra_options.get("inbox_prefix"):
+                extra_options["inbox_prefix"] = inbox_prefix
+
+            if priority_group := self.extra_options.get("priority_group"):
+                extra_options["priority_group"] = priority_group
+
+            self._fetch_sub = await self.jetstream.pull_subscribe(
+                subject=self.subject.broker_address,
+                config=self.config,
+                **extra_options,
+            )
+
+        try:
+            raw_message = (
+                await self._fetch_sub.fetch(
+                    batch=1,
+                    timeout=timeout,
+                    min_pending=self.pull_sub.min_pending,
+                    min_ack_pending=self.pull_sub.min_pending,
+                )
+            )[0]
+        except (TimeoutError, ConnectionClosedError):
+            return None
+
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
+        msg: NatsMessage = await process_msg(  # type: ignore[assignment]
+            msg=raw_message,
+            middlewares=(
+                m(raw_message, context=context) for m in self._broker_middlewares
+            ),
+            parser=async_parser,
+            decoder=async_decoder,
+        )
+        return msg
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):
@@ -139,8 +188,6 @@ class BatchPullStreamSubscriber(
         self,
         *,
         timeout: float = 5,
-        min_pending: Optional[int] = None,
-        min_ack_pending: Optional[int] = None,
     ) -> Optional["NatsMessage"]:
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
@@ -159,8 +206,8 @@ class BatchPullStreamSubscriber(
             raw_message = await fetch_sub.fetch(
                 batch=1,
                 timeout=timeout,
-                min_pending=min_pending,
-                min_ack_pending=min_ack_pending,
+                min_pending=self.pull_sub.min_pending,
+                min_ack_pending=self.pull_sub.min_ack_pending,
             )
         except TimeoutError:
             return None

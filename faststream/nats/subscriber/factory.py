@@ -133,8 +133,10 @@ def create_subscriber(
             or DEFAULT_JS_SUB_PENDING_BYTES_LIMIT,
             "durable": durable,
             "stream": stream.name,
-            "priority_group": priority_group,
         }
+
+        if priority_groups is not None:
+            extra_options.update({"priority_group": priority_group})
 
         if pull_sub is not None:
             # JS Pull Subscriber

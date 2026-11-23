@@ -61,6 +61,7 @@ dependencies = [
     "fast-depends[pydantic]>=3.0.0",
     "typing-extensions>=4.12.0",
     "anyio>=4.0,<5",
+    "nats-py==2.17",
 ]
 
 [project.optional-dependencies]
