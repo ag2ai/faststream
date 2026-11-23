@@ -23,9 +23,10 @@ def component_payload(request: pytest.FixtureRequest) -> ComponentGenerator:
 
     module = import_module(f"faststream.specification.asyncapi.{request.param}.generate")
 
+    schemas: dict[str, Any] = {}
+    messages: dict[str, Any] = {}
+
     def generate(native: dict[str, Any]) -> dict[str, Any]:
-        schemas: dict[str, Any] = {}
-        messages: dict[str, Any] = {}
         message = module.Message(
             title="Message", payload=prepare_payload(native, prefix="Case")
         )
@@ -44,6 +45,43 @@ def component_payload(request: pytest.FixtureRequest) -> ComponentGenerator:
 
 
 class TestSchemaReferences:
+    def test_colliding_bundles_keep_internal_references(
+        self, component_payload: ComponentGenerator
+    ) -> None:
+        """https://github.com/ag2ai/faststream/pull/3334#pullrequestreview-6020282539."""
+        documents = [
+            component_payload({
+                "title": title,
+                "type": "array",
+                "items": {"$ref": "#/$defs/Container"},
+                "$defs": {
+                    "Container": {
+                        "properties": {"record": {"$ref": "#/$defs/Record"}},
+                    },
+                    "Record": {
+                        "properties": {
+                            "value": {"type": field_type},
+                            "child": {"$ref": "#/$defs/Record"},
+                        },
+                    },
+                },
+            })
+            for title, field_type in (("First", "integer"), ("Second", "string"))
+        ]
+        document = documents[-1]
+        schemas = document["components"]["schemas"]
+        records = [
+            resolve_local_ref(document, schemas[title]["items"]["$ref"])["properties"][
+                "record"
+            ]["$ref"]
+            for title in ("First", "Second")
+        ]
+        assert [resolve_local_ref(document, reference) for reference in records] == [
+            {"properties": {"value": {"type": "integer"}, "child": {"$ref": records[0]}}},
+            {"properties": {"value": {"type": "string"}, "child": {"$ref": records[1]}}},
+        ]
+        assert_local_refs_resolve(document)
+
     def test_overloaded_payloads_keep_separate_definitions(
         self, component_payload: ComponentGenerator
     ) -> None:

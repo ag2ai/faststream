@@ -1,3 +1,5 @@
+from collections import ChainMap
+from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 from urllib.parse import quote, unquote
@@ -84,39 +86,66 @@ _SCHEMA_VALUES = {
 }
 
 
-def move_schema_refs(original: Any, *, root_name: str) -> Any:
+def _rewrite_schema_ref(value: str, root_ref: str, names: dict[str, str]) -> str:
+    for key in ("$defs", "definitions"):
+        prefix = f"#/{key}/"
+        if value.startswith(prefix):
+            name, *tail = unquote(value[len(prefix) :]).split("/")
+            name = name.replace("~1", "/").replace("~0", "~")
+            target = ref("components", "schemas", clear_key(names.get(name, name)))[
+                "$ref"
+            ]
+            return target + ("/" + quote("/".join(tail), safe="/~:._-") if tail else "")
+    if value == "#" or value.startswith("#/"):
+        return root_ref + value[1:]
+    return value
+
+
+def move_schema_refs(original: Any, *, root_name: str, components: dict[str, Any]) -> Any:
     """Move local definitions to AsyncAPI components without changing data literals."""
     data = deepcopy(original)
-
-    def rewrite(value: str, root_ref: str, names: dict[str, str]) -> str:
-        for key in ("$defs", "definitions"):
-            prefix = f"#/{key}/"
-            if value.startswith(prefix):
-                name, *tail = unquote(value[len(prefix) :]).split("/")
-                name = name.replace("~1", "/").replace("~0", "~")
-                target = ref("components", "schemas", clear_key(names.get(name, name)))[
-                    "$ref"
-                ]
-                return target + (
-                    "/" + quote("/".join(tail), safe="/~:._-") if tail else ""
-                )
-        if value == "#" or value.startswith("#/"):
-            return root_ref + value[1:]
-        return value
+    known: ChainMap[str, Any] = ChainMap({}, components)
 
     def visit(
-        schema: Any, root_ref: str, names: dict[str, str], namespace: str = ""
+        schema: Any,
+        root_ref: str,
+        names: dict[str, str],
+        namespace: str = "",
+        *,
+        register: bool = True,
     ) -> Any:
         if not isinstance(schema, dict) or "$id" in schema:
             return schema
         schema = schema.copy()
-        # Retained input definitions belong to one payload, unlike shared models.
-        if namespace and "$ref" in schema:
-            local_names = {
-                name: f"{namespace}:{name}"
+        if namespace and register:
+            definitions = {
+                name: child
                 for key in ("$defs", "definitions")
-                for name in schema.get(key, {})
+                for name, child in schema.get(key, {}).items()
             }
+            local_names = {
+                name: f"{namespace}:{name}" if "$ref" in schema else name
+                for name in definitions
+            }
+            index = 0
+            while definitions:
+                current_names = {**names, **local_names}
+                candidates = {
+                    clear_key(local_names[name]): visit(
+                        child, root_ref, current_names, register=False
+                    )
+                    for name, child in definitions.items()
+                    if clear_key(local_names[name]) in known
+                }
+                if not any(
+                    name in known and known[name] != child
+                    for name, child in candidates.items()
+                ):
+                    break
+                # Rename the whole bundle so dependent definitions stay together.
+                index += 1
+                prefix = namespace if index == 1 else f"{namespace}:{index}"
+                local_names = {name: f"{prefix}:{name}" for name in definitions}
             names = {**names, **local_names}
             for key in ("$defs", "definitions"):
                 if key in schema:
@@ -125,22 +154,19 @@ def move_schema_refs(original: Any, *, root_name: str) -> Any:
                     }
         for key in ("$ref", "$dynamicRef", "$recursiveRef"):
             if isinstance(value := schema.get(key), str):
-                schema[key] = rewrite(value, root_ref, names)
+                schema[key] = _rewrite_schema_ref(value, root_ref, names)
         discriminator = schema.get("discriminator")
         if isinstance(discriminator, dict):
-            discriminator = discriminator.copy()
-            schema["discriminator"] = discriminator
-            if isinstance(mapping := discriminator.get("mapping"), dict):
-                discriminator["mapping"] = {
-                    k: rewrite(v, root_ref, names) if isinstance(v, str) else v
-                    for k, v in mapping.items()
-                }
-            if "propertyName" in discriminator:
-                schema["discriminator"] = discriminator["propertyName"]
+            _convert_discriminator(
+                schema,
+                discriminator,
+                lambda value: _rewrite_schema_ref(value, root_ref, names),
+            )
         for key, value in schema.items():
             if key in _SCHEMA_MAPS and isinstance(value, dict):
                 schema[key] = {
-                    name: visit(child, root_ref, names) for name, child in value.items()
+                    name: visit(child, root_ref, names, register=register)
+                    for name, child in value.items()
                 }
             elif key == "oneOf" and isinstance(value, dict):
                 # FastStream's overloaded-handler payloads use a named map.
@@ -156,18 +182,51 @@ def move_schema_refs(original: Any, *, root_name: str) -> Any:
                         ref("components", "schemas", clear_key(child_name))["$ref"],
                         names,
                         f"{namespace or root_name}:{child_name}",
+                        register=register,
                     )
                 schema[key] = children
             elif (key in _SCHEMA_LISTS or key == "items") and isinstance(value, list):
-                schema[key] = [visit(child, root_ref, names) for child in value]
+                schema[key] = [
+                    visit(child, root_ref, names, register=register) for child in value
+                ]
             elif key in _SCHEMA_VALUES:
-                schema[key] = visit(value, root_ref, names)
+                schema[key] = visit(value, root_ref, names, register=register)
+        if namespace and register:
+            for key in ("$defs", "definitions"):
+                known.update({
+                    clear_key(name): child for name, child in schema.get(key, {}).items()
+                })
         return schema
 
     title = data.get("title", root_name) if isinstance(data, dict) else root_name
-    return visit(
-        data, ref("components", "schemas", clear_key(title))["$ref"], {}, root_name
-    )
+    try:
+        return visit(
+            data, ref("components", "schemas", clear_key(title))["$ref"], {}, root_name
+        )
+    finally:
+        # Avoid retaining the component registry until cyclic garbage collection.
+        known.maps = [{}]
+
+
+def _convert_discriminator(
+    schema: dict[str, Any],
+    original: dict[str, Any],
+    rewrite: Callable[[str], str],
+) -> None:
+    discriminator = original.copy()
+    schema["discriminator"] = discriminator
+    if isinstance(mapping := discriminator.get("mapping"), dict):
+        discriminator["mapping"] = {
+            key: rewrite(value) if isinstance(value, str) else value
+            for key, value in mapping.items()
+        }
+    if "propertyName" in discriminator:
+        name = discriminator["propertyName"]
+        schema["discriminator"] = name
+        schema["properties"] = {name: {}, **schema.get("properties", {})}
+        required = schema.get("required", [])
+        if name not in required:
+            schema["required"] = [*required, name]
 
 
 def pop_schema_definitions(payload: dict[str, Any]) -> dict[str, Any]:

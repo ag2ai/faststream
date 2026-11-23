@@ -273,7 +273,9 @@ def _resolve_msg_payloads(
     Payloads and messages are editable dicts to store schemas for reference in AsyncAPI.
     """
     one_of_list: list[Reference] = []
-    m.payload = move_schema_refs(m.payload, root_name=f"{channel_name}:{m.title}:Payload")
+    m.payload = move_schema_refs(
+        m.payload, root_name=f"{channel_name}:{m.title}:Payload", components=payloads
+    )
 
     payloads.update(pop_schema_definitions(m.payload))
 
@@ -289,16 +291,6 @@ def _resolve_msg_payloads(
             one_of_list.append(
                 Reference(**ref("components", "schemas", formatted_payload_title)),
             )
-
-    elif one_of is not None:
-        # Discriminator case
-        for p in one_of:
-            p_value = next(iter(p.values()))
-            p_title = p_value.split("/")[-1]
-            p_title = clear_key(p_title)
-            if p_title not in payloads:
-                payloads[p_title] = p
-            one_of_list.append(Reference(**ref("components", "schemas", p_title)))
 
     if not one_of_list:
         p_title = m.payload.get("title", f"{channel_name}Payload")

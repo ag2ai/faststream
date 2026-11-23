@@ -336,7 +336,7 @@ def _resolve_msg_payloads(
     assert isinstance(m.payload, dict)
 
     m.payload = move_schema_refs(
-        m.payload, root_name=f"{channel_name}:{message_name}:Payload"
+        m.payload, root_name=f"{channel_name}:{message_name}:Payload", components=payloads
     )
 
     message_name = clear_key(message_name)

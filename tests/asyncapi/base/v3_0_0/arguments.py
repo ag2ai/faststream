@@ -702,6 +702,8 @@ class FastAPICompatible(AsyncAPI300Factory):
                     "properties": {
                         "msg": {
                             "discriminator": "type",
+                            "properties": {"type": {}},
+                            "required": ["type"],
                             "oneOf": [
                                 {"$ref": "#/components/schemas/Sub2"},
                                 {"$ref": "#/components/schemas/Sub"},

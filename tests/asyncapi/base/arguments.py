@@ -44,6 +44,85 @@ class SerializerArgumentsTestcase(SpecificationFactory):
         document = self.get_spec(broker).to_jsonable()
         assert_msgspec_payload(document, annotation)
 
+    def test_msgspec_same_name_models_keep_distinct_schemas(self) -> None:
+        """https://github.com/ag2ai/faststream/pull/3334#pullrequestreview-6020282539."""
+
+        class First:
+            class Record(msgspec.Struct):
+                left_id: int
+
+        class Second:
+            class Record(msgspec.Struct):
+                right_id: str
+
+        broker = self.broker_class(serializer=MsgSpecSerializer())
+
+        @broker.subscriber("first")
+        async def first(value: list[First.Record]) -> None: ...
+
+        @broker.subscriber("second")
+        async def second(value: list[Second.Record]) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        schemas = document["components"]["schemas"]
+        assert [
+            resolve_local_ref(document, schemas[name]["items"]["$ref"])
+            for name in ("First:Message:Payload", "Second:Message:Payload")
+        ] == [
+            IsPartialDict({"properties": {"left_id": {"type": "integer"}}}),
+            IsPartialDict({"properties": {"right_id": {"type": "string"}}}),
+        ]
+        assert_local_refs_resolve(document)
+
+    def test_msgspec_one_of_constraints(self) -> None:
+        """https://github.com/ag2ai/faststream/pull/3334#pullrequestreview-6020282539."""
+        broker = self.broker_class(serializer=MsgSpecSerializer())
+
+        @broker.subscriber("in")
+        async def handle(
+            value: Annotated[
+                int,
+                msgspec.Meta(
+                    extra_json_schema={"oneOf": [{"minimum": 1}, {"maximum": -1}]}
+                ),
+            ],
+        ) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        assert document["components"]["schemas"][
+            "Handle:Message:Payload"
+        ] == IsPartialDict({
+            "type": "integer",
+            "oneOf": [{"minimum": 1}, {"maximum": -1}],
+        })
+
+    def test_msgspec_discriminator_is_declared_on_union(self) -> None:
+        """https://github.com/ag2ai/faststream/pull/3334#pullrequestreview-6020282539."""
+
+        class Created(msgspec.Struct, tag=True):
+            id: int
+
+        class Removed(msgspec.Struct, tag=True):
+            reason: str
+
+        broker = self.broker_class(serializer=MsgSpecSerializer())
+
+        @broker.subscriber("in")
+        async def handle(value: Created | Removed) -> None: ...
+
+        document = self.get_spec(broker).to_jsonable()
+        assert document["components"]["schemas"][
+            "Handle:Message:Payload"
+        ] == IsPartialDict({
+            "discriminator": "type",
+            "properties": {"type": {}},
+            "required": ["type"],
+            "anyOf": [
+                {"$ref": "#/components/schemas/Created"},
+                {"$ref": "#/components/schemas/Removed"},
+            ],
+        })
+
     def test_msgspec_field_alias_and_constraint(self) -> None:
         broker = self.broker_class(serializer=MsgSpecSerializer())
 
