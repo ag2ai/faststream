@@ -12,7 +12,7 @@ from typing_extensions import (
     TypeVar as TypeVar313,
 )
 
-from faststream._internal.basic_types import AsyncFuncAny, DecodedMessage
+from faststream._internal.basic_types import AsyncFuncAny
 from faststream._internal.context.repository import ContextRepo
 from faststream.message import StreamMessage
 from faststream.response.response import PublishCommand
@@ -59,7 +59,7 @@ CustomCallable: TypeAlias = AsyncCustomCallable | SyncCallable
 MsgTypeWithFallback = TypeVar313("MsgTypeWithFallback", default=Any)
 
 Parser: TypeAlias = Callable[[MsgType], Awaitable[StreamMsgType]]
-Decoder: TypeAlias = Callable[[StreamMsgType], Awaitable[DecodedMessage]]
+Decoder: TypeAlias = Callable[[StreamMsgType], Awaitable[Any]]
 
 P_HandlerParams = ParamSpec("P_HandlerParams")
 T_HandlerReturn = TypeVar("T_HandlerReturn")

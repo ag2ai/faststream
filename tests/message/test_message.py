@@ -1,6 +1,5 @@
 import pytest
 
-from faststream._internal.basic_types import DecodedMessage
 from faststream.message import StreamMessage
 
 
@@ -36,9 +35,9 @@ async def test_decode_caches_none_result() -> None:
 async def test_decode_caches_non_none_result() -> None:
     """Regression guard: non-None results must still be cached."""
     call_count = 0
-    sentinel: DecodedMessage = {"key": "value"}
+    sentinel = {"key": "value"}
 
-    async def decoder(_msg: StreamMessage[bytes]) -> DecodedMessage:
+    async def decoder(_msg: StreamMessage[bytes]) -> dict[str, str]:
         nonlocal call_count
         call_count += 1
         return sentinel
