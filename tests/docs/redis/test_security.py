@@ -1,4 +1,5 @@
-from collections.abc import Generator
+import asyncio
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,13 +11,22 @@ from tests.asyncapi.base.v2_6_0 import get_2_6_0_schema
 
 @contextmanager
 def patch_asyncio_open_connection() -> Generator[AsyncMock, None, None]:
-    reader = MagicMock()
-    reader.readline = AsyncMock(return_value=b":1\r\n")
-    reader.read = AsyncMock(return_value=b"")
+    reader = asyncio.StreamReader()
 
-    writer = MagicMock()
-    writer.drain = AsyncMock()
-    writer.wait_closed = AsyncMock()
+    def reply(chunks: Iterable[bytes]) -> None:
+        args = b"".join(chunks).split(b"\r\n")
+        if b"AUTH" in args:
+            reader.feed_data(b"-WRONGPASS invalid username-password pair\r\n")
+        elif b"HELLO" in args:
+            reader.feed_data(b"%1\r\n+proto\r\n:3\r\n")
+        elif b"PING" in args:
+            reader.feed_data(b"+PONG\r\n")
+        else:
+            reader.feed_data(b"+OK\r\n")
+
+    writer = MagicMock(spec=asyncio.StreamWriter)
+    writer.transport.is_closing.return_value = False
+    writer.writelines.side_effect = reply
 
     open_connection = AsyncMock(return_value=(reader, writer))
 
@@ -32,7 +42,7 @@ async def test_base_security() -> None:
         from docs.docs_src.redis.security.basic import broker
 
         async with broker:
-            await broker.ping(0.01)
+            assert await broker.ping()
 
         assert connection.call_args.kwargs["ssl"]
 
@@ -60,10 +70,6 @@ async def test_base_security() -> None:
 async def test_plaintext_security() -> None:
     with patch_asyncio_open_connection() as connection:
         from docs.docs_src.redis.security.plaintext import broker
-
-        # in 8.0.0, the default version of the protocol changed to 3.
-        # because of this, the mocked response does not work.
-        broker.config.broker_config.connection._options["protocol"] = 2
 
         with pytest.raises(AuthenticationError):
             async with broker:
