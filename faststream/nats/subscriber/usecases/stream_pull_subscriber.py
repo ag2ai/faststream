@@ -120,7 +120,7 @@ class PullStreamSubscriber(
                     batch=1,
                     timeout=timeout,
                     min_pending=self.pull_sub.min_pending,
-                    min_ack_pending=self.pull_sub.min_pending,
+                    min_ack_pending=self.pull_sub.min_ack_pending,
                 )
             )[0]
         except (TimeoutError, ConnectionClosedError):
@@ -138,6 +138,54 @@ class PullStreamSubscriber(
             decoder=async_decoder,
         )
         return msg
+
+    @override
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+        assert not self.calls, (
+            "You can't use iterator if subscriber has registered handlers."
+        )
+
+        if not self._fetch_sub:
+            extra_options = {
+                "pending_bytes_limit": self.extra_options["pending_bytes_limit"],
+                "pending_msgs_limit": self.extra_options["pending_msgs_limit"],
+                "durable": self.extra_options["durable"],
+                "stream": self.extra_options["stream"],
+            }
+            if inbox_prefix := self.extra_options.get("inbox_prefix"):
+                extra_options["inbox_prefix"] = inbox_prefix
+
+            if priority_group := self.extra_options.get("priority_group"):
+                extra_options["priority_group"] = priority_group
+
+            self._fetch_sub = await self.jetstream.pull_subscribe(
+                subject=self.subject.broker_address,
+                config=self.config,
+                **extra_options,
+            )
+
+        context = self._outer_config.fd_config.context
+        async_parser, async_decoder = self._get_parser_and_decoder()
+
+        while True:
+            raw_message = (
+                await self._fetch_sub.fetch(
+                    batch=1,
+                    timeout=None,
+                    min_pending=self.pull_sub.min_pending,
+                    min_ack_pending=self.pull_sub.min_ack_pending
+                )
+            )[0]
+
+            msg: NatsMessage = await process_msg(  # type: ignore[assignment]
+                msg=raw_message,
+                middlewares=(
+                    m(raw_message, context=context) for m in self._broker_middlewares
+                ),
+                parser=async_parser,
+                decoder=async_decoder,
+            )
+            yield msg
 
 
 class ConcurrentPullStreamSubscriber(ConcurrentMixin["Msg"], PullStreamSubscriber):

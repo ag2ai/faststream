@@ -584,7 +584,10 @@ class NatsRegistrator(Registrator[Msg, NatsBrokerConfig]):
             persistent: Whether to make the subscriber persistent or not.
             pause_until: Consumer pause until timestamp.
             name: Consumer name.
-            need doc for policy
+            priority_policy: priority policy for a consumer.
+            priority_timeout: the duration (seconds) after which the client will be unpinned if no new.
+            priority_groups: priority groups this consumer supports.
+            priority_group: specific priority group.
 
         Returns:
             LogicSubscriber[Any]: The created subscriber object.

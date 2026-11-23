@@ -1008,7 +1008,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             message = await subscriber.get_one(timeout=5)
             assert message is None
 
-    async def test_consumer_overflow(
+    async def test_min_pending_consumer_overflow(
         self,
         queue: str,
     ) -> None:
@@ -1021,7 +1021,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             priority_policy=PriorityPolicy.OVERFLOW,
             priority_groups=["A"],
             priority_group="A",
-            pull_sub=PullSub(1, min_pending=10),
+            pull_sub=PullSub(1, min_pending=5),
         )
 
         publisher = broker.publisher(f"{queue}.msg")
@@ -1029,17 +1029,60 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         async with self.patch_broker(broker):
             await broker.start()
 
-            for i in range(5):
+            for i in range(3):
                 await publisher.publish(f"test-{i}")
 
             msg1 = await sub.get_one(timeout=1.0)
             assert msg1 is None
 
-            for i in range(5, 20):
+            for i in range(3, 5):
                 await publisher.publish(f"test-{i}")
 
             msg2 = await sub.get_one(timeout=2.0)
             assert msg2 is not None
+
+    async def test_min_ack_pending_consumer_overflow(
+        self,
+        queue: str,
+    ) -> None:
+        consumer_name = "OVERFLOW"
+        broker = self.get_broker(apply_types=True)
+        stream = JStream(queue, subjects=[f"{queue}.*"])
+
+        sub1 = broker.subscriber(
+            f"{queue}.*",
+            stream=stream,
+            durable=consumer_name,
+            priority_policy=PriorityPolicy.OVERFLOW,
+            priority_groups=["A"],
+            priority_group="A",
+            pull_sub=PullSub(1),
+        )
+
+        sub2 = broker.subscriber(
+            f"{queue}.*",
+            stream=stream,
+            durable=consumer_name,
+            priority_policy=PriorityPolicy.OVERFLOW,
+            priority_groups=["A"],
+            priority_group="A",
+            pull_sub=PullSub(1, min_ack_pending=2),
+        )
+
+        publisher = broker.publisher(f"{queue}.msg")
+
+        async with self.patch_broker(broker):
+            await broker.start()
+            for i in range(3):
+                await publisher.publish(f"test-{i}")
+            index_message = 0
+            async for _ in sub1:
+                index_message += 1
+                if index_message >= 2:
+                    break
+            msg = await sub2.get_one(timeout=1.0)
+
+            assert msg is not None
 
     async def test_consumer_pinned(
         self,
@@ -1082,7 +1125,9 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             msg2 = await sub2.get_one(timeout=0.5)
 
             assert msg1 is not None
+
             pin_id = msg1.headers.get("Nats-Pin-Id", None)
+
             assert pin_id is not None
             assert msg2 is None
 
@@ -1091,7 +1136,9 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             msg1 = await sub1.get_one()
 
             assert msg1 is not None
+
             new_pin_id = msg1.headers.get("Nats-Pin-Id", None)
+
             assert new_pin_id is not None
             assert new_pin_id != pin_id
 
@@ -1099,7 +1146,7 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
         self,
         queue: str
     ) -> None:
-        consumer_name = "TEST"
+        consumer_name = "UNPIN"
         broker = self.get_broker(apply_types=True)
         stream = JStream(queue, subjects=[f"{queue}.*"])
 
@@ -1132,7 +1179,6 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
             await broker.start()
             for i in range(4):
                 await publisher.publish(f"test-{i}")
-
             msg1 = await sub1.get_one()
             msg2 = await sub2.get_one(timeout=0.5)
 
