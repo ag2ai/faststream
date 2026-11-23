@@ -84,9 +84,11 @@ class _ListHandlerMixin(LogicSubscriber[BaseRedisMsgType, StreamMsgType]):
 
     @override
     async def _stop_receiving(self) -> None:
-        with anyio.move_on_after(self._outer_config.graceful_timeout):
+        timeout = self._outer_config.graceful_timeout
+        with anyio.move_on_after(timeout):
             async with self._read_lock:
-                pass
+                # A popped message has no ack, so handle the queued ones before `consume` skips them
+                await self.consume_dispatcher.drain(timeout)
 
     @abstractmethod
     def _wrap_raw(self, data: bytes) -> BaseRedisMsgType:

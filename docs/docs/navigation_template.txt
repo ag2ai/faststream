@@ -117,6 +117,7 @@ search:
         - [Key-Value Storage](nats/jetstream/key-value.md)
         - [Object Storage](nats/jetstream/object.md)
         - [Acknowledgement](nats/jetstream/ack.md)
+        - [Atomic Batch Publishing](nats/jetstream/atomic-batch.md)
     - [Publishing](nats/publishing/index.md)
     - [RPC](nats/rpc.md)
     - [Message Information](nats/message.md)
