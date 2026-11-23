@@ -117,7 +117,7 @@ from faststream.kafka import KafkaBroker
 broker = KafkaBroker()
 app = FastStream(broker)
 
-@broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
+@broker.subscriber("events", group_id="group", ack_policy=AckPolicy.MANUAL)
 async def handle_event(msg: str) -> None:
     try:
         do_smth(msg)

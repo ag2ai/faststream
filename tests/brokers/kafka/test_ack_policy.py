@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from aiokafka import AIOKafkaConsumer
+from aiokafka.structs import TopicPartition
 
 from faststream import AckPolicy
 from faststream.kafka import KafkaMessage
@@ -44,6 +45,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         @consume_broker.subscriber(
             queue,
+            group_id=f"{queue}-ack",
             ack_policy=ack_policy,
         )
         async def handler() -> None: ...
@@ -128,6 +130,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=ack_policy,
+            group_id=f"{queue}-ack",
         )
 
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
@@ -185,6 +188,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=ack_policy,
+            group_id=f"{queue}-ack",
         )
 
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
@@ -227,6 +231,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=AckPolicy.NACK_ON_ERROR,
+            group_id=f"{queue}-ack",
         )
 
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
@@ -274,7 +279,11 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
     ) -> None:
         consume_broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.ACK)
 
-        args, kwargs = self.get_subscriber_params(queue, batch=True)
+        args, kwargs = self.get_subscriber_params(
+            queue,
+            batch=True,
+            group_id=f"{queue}-ack",
+        )
 
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: list[str]) -> None:
@@ -298,6 +307,39 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
                 commit.mock.assert_awaited_once()
 
         assert event.is_set()
+
+    @pytest.mark.slow()
+    async def test_inherited_manual_ack_advances_committed_offset(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.MANUAL)
+        router = self.get_router()
+
+        @router.subscriber(
+            queue,
+            group_id=f"{queue}-ack",
+            auto_offset_reset="earliest",
+        )
+        async def handler(msg: KafkaMessage) -> None:
+            await msg.ack()
+            event.set()
+
+        broker.include_router(router)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish("hello", queue)
+            await asyncio.wait_for(event.wait(), timeout=10)
+
+        # Committed offset is the next offset to read: one ack leaves it at 1.
+        consumer = AIOKafkaConsumer(group_id=f"{queue}-ack", enable_auto_commit=False)
+        await consumer.start()
+        try:
+            assert await consumer.committed(TopicPartition(queue, 0)) == 1
+        finally:
+            await consumer.stop()
 
     async def test_reject_on_error_warning(self, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)

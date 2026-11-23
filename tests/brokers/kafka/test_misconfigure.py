@@ -6,7 +6,13 @@ from aiokafka import AIOKafkaConsumer
 from faststream import AckPolicy
 from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream.exceptions import SetupError
-from faststream.kafka import KafkaBroker, KafkaRouter, TopicPartition, annotations
+from faststream.kafka import (
+    KafkaBroker,
+    KafkaRouter,
+    TestKafkaBroker,
+    TopicPartition,
+    annotations,
+)
 from faststream.kafka.subscriber.usecase import ConcurrentBetweenPartitionsSubscriber
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
@@ -121,18 +127,78 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 @pytest.mark.kafka()
 @pytest.mark.asyncio()
 async def test_concurrent_router_subscriber_refuses_inherited_manual_ack() -> None:
-    # Refused before a consumer is built, so the bootstrap is never dialled.
-    broker = KafkaBroker(ack_policy=AckPolicy.ACK)
+    # Refused before connect, so the unreachable bootstrap below is never dialled.
+    broker = KafkaBroker("127.0.0.1:1", ack_policy=AckPolicy.ACK)
     router = KafkaRouter()
 
-    @router.subscriber("test", max_workers=2)
+    @router.subscriber("test", max_workers=2, group_id="test")
     async def handler(body: str) -> None: ...
 
     broker.include_router(router)
-    sub = next(iter(broker.subscribers))
 
     with pytest.raises(SetupError, match="ack_policy"):
-        await sub.start()
+        await broker.start()
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "ack_policy",
+    (
+        pytest.param(AckPolicy.MANUAL, id="manual"),
+        pytest.param(AckPolicy.ACK, id="ack"),
+        pytest.param(
+            AckPolicy.REJECT_ON_ERROR,
+            id="reject_on_error",
+            marks=[
+                pytest.mark.filterwarnings(
+                    "ignore:AckPolicy.REJECT_ON_ERROR has the same effect"
+                )
+            ],
+        ),
+        pytest.param(AckPolicy.NACK_ON_ERROR, id="nack_on_error"),
+    ),
+)
+async def test_group_less_commit_policy_refused_at_start(
+    queue: str,
+    ack_policy: AckPolicy,
+) -> None:
+    broker = KafkaBroker("127.0.0.1:1")
+    broker.subscriber(queue, ack_policy=ack_policy)
+
+    with pytest.raises(SetupError, match="group_id"):
+        await broker.start()
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+async def test_group_less_inherited_commit_policy_refused_at_start() -> None:
+    broker = KafkaBroker("127.0.0.1:1", ack_policy=AckPolicy.NACK_ON_ERROR)
+    router = KafkaRouter()
+
+    @router.subscriber("test")
+    async def handler(body: str) -> None: ...
+
+    broker.include_router(router)
+
+    with pytest.raises(SetupError, match="group_id"):
+        await broker.start()
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+async def test_test_broker_refuses_group_less_inherited_commit_policy() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+    router = KafkaRouter()
+
+    @router.subscriber("test")
+    async def handler(body: str) -> None: ...
+
+    broker.include_router(router)
+
+    with pytest.raises(SetupError, match="group_id"):
+        async with TestKafkaBroker(broker):
+            pass
 
 
 @pytest.mark.kafka()

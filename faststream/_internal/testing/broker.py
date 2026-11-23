@@ -122,6 +122,8 @@ class TestBroker(Generic[Broker, EnterType]):
             started_brokers = []
 
             for broker in self.brokers:
+                if not self.connect_only:
+                    broker._validate_subscribers()
                 if self.with_real:
                     self._fake_start(broker)
                 else:

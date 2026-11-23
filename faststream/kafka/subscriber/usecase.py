@@ -94,6 +94,12 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     @override
     def _pre_start(self) -> None:
         config = cast("KafkaSubscriberConfig", self._subscriber_config)
+        if not config.ack_first and config.group_id is None:
+            msg = (
+                f"ack_policy {config.ack_policy.value!r} commits offsets and needs "
+                "a group_id. Pass group_id=, or use ACK_FIRST."
+            )
+            raise SetupError(msg)
         concurrent = isinstance(self.consume_dispatcher, ConcurrentDispatcher)
         if concurrent and not config.ack_first:
             msg = (

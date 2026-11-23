@@ -93,6 +93,11 @@ class BrokerUsecase(
         """Private method to change broker config state by outer application."""
         self.config.fd_config = config | self.config.fd_config
 
+    def _validate_subscribers(self) -> None:
+        """Refuse to start if a subscriber is misconfigured. Runs before connect."""
+        for sub in self.subscribers:
+            sub._pre_start()
+
     async def start(self) -> None:
         # TODO: filter by already running handlers after TestClient refactor
         for sub in self.subscribers:

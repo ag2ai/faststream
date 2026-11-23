@@ -336,6 +336,7 @@ class KafkaBroker(
         self._connection = None
 
     async def start(self) -> None:
+        self._validate_subscribers()
         await self.connect()
         await super().start()
 

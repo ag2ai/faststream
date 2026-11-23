@@ -1,10 +1,16 @@
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from faststream import AckPolicy
 from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
-from faststream.confluent import KafkaBroker, TopicPartition, annotations
+from faststream.confluent import (
+    KafkaBroker,
+    TestKafkaBroker,
+    TopicPartition,
+    annotations,
+)
 from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.helpers import AsyncConfluentConsumer
 from faststream.exceptions import SetupError
@@ -41,18 +47,53 @@ def test_manual_ack_policy_without_group(queue: str) -> None:
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_concurrent_router_subscriber_refuses_inherited_manual_ack() -> None:
-    # Refused before a consumer is built, so the bootstrap is never dialled.
     broker = KafkaBroker(ack_policy=AckPolicy.ACK)
     router = KafkaRouter()
 
-    @router.subscriber("test", max_workers=2)
+    @router.subscriber("test", max_workers=2, group_id="test")
     async def handler(body: str) -> None: ...
 
     broker.include_router(router)
-    sub = next(iter(broker.subscribers))
 
-    with pytest.raises(SetupError, match="ack_policy"):
-        await sub.start()
+    with (
+        patch.object(broker, "connect", new_callable=AsyncMock) as connect,
+        pytest.raises(SetupError, match="ack_policy"),
+    ):
+        await broker.start()
+
+    # Refusal happens before connect; a call here means it ran too late.
+    connect.assert_not_called()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_group_less_inherited_commit_policy_refused_at_start() -> None:
+    broker = KafkaBroker("127.0.0.1:1", ack_policy=AckPolicy.NACK_ON_ERROR)
+    router = KafkaRouter()
+
+    @router.subscriber("test")
+    async def handler(body: str) -> None: ...
+
+    broker.include_router(router)
+
+    with pytest.raises(SetupError, match="group_id"):
+        await broker.start()
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_test_broker_refuses_group_less_inherited_commit_policy() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+    router = KafkaRouter()
+
+    @router.subscriber("test")
+    async def handler(body: str) -> None: ...
+
+    broker.include_router(router)
+
+    with pytest.raises(SetupError, match="group_id"):
+        async with TestKafkaBroker(broker):
+            pass
 
 
 @pytest.mark.confluent()
