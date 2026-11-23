@@ -11,7 +11,6 @@ from pydantic import BaseModel
 
 from faststream import BaseMiddleware, Context, FastStream, Response, TestApp
 from faststream._internal._compat import dump_json, model_to_json
-from faststream._internal.kafka.tombstone import TOMBSTONE
 from faststream.context import ContextRepo
 from faststream.exceptions import SubscriberNotFound
 
@@ -663,6 +662,8 @@ class BrokerPublishTestcase(BaseTestcaseConfig[Any]):
 @pytest.mark.asyncio()
 class KafkaTombstoneRoutingTestcase(BaseTestcaseConfig[Any]):
     topic_cls: type[Any]
+    tombstone: bytes
+    returns_batch_metadata: bool
     publish_message_cls: type[Any]
 
     @pytest.mark.parametrize(
@@ -704,11 +705,13 @@ class KafkaTombstoneRoutingTestcase(BaseTestcaseConfig[Any]):
             first = keys[0]
             other = next(key for key in keys if partitions[key] != partitions[first])
             metadata = await br.publish_batch(
-                self.publish_message_cls(TOMBSTONE, key=first),
+                self.publish_message_cls(self.tombstone, key=first),
                 self.publish_message_cls(b"after", key=other),
                 topic=queue,
                 no_confirm=no_confirm,
             )
+            if self.returns_batch_metadata:
+                assert isinstance(metadata, asyncio.Future) == no_confirm
             if isinstance(metadata, asyncio.Future):
                 metadata = await asyncio.wait_for(metadata, self.timeout)
             received = {}
@@ -720,5 +723,6 @@ class KafkaTombstoneRoutingTestcase(BaseTestcaseConfig[Any]):
 
         assert received[first][:2] == (None, partitions[first])
         assert received[other][:2] == (b"after", partitions[other])
-        if metadata is not None:
+        if self.returns_batch_metadata:
+            assert metadata is not None
             assert (metadata.partition, metadata.offset) == received[first][1:]

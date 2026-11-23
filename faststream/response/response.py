@@ -119,15 +119,6 @@ class BatchPublishCommand(PublishCommand):
     def batch_bodies(self, value: Sequence["Any"]) -> None:
         self._replace_batch_bodies(value)
 
-    def _replace_batch_bodies(self, value: Sequence[Any]) -> None:
-        self._has_batch_body = bool(value)
-        if len(value) == 0:
-            self.body = None
-            self.extra_bodies = ()
-        else:
-            self.body = value[0]
-            self.extra_bodies = tuple(value[1:])
-
     @classmethod
     def from_cmd(
         cls,
@@ -137,11 +128,20 @@ class BatchPublishCommand(PublishCommand):
     ) -> "BatchPublishCommand":
         raise NotImplementedError
 
+    def _replace_batch_bodies(self, value: Sequence[Any]) -> None:
+        self._has_batch_body = len(value) > 0
+        if self._has_batch_body:
+            self.body = value[0]
+            self.extra_bodies = tuple(value[1:])
+        else:
+            self.body = None
+            self.extra_bodies = ()
+
     @staticmethod
     def _parse_bodies(body: Any, *, batch: bool = False) -> tuple[Any, tuple[Any, ...]]:
         extra_bodies = []
         if batch and isinstance(body, Sequence) and not isinstance(body, (str, bytes)):
-            if body:
+            if len(body) > 0:
                 body, extra_bodies = body[0], body[1:]
             else:
                 body = None

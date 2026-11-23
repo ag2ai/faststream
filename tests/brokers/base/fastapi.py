@@ -1,14 +1,16 @@
 import asyncio
-from collections.abc import AsyncGenerator, Iterator
+import typing
+from collections.abc import AsyncGenerator, Iterator, Sequence
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 from unittest.mock import Mock
 
 import pytest
-from fastapi import BackgroundTasks, Body, Depends, FastAPI, Header
+from fastapi import BackgroundTasks, Body, Depends, FastAPI, Header, Security
 from fastapi.exceptions import RequestValidationError
+from fastapi.security import SecurityScopes
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from faststream import (
     Context as FSContext,
@@ -273,6 +275,13 @@ class FastAPITestcase(BaseTestcaseConfig[Any]):
         mock.assert_called_once_with(True)
 
 
+_BareList = Annotated[typing.List, Body()]  # ruff: ignore[non-pep585-annotation]
+
+
+class _BatchModel(BaseModel):
+    x: int
+
+
 @pytest.mark.asyncio()
 class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
     router_class: Any
@@ -385,69 +394,136 @@ class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
 
         mock.assert_called_once_with(None)
 
-    async def test_tombstone_preserves_explicit_embedded_bytes_parameter(
+    async def test_tombstone_binds_bytes_and_optional_model_independently(
         self, queue: str, mock: Mock
     ) -> None:
+        class Model(BaseModel):
+            msg: bytes
+
+        async def parse_body(msg: Model | None = None) -> Model | None:
+            return msg
+
+        fallback = Mock(return_value=b"fallback")
         router = self.router_class()
         args, kwargs = self.get_subscriber_params(queue)
 
         @router.subscriber(*args, **kwargs)
-        async def handler(msg: Annotated[bytes, Body(embed=True)]) -> None:
-            mock(msg)
+        async def handler(
+            msg: Annotated[bytes, Body(embed=True, default_factory=fallback)],
+            model: Annotated[Model | None, Depends(parse_body)],
+            request: StreamMessage,
+        ) -> None:
+            mock(msg, model, await request.body())
 
         async with self.patch_broker(router.broker) as br:
-            await br.publish(None, queue, key=b"key")
+            await br.publish(TOMBSTONE, queue, key=b"key")
 
-        mock.assert_called_once_with(b"")
+        mock.assert_called_once_with(b"", None, {"msg": b""})
+        fallback.assert_not_called()
+
+    async def test_tombstone_preserves_original_override_cache(self, queue: str) -> None:
+        class Model(BaseModel):
+            msg: bytes = b""
+
+        async def original() -> str:
+            return ""
+
+        async def parent(value: Annotated[str, Depends(original)]) -> str:
+            return value
+
+        async def override(scopes: SecurityScopes, msg: Model | None = None) -> str:
+            return scopes.scopes[0]
+
+        app = FastAPI()
+        app.dependency_overrides[original] = override
+        router = self.router_class(dependency_overrides_provider=app)
+        args, kwargs = self.get_subscriber_params(queue)
+        received = []
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(
+            first: Annotated[str, Security(parent, scopes=["first"])],
+            second: Annotated[str, Security(parent, scopes=["second"])],
+        ) -> None:
+            received.append((first, second))
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(b"", queue)
+            await br.publish(TOMBSTONE, queue, key=b"key")
+
+        ordinary, tombstone = received
+        assert tombstone == ordinary
 
     @pytest.mark.parametrize(
-        "custom_decoder",
-        (pytest.param(False, id="default"), pytest.param(True, id="custom")),
+        ("annotation", "custom_decoder"),
+        (
+            pytest.param(list[_BatchModel | None], False, id="list"),
+            pytest.param(list[_BatchModel | None], True, id="custom-decoder"),
+            pytest.param(
+                Sequence[Annotated[_BatchModel | None, Field(description="record")]]
+                | None,
+                False,
+                id="optional-sequence-with-annotated-item",
+            ),
+            pytest.param(_BareList, False, id="bare-typing-list"),
+        ),
     )
-    async def test_tombstone_batch_binds_nullable_models(
-        self, queue: str, mock: Mock, custom_decoder: bool
+    async def test_tombstone_batch_binds_each_body_field(
+        self, queue: str, mock: Mock, annotation: Any, custom_decoder: bool
     ) -> None:
-        class Model(BaseModel):
-            x: int
-
         async def decoder(_: NativeMessage[Any]) -> list[dict[str, int]]:
             return [{"x": 7}, {"x": 8}]
+
+        async def parse_raw(values: list[Any]) -> list[Any]:
+            return values
 
         router = self.router_class()
         args, kwargs = self.get_subscriber_params(
             queue, batch=True, decoder=decoder if custom_decoder else None
         )
 
-        @router.subscriber(*args, **kwargs)
-        async def handler(msg: list[Model | None]) -> None:
-            mock(msg)
+        async def handler(
+            msg: Any, raw: Annotated[list[Any], Depends(parse_raw)]
+        ) -> None:
+            mock(msg, raw)
+
+        handler.__annotations__["msg"] = annotation
+        router.subscriber(*args, **kwargs)(handler)
 
         publisher = router.broker.publisher(queue, batch=True, key=b"key")
         async with self.patch_broker(router.broker):
-            await publisher.publish(b'{"x": 5}', TOMBSTONE)
+            await publisher.publish(b'{"x": 5}', TOMBSTONE, b"null")
 
-        expected = [Model(x=7), Model(x=8)] if custom_decoder else [Model(x=5), None]
-        mock.assert_called_once_with(expected)
-
-    async def test_tombstone_batch_preserves_bytes(self, queue: str, mock: Mock) -> None:
-        router = self.router_class()
-        args, kwargs = self.get_subscriber_params(queue, batch=True)
-
-        @router.subscriber(*args, **kwargs)
-        async def handler(msg: list[bytes]) -> None:
-            mock(msg)
-
-        publisher = router.broker.publisher(queue, batch=True, key=b"key")
-        async with self.patch_broker(router.broker):
-            await publisher.publish(b"keep", TOMBSTONE)
-
-        mock.assert_called_once_with([b"keep", b""])
+        expected: list[Any]
+        raw: list[Any]
+        if custom_decoder:
+            expected, raw = [_BatchModel(x=7), _BatchModel(x=8)], [{"x": 7}, {"x": 8}]
+        else:
+            raw = [{"x": 5}, b"", None]
+            expected = raw if annotation is _BareList else [_BatchModel(x=5), None, None]
+        mock.assert_called_once_with(expected, raw)
 
 
 @pytest.mark.asyncio()
 class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
     router_class: Any
     broker_router_class: Any
+
+    async def test_json_null_still_binds_to_a_model(self, queue: str, mock: Mock) -> None:
+        class Model(BaseModel):
+            msg: bytes | None
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: Model | None = None) -> None:
+            mock(msg)
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(b"null", queue, headers={"content-type": "application/json"})
+
+        mock.assert_called_once_with(Model(msg=None))
 
     async def test_base(self, queue: str) -> None:
         router = self.router_class()

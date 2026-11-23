@@ -49,7 +49,7 @@ class StreamMessage(Generic[MsgType]):
         self.raw_message = raw_message
         self.body = body
         self.__no_body = _no_body
-        self._batch_body_missing = _batch_body_missing
+        self.__batch_body_missing = _batch_body_missing
         self.reply_to = reply_to
         self.content_type = content_type
         self.source_type = source_type
@@ -65,7 +65,7 @@ class StreamMessage(Generic[MsgType]):
 
         # Setup later
         self.__decoder: AsyncCallable | None = None
-        self.__default_decoder: AsyncCallable | None = None
+        self.__uses_default_decoder = False
         self.__decoded_caches: dict[
             Any,
             Any,
@@ -77,21 +77,23 @@ class StreamMessage(Generic[MsgType]):
         return not self.__no_body
 
     @property
+    def batch_body_missing(self) -> tuple[bool, ...]:
+        """Indicate which records in a batch have no body on the wire."""
+        return self.__batch_body_missing
+
+    @property
     def uses_default_decoder(self) -> bool:
         """Whether the active decoder is the subscriber's default."""
-        return (
-            self.__default_decoder is not None
-            and self.__decoder is self.__default_decoder
-        )
+        return self.__uses_default_decoder
 
     def set_decoder(self, decoder: "AsyncCallable") -> None:
         self.__decoder = decoder
-        self.__default_decoder = None
+        self.__uses_default_decoder = False
 
     def set_default_decoder(self, decoder: "AsyncCallable") -> None:
         """Install the broker's decoder through the usual decoder hook."""
         self.set_decoder(decoder)
-        self.__default_decoder = decoder
+        self.__uses_default_decoder = True
 
     def clear_cache(self) -> None:
         self.__decoded_caches.clear()

@@ -69,7 +69,7 @@ class KafkaMessage(
     @property
     def batch_tombstones(self) -> tuple[bool, ...]:
         """Whether each record has a null Kafka value, in raw message order."""
-        return self._batch_body_missing
+        return self.batch_body_missing
 
     @property
     def raw_headers(self) -> dict[str, bytes | None]:

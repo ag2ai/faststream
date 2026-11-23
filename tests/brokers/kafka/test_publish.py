@@ -1,8 +1,9 @@
 import asyncio
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from aiokafka import AIOKafkaProducer
 from aiokafka.structs import RecordMetadata
 
 from faststream import Context
@@ -15,9 +16,6 @@ from tests.brokers.base.publish import (
 
 from .basic import KafkaTestcaseConfig
 
-if TYPE_CHECKING:
-    from faststream.kafka.publisher.producer import AioKafkaFastProducerImpl
-
 
 @pytest.mark.kafka()
 @pytest.mark.connected()
@@ -26,6 +24,8 @@ class TestPublish(
     KafkaTestcaseConfig, BrokerPublishTestcase, KafkaTombstoneRoutingTestcase
 ):
     topic_cls = Topic
+    tombstone = TOMBSTONE
+    returns_batch_metadata = True
     publish_message_cls = KafkaPublishMessage
 
     @pytest.mark.asyncio()
@@ -33,35 +33,70 @@ class TestPublish(
         "no_confirm",
         (pytest.param(False, id="confirmed"), pytest.param(True, id="future")),
     )
-    async def test_tombstone_batch_surfaces_later_ack_error(
-        self, queue: str, no_confirm: bool
+    @pytest.mark.parametrize(
+        "failure",
+        (
+            pytest.param("enqueue", id="enqueue"),
+            pytest.param("cancel", id="cancel"),
+            pytest.param("ack", id="ack"),
+        ),
+    )
+    async def test_tombstone_batch_raises_before_first_ack(
+        self, queue: str, no_confirm: bool, failure: str
     ) -> None:
-        loop = asyncio.get_running_loop()
-        first = loop.create_future()
-        failed = loop.create_future()
-        first.set_result(MagicMock(spec=RecordMetadata))
-        failed.set_exception(RuntimeError("later record failed"))
-        broker = self.get_broker()
+        observed = asyncio.Event()
+        enqueuing_second = asyncio.Event()
 
-        async with self.patch_broker(broker) as br:
-            driver = cast("AioKafkaFastProducerImpl", br._producer)._producer.producer
+        class ObservedDelivery(asyncio.Future[RecordMetadata]):
+            def exception(self) -> BaseException | None:
+                observed.set()
+                return super().exception()
 
-            async def publish() -> None:
-                result = await br.publish_batch(
-                    KafkaPublishMessage(TOMBSTONE, key=b"delete"),
-                    KafkaPublishMessage(b"keep", key=b"keep"),
-                    topic=queue,
-                    no_confirm=no_confirm,
+        first = ObservedDelivery()
+        later: asyncio.Future[RecordMetadata] = asyncio.Future()
+
+        async def send(
+            _: str, *, key: bytes, **kwargs: Any
+        ) -> asyncio.Future[RecordMetadata]:
+            if key == b"delete":
+                return first
+            enqueuing_second.set()
+            if failure == "enqueue":
+                msg = "enqueue failed"
+                raise RuntimeError(msg)
+            if failure == "cancel":
+                await asyncio.Future()
+            return later
+
+        with patch.object(AIOKafkaProducer, "send", side_effect=send):
+            async with self.patch_broker(self.get_broker()) as br:
+                publishing = asyncio.create_task(
+                    br.publish_batch(
+                        KafkaPublishMessage(TOMBSTONE, key=b"delete"),
+                        KafkaPublishMessage(b"keep", key=b"keep"),
+                        topic=queue,
+                        no_confirm=no_confirm,
+                    )
                 )
-                if isinstance(result, asyncio.Future):
-                    await result
+                await asyncio.wait_for(enqueuing_second.wait(), self.timeout)
+                if failure == "cancel":
+                    publishing.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await publishing
+                elif failure == "enqueue":
+                    with pytest.raises(RuntimeError, match="enqueue failed"):
+                        await asyncio.wait_for(publishing, self.timeout)
+                else:
+                    confirmation = await publishing if no_confirm else publishing
+                    assert isinstance(confirmation, asyncio.Future)
+                    assert not confirmation.done()
+                    later.set_exception(RuntimeError("delivery failed"))
+                    with pytest.raises(RuntimeError, match="delivery failed"):
+                        await asyncio.wait_for(confirmation, self.timeout)
 
-            with (
-                patch.object(driver, "send", side_effect=(first, failed)) as send,
-                pytest.raises(RuntimeError, match="later record failed"),
-            ):
-                await publish()
-            assert send.await_count == 2
+                assert not first.done()
+                first.set_exception(RuntimeError("first delivery failed"))
+                await asyncio.wait_for(observed.wait(), self.timeout)
 
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:
@@ -432,27 +467,41 @@ class TestPublish(
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+        records: asyncio.Queue[tuple[bytes, bytes | None, int]] = asyncio.Queue()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any = Context("message")) -> None:
-            await values.put(msg.raw_message.value)
+            raw = msg.raw_message
+            records.put_nowait((raw.key, raw.value, raw.partition))
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
             if batch:
                 await br.publish_batch(
-                    KafkaPublishMessage(body, key=b"tombstone-key"),
+                    KafkaPublishMessage(None, key=b"keep"),
+                    KafkaPublishMessage(body, key=b"delete"),
+                    KafkaPublishMessage(b"", key=b"empty"),
+                    KafkaPublishMessage(b"null", key=b"json"),
                     topic=queue,
                     partition=0,
                 )
+                expected = [
+                    (b"keep", b"", 0),
+                    (b"delete", None, 0),
+                    (b"empty", b"", 0),
+                    (b"json", b"null", 0),
+                ]
             else:
-                await br.publish(body, queue, key=b"tombstone-key")
-            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+                await br.publish(body, queue, key=b"delete", partition=0)
+                expected = [(b"delete", None, 0)]
+            actual = [
+                await asyncio.wait_for(records.get(), timeout=self.timeout)
+                for _ in expected
+            ]
 
-        assert value is None
+        assert actual == expected
 
     @pytest.mark.asyncio()
     async def test_batch_publisher_with_kafka_response_without_keys(

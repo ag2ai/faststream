@@ -1,5 +1,6 @@
 import pytest
 
+from faststream.kafka import TOMBSTONE
 from faststream.kafka.response import KafkaPublishCommand, KafkaPublishMessage
 from tests.brokers.base.publish_command import BatchKeysTestcase
 
@@ -10,3 +11,4 @@ from .basic import KafkaMemoryTestcaseConfig
 class TestBatchKeys(KafkaMemoryTestcaseConfig, BatchKeysTestcase):
     publish_command_cls = KafkaPublishCommand
     publish_message_cls = KafkaPublishMessage
+    tombstone = TOMBSTONE
