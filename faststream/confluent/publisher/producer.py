@@ -185,11 +185,11 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         """Publish a batch of messages to a topic."""
         headers_to_send = cmd.headers_to_publish()
 
-        encoded_batch, explicit = await encode_kafka_batch(
+        encoded_batch, _ = await encode_kafka_batch(
             cmd.batch_bodies, self.codec, self.serializer, cmd.key_for
         )
         producer = self._producer.producer
-        batch = None if explicit else producer.create_batch()
+        batch = producer.create_batch()
 
         for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:
@@ -200,26 +200,13 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
             else:
                 final_headers = headers_to_send.copy()
 
-            if batch is None:
-                await producer.send(
-                    topic=cmd.destination,
-                    key=cmd.key_for(message_position),
-                    value=tombstone_to_none(message),
-                    partition=cmd.partition,
-                    timestamp_ms=cmd.timestamp_ms,
-                    headers=encode_headers(final_headers),
-                    no_confirm=cmd.no_confirm,
-                )
-                continue
-
             batch.append(
                 key=cmd.key_for(message_position),
-                value=message,
+                value=tombstone_to_none(message),
                 timestamp=cmd.timestamp_ms,
                 headers=encode_headers(final_headers),
             )
 
-        if batch is not None:
-            await producer.send_batch(
-                batch, cmd.destination, partition=cmd.partition, no_confirm=cmd.no_confirm
-            )
+        await producer.send_batch(
+            batch, cmd.destination, partition=cmd.partition, no_confirm=cmd.no_confirm
+        )

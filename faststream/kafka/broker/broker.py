@@ -746,7 +746,8 @@ class KafkaBroker(
         """Publish a message batch.
 
         A batch containing `TOMBSTONE` confirms every record and returns the
-        metadata for its first input record.
+        metadata for its first input record. With `acks=0`, the result is
+        `None` because Kafka sends no acknowledgement.
 
         Args:
             *messages:
@@ -783,6 +784,7 @@ class KafkaBroker(
             no_confirm=no_confirm,
             correlation_id=correlation_id or self.config.id_generator(),
             _publish_type=PublishType.PUBLISH,
+            _batch=True,
         )
 
         return await self._basic_publish_batch(cmd, producer=self.config.producer)
