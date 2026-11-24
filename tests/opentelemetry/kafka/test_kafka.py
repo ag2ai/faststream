@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, call
 
 import pytest
+from aiokafka import ConsumerRecord
 from dirty_equals import IsStr, IsUUID
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
@@ -12,6 +13,8 @@ from opentelemetry.semconv.trace import SpanAttributes as SpanAttr
 from opentelemetry.trace import SpanKind
 
 from faststream.kafka.opentelemetry import KafkaTelemetryMiddleware
+from faststream.kafka.opentelemetry.provider import BatchKafkaTelemetrySettingsProvider
+from faststream.message import StreamMessage
 from faststream.opentelemetry import Baggage, CurrentBaggage
 from faststream.opentelemetry.consts import (
     MESSAGING_DESTINATION_PUBLISH_NAME,
@@ -50,6 +53,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
             assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
 
         if span.kind == SpanKind.CONSUMER and action in {Action.CREATE, Action.PROCESS}:
+            assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
             assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == queue
             assert attrs[SpanAttr.MESSAGING_MESSAGE_ID] == IsStr(regex=r"0-.+")
             assert attrs[SpanAttr.MESSAGING_KAFKA_DESTINATION_PARTITION] == 0
@@ -115,6 +119,8 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
         metrics = self.get_metrics(metric_reader)
         spans = self.get_spans(trace_exporter)
         _, publish, create_process, process = spans
+
+        assert (process.attributes or {})[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
 
         assert (publish.attributes or {})[
             SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
@@ -254,7 +260,9 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
         metrics = self.get_metrics(metric_reader)
         proc_dur, proc_msg, pub_dur, pub_msg = metrics
         spans = self.get_spans(trace_exporter)
-        create_process = spans[-2]
+        create_process, process = spans[-2:]
+
+        assert (process.attributes or {})[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
 
         assert len(spans) == expected_span_count
         assert len(create_process.links) == expected_link_count
@@ -269,3 +277,42 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
             baggage=expected_baggage,
             batch_size=expected_msg_count,
         )
+
+
+@pytest.mark.kafka()
+@pytest.mark.parametrize(
+    ("second_topic", "expected_topic"),
+    (("orders", "orders"), ("payments", None)),
+    ids=["same-topic", "mixed-topics"],
+)
+def test_batch_consume_destination(
+    second_topic: str,
+    expected_topic: str | None,
+) -> None:
+    records = tuple(
+        ConsumerRecord(
+            topic=topic,
+            partition=partition,
+            offset=0,
+            timestamp=0,
+            timestamp_type=0,
+            key=None,
+            value=b"message",
+            checksum=None,
+            serialized_key_size=-1,
+            serialized_value_size=7,
+            headers=(),
+        )
+        for partition, topic in enumerate(("orders", second_topic))
+    )
+    message = StreamMessage(raw_message=records, body=[b"message", b"message"])
+
+    attrs = BatchKafkaTelemetrySettingsProvider().get_consume_attrs_from_message(
+        message,
+    )
+
+    if expected_topic is None:
+        assert SpanAttr.MESSAGING_DESTINATION_NAME not in attrs
+    else:
+        assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == expected_topic
+    assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == "orders"

@@ -66,6 +66,7 @@ class KafkaTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: msg.raw_message.partition,
             SpanAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET: msg.raw_message.offset,
+            SpanAttributes.MESSAGING_DESTINATION_NAME: msg.raw_message.topic,
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.topic,
         }
 
@@ -93,7 +94,7 @@ class BatchKafkaTelemetrySettingsProvider(
     ) -> dict[str, Any]:
         raw_message = msg.raw_message[0]
 
-        return {
+        attrs = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
@@ -104,6 +105,11 @@ class BatchKafkaTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition,
             MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic,
         }
+
+        if all(record.topic == raw_message.topic for record in msg.raw_message):
+            attrs[SpanAttributes.MESSAGING_DESTINATION_NAME] = raw_message.topic
+
+        return attrs
 
     @override
     def get_consume_destination_name(
