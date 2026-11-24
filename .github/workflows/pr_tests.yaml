@@ -569,9 +569,12 @@ jobs:
         run: |
           docker run -d --name redis-cluster --network host redis:8-alpine \
             sh -c "
-              redis-server --port 7001 --cluster-enabled yes --cluster-config-file n1.conf --cluster-node-timeout 5000 --appendonly no --save '' &
-              redis-server --port 7002 --cluster-enabled yes --cluster-config-file n2.conf --cluster-node-timeout 5000 --appendonly no --save '' &
-              redis-server --port 7003 --cluster-enabled yes --cluster-config-file n3.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+              # The test nodes share loopback, so their cluster bus can run without TLS.
+              for node in 1 2 3; do
+                redis-server --port 700\$node --bind 127.0.0.1 --cluster-enabled yes \
+                  --cluster-bus-port-protected-mode no --cluster-config-file n\$node.conf \
+                  --cluster-node-timeout 5000 --appendonly no --save '' &
+              done
               for p in 7001 7002 7003; do
                 until redis-cli -p \$p ping 2>/dev/null; do sleep 0.5; done
               done &&
@@ -579,7 +582,10 @@ jobs:
               echo 'Redis Cluster ready' &&
               tail -f /dev/null
             "
-          timeout 30 bash -c 'until docker logs redis-cluster 2>&1 | grep -q "Redis Cluster ready"; do sleep 1; done'
+          timeout 30 bash -c 'until docker logs redis-cluster 2>&1 | grep -q "Redis Cluster ready"; do sleep 1; done' || {
+            docker logs redis-cluster
+            exit 1
+          }
           echo "Redis Cluster is ready!"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

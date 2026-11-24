@@ -54,9 +54,12 @@ services:
       - sh
       - -c
       - |
-        redis-server --port 7001 --cluster-enabled yes --cluster-config-file nodes-1.conf --cluster-node-timeout 5000 --appendonly no --save '' &
-        redis-server --port 7002 --cluster-enabled yes --cluster-config-file nodes-2.conf --cluster-node-timeout 5000 --appendonly no --save '' &
-        redis-server --port 7003 --cluster-enabled yes --cluster-config-file nodes-3.conf --cluster-node-timeout 5000 --appendonly no --save '' &
+        # The test nodes share loopback, so their cluster bus can run without TLS.
+        for node in 1 2 3; do
+          redis-server --port 700$$node --bind 127.0.0.1 --cluster-enabled yes \
+            --cluster-bus-port-protected-mode no --cluster-config-file nodes-$$node.conf \
+            --cluster-node-timeout 5000 --appendonly no --save '' &
+        done
         for p in 7001 7002 7003; do
           echo "waiting for port $$p ..."
           until redis-cli -p $$p ping 2>/dev/null; do sleep 0.5; done
