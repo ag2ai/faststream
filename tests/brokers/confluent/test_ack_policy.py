@@ -290,7 +290,7 @@ class TestAckPolicy(ConfluentTestcaseConfig, BrokerRealConsumeTestcase):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        """An inherited policy reaches the consumer, not only the ack middleware."""
         broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.NACK_ON_ERROR)
         router = self.get_router()
         received: list[str] = []

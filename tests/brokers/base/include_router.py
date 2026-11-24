@@ -106,7 +106,7 @@ class IncludeSubscriberTestcase(IncludeTestcase):
         assert obj._outer_config.graceful_timeout == 10
 
     def test_broker_ack_policy(self) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        """A subscriber declared before `include_router` takes the broker's ack policy."""
         broker = self.get_broker(ack_policy=AckPolicy.ACK)
         router = self.get_router()
 

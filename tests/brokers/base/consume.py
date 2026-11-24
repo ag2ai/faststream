@@ -522,7 +522,7 @@ class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
         self,
         queue: str,
     ) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        """A failed handler declared before `include_router` nacks, as the broker asks."""
         broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.NACK_ON_ERROR)
         router = self.get_router()
         args, kwargs = self.get_ack_subscriber_params(queue)

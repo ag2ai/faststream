@@ -385,7 +385,7 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
 
     @pytest.mark.asyncio()
     async def test_inherited_ack_first_consumes_with_no_ack(self, queue: str) -> None:
-        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        """An inherited policy reaches `queue.consume`, not only the ack middleware."""
         broker = self.get_broker(ack_policy=AckPolicy.ACK_FIRST)
         router = self.get_router()
 
