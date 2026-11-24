@@ -87,7 +87,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
         }
 
     @override
-    def _on_ack_resolved(self) -> None:
+    def _setup(self) -> None:
         # Mutate, don't replace: handlers already hold bound methods of this parser.
         self.parser.is_manual = self.ack_policy is not AckPolicy.ACK_FIRST
 

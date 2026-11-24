@@ -182,21 +182,21 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     ) -> None:
         await self.stop()
 
-    def _on_ack_resolved(self) -> None:
-        """Broker hook: derive state from the ack policy before consuming."""
-
     def _pre_start(self) -> None:
         """Broker hook: refuse to start with an unsafe configuration.
 
         Runs before start() changes any state.
         """
 
+    def _setup(self) -> None:
+        """Broker hook: derive the state that depends on the composed config."""
+
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
         self._pre_start()
         # A started consumer keeps this policy until stop(), whatever the config does.
         self._ack_state = self.__resolve_ack()
-        self._on_ack_resolved()
+        self._setup()
         self.lock = MultiLock()
         self._stop_task = None
 

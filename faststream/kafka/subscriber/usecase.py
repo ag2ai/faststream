@@ -94,7 +94,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
         }
 
     @override
-    def _on_ack_resolved(self) -> None:
+    def _setup(self) -> None:
         ack_first = self.ack_policy is AckPolicy.ACK_FIRST
         # Mutate, don't replace: handlers already hold bound methods of this parser.
         self.parser.msg_class = KafkaMessage if ack_first else KafkaAckableMessage

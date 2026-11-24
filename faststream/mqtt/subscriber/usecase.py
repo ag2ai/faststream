@@ -45,7 +45,7 @@ class MQTTSubscriber(SubscriberUsecase[zmqtt.Message]):
     ) -> None:
         self._address = config.address
         # version may not be available yet when subscriber is created on a router
-        # before include_router is called; default to V5 and re-resolve in start().
+        # before include_router is called; default to V5 and re-resolve in _setup().
         parser = self._make_parser(config._outer_config)
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
@@ -63,9 +63,6 @@ class MQTTSubscriber(SubscriberUsecase[zmqtt.Message]):
                 RuntimeWarning,
                 stacklevel=3,
             )
-
-    def _build_parser(self) -> MQTTBaseParser:
-        return self._make_parser(self._outer_config)
 
     def _make_parser(self, outer_config: "MQTTBrokerConfig") -> MQTTBaseParser:
         version: MQTTVersion | Literal["unset"] = outer_config.version
@@ -113,14 +110,15 @@ class MQTTSubscriber(SubscriberUsecase[zmqtt.Message]):
         return self.build_log_context(message=message, topic=self.topic)
 
     @override
-    async def start(self) -> None:
-        # Re-resolve the parser now that _outer_config is fully composed
-        # (i.e. include_router has been called and the broker's MQTTBrokerConfig
-        # is reachable through the config chain).
-        parser = self._build_parser()
+    def _setup(self) -> None:
+        # Only now is `_outer_config` fully composed: include_router has run and
+        # the broker's MQTTBrokerConfig is reachable through the config chain.
+        parser = self._make_parser(self._outer_config)
         self._parser = parser.parse_message
         self._decoder = parser.decode_message
 
+    @override
+    async def start(self) -> None:
         await super().start()
 
         if self.calls:
