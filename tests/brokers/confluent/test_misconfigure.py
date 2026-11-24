@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from faststream import AckPolicy
+from faststream import AckPolicy, FastStream, TestApp
 from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream.confluent import (
     KafkaBroker,
@@ -82,7 +82,7 @@ async def test_group_less_inherited_commit_policy_refused_at_start() -> None:
 
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
-async def test_test_broker_refuses_group_less_inherited_commit_policy() -> None:
+async def test_test_app_refuses_group_less_inherited_commit_policy() -> None:
     broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
     router = KafkaRouter()
 
@@ -91,8 +91,9 @@ async def test_test_broker_refuses_group_less_inherited_commit_policy() -> None:
 
     broker.include_router(router)
 
+    # `TestApp` starts the broker here, where a lone `TestKafkaBroker` would
     with pytest.raises(SetupError, match="group_id"):
-        async with TestKafkaBroker(broker):
+        async with TestKafkaBroker(broker), TestApp(FastStream(broker)):
             pass
 
 

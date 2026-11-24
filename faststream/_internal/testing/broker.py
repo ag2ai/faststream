@@ -122,8 +122,6 @@ class TestBroker(Generic[Broker, EnterType]):
             started_brokers = []
 
             for broker in self.brokers:
-                if not self.connect_only:
-                    broker._validate_subscribers()
                 if self.with_real:
                     self._fake_start(broker)
                 else:
@@ -198,6 +196,9 @@ class TestBroker(Generic[Broker, EnterType]):
             yield
 
     def _fake_start(self, broker: Broker, *args: Any, **kwargs: Any) -> None:
+        # Stands in for `broker.start()`, under `TestApp` too: refuse what it refuses
+        broker._validate_subscribers()
+
         for publisher in broker.publishers:
             if getattr(publisher, "_fake_handler", None):
                 continue
