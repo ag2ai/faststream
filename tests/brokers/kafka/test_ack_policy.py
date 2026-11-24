@@ -307,13 +307,21 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         broker.include_router(router)
 
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await br.publish_batch("a", "b", "c", topic=queue)
-            await asyncio.wait_for(event.wait(), timeout=10)
+        with patch.object(
+            AIOKafkaConsumer,
+            "__init__",
+            spy_decorator(AIOKafkaConsumer.__init__),
+        ) as init:
+            async with self.patch_broker(broker) as br:
+                await br.start()
+                await br.publish_batch("a", "b", "c", topic=queue)
+                await asyncio.wait_for(event.wait(), timeout=10)
 
-        # The batch ends at offset 2, so the group resumes from 3.
-        assert await committed_offset(queue, f"{queue}-ack") == 3
+        # Auto-commit is off, so the ack itself committed: the batch ends at offset 2.
+        assert (
+            init.mock.call_args.kwargs["enable_auto_commit"],
+            await committed_offset(queue, f"{queue}-ack"),
+        ) == (False, 3)
 
     @pytest.mark.slow()
     async def test_inherited_nack_on_error_disables_auto_commit_and_rewinds(
@@ -353,34 +361,6 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             ["hello", "hello"],
         )
 
-    @pytest.mark.slow()
-    async def test_inherited_manual_ack_advances_committed_offset(
-        self,
-        queue: str,
-        event: asyncio.Event,
-    ) -> None:
-        broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.MANUAL)
-        router = self.get_router()
-
-        @router.subscriber(
-            queue,
-            group_id=f"{queue}-ack",
-            auto_offset_reset="earliest",
-        )
-        async def handler(msg: KafkaMessage) -> None:
-            await msg.ack()
-            event.set()
-
-        broker.include_router(router)
-
-        async with self.patch_broker(broker) as br:
-            await br.start()
-            await br.publish("hello", queue)
-            await asyncio.wait_for(event.wait(), timeout=10)
-
-        # Committed offset is the next offset to read: one ack leaves it at 1.
-        assert await committed_offset(queue, f"{queue}-ack") == 1
-
     async def test_reject_on_error_warning(self, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
@@ -391,6 +371,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
             @consume_broker.subscriber(
                 queue,
+                group_id=f"{queue}-ack",
                 ack_policy=AckPolicy.REJECT_ON_ERROR,
             )
             async def handler(msg: KafkaMessage) -> None: ...

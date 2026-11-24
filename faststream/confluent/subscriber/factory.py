@@ -2,7 +2,6 @@ import warnings
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
-from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.confluent.schemas import Topic
 from faststream.exceptions import SetupError
@@ -43,7 +42,6 @@ def create_subscriber(
 
     _validate_input_for_misconfigure(
         *declared_topics,
-        group_id=group_id,
         partitions=partitions,
         ack_policy=ack_policy,
         max_workers=max_workers,
@@ -57,11 +55,12 @@ def create_subscriber(
         group_id=group_id,
         connection_data=connection_data,
         no_reply=no_reply,
-        # batch subscribers ignore `max_workers`
-        max_workers=1 if batch else max_workers,
+        max_workers=max_workers,
         _outer_config=config,
         _ack_policy=ack_policy,
     )
+    subscriber_config.validate_ack_policy()
+
     calls = CallsCollection[Any]()
 
     specification = KafkaSubscriberSpecification(
@@ -77,6 +76,8 @@ def create_subscriber(
     )
 
     if batch:
+        # batch subscribers ignore `max_workers`
+        subscriber_config.max_workers = 1
         return BatchSubscriber(
             subscriber_config,
             specification,
@@ -92,7 +93,6 @@ def _validate_input_for_misconfigure(
     ack_policy: "AckPolicy",
     max_workers: int,
     batch: bool,
-    group_id: str | None,
     partitions: Sequence["TopicPartition"],
 ) -> None:
     if batch and max_workers > 1:
@@ -102,8 +102,7 @@ def _validate_input_for_misconfigure(
             stacklevel=4,
         )
 
-    effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy
-    if effective_ack is AckPolicy.REJECT_ON_ERROR:
+    if ack_policy is AckPolicy.REJECT_ON_ERROR:
         warnings.warn(
             "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
             "Consider using ACK for clarity.",
@@ -111,20 +110,12 @@ def _validate_input_for_misconfigure(
             stacklevel=4,
         )
 
-    if effective_ack is not AckPolicy.ACK_FIRST and max_workers > 1:
-        msg = "Max workers not work with manual commit mode."
-        raise SetupError(msg)
-
     if not topics and not partitions:
         msg = "You should provide either `topics` or `partitions`."
         raise SetupError(msg)
 
     if topics and partitions:
         msg = "You can't provide both `topics` and `partitions`."
-        raise SetupError(msg)
-
-    if not group_id and effective_ack is not AckPolicy.ACK_FIRST:
-        msg = "You must use `group_id` with manual commit mode."
         raise SetupError(msg)
 
     declared: dict[str, Topic] = {}

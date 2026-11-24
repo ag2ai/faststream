@@ -27,7 +27,8 @@ if TYPE_CHECKING:
     from faststream.rabbit.configs import RabbitBrokerConfig
     from faststream.rabbit.message import RabbitMessage
     from faststream.rabbit.schemas import RabbitQueue
-    from faststream.rabbit.subscriber.config import RabbitSubscriberConfig
+
+    from .config import RabbitSubscriberConfig
 
 
 class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):

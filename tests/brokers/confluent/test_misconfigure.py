@@ -66,18 +66,24 @@ async def test_concurrent_router_subscriber_refuses_inherited_manual_ack() -> No
 
 
 @pytest.mark.confluent()
-@pytest.mark.asyncio()
-async def test_group_less_inherited_commit_policy_refused_at_start() -> None:
-    broker = KafkaBroker("127.0.0.1:1", ack_policy=AckPolicy.NACK_ON_ERROR)
-    router = KafkaRouter()
-
-    @router.subscriber("test")
-    async def handler(body: str) -> None: ...
-
-    broker.include_router(router)
+def test_group_less_inherited_commit_policy_refused_at_declaration(queue: str) -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
 
     with pytest.raises(SetupError, match="group_id"):
-        await broker.start()
+        broker.subscriber(queue)
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_subscriber_start_refuses_group_less_inherited_commit_policy() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+    router = KafkaRouter()
+    subscriber = router.subscriber("test")
+    broker.include_router(router)
+
+    # A subscriber started on its own never passes through `broker.start()`
+    with pytest.raises(SetupError, match="group_id"):
+        await subscriber.start()
 
 
 @pytest.mark.confluent()

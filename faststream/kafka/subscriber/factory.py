@@ -72,6 +72,7 @@ def create_subscriber(
         _outer_config=config,
         _ack_policy=ack_policy,
     )
+    subscriber_config.validate_ack_policy()
 
     calls = CallsCollection[Any]()
 

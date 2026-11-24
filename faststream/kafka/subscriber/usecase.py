@@ -12,13 +12,11 @@ from aiokafka import (
 from aiokafka.errors import ConsumerStoppedError, KafkaError, UnsupportedCodecError
 from typing_extensions import overload, override
 
-from faststream._internal.endpoint.subscriber.dispatcher import ConcurrentDispatcher
 from faststream._internal.endpoint.subscriber.usecase import SubscriberUsecase
 from faststream._internal.endpoint.subscriber.utils import default_filter
 from faststream._internal.endpoint.utils import process_msg
 from faststream._internal.types import MsgType, P_HandlerParams, T_HandlerReturn
 from faststream._internal.utils.path import Address, AddressSyntax
-from faststream.exceptions import SetupError
 from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.helpers import make_logging_listener
 from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRawMessage
@@ -36,8 +34,9 @@ if TYPE_CHECKING:
     from faststream._internal.endpoint.subscriber.call_item import CallsCollection
     from faststream._internal.types import CustomCallable, Filter
     from faststream.kafka.configs import KafkaBrokerConfig
-    from faststream.kafka.subscriber.config import KafkaSubscriberConfig
     from faststream.message import StreamMessage
+
+    from .config import KafkaSubscriberConfig
 
 
 KAFKA_ADDRESS_SYNTAX = AddressSyntax(
@@ -65,6 +64,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     parser: AioKafkaParser
 
     _outer_config: "KafkaBrokerConfig"
+    _subscriber_config: "KafkaSubscriberConfig"
     _call_wrapper_class = KafkaHandlerCallWrapper
 
     def __init__(
@@ -101,21 +101,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
 
     @override
     def _pre_start(self) -> None:
-        config = cast("KafkaSubscriberConfig", self._subscriber_config)
-        if not config.ack_first and config.group_id is None:
-            msg = (
-                f"ack_policy {config.ack_policy.value!r} commits offsets and needs "
-                "a group_id. Pass group_id=, or use ACK_FIRST."
-            )
-            raise SetupError(msg)
-        concurrent = isinstance(self.consume_dispatcher, ConcurrentDispatcher)
-        if concurrent and not config.ack_first:
-            msg = (
-                f"max_workers={config.max_workers} needs ACK_FIRST, but ack_policy "
-                f"{config.ack_policy.value!r} is inherited from the broker or router. "
-                "Set max_workers=1, or declare ack_policy= on the subscriber."
-            )
-            raise SetupError(msg)
+        self._subscriber_config.validate_ack_policy()
 
     @overload
     def __call__(
@@ -448,10 +434,8 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
             else None
         )
 
-        self.parser = AioKafkaParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
-        )
+        # The message class follows the ack policy, final only once started
+        self.parser = AioKafkaParser(msg_class=KafkaMessage, regex=reg)
         config.parser = self.parser.parse_message
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
@@ -498,10 +482,8 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
             else None
         )
 
-        self.parser = AioKafkaBatchParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
-        )
+        # The message class follows the ack policy, final only once started
+        self.parser = AioKafkaBatchParser(msg_class=KafkaMessage, regex=reg)
         config.decoder = self.parser.decode_batch
         config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)

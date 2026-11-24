@@ -16,7 +16,6 @@ def test_ack_first() -> None:
         _ack_policy=AckPolicy.ACK_FIRST,
     )
 
-    assert config.ack_first
     assert config.auto_ack_disabled
     assert config.ack_policy is AckPolicy.ACK_FIRST
 
