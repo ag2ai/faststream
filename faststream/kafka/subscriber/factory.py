@@ -133,6 +133,8 @@ def _validate_input_for_misconfigure(
             RuntimeWarning,
             stacklevel=4,
         )
+        # one worker in effect: the concurrency rules below do not apply
+        max_workers = 1
 
     if ack_policy is AckPolicy.REJECT_ON_ERROR:
         warn_reject_on_error(stacklevel=4)

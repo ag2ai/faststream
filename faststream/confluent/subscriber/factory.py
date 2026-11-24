@@ -56,7 +56,8 @@ def create_subscriber(
         group_id=group_id,
         connection_data=connection_data,
         no_reply=no_reply,
-        max_workers=max_workers,
+        # batch subscribers ignore `max_workers`
+        max_workers=1 if batch else max_workers,
         _outer_config=config,
         _ack_policy=ack_policy,
     )
@@ -77,8 +78,6 @@ def create_subscriber(
     )
 
     if batch:
-        # batch subscribers ignore `max_workers`
-        subscriber_config.max_workers = 1
         return BatchSubscriber(
             subscriber_config,
             specification,

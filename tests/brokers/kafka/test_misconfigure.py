@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aiokafka import AIOKafkaConsumer
@@ -15,7 +15,10 @@ from faststream.kafka import (
     TopicPartition,
     annotations,
 )
-from faststream.kafka.subscriber.usecase import ConcurrentBetweenPartitionsSubscriber
+from faststream.kafka.subscriber.usecase import (
+    BatchSubscriber,
+    ConcurrentBetweenPartitionsSubscriber,
+)
 from faststream.nats import NatsRouter
 from faststream.rabbit import RabbitRouter
 from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
@@ -136,6 +139,49 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
     # the warning points at the line that registered the subscriber
     assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "include_first",
+    (
+        pytest.param(True, id="router_included_first"),
+        pytest.param(False, id="subscriber_declared_first"),
+    ),
+)
+async def test_batch_ignores_max_workers_under_inherited_commit_policy(
+    include_first: bool,
+    mock: MagicMock,
+) -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.ACK)
+    router = KafkaRouter()
+    if include_first:
+        broker.include_router(router)
+
+    with pytest.warns(RuntimeWarning, match="`max_workers` option is ignored"):
+        subscriber = router.subscriber(
+            "orders",
+            "audit",
+            group_id="workers",
+            batch=True,
+            max_workers=2,
+        )
+
+    # sequential, whichever came first: the declaration or the include
+    assert isinstance(subscriber, BatchSubscriber)
+
+    @subscriber
+    async def handler(body: list[str]) -> None:
+        mock(body)
+
+    # a no-op when the router is already included
+    broker.include_router(router)
+
+    async with TestKafkaBroker(broker) as br:
+        await br.publish_batch("a", "b", topic="audit")
+
+    mock.assert_called_once_with(["a", "b"])
 
 
 @pytest.mark.kafka()

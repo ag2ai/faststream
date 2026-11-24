@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -14,6 +14,7 @@ from faststream.confluent import (
 )
 from faststream.confluent.broker.router import KafkaRouter
 from faststream.confluent.helpers import AsyncConfluentConsumer
+from faststream.confluent.subscriber.usecase import BatchSubscriber
 from faststream.exceptions import SetupError
 from faststream.nats import NatsRouter
 from tests.brokers.base.driver_annotations import DriverAnnotationTestcase
@@ -72,6 +73,24 @@ def test_group_less_inherited_commit_policy_refused_at_declaration(queue: str) -
 
     with pytest.raises(SetupError, match="group_id"):
         broker.subscriber(queue)
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+async def test_group_from_broker_config_serves_inherited_commit_policy(
+    queue: str,
+    mock: MagicMock,
+) -> None:
+    broker = KafkaBroker(config={"group.id": "workers"}, ack_policy=AckPolicy.ACK)
+
+    @broker.subscriber(queue)
+    async def handler(body: str) -> None:
+        mock(body)
+
+    async with TestKafkaBroker(broker) as br:
+        await br.publish("hello", queue)
+
+    mock.assert_called_once_with("hello")
 
 
 @pytest.mark.confluent()
@@ -138,6 +157,49 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
     # the warning points at the line that registered the subscriber
     assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+@pytest.mark.parametrize(
+    "include_first",
+    (
+        pytest.param(True, id="router_included_first"),
+        pytest.param(False, id="subscriber_declared_first"),
+    ),
+)
+async def test_batch_ignores_max_workers_under_inherited_commit_policy(
+    include_first: bool,
+    mock: MagicMock,
+) -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.ACK)
+    router = KafkaRouter()
+    if include_first:
+        broker.include_router(router)
+
+    with pytest.warns(RuntimeWarning, match="`max_workers` option is ignored"):
+        subscriber = router.subscriber(
+            "orders",
+            "audit",
+            group_id="workers",
+            batch=True,
+            max_workers=2,
+        )
+
+    # sequential, whichever came first: the declaration or the include
+    assert isinstance(subscriber, BatchSubscriber)
+
+    @subscriber
+    async def handler(body: list[str]) -> None:
+        mock(body)
+
+    # a no-op when the router is already included
+    broker.include_router(router)
+
+    async with TestKafkaBroker(broker) as br:
+        await br.publish_batch("a", "b", topic="audit")
+
+    mock.assert_called_once_with(["a", "b"])
 
 
 @pytest.mark.confluent()

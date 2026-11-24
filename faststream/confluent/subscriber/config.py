@@ -53,7 +53,10 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
         if self.ack_first:
             return
 
-        if not self.group_id:
+        # `group.id` in the broker's `config` names the group too: the consumer
+        # builder merges it over `group_id`.
+        consumer_config = self._outer_config.connection_config.consumer_config
+        if not (consumer_config.get("group.id") or self.group_id):
             msg = (
                 f"ack_policy {self.ack_policy.value!r} commits offsets and needs "
                 "a group_id. Pass group_id=, or use ACK_FIRST."
