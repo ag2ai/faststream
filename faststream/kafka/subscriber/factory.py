@@ -2,7 +2,6 @@ import warnings
 from collections.abc import Collection
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from faststream._internal.constants import EMPTY
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.kafka._compat import validate_client_rack
@@ -51,16 +50,6 @@ def create_subscriber(
 ]:
     declared_topics = [Topic.validate(t) for t in topics]
 
-    _validate_input_for_misconfigure(
-        *declared_topics,
-        pattern=pattern,
-        partitions=partitions,
-        ack_policy=ack_policy,
-        max_workers=max_workers,
-        batch=batch,
-        client_rack=connection_args.get("client_rack"),
-    )
-
     subscriber_config = KafkaSubscriberConfig(
         topics=declared_topics,
         partitions=partitions,
@@ -71,6 +60,17 @@ def create_subscriber(
         no_reply=no_reply,
         _outer_config=config,
         _ack_policy=ack_policy,
+    )
+
+    _validate_input_for_misconfigure(
+        *declared_topics,
+        pattern=pattern,
+        partitions=partitions,
+        ack_policy=ack_policy,
+        ack_first=subscriber_config.ack_first,
+        max_workers=max_workers,
+        batch=batch,
+        client_rack=connection_args.get("client_rack"),
     )
     subscriber_config.validate_ack_policy()
 
@@ -117,6 +117,7 @@ def create_subscriber(
 def _validate_input_for_misconfigure(
     *topics: "Topic",
     ack_policy: "AckPolicy",
+    ack_first: bool,
     max_workers: int,
     batch: bool,
     pattern: str | None,
@@ -132,8 +133,7 @@ def _validate_input_for_misconfigure(
             stacklevel=4,
         )
 
-    effective_ack = AckPolicy.ACK_FIRST if ack_policy is EMPTY else ack_policy
-    if effective_ack is AckPolicy.REJECT_ON_ERROR:
+    if ack_policy is AckPolicy.REJECT_ON_ERROR:
         warnings.warn(
             "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
             "Consider using ACK for clarity.",
@@ -141,7 +141,8 @@ def _validate_input_for_misconfigure(
             stacklevel=4,
         )
 
-    if max_workers > 1 and effective_ack is not AckPolicy.ACK_FIRST:
+    # `ack_first` is the resolved policy: one inherited from the broker counts too
+    if max_workers > 1 and not ack_first:
         if len(topics) > 1:
             msg = "You must use a single topic with concurrent manual commit mode."
             raise SetupError(msg)

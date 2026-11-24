@@ -80,6 +80,15 @@ def test_wrong_destination(args: list[str], kwargs: dict[str, Any]) -> None:
 
 
 @pytest.mark.kafka()
+def test_inherited_manual_commit_refuses_several_concurrent_topics() -> None:
+    broker = KafkaBroker(ack_policy=AckPolicy.ACK)
+
+    # Used to subscribe to "queue1" alone, without a word about "queue2"
+    with pytest.raises(SetupError, match="single topic"):
+        broker.subscriber("queue1", "queue2", group_id="group", max_workers=3)
+
+
+@pytest.mark.kafka()
 def test_max_workers_configuration(queue: str) -> None:
     broker = KafkaBroker()
 
