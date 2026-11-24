@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -135,6 +136,38 @@ def test_max_workers_ignored_by_batch(queue: str) -> None:
 
     # the warning points at the line that registered the subscriber
     assert [w.filename for w in record if "max_workers" in str(w.message)] == [__file__]
+
+
+@pytest.mark.kafka()
+@pytest.mark.parametrize(
+    "set_policy",
+    (
+        pytest.param(
+            lambda: KafkaBroker(ack_policy=AckPolicy.REJECT_ON_ERROR),
+            id="broker",
+        ),
+        pytest.param(
+            lambda: KafkaRouter(ack_policy=AckPolicy.REJECT_ON_ERROR),
+            id="router",
+        ),
+        pytest.param(
+            lambda: KafkaBroker().subscriber(
+                "test",
+                group_id="group",
+                ack_policy=AckPolicy.REJECT_ON_ERROR,
+            ),
+            id="subscriber",
+        ),
+    ),
+)
+def test_reject_on_error_warns_where_it_is_set(set_policy: Callable[[], object]) -> None:
+    with pytest.warns(UserWarning, match="REJECT_ON_ERROR has the same effect") as record:
+        set_policy()
+
+    # the warning points at the line that set the policy, whatever the level
+    assert [w.filename for w in record if "REJECT_ON_ERROR" in str(w.message)] == [
+        __file__
+    ]
 
 
 @pytest.mark.kafka()

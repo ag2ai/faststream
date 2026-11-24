@@ -1,4 +1,3 @@
-import warnings
 from collections.abc import AsyncIterator, Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Literal
@@ -54,15 +53,6 @@ class MQTTSubscriber(SubscriberUsecase[zmqtt.Message]):
         self._qos = config.qos
         self._subscription: zmqtt.Subscription | None = None
         self.last_unsubscribe_result: zmqtt.UnsubscribeResult | None = None
-
-        if config.ack_policy is AckPolicy.NACK_ON_ERROR:
-            warnings.warn(
-                "MQTT has no nack primitive; with NACK_ON_ERROR, "
-                "on error QoS 1/2 messages will not be acknowledged "
-                "and the broker will redeliver them.",
-                RuntimeWarning,
-                stacklevel=3,
-            )
 
     def _make_parser(self, outer_config: "MQTTBrokerConfig") -> MQTTBaseParser:
         version: MQTTVersion | Literal["unset"] = outer_config.version

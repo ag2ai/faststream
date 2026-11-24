@@ -12,6 +12,11 @@ from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.config import KafkaSubscriberConfig
 from faststream.exceptions import SetupError
 
+# The precedence cases put REJECT_ON_ERROR on a broker or a router, where Kafka warns
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:AckPolicy.REJECT_ON_ERROR has the same effect",
+)
+
 
 @pytest.mark.confluent()
 def test_default() -> None:

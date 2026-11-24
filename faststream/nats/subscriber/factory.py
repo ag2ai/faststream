@@ -398,7 +398,7 @@ def _validate_input_for_misconfigure(  # ruff: ignore[too-many-statements]
 
         if ack_policy is AckPolicy.ACK_FIRST:
             warnings.warn(
-                message="The `ack_policy=AckPolicy.ACK_FIRST:` option can be used only with JetStream Push Subscription.",
+                message="The `ack_policy=AckPolicy.ACK_FIRST` option can be used only with JetStream (Pull/Push) Subscription.",
                 category=RuntimeWarning,
                 stacklevel=4,
             )
@@ -416,13 +416,6 @@ def _validate_input_for_misconfigure(  # ruff: ignore[too-many-statements]
             warnings.warn(
                 "The `ordered_consumer` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
                 RuntimeWarning,
-                stacklevel=4,
-            )
-
-        if ack_policy is AckPolicy.ACK_FIRST:
-            warnings.warn(
-                message="The `ack_policy=AckPolicy.ACK_FIRST` option has no effect with JetStream Pull Subscription. It can only be used with JetStream Push Subscription.",
-                category=RuntimeWarning,
                 stacklevel=4,
             )
 

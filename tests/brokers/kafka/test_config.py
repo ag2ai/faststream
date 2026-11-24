@@ -6,6 +6,11 @@ from faststream import AckPolicy
 from faststream.kafka import KafkaBroker, KafkaRouter
 from faststream.kafka.subscriber.config import KafkaSubscriberConfig
 
+# The precedence cases put REJECT_ON_ERROR on a broker or a router, where Kafka warns
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:AckPolicy.REJECT_ON_ERROR has the same effect",
+)
+
 
 @pytest.mark.kafka()
 def test_default() -> None:

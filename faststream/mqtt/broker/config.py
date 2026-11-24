@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast
@@ -10,6 +11,7 @@ from faststream._internal.configs import (
 )
 from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import FeatureNotSupportedException, IncorrectState
+from faststream.middlewares import AckPolicy
 from faststream.mqtt.parser import MQTTVersion
 from faststream.mqtt.publisher.producer import ZmqttFakeProducer
 
@@ -75,6 +77,10 @@ class MQTTBrokerConfig(BrokerConfig):
         for m in self.broker_middlewares:
             self._validate_middleware(m)
 
+        if self.ack_policy is AckPolicy.NACK_ON_ERROR:
+            # up to the `MQTTBroker(...)` or `MQTTRouter(...)` call that set it
+            warn_nack_on_error(stacklevel=4)
+
     @property
     def client(self) -> "zmqtt.MQTTClient":
         if self._client is None:
@@ -108,3 +114,14 @@ class MQTTBrokerConfig(BrokerConfig):
         ):
             msg = "Opentelementry don`t work in 3.1.1 mqtt"
             raise FeatureNotSupportedException(msg)
+
+
+def warn_nack_on_error(stacklevel: int) -> None:
+    """Warn the caller `stacklevel` frames up: MQTT has nothing to nack with."""
+    warnings.warn(
+        "MQTT has no nack primitive; with NACK_ON_ERROR, "
+        "on error QoS 1/2 messages will not be acknowledged "
+        "and the broker will redeliver them.",
+        RuntimeWarning,
+        stacklevel=stacklevel + 1,
+    )

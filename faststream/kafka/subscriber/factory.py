@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
 from faststream.exceptions import SetupError
 from faststream.kafka._compat import validate_client_rack
+from faststream.kafka.configs.broker import warn_reject_on_error
 from faststream.kafka.schemas import Topic
 from faststream.middlewares import AckPolicy
 
@@ -134,12 +135,7 @@ def _validate_input_for_misconfigure(
         )
 
     if ack_policy is AckPolicy.REJECT_ON_ERROR:
-        warnings.warn(
-            "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
-            "Consider using ACK for clarity.",
-            UserWarning,
-            stacklevel=4,
-        )
+        warn_reject_on_error(stacklevel=4)
 
     # `ack_first` is the resolved policy: one inherited from the broker counts too
     if max_workers > 1 and not ack_first:

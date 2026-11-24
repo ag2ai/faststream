@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
@@ -20,6 +21,7 @@ from faststream.kafka.publisher.producer import (
     FakeAioKafkaFastProducer,
 )
 from faststream.kafka.schemas.params import ConsumerConnectionParams
+from faststream.middlewares import AckPolicy
 
 
 def _context_annotations_factory() -> UnderlyingDriverAnnotations:
@@ -77,6 +79,13 @@ class KafkaBrokerConfig(BrokerConfig):
         default_factory=_context_annotations_factory,
     )
 
+    def __post_init__(self) -> None:
+        super().__post_init__()
+
+        if self.ack_policy is AckPolicy.REJECT_ON_ERROR:
+            # up to the `KafkaBroker(...)` or `KafkaRouter(...)` call that set it
+            warn_reject_on_error(stacklevel=4)
+
     @property
     def admin_client(self) -> "aiokafka.admin.client.AIOKafkaAdminClient":
         return self.admin.client
@@ -109,3 +118,13 @@ class KafkaBrokerConfig(BrokerConfig):
 
         if not self.consumer_only:
             await self.producer.disconnect()
+
+
+def warn_reject_on_error(stacklevel: int) -> None:
+    """Warn the caller `stacklevel` frames up: Kafka has nothing to reject with."""
+    warnings.warn(
+        "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
+        "Consider using ACK for clarity.",
+        UserWarning,
+        stacklevel=stacklevel + 1,
+    )

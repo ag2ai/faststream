@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Union
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.confluent.configs.broker import warn_reject_on_error
 from faststream.confluent.schemas import Topic
 from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
@@ -103,12 +104,7 @@ def _validate_input_for_misconfigure(
         )
 
     if ack_policy is AckPolicy.REJECT_ON_ERROR:
-        warnings.warn(
-            "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
-            "Consider using ACK for clarity.",
-            UserWarning,
-            stacklevel=4,
-        )
+        warn_reject_on_error(stacklevel=4)
 
     if not topics and not partitions:
         msg = "You should provide either `topics` or `partitions`."
