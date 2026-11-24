@@ -16,11 +16,8 @@ _BrokerT = TypeVar(
 
 class BaseTestcaseConfig(Generic[_BrokerT]):
     timeout: float = 3.0
-    # Default channel/list/core subscribers that force MANUAL ack have no
-    # AcknowledgementMiddleware, so cancel cannot hit the shared ack skip path.
-    supports_cancel_ack_skip: bool = True
     nack_is_observable: bool = True
-    redelivers_to_new_consumer: bool = True
+    """Whether a nack reaches `StreamMessage.nack`; MQTT has none to send."""
 
     @abstractmethod
     def get_broker(
@@ -74,16 +71,13 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
     ]:
         return args, kwargs
 
-    def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
-        """Extra subscriber kwargs for cancel acknowledgement-skip consume tests."""
-        return {}
-
     def get_ack_subscriber_params(
         self,
         queue: str,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        """Subscriber whose acknowledgement the in-memory ack tests observe."""
-        return self.get_subscriber_params(queue)
+        """A subscriber that settles: Kafka needs a group, NATS and Redis a stream."""
+        return self.get_subscriber_params(queue, **kwargs)
 
     async def publish_to_ack_subscriber(
         self,
@@ -91,7 +85,7 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
         queue: str,
         message: str,
     ) -> None:
-        """Publish to the destination that `get_ack_subscriber_params` declared."""
+        """Reach `get_ack_subscriber_params`; NATS and Redis address the stream."""
         await broker.publish(message, queue)
 
     @abstractmethod

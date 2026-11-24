@@ -2,6 +2,8 @@ from typing import Any
 
 import pytest
 
+from faststream import AckPolicy
+
 from .basic import BaseTestcaseConfig
 
 
@@ -102,6 +104,19 @@ class IncludeSubscriberTestcase(IncludeTestcase):
         broker.include_router(router)
 
         assert obj._outer_config.graceful_timeout == 10
+
+    def test_broker_ack_policy(self) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        broker = self.get_broker(ack_policy=AckPolicy.ACK)
+        router = self.get_router()
+
+        # a plain "test" subscriber settles nothing on NATS and Redis
+        args, kwargs = self.get_ack_subscriber_params("test")
+        obj = router.subscriber(*args, **kwargs)
+
+        broker.include_router(router)
+
+        assert obj.ack_policy is AckPolicy.ACK
 
     def test_simple_router_prefix(self) -> None:
         broker = self.get_broker()

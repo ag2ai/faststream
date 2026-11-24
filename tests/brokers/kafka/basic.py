@@ -30,16 +30,14 @@ class KafkaTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
         # its "latest" offset; each test's topic is fresh, so "earliest" is safe.
         return args, {"auto_offset_reset": "earliest", **kwargs}
 
-    def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
-        return {"group_id": f"{queue}-cancel-ack"}
-
     @override
     def get_ack_subscriber_params(
         self,
         queue: str,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         # Manual acknowledgement needs a consumer group.
-        return self.get_subscriber_params(queue, group_id=f"{queue}-ack")
+        return self.get_subscriber_params(queue, group_id=f"{queue}-ack", **kwargs)
 
 
 class KafkaMemoryTestcaseConfig(KafkaTestcaseConfig):

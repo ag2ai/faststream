@@ -8,10 +8,6 @@ from tests.brokers.base.basic import BaseTestcaseConfig
 
 
 class NatsTestcaseConfig(BaseTestcaseConfig[NatsBroker]):
-    supports_cancel_ack_skip: bool = False
-    # Ack params use an ephemeral JetStream consumer, so a restart replays acked messages.
-    redelivers_to_new_consumer: bool = False
-
     def get_broker(
         self,
         apply_types: bool = False,
@@ -26,9 +22,10 @@ class NatsTestcaseConfig(BaseTestcaseConfig[NatsBroker]):
     def get_ack_subscriber_params(
         self,
         queue: str,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         # Core subjects force MANUAL ack; JetStream carries the acknowledgement.
-        return (queue,), {"stream": JStream(queue)}
+        return (queue,), {"stream": JStream(queue), **kwargs}
 
     @override
     async def publish_to_ack_subscriber(

@@ -36,21 +36,14 @@ class ConfluentTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
             **kwargs,
         }
 
-    def get_cancel_ack_subscriber_kwargs(self, queue: str) -> dict[str, Any]:
-        return {"group_id": f"{queue}-cancel-ack"}
-
     @override
     def get_ack_subscriber_params(
         self,
         queue: str,
+        **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        # Manual acknowledgement needs a consumer group. No offset is pinned, so a
-        # restarted consumer resumes from the offset the group committed.
-        return (), {
-            "auto_offset_reset": "earliest",
-            "partitions": [TopicPartition(queue, partition=0)],
-            "group_id": f"{queue}-ack",
-        }
+        # Manual acknowledgement needs a consumer group.
+        return self.get_subscriber_params(queue, group_id=f"{queue}-ack", **kwargs)
 
     def get_broker(
         self,
