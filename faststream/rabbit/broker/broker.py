@@ -304,6 +304,7 @@ class RabbitBroker(
 
     async def start(self) -> None:
         """Connect broker to RabbitMQ and startup all subscribers."""
+        self._validate_subscribers()
         await self.connect()
         await self.declare_queue(RABBIT_REPLY)
         await super().start()

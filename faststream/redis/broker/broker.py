@@ -192,6 +192,7 @@ class RedisBroker(
         self._connection = None
 
     async def start(self) -> None:
+        self._validate_subscribers()
         _ = await self.connect()
         await super().start()
 
