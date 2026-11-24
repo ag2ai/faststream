@@ -123,12 +123,6 @@ def create_subscriber(
 
         else:
             # JS Push Subscriber
-            if ack_policy is AckPolicy.ACK_FIRST:
-                manual_ack = False
-                ack_policy = AckPolicy.MANUAL
-            else:
-                manual_ack = True
-
             extra_options.update(
                 {
                     "ordered_consumer": ordered_consumer,
@@ -136,7 +130,9 @@ def create_subscriber(
                     "flow_control": flow_control,
                     "deliver_policy": deliver_policy,
                     "headers_only": headers_only,
-                    "manual_ack": manual_ack,
+                    # nats-py's own auto-ack fires after the callback returns, so the
+                    # ack middleware settles every policy instead, ACK_FIRST included.
+                    "manual_ack": True,
                 },
             )
 

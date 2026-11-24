@@ -426,6 +426,57 @@ class TestConsume(NatsTestcaseConfig, BrokerRealConsumeTestcase):
 
         assert event.is_set()
 
+    @pytest.mark.parametrize(
+        "declared_on_subscriber",
+        (
+            pytest.param(True, id="declared_on_subscriber"),
+            pytest.param(False, id="inherited_from_broker"),
+        ),
+    )
+    async def test_push_ack_first_acks_before_handler(
+        self,
+        queue: str,
+        stream: JStream,
+        mock: MagicMock,
+        event: asyncio.Event,
+        declared_on_subscriber: bool,
+    ) -> None:
+        router = self.get_router()
+
+        if declared_on_subscriber:
+            broker = self.get_broker(apply_types=True)
+            subscriber = router.subscriber(
+                queue,
+                stream=stream,
+                ack_policy=AckPolicy.ACK_FIRST,
+            )
+        else:
+            broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.ACK_FIRST)
+            subscriber = router.subscriber(queue, stream=stream)
+
+        @subscriber
+        async def handler(msg: NatsMessage) -> None:
+            mock.handler()
+            await msg.nack()
+            event.set()
+
+        broker.include_router(router)
+
+        with (
+            patch.object(Msg, "ack", spy_decorator(Msg.ack)) as ack,
+            patch.object(Msg, "nak", spy_decorator(Msg.nak)) as nak,
+        ):
+            mock.attach_mock(ack.mock, "ack")
+            mock.attach_mock(nak.mock, "nak")
+
+            async with self.patch_broker(broker) as br:
+                await br.start()
+                await br.publish("hello", queue)
+                await asyncio.wait_for(event.wait(), timeout=self.timeout)
+
+        # Acked before the handler runs, so the nack inside it sends nothing.
+        assert [name for name, *_ in mock.mock_calls] == ["ack", "handler"]
+
     async def test_consume_no_ack(
         self, queue: str, stream: str, event: asyncio.Event
     ) -> None:
