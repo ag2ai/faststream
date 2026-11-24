@@ -44,8 +44,13 @@ class ConfluentTestcaseConfig(BaseTestcaseConfig[KafkaBroker]):
         self,
         queue: str,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        # Manual acknowledgement needs a consumer group.
-        return self.get_subscriber_params(queue, group_id=f"{queue}-ack")
+        # Manual acknowledgement needs a consumer group. No offset is pinned, so a
+        # restarted consumer resumes from the offset the group committed.
+        return (), {
+            "auto_offset_reset": "earliest",
+            "partitions": [TopicPartition(queue, partition=0)],
+            "group_id": f"{queue}-ack",
+        }
 
     def get_broker(
         self,

@@ -566,6 +566,7 @@ class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
         subscriber_policy: AckPolicy | None,
         settled: Literal["ack", "nack"],
     ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
         broker = self.get_broker(apply_types=True, ack_policy=broker_policy)
         router_kwargs = {} if router_policy is None else {"ack_policy": router_policy}
         router = self.get_router(**router_kwargs)
@@ -619,6 +620,7 @@ class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
         self,
         queue: str,
     ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
         broker = self.get_broker(ack_policy=AckPolicy.NACK_ON_ERROR)
         router = self.get_router()
         args, kwargs = self.get_ack_subscriber_params(queue)
@@ -764,3 +766,91 @@ class BrokerRealConsumeTestcase(BrokerConsumeTestcase):
 
             calls = [call(msg) for msg in expected_messages]
             mock.assert_has_calls(calls=calls)
+
+    @pytest.mark.slow()
+    @pytest.mark.parametrize(
+        ("ack_policy", "redelivered"),
+        (
+            pytest.param(AckPolicy.ACK, False, id="ack"),
+            pytest.param(
+                AckPolicy.REJECT_ON_ERROR,
+                False,
+                id="reject_on_error",
+                marks=[
+                    pytest.mark.filterwarnings(
+                        "ignore:AckPolicy.REJECT_ON_ERROR has the same effect"
+                    ),
+                ],
+            ),
+            pytest.param(AckPolicy.NACK_ON_ERROR, True, id="nack_on_error"),
+        ),
+    )
+    async def test_settlement_reaches_broker(
+        self,
+        queue: str,
+        ack_policy: AckPolicy,
+        redelivered: bool,
+    ) -> None:
+        if not self.redelivers_to_new_consumer:
+            pytest.skip("a new consumer cannot observe this broker's redelivery")
+
+        args, kwargs = self.get_ack_subscriber_params(queue)
+
+        # The first consumer settles one failing delivery. Leaving its context waits
+        # for that settlement, so the broker state is final when the second starts.
+        first = self.get_broker(apply_types=True)
+        handled = asyncio.Event()
+
+        @first.subscriber(*args, ack_policy=ack_policy, **kwargs)
+        async def fail_first(_msg: Any) -> None:
+            handled.set()
+            raise HandlerError
+
+        async with self.patch_broker(first) as br:
+            await br.start()
+            await self.publish_to_ack_subscriber(br, queue, "hello")
+            await asyncio.wait_for(handled.wait(), timeout=10)
+
+        second = self.get_broker(apply_types=True)
+        received: list[str] = []
+        marker_received = asyncio.Event()
+
+        @second.subscriber(*args, ack_policy=ack_policy, **kwargs)
+        async def replay(body: str) -> None:
+            received.append(body)
+            if body == "marker":
+                marker_received.set()
+
+        async with self.patch_broker(second) as br:
+            await br.start()
+            # Published after "hello", so a redelivered "hello" arrives first.
+            await self.publish_to_ack_subscriber(br, queue, "marker")
+            await asyncio.wait_for(marker_received.wait(), timeout=10)
+
+        assert received == (["hello", "marker"] if redelivered else ["marker"])
+
+    async def test_started_consumer_keeps_its_ack_policy(self, queue: str) -> None:
+        broker = self.get_broker(ack_policy=AckPolicy.ACK)
+        other = self.get_broker(ack_policy=AckPolicy.NACK_ON_ERROR)
+        router = self.get_router()
+        args, kwargs = self.get_ack_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(_msg: Any) -> None: ...
+
+        broker.include_router(router)
+        sub = next(iter(broker.subscribers))
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            # The router moves to another broker while its consumer is running.
+            other.include_router(router)
+            while_running = sub.ack_policy
+            broker.include_router(router)
+
+        # Stopped by now, so the next owner's policy applies.
+        other.include_router(router)
+        assert (while_running, sub.ack_policy) == (
+            AckPolicy.ACK,
+            AckPolicy.NACK_ON_ERROR,
+        )

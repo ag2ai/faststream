@@ -384,6 +384,32 @@ class TestConsume(RabbitTestcaseConfig, BrokerRealConsumeTestcase):
             assert event.is_set()
 
     @pytest.mark.asyncio()
+    async def test_inherited_ack_first_consumes_with_no_ack(self, queue: str) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        broker = self.get_broker(ack_policy=AckPolicy.ACK_FIRST)
+        router = self.get_router()
+
+        @router.subscriber(queue)
+        async def handler(body: str) -> None: ...
+
+        broker.include_router(router)
+
+        with patch.object(
+            RobustQueue,
+            "consume",
+            spy_decorator(RobustQueue.consume),
+        ) as consume:
+            async with self.patch_broker(broker) as br:
+                await br.start()
+
+        # Only the subscriber's own queue: the broker also consumes a reply queue.
+        assert [
+            consume_call.kwargs["no_ack"]
+            for consume_call in consume.mock.call_args_list
+            if consume_call.args[0].name == queue
+        ] == [True]
+
+    @pytest.mark.asyncio()
     async def test_stop_leaves_new_messages_in_queue(
         self,
         queue: str,

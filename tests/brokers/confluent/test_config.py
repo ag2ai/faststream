@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -99,6 +99,20 @@ def test_sub_overrides_broker_and_router() -> None:
     broker.include_router(router)
     sub = router.subscriber("test", group_id="g", ack_policy=AckPolicy.ACK)
     assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.confluent()
+def test_late_included_router_subscriber_disables_auto_commit() -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+    router = KafkaRouter()
+    subscriber: Any = router.subscriber("orders", group_id="workers")
+    broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+    broker.include_router(router)
+
+    assert (
+        subscriber.ack_policy,
+        subscriber._connection_data["enable_auto_commit"],
+    ) == (AckPolicy.NACK_ON_ERROR, False)
 
 
 def build_consumer(

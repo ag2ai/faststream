@@ -7,10 +7,21 @@ from aiokafka.structs import TopicPartition
 
 from faststream import AckPolicy
 from faststream.kafka import KafkaMessage
-from tests.brokers.base.consume import BrokerRealConsumeTestcase
+from tests.brokers.base.consume import BrokerRealConsumeTestcase, HandlerError
 from tests.tools import spy_decorator
 
 from .basic import KafkaTestcaseConfig
+
+
+async def committed_offset(topic: str, group_id: str) -> int | None:
+    """Offset the group resumes from in partition 0, read through a fresh consumer."""
+    consumer = AIOKafkaConsumer(group_id=group_id, enable_auto_commit=False)
+    await consumer.start()
+    try:
+        offset: int | None = await consumer.committed(TopicPartition(topic, 0))
+        return offset
+    finally:
+        await consumer.stop()
 
 
 @pytest.mark.kafka()
@@ -272,12 +283,15 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         assert event.is_set()
 
     @pytest.mark.slow()
-    async def test_batch_commit_called_on_success(
+    async def test_batch_success_commits_next_offset(
         self,
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        consume_broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.ACK)
+        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.ACK)
+        router = self.get_router()
+        received: list[str] = []
 
         args, kwargs = self.get_subscriber_params(
             queue,
@@ -285,28 +299,59 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             group_id=f"{queue}-ack",
         )
 
-        @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: list[str]) -> None:
+            received.extend(msg)
+            if len(received) == 3:
+                event.set()
+
+        broker.include_router(router)
+
+        async with self.patch_broker(broker) as br:
+            await br.start()
+            await br.publish_batch("a", "b", "c", topic=queue)
+            await asyncio.wait_for(event.wait(), timeout=10)
+
+        # The batch ends at offset 2, so the group resumes from 3.
+        assert await committed_offset(queue, f"{queue}-ack") == 3
+
+    @pytest.mark.slow()
+    async def test_inherited_nack_on_error_disables_auto_commit_and_rewinds(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+        broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.NACK_ON_ERROR)
+        router = self.get_router()
+        received: list[str] = []
+
+        args, kwargs = self.get_ack_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(body: str) -> None:
+            received.append(body)
+            if len(received) == 1:
+                raise HandlerError
             event.set()
 
-        async with self.patch_broker(consume_broker) as br:
-            await br.start()
+        broker.include_router(router)
 
-            with patch.object(
-                AIOKafkaConsumer,
-                "commit",
-                spy_decorator(AIOKafkaConsumer.commit),
-            ) as commit:
-                await asyncio.wait(
-                    (
-                        asyncio.create_task(br.publish("hello", queue)),
-                        asyncio.create_task(event.wait()),
-                    ),
-                    timeout=10,
-                )
-                commit.mock.assert_awaited_once()
+        with patch.object(
+            AIOKafkaConsumer,
+            "__init__",
+            spy_decorator(AIOKafkaConsumer.__init__),
+        ) as init:
+            async with self.patch_broker(broker) as br:
+                await br.start()
+                await br.publish("hello", queue)
+                await asyncio.wait_for(event.wait(), timeout=10)
 
-        assert event.is_set()
+        # Auto-commit is off, and the failed record is read again from its offset.
+        assert (init.mock.call_args.kwargs["enable_auto_commit"], received) == (
+            False,
+            ["hello", "hello"],
+        )
 
     @pytest.mark.slow()
     async def test_inherited_manual_ack_advances_committed_offset(
@@ -334,12 +379,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
             await asyncio.wait_for(event.wait(), timeout=10)
 
         # Committed offset is the next offset to read: one ack leaves it at 1.
-        consumer = AIOKafkaConsumer(group_id=f"{queue}-ack", enable_auto_commit=False)
-        await consumer.start()
-        try:
-            assert await consumer.committed(TopicPartition(queue, 0)) == 1
-        finally:
-            await consumer.stop()
+        assert await committed_offset(queue, f"{queue}-ack") == 1
 
     async def test_reject_on_error_warning(self, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)

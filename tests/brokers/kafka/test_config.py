@@ -89,6 +89,20 @@ def test_sub_overrides_broker_and_router() -> None:
 
 
 @pytest.mark.kafka()
+def test_late_included_router_subscriber_disables_auto_commit() -> None:
+    """Fixes https://github.com/ag2ai/faststream/issues/3339."""
+    router = KafkaRouter()
+    subscriber: Any = router.subscriber("orders", group_id="workers")
+    broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+    broker.include_router(router)
+
+    assert (
+        subscriber.ack_policy,
+        subscriber._connection_args["enable_auto_commit"],
+    ) == (AckPolicy.NACK_ON_ERROR, False)
+
+
+@pytest.mark.kafka()
 @pytest.mark.parametrize(
     ("aiokafka_v013", "api_version"),
     (

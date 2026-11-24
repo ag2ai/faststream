@@ -15,6 +15,8 @@ from tests.brokers.base.basic import BaseTestcaseConfig
 
 class RedisTestcaseConfig(BaseTestcaseConfig[RedisBroker]):
     supports_cancel_ack_skip: bool = False
+    # Pending entries of a consumer group are re-read only by XCLAIM, not by a new consumer.
+    redelivers_to_new_consumer: bool = False
 
     def get_broker(
         self,
@@ -76,6 +78,8 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig[RedisClusterBroker]):
     """
 
     supports_cancel_ack_skip: bool = False
+    # Pending entries of a consumer group are re-read only by XCLAIM, not by a new consumer.
+    redelivers_to_new_consumer: bool = False
 
     def get_broker(
         self,

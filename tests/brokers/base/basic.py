@@ -20,6 +20,7 @@ class BaseTestcaseConfig(Generic[_BrokerT]):
     # AcknowledgementMiddleware, so cancel cannot hit the shared ack skip path.
     supports_cancel_ack_skip: bool = True
     nack_is_observable: bool = True
+    redelivers_to_new_consumer: bool = True
 
     @abstractmethod
     def get_broker(

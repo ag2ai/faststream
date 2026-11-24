@@ -76,10 +76,16 @@ class _CallOptions(NamedTuple):
     codec: Optional["CodecProto"] = None
 
 
+class _AckState(NamedTuple):
+    policy: AckPolicy
+    auto_ack_disabled: bool
+
+
 class SubscriberUsecase(Endpoint, Generic[MsgType]):
     """A class representing an asynchronous handler."""
 
     __slots__ = (
+        "_ack_state",
         "_call_decorators",
         "_call_options",
         "_decoder",
@@ -114,9 +120,10 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
         self._parser = config.parser
         self._decoder = config.decoder
 
-        # include_router composes the broker config after this constructor, so the
-        # ack policy is read from the config on demand, never copied here.
         self._subscriber_config = config
+        # Set by start(). Until then the policy is read from the config on demand,
+        # because include_router composes the broker config after this constructor.
+        self._ack_state: _AckState | None = None
 
         self._call_options = _CallOptions(
             parser=None,
@@ -153,11 +160,15 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
 
     @property
     def ack_policy(self) -> AckPolicy:
-        return self._subscriber_config.ack_policy
+        return (self._ack_state or self.__resolve_ack()).policy
 
     @property
     def __auto_ack_disabled(self) -> bool:
-        return self._subscriber_config.auto_ack_disabled
+        return (self._ack_state or self.__resolve_ack()).auto_ack_disabled
+
+    def __resolve_ack(self) -> _AckState:
+        config = self._subscriber_config
+        return _AckState(config.ack_policy, config.auto_ack_disabled)
 
     async def __aenter__(self) -> Self:
         await self.start()
@@ -183,6 +194,8 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
     async def start(self) -> None:
         """Private method to start subscriber by broker."""
         self._pre_start()
+        # A started consumer keeps this policy until stop(), whatever the config does.
+        self._ack_state = self.__resolve_ack()
         self._on_ack_resolved()
         self.lock = MultiLock()
         self._stop_task = None
@@ -312,6 +325,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             await self.tasks_supervisor.stop()
 
             await self._close_transport()
+            self._ack_state = None
 
     async def _stop_receiving(self) -> None:
         """Hook on stop to stop receiving new messages before `consume` starts skipping them."""

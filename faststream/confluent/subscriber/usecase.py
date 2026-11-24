@@ -24,6 +24,7 @@ from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
 from faststream.exceptions import SetupError
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -77,12 +78,18 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
         self.consumer = None
         self.polling_interval = config.polling_interval
 
+    @property
+    def _connection_data(self) -> dict[str, Any]:
+        """Consumer options; auto-commit follows the effective ack policy."""
+        return {
+            **self.__connection_data,
+            "enable_auto_commit": self.ack_policy is AckPolicy.ACK_FIRST,
+        }
+
     @override
     def _on_ack_resolved(self) -> None:
-        config = cast("KafkaSubscriberConfig", self._subscriber_config)
-        self.__connection_data["enable_auto_commit"] = config.ack_first
         # Mutate, don't replace: handlers already hold bound methods of this parser.
-        self.parser.is_manual = not config.ack_first
+        self.parser.is_manual = self.ack_policy is not AckPolicy.ACK_FIRST
 
     @override
     def _pre_start(self) -> None:
@@ -97,7 +104,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
         if concurrent and not config.ack_first:
             msg = (
                 f"max_workers={config.max_workers} needs ACK_FIRST, but ack_policy "
-                f"{config.ack_policy.value!r} is inherited from the broker. "
+                f"{config.ack_policy.value!r} is inherited from the broker or router. "
                 "Set max_workers=1, or declare ack_policy= on the subscriber."
             )
             raise SetupError(msg)
@@ -178,7 +185,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
             partitions=self.partitions,
             group_id=self.group_id,
             client_id=self.client_id,
-            **self.__connection_data,
+            **self._connection_data,
         )
         self.parser._setup(consumer)
         await consumer.start()

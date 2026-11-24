@@ -81,6 +81,8 @@ The resolution order is: **subscriber-level > broker-level > built-in default**.
 
 If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broker-level value applies. If neither is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `ACK` for MQTT, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis Streams consumer groups; Redis list, channel, and group-less stream subscribers are always `MANUAL`).
 
+A subscriber fixes its policy when it starts. If its router is included in another broker afterwards, the new broker-level default applies the next time the subscriber starts.
+
 ### When to Use
 
 - Use `ACK_FIRST` for scenarios with high throughput where some message loss can be acceptable.
