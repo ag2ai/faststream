@@ -50,6 +50,7 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
             assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
 
         if span.kind == SpanKind.CONSUMER and action in {Action.CREATE, Action.PROCESS}:
+            assert attrs[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
             assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == queue
             assert attrs[SpanAttr.MESSAGING_MESSAGE_ID] == IsStr(regex=r"0-.+")
             assert attrs[SpanAttr.MESSAGING_KAFKA_DESTINATION_PARTITION] == 0
@@ -115,6 +116,8 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
         metrics = self.get_metrics(metric_reader)
         spans = self.get_spans(trace_exporter)
         _, publish, create_process, process = spans
+
+        assert (process.attributes or {})[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
 
         assert (publish.attributes or {})[
             SpanAttr.MESSAGING_BATCH_MESSAGE_COUNT
@@ -254,7 +257,9 @@ class TestTelemetry(KafkaTestcaseConfig, LocalTelemetryTestcase):
         metrics = self.get_metrics(metric_reader)
         proc_dur, proc_msg, pub_dur, pub_msg = metrics
         spans = self.get_spans(trace_exporter)
-        create_process = spans[-2]
+        create_process, process = spans[-2:]
+
+        assert (process.attributes or {})[SpanAttr.MESSAGING_DESTINATION_NAME] == queue
 
         assert len(spans) == expected_span_count
         assert len(create_process.links) == expected_link_count
