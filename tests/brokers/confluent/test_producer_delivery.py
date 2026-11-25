@@ -9,14 +9,12 @@ import pytest_asyncio
 from anyio.lowlevel import checkpoint
 from confluent_kafka import KafkaError, KafkaException, Message
 
-from faststream._internal.logger.state import LoggerState
-from faststream.confluent.helpers.client import AsyncConfluentProducer
-from faststream.confluent.helpers.config import ConfluentFastConfig
+from faststream.confluent import KafkaBroker
 
 
 @pytest_asyncio.fixture()
 async def delivery() -> AsyncIterator[
-    tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]]
+    tuple[KafkaBroker, MagicMock, list[dict[str, Any]]]
 ]:
     loop = asyncio.get_running_loop()
     previous_handler = loop.get_exception_handler()
@@ -24,16 +22,15 @@ async def delivery() -> AsyncIterator[
     loop.set_exception_handler(lambda _loop, context: errors.append(context))
 
     native = MagicMock()
-    with patch("faststream.confluent.helpers.client.Producer", return_value=native):
-        producer = AsyncConfluentProducer(
-            logger=LoggerState(),
-            config=ConfluentFastConfig(),
-        )
-        try:
-            yield producer, native, errors
-        finally:
-            await producer.stop()
-            loop.set_exception_handler(previous_handler)
+    try:
+        with (
+            patch("faststream.confluent.helpers.client.Producer", return_value=native),
+            patch("faststream.confluent.helpers.admin.AdminClient"),
+        ):
+            async with KafkaBroker() as broker:
+                yield broker, native, errors
+    finally:
+        loop.set_exception_handler(previous_handler)
 
 
 @pytest.mark.confluent()
@@ -41,12 +38,14 @@ async def delivery() -> AsyncIterator[
 class TestProducerDelivery:
     async def test_cancelled_publish_ignores_queued_delivery(
         self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
+        delivery: tuple[KafkaBroker, MagicMock, list[dict[str, Any]]],
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        producer, native, errors = delivery
-        task = asyncio.create_task(producer.send("topic", value=b"payload"))
-        await checkpoint()
+        broker, native, errors = delivery
+        produced = asyncio.Event()
+        native.produce.side_effect = lambda *_args, **_kwargs: produced.set()
+        task = asyncio.create_task(broker.publish(b"payload", "topic"))
+        await produced.wait()
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
         acknowledge(None, None)
@@ -69,17 +68,17 @@ class TestProducerDelivery:
     )
     async def test_worker_deliveries_preserve_first_outcome(
         self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
+        delivery: tuple[KafkaBroker, MagicMock, list[dict[str, Any]]],
         first_error: KafkaError | None,
     ) -> None:
         """Fixes https://github.com/ag2ai/faststream/issues/3259."""
-        producer, native, errors = delivery
+        broker, native, errors = delivery
         message = MagicMock(spec=Message)
         message.error.return_value = None
         second_error = (
             KafkaError(KafkaError._MSG_TIMED_OUT) if first_error is None else None
         )
-        future = await producer.send("topic", value=b"payload", no_confirm=True)
+        future = await broker.publish(b"payload", "topic", no_confirm=True)
         assert isinstance(future, asyncio.Future)
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
 
@@ -106,10 +105,10 @@ class TestProducerDelivery:
 
     async def test_failed_delivery_releases_message_before_completion(
         self,
-        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
+        delivery: tuple[KafkaBroker, MagicMock, list[dict[str, Any]]],
     ) -> None:
-        producer, native, _ = delivery
-        future = await producer.send("topic", value=b"payload", no_confirm=True)
+        broker, native, _ = delivery
+        future = await broker.publish(b"payload", "topic", no_confirm=True)
         assert isinstance(future, asyncio.Future)
         acknowledge = native.produce.call_args.kwargs["on_delivery"]
         error = KafkaError(KafkaError._MSG_TIMED_OUT)
