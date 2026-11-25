@@ -60,6 +60,7 @@ class ConfluentTelemetrySettingsProvider(
             SpanAttributes.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES: len(msg.body),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: msg.raw_message.partition(),
             SpanAttributes.MESSAGING_KAFKA_MESSAGE_OFFSET: msg.raw_message.offset(),
+            SpanAttributes.MESSAGING_DESTINATION_NAME: msg.raw_message.topic(),
             MESSAGING_DESTINATION_PUBLISH_NAME: msg.raw_message.topic(),
         }
 
@@ -86,7 +87,7 @@ class BatchConfluentTelemetrySettingsProvider(
         msg: "StreamMessage[tuple[Message, ...]]",
     ) -> dict[str, Any]:
         raw_message = msg.raw_message[0]
-        return {
+        attrs: dict[str, Any] = {
             SpanAttributes.MESSAGING_SYSTEM: self.messaging_system,
             SpanAttributes.MESSAGING_MESSAGE_ID: msg.message_id,
             SpanAttributes.MESSAGING_MESSAGE_CONVERSATION_ID: msg.correlation_id,
@@ -95,8 +96,15 @@ class BatchConfluentTelemetrySettingsProvider(
                 bytearray().join(cast("Sequence[bytes]", msg.body)),
             ),
             SpanAttributes.MESSAGING_KAFKA_DESTINATION_PARTITION: raw_message.partition(),
-            MESSAGING_DESTINATION_PUBLISH_NAME: raw_message.topic(),
         }
+
+        topic = raw_message.topic()
+        if all(record.topic() == topic for record in msg.raw_message):
+            attrs[SpanAttributes.MESSAGING_DESTINATION_NAME] = topic
+
+        # Keep the legacy topic when the SDK drops older attributes at its limit.
+        attrs[MESSAGING_DESTINATION_PUBLISH_NAME] = topic
+        return attrs
 
     @override
     def get_consume_destination_name(
