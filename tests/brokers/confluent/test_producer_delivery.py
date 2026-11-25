@@ -1,7 +1,8 @@
 import asyncio
 from collections.abc import AsyncIterator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
+from weakref import ref
 
 import pytest
 import pytest_asyncio
@@ -102,3 +103,25 @@ class TestProducerDelivery:
                 future.result()
             assert exc_info.value.args == (first_error,)
         assert errors == []
+
+    async def test_failed_delivery_releases_message_before_completion(
+        self,
+        delivery: tuple[AsyncConfluentProducer, MagicMock, list[dict[str, Any]]],
+    ) -> None:
+        producer, native, _ = delivery
+        future = await producer.send("topic", value=b"payload", no_confirm=True)
+        assert isinstance(future, asyncio.Future)
+        acknowledge = native.produce.call_args.kwargs["on_delivery"]
+        error = KafkaError(KafkaError._MSG_TIMED_OUT)
+
+        message = Mock(spec=Message)
+        message_ref = ref(message)
+        acknowledge(error, message)
+        del message
+        # Check the reference before allowing the delivery callback to run.
+        message_released = message_ref() is None
+
+        with pytest.raises(KafkaException) as exc_info:
+            await future
+        assert exc_info.value.args == (error,)
+        assert message_released
