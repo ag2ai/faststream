@@ -1,5 +1,6 @@
 import pytest
 from aiokafka import ConsumerRecord
+from dirty_equals import IsPartialDict
 from opentelemetry.sdk.trace import SpanLimits, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -24,8 +25,8 @@ async def process_message(message: StreamMessage[object]) -> None:
 @pytest.mark.parametrize(
     "backend",
     (
-        pytest.param("aiokafka", marks=pytest.mark.kafka()),
-        pytest.param("confluent", marks=pytest.mark.confluent()),
+        pytest.param("aiokafka", marks=pytest.mark.kafka(), id="aiokafka"),
+        pytest.param("confluent", marks=pytest.mark.confluent(), id="confluent"),
     ),
 )
 @pytest.mark.parametrize(
@@ -103,10 +104,13 @@ async def test_batch_consume_destination(
         )
         assert span.kind is SpanKind.CONSUMER
         attrs = span.attributes or {}
-        assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == "orders"
         if expected_topic is None:
+            assert attrs[MESSAGING_DESTINATION_PUBLISH_NAME] == "orders"
             assert SpanAttributes.MESSAGING_DESTINATION_NAME not in attrs
         else:
-            assert attrs[SpanAttributes.MESSAGING_DESTINATION_NAME] == expected_topic
+            assert dict(attrs) == IsPartialDict({
+                MESSAGING_DESTINATION_PUBLISH_NAME: "orders",
+                SpanAttributes.MESSAGING_DESTINATION_NAME: expected_topic,
+            })
     finally:
         tracer_provider.shutdown()
