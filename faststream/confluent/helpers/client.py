@@ -120,14 +120,21 @@ class AsyncConfluentProducer:
         loop = asyncio.get_running_loop()
         result_future: asyncio.Future[Message | None] = loop.create_future()
 
-        def ack_callback(err: Any, msg: Message | None) -> None:
-            if err or (msg is not None and (err := msg.error())):
-                loop.call_soon_threadsafe(
-                    result_future.set_exception,
-                    KafkaException(err),
-                )
+        def complete_delivery(error: KafkaException | None, msg: Message | None) -> None:
+            # Cancellation can race with scheduling this callback (see issue #3259).
+            if result_future.done():
+                return
+            if error is not None:
+                result_future.set_exception(error)
             else:
-                loop.call_soon_threadsafe(result_future.set_result, msg)
+                result_future.set_result(msg)
+
+        def ack_callback(err: KafkaError | None, msg: Message | None) -> None:
+            if err or (msg is not None and (err := msg.error())):
+                # Keep failed message payloads out of the event loop's queue.
+                loop.call_soon_threadsafe(complete_delivery, KafkaException(err), None)
+            else:
+                loop.call_soon_threadsafe(complete_delivery, None, msg)
 
         kwargs["on_delivery"] = ack_callback
 
