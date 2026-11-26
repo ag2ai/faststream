@@ -15,6 +15,7 @@ def patch_asyncio_open_connection() -> Generator[AsyncMock, None, None]:
     reader.read = AsyncMock(return_value=b"")
 
     writer = MagicMock()
+    writer.transport.is_closing.return_value = False
     writer.drain = AsyncMock()
     writer.wait_closed = AsyncMock()
 
@@ -30,6 +31,8 @@ def patch_asyncio_open_connection() -> Generator[AsyncMock, None, None]:
 async def test_base_security() -> None:
     with patch_asyncio_open_connection() as connection:
         from docs.docs_src.redis.security.basic import broker
+
+        broker.config.broker_config.connection._options["protocol"] = 2
 
         async with broker:
             await broker.ping(0.01)
