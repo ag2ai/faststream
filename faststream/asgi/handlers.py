@@ -79,7 +79,9 @@ class HttpHandler:
     def update_fd_config(self, config: FastDependsConfig) -> None:
         self.fd_config = config | self.fd_config
         self.func = apply_types(
-            to_async(self.__original_func), context__=self.fd_config.context
+            to_async(self.__original_func),
+            dependency_provider=config.provider,
+            context__=self.fd_config.context,
         )
 
     def set_logger(self, logger: "LoggerProto | None") -> None:

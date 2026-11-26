@@ -8,11 +8,11 @@ behaviour (message delivery, healthchecks, try-it-out dispatch) lives in
 """
 
 from collections.abc import Callable
-from typing import Any
+from typing import Annotated, Any, NewType
 from unittest.mock import MagicMock
 
 import pytest
-from fast_depends import Depends
+from fast_depends import Depends, Provider
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
@@ -185,6 +185,27 @@ def test_fast_depends_injected(
     response = getattr(client, client_method)("/test")
     assert response.status_code == 200
     assert response.text == "test"
+
+
+def test_handler_uses_app_dependency_provider() -> None:
+    """ASGI handlers resolve dependencies from the app's provider."""
+    provider = Provider()
+    Dep = NewType("Dep", str)
+    seen: list[str] = []
+
+    @get
+    async def handle(dep: Annotated[Dep, Depends(Dep)]) -> AsgiResponse:
+        seen.append(dep)
+        return AsgiResponse(b"ok")
+
+    app = AsgiFastStream(provider=provider, asgi_routes=[("/dep", handle)])
+
+    with provider.scope(Dep, lambda: "mock dep"):
+        client = TestClient(app)
+        response = client.get("/dep")
+
+    assert response.status_code == 200
+    assert seen == ["mock dep"]
 
 
 @pytest.mark.parametrize(
