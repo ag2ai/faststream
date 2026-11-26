@@ -624,23 +624,22 @@ class FastAPICompatible(AsyncAPI260Factory):
             "title": "Handle:Message:Payload",
         })
 
-        fastapi_payload = schema["components"]["schemas"].get("Handle:Message:Payload")
         if self.is_fastapi:
-            if fastapi_payload:
-                assert fastapi_payload == IsPartialDict({
+            expected_schema = (
+                IsPartialDict({
                     "anyOf": [
                         {"$ref": "#/components/schemas/Sub2"},
                         {"$ref": "#/components/schemas/Sub"},
                     ],
                 })
-
-            expected_schema = (
-                IsPartialDict({"$ref": "#/components/schemas/Handle:Message:Payload"})
                 | expected_schema
             )
 
-        assert schema["components"]["messages"][key]["payload"] == expected_schema, (
-            schema["components"]
+        assert schema["components"]["messages"][key]["payload"] == {
+            "$ref": "#/components/schemas/Handle:Message:Payload"
+        }
+        assert (
+            schema["components"]["schemas"]["Handle:Message:Payload"] == expected_schema
         )
 
         assert schema["components"]["schemas"] == IsPartialDict({
@@ -709,6 +708,8 @@ class FastAPICompatible(AsyncAPI260Factory):
                     "properties": {
                         "msg": {
                             "discriminator": "type",
+                            "properties": {"type": {}},
+                            "required": ["type"],
                             "oneOf": [
                                 {"$ref": "#/components/schemas/Sub2"},
                                 {"$ref": "#/components/schemas/Sub"},

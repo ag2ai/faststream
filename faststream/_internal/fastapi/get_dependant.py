@@ -4,6 +4,7 @@ from dataclasses import fields
 from typing import TYPE_CHECKING, Annotated, Any, cast, get_args, get_origin
 
 from fast_depends.library.serializer import OptionItem
+from fast_depends.pydantic import PydanticSerializer
 from fast_depends.utils import get_typed_annotation
 from fastapi import params
 from fastapi.dependencies.models import Dependant
@@ -12,7 +13,7 @@ from fastapi.dependencies.utils import (
     get_parameterless_sub_dependant,
     get_typed_signature,
 )
-from pydantic import Field, create_model
+from pydantic import Field
 from pydantic.fields import FieldInfo
 
 from faststream._internal._compat import PYDANTIC_V2, PydanticUndefined
@@ -25,9 +26,9 @@ if TYPE_CHECKING:
 class _FastStreamDependant(Dependant):
     """FastAPI dependant extended with fields required by FastStream."""
 
-    __slots__ = ("custom_fields", "flat_params", "model")
+    __slots__ = ("custom_fields", "flat_params", "serializer_cls")
 
-    model: type[Any]
+    serializer_cls: PydanticSerializer
     custom_fields: dict[str, Any]
     flat_params: list[OptionItem]
 
@@ -145,9 +146,7 @@ def _patch_fastapi_dependent(dependant: "models.Dependant") -> "models.Dependant
                 f,
             )
 
-    dependant.model = create_model(
-        getattr(call, "__name__", type(call).__name__),
-    )
+    dependant.serializer_cls = PydanticSerializer(use_fastdepends_errors=False)
 
     dependant.custom_fields = {}
     dependant.flat_params = [

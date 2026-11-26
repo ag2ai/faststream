@@ -4,11 +4,12 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from faststream.nats import NatsBroker
+from tests.asyncapi.base.publisher import SerializerPublisherTestcase
 from tests.asyncapi.base.v2_6_0.publisher import PublisherTestcase
 
 
 @pytest.mark.nats()
-class TestArguments(PublisherTestcase):
+class TestArguments(SerializerPublisherTestcase, PublisherTestcase):
     broker_class = NatsBroker
 
     def test_publisher_bindings(self, snapshot_json: SnapshotAssertion) -> None:
