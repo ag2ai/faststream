@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 from dirty_equals import IsUUID
 
@@ -28,7 +30,9 @@ class TestCustomParser(KafkaTestcaseConfig, CustomParserTestcase):
     pass
 
 
-def make_message(headers: list[tuple[str, bytes | None]]) -> ConsumerRecord[None, bytes]:
+def make_message(
+    headers: list[tuple[str, bytes | None]], *, value: bytes | None = b'{"value": 1}'
+) -> ConsumerRecord[None, bytes | None]:
     return ConsumerRecord(
         topic="test-topic",
         partition=0,
@@ -36,12 +40,39 @@ def make_message(headers: list[tuple[str, bytes | None]]) -> ConsumerRecord[None
         timestamp=0,
         timestamp_type=0,
         key=None,
-        value=b'{"value": 1}',
+        value=value,
         checksum=None,
         serialized_key_size=0,
-        serialized_value_size=12,
+        serialized_value_size=-1 if value is None else len(value),
         headers=headers,
     )
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+class TestParseTombstones:
+    @pytest.mark.parametrize(
+        ("wire_value", "decoded_value", "tombstone"),
+        (
+            pytest.param(None, None, True, id="null"),
+            pytest.param(b"", b"", False, id="empty"),
+            pytest.param(b"{}", b"{}", False, id="payload"),
+            pytest.param(None, b"", True, id="null-deserialized-to-bytes"),
+            pytest.param(b"null", None, False, id="payload-deserialized-to-none"),
+        ),
+    )
+    async def test_uses_the_wire_value_to_detect_tombstones(
+        self,
+        wire_value: bytes | None,
+        decoded_value: bytes | None,
+        tombstone: bool,
+    ) -> None:
+        parser = AioKafkaParser(msg_class=KafkaMessage, regex=None)
+        record = replace(make_message([], value=wire_value), value=decoded_value)
+        message = await parser.parse_message(record)
+
+        assert isinstance(message, KafkaMessage)
+        assert (message.body, message.tombstone) == (decoded_value or b"", tombstone)
 
 
 @pytest.mark.kafka()

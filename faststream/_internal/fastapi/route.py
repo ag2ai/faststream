@@ -51,13 +51,13 @@ class StreamMessage(Request):
     scope: "dict[str, Any]"
     _cookies: "dict[str, Any]"
     _headers: "dict[str, Any]"  # type: ignore[assignment]
-    _body: Union["dict[str, Any]", list[Any]]  # type: ignore[assignment]
+    _body: Union["dict[str, Any]", list[Any], None]  # type: ignore[assignment]
     _query_params: "dict[str, Any]"  # type: ignore[assignment]
 
     def __init__(
         self,
         *,
-        body: Union["dict[str, Any]", list[Any]],
+        body: Union["dict[str, Any]", list[Any], None],
         headers: "dict[str, Any]",
         path: "dict[str, Any]",
     ) -> None:
@@ -172,6 +172,13 @@ def build_faststream_to_fastapi_parser(
         """Wrapper, that parser FastStream message to FastAPI compatible one."""
         body = await message.decode()
 
+        # The query and path parameters still use the decoded value when the body is absent.
+        missing_body = (
+            message._no_body
+            and message._uses_default_decoder
+            and (body is None or (isinstance(body, (bytes, str)) and not body))
+        )
+
         fastapi_body: dict[str, Any] | list[Any]
         if first_arg is not None:
             if isinstance(body, dict):
@@ -182,14 +189,14 @@ def build_faststream_to_fastapi_parser(
                 path = fastapi_body = {first_arg: body}
 
             stream_message = StreamMessage(
-                body=fastapi_body,
+                body=None if missing_body else fastapi_body,
                 headers={"context__": context, **message.headers},
                 path={**path, **message.path},
             )
 
         else:
             stream_message = StreamMessage(
-                body={},
+                body=None if missing_body else {},
                 headers={"context__": context},
                 path={},
             )

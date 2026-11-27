@@ -34,9 +34,13 @@ class TestCustomParser(ConfluentTestcaseConfig, CustomParserTestcase):
     pass
 
 
-def make_message(headers: list[tuple[str, str | bytes | None]]) -> MockConfluentMessage:
+def make_message(
+    headers: list[tuple[str, str | bytes | None]],
+    *,
+    value: bytes | None = b'{"value": 1}',
+) -> MockConfluentMessage:
     return MockConfluentMessage(
-        raw_msg=b'{"value": 1}',
+        raw_msg=value,
         topic="test-topic",
         key=b"",
         headers=headers,
@@ -45,6 +49,26 @@ def make_message(headers: list[tuple[str, str | bytes | None]]) -> MockConfluent
         timestamp_type=0,
         timestamp_ms=0,
     )
+
+
+@pytest.mark.confluent()
+@pytest.mark.asyncio()
+class TestParseTombstones:
+    @pytest.mark.parametrize(
+        ("value", "tombstone"),
+        (
+            pytest.param(None, True, id="null"),
+            pytest.param(b"", False, id="empty"),
+            pytest.param(b"{}", False, id="payload"),
+        ),
+    )
+    async def test_flags_only_a_null_value(
+        self, value: bytes | None, tombstone: bool
+    ) -> None:
+        parser = AsyncConfluentParser()
+        message = await parser.parse_message(make_message([], value=value))
+
+        assert (message.body, message.tombstone) == (value or b"", tombstone)
 
 
 @pytest.mark.confluent()

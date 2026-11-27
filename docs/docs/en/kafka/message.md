@@ -37,6 +37,15 @@ and its `raw_message` (the `aiokafka.ConsumerRecord`) contains the rest of the r
 * `#!python topic: str`
 * `#!python value: Optional[aiokafka.structs.VT]`
 
+!!! note "Kafka tombstones"
+    A record with a null value is a Kafka tombstone, a delete marker on a compacted topic.
+    For a single tombstone, `#!python msg.tombstone` is `#!python True`.
+    With default value deserialization, `#!python msg.body` is `#!python b""`.
+    With the default decoder, a FastAPI subscriber with an optional body parameter defaulting to `#!python None` receives `#!python None` for that record.
+
+    In a `#!python batch=True` subscriber, `#!python msg.tombstone` is always `#!python False`.
+    Publish a tombstone with `#!python await broker.publish(None, "topic", key=b"user-1")`.
+
 For example, if you would like to access the headers of an incoming message, you would do so like this:
 
 ```python hl_lines="1 6"

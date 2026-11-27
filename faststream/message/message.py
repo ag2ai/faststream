@@ -43,9 +43,11 @@ class StreamMessage(Generic[MsgType]):
         correlation_id: str | None = None,
         message_id: str | None = None,
         source_type: SourceType = SourceType.CONSUME,
+        _no_body: bool = False,
     ) -> None:
         self.raw_message = raw_message
         self.body = body
+        self._no_body = _no_body
         self.reply_to = reply_to
         self.content_type = content_type
         self.source_type = source_type
@@ -61,6 +63,7 @@ class StreamMessage(Generic[MsgType]):
 
         # Setup later
         self.__decoder: AsyncCallable | None = None
+        self._uses_default_decoder = False
         self.__decoded_caches: dict[
             Any,
             Any,
@@ -68,6 +71,7 @@ class StreamMessage(Generic[MsgType]):
 
     def set_decoder(self, decoder: "AsyncCallable") -> None:
         self.__decoder = decoder
+        self._uses_default_decoder = False
 
     def clear_cache(self) -> None:
         self.__decoded_caches.clear()
