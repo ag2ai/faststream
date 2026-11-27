@@ -22,6 +22,7 @@ from faststream.confluent.call_wrapper import KafkaHandlerCallWrapper
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.publisher.fake import KafkaFakePublisher
 from faststream.confluent.schemas import Topic, TopicPartition
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
@@ -51,6 +52,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     )
 
     _outer_config: "KafkaBrokerConfig"
+    _subscriber_config: "KafkaSubscriberConfig"
     _call_wrapper_class = KafkaHandlerCallWrapper
 
     group_id: str | None
@@ -75,6 +77,23 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
 
         self.consumer = None
         self.polling_interval = config.polling_interval
+
+    @property
+    def _connection_data(self) -> dict[str, Any]:
+        """Consumer options; auto-commit follows the effective ack policy."""
+        return {
+            **self.__connection_data,
+            "enable_auto_commit": self.ack_policy is AckPolicy.ACK_FIRST,
+        }
+
+    @override
+    def _setup(self) -> None:
+        # Mutate, don't replace: handlers already hold bound methods of this parser.
+        self.parser.is_manual = self.ack_policy is not AckPolicy.ACK_FIRST
+
+    @override
+    def _pre_start(self) -> None:
+        self._subscriber_config.validate_ack_policy()
 
     @overload
     def __call__(
@@ -152,7 +171,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
             partitions=self.partitions,
             group_id=self.group_id,
             client_id=self.client_id,
-            **self.__connection_data,
+            **self._connection_data,
         )
         self.parser._setup(consumer)
         await consumer.start()
@@ -294,7 +313,8 @@ class DefaultSubscriber(LogicSubscriber[Message]):
         specification: "SubscriberSpecification[Any, Any]",
         calls: "CallsCollection[Message]",
     ) -> None:
-        self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
+        # `is_manual` follows the ack policy, final only once started
+        self.parser = AsyncConfluentParser()
         config.decoder = self.parser.decode_message
         config.parser = self.parser.parse_message
         super().__init__(config, specification, calls)
@@ -332,7 +352,8 @@ class BatchSubscriber(LogicSubscriber[tuple[Message, ...]]):
         calls: "CallsCollection[tuple[Message, ...]]",
         max_records: int | None,
     ) -> None:
-        self.parser = AsyncConfluentParser(is_manual=not config.ack_first)
+        # `is_manual` follows the ack policy, final only once started
+        self.parser = AsyncConfluentParser()
         config.decoder = self.parser.decode_batch
         config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)

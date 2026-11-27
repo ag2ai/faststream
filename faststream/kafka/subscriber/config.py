@@ -7,6 +7,7 @@ from faststream._internal.configs import (
     SubscriberUsecaseConfig,
 )
 from faststream._internal.constants import EMPTY
+from faststream.exceptions import SetupError
 from faststream.kafka.configs import KafkaBrokerConfig
 from faststream.middlewares import AckPolicy
 
@@ -34,9 +35,6 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     pattern: str | None = None
     partitions: Iterable["TopicPartition"] = field(default_factory=list)
 
-    def __post_init__(self) -> None:
-        self.connection_args["enable_auto_commit"] = self.ack_first
-
     @property
     def ack_first(self) -> bool:
         return self.ack_policy is AckPolicy.ACK_FIRST
@@ -53,3 +51,25 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
             return AckPolicy.ACK_FIRST
 
         return self._ack_policy
+
+    def validate_ack_policy(self) -> None:
+        """Refuse an ack policy the consumer cannot honour."""
+        if self.ack_first:
+            return
+
+        if self.group_id is None:
+            msg = (
+                f"ack_policy {self.ack_policy.value!r} commits offsets and needs "
+                "a group_id. Pass group_id=, or use ACK_FIRST."
+            )
+            raise SetupError(msg)
+
+        # Only a subscriber declared before its router was included gets here:
+        # the partition-aware mode is picked from the policy visible at declaration.
+        if self.max_workers > 1:
+            msg = (
+                f"max_workers={self.max_workers} needs ACK_FIRST, but ack_policy "
+                f"{self.ack_policy.value!r} is inherited from the broker or router. "
+                "Set max_workers=1, or declare ack_policy= on the subscriber."
+            )
+            raise SetupError(msg)

@@ -127,24 +127,10 @@ class TestMQTTBroker(
         if sub is None:
             is_real = False
             sub = broker.subscriber(publisher.topic, persistent=False)
-            # Apply the correct version parser so fake subs match FakeProducer output.
-            parser = sub._build_parser()
-            sub._parser = parser.parse_message
-            sub._decoder = parser.decode_message
         else:
             is_real = True
 
         return sub, is_real
-
-    def _fake_start(self, broker: MQTTBroker, *args: Any, **kwargs: Any) -> None:
-        # Ensure all pre-existing subscribers use the version-correct parser
-        # (preserving each subscriber's own path_regex) before patch_broker_calls
-        # builds the fastdepends model.
-        for sub in cast("list[MQTTSubscriber]", broker.subscribers):
-            parser = sub._build_parser()
-            sub._parser = parser.parse_message
-            sub._decoder = parser.decode_message
-        super()._fake_start(broker, *args, **kwargs)
 
     @contextmanager
     def _patch_producer(self, broker: MQTTBroker) -> Generator[None, None, None]:

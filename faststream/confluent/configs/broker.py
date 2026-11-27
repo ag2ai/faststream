@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -20,6 +21,7 @@ from faststream.confluent.publisher.producer import (
     AsyncConfluentFastProducer,
     FakeConfluentFastProducer,
 )
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from faststream._internal.logger import LoggerState
@@ -112,6 +114,10 @@ class KafkaBrokerConfig(BrokerConfig):
             logger=self.logger,
         )
 
+        if self.ack_policy is AckPolicy.REJECT_ON_ERROR:
+            # up to the `KafkaBroker(...)` or `KafkaRouter(...)` call that set it
+            warn_reject_on_error(stacklevel=4)
+
     async def connect(self) -> "None":
         native_producer = AsyncConfluentProducer(
             config=self.connection_config,
@@ -130,3 +136,13 @@ class KafkaBrokerConfig(BrokerConfig):
     async def disconnect(self) -> "None":
         await self.producer.disconnect()
         await self.admin.disconnect()
+
+
+def warn_reject_on_error(stacklevel: int) -> None:
+    """Warn the caller `stacklevel` frames up: Kafka has nothing to reject with."""
+    warnings.warn(
+        "AckPolicy.REJECT_ON_ERROR has the same effect as AckPolicy.ACK. "
+        "Consider using ACK for clarity.",
+        UserWarning,
+        stacklevel=stacklevel + 1,
+    )

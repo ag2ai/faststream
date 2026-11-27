@@ -23,6 +23,9 @@ class TestClusterTestClient(RedisClusterMemoryTestcaseConfig, BrokerTestclientTe
     async def test_broker_gets_patched_attrs_within_cm(self) -> None:
         await super().test_broker_gets_patched_attrs_within_cm(FakeProducer)
 
+    async def test_started_subscriber_keeps_its_ack_policy(self) -> None:  # type: ignore[override]
+        pytest.skip("TestRedisBroker cannot start a consumer group subscriber")
+
     async def test_pub_sub_pattern(self) -> None:
         broker = self.get_broker()
 

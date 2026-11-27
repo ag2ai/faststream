@@ -14,7 +14,7 @@ from faststream import Depends
 from faststream.exceptions import SetupError
 from tests.tools import spy_decorator
 
-from .consume import BrokerConsumeTestcase
+from .consume import BrokerConsumeTestcase, SubscriberAckPolicyTestcase
 from .publish import BrokerPublishTestcase
 
 
@@ -23,7 +23,11 @@ class BodyModel(BaseModel):
     age: int
 
 
-class BrokerTestclientTestcase(BrokerPublishTestcase, BrokerConsumeTestcase):
+class BrokerTestclientTestcase(
+    BrokerPublishTestcase,
+    BrokerConsumeTestcase,
+    SubscriberAckPolicyTestcase,
+):
     @abstractmethod
     def get_fake_producer_class(self) -> type:
         raise NotImplementedError

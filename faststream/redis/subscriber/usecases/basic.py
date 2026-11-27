@@ -7,19 +7,13 @@ from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
 import anyio
 from typing_extensions import override
 
-from faststream._internal.endpoint.subscriber import (
-    SubscriberSpecification,
-    SubscriberUsecase,
-)
+from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream.redis.publisher.fake import RedisFakePublisher
 
 if TYPE_CHECKING:
     from redis.asyncio.client import Redis
 
     from faststream._internal.endpoint.publisher import PublisherProto
-    from faststream._internal.endpoint.subscriber.call_item import (
-        CallsCollection,
-    )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisBrokerConfig
     from faststream.redis.message import UnifyRedisDict
@@ -38,18 +32,14 @@ CONSUME_ERROR_BACKOFF_SECONDS = 5
 class LogicSubscriber(SubscriberUsecase[Any]):
     """A class to represent a Redis handler."""
 
-    __slots__ = ("config",)
+    __slots__ = ()
 
     _outer_config: "RedisBrokerConfig"
+    _subscriber_config: "RedisSubscriberConfig"
 
-    def __init__(
-        self,
-        config: "RedisSubscriberConfig",
-        specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
-    ) -> None:
-        super().__init__(config, specification, calls)
-        self.config = config
+    @property
+    def config(self) -> "RedisSubscriberConfig":
+        return self._subscriber_config
 
     @property
     def _client(self) -> "Redis[bytes]":

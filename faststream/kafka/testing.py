@@ -27,6 +27,7 @@ from faststream.kafka.publisher.producer import AioKafkaFastProducer
 from faststream.kafka.publisher.usecase import BatchPublisher
 from faststream.kafka.subscriber.usecase import BatchSubscriber
 from faststream.message import gen_cor_id
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from fast_depends.library.serializer import SerializerProto
@@ -114,6 +115,8 @@ class TestKafkaBroker(
 
             topic_name = publisher.topic
 
+            # A fake only records what the publisher sends and has no group to
+            # commit with: keep the broker's own ack policy away from it.
             if publisher.partition:
                 tp = TopicPartition(
                     topic=topic_name,
@@ -122,12 +125,14 @@ class TestKafkaBroker(
                 sub = broker.subscriber(
                     partitions=[tp],
                     batch=isinstance(publisher, BatchPublisher),
+                    ack_policy=AckPolicy.ACK_FIRST,
                     persistent=False,
                 )
             else:
                 sub = broker.subscriber(
                     topic_name,
                     batch=isinstance(publisher, BatchPublisher),
+                    ack_policy=AckPolicy.ACK_FIRST,
                     persistent=False,
                 )
         else:

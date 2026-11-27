@@ -68,7 +68,7 @@ With **aiokafka**, `group_id=None` disables consumer group coordination and offs
 
 With **Confluent**, omitting `group_id` passes `"faststream-consumer-group"` to the underlying client. Subscribers using this default and subscribing to the same topic share a consumer group and divide its partitions among themselves. This differs from aiokafka's behavior with `group_id=None`.
 
-Set an explicit `group_id` for subscribers that need to resume from committed offsets. Use different group IDs for applications that must each receive every message, and the same group ID for replicas that should share the work. Confluent also requires an explicit `group_id` for any acknowledgement policy other than `AckPolicy.ACK_FIRST`; see [Confluent acknowledgements](../confluent/ack.md){.internal-link}.
+Set an explicit `group_id` for subscribers that need to resume from committed offsets. Use different group IDs for applications that must each receive every message, and the same group ID for replicas that should share the work. Both clients also require an explicit group for any acknowledgement policy other than `AckPolicy.ACK_FIRST`; see [acknowledgements](./ack.md){.internal-link} and [Confluent acknowledgements](../confluent/ack.md){.internal-link}.
 
 ### Client identification
 

@@ -7,14 +7,13 @@ from faststream.redis import (
     RedisBroker,
     RedisClusterBroker,
     RedisRouter,
+    StreamSub,
     TestRedisBroker,
 )
 from tests.brokers.base.basic import BaseTestcaseConfig
 
 
 class RedisTestcaseConfig(BaseTestcaseConfig[RedisBroker]):
-    supports_cancel_ack_skip: bool = False
-
     def get_broker(
         self,
         apply_types: bool = False,
@@ -24,6 +23,24 @@ class RedisTestcaseConfig(BaseTestcaseConfig[RedisBroker]):
 
     def get_router(self, **kwargs: Any) -> RedisRouter:
         return RedisRouter(**kwargs)
+
+    @override
+    def get_ack_subscriber_params(
+        self,
+        queue: str,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        # A channel subscriber forces MANUAL ack, so ack needs a consumer group.
+        return (), {"stream": StreamSub(queue, group=queue, consumer=queue), **kwargs}
+
+    @override
+    async def publish_to_ack_subscriber(
+        self,
+        broker: Any,
+        queue: str,
+        message: str,
+    ) -> None:
+        await broker.publish(message, stream=queue)
 
 
 class RedisMemoryTestcaseConfig(RedisTestcaseConfig):
@@ -57,8 +74,6 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig[RedisClusterBroker]):
     A single startup node is enough — the cluster auto-discovers the rest.
     """
 
-    supports_cancel_ack_skip: bool = False
-
     def get_broker(
         self,
         apply_types: bool = False,
@@ -72,6 +87,24 @@ class RedisClusterTestcaseConfig(BaseTestcaseConfig[RedisClusterBroker]):
 
     def get_router(self, **kwargs: Any) -> RedisRouter:
         return RedisRouter(**kwargs)
+
+    @override
+    def get_ack_subscriber_params(
+        self,
+        queue: str,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        # A channel subscriber forces MANUAL ack, so ack needs a consumer group.
+        return (), {"stream": StreamSub(queue, group=queue, consumer=queue), **kwargs}
+
+    @override
+    async def publish_to_ack_subscriber(
+        self,
+        broker: Any,
+        queue: str,
+        message: str,
+    ) -> None:
+        await broker.publish(message, stream=queue)
 
 
 class RedisClusterMemoryTestcaseConfig(RedisClusterTestcaseConfig):

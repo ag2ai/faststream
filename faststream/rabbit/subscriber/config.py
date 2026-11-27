@@ -29,10 +29,6 @@ class RabbitSubscriberConfig(RabbitConfig, SubscriberUsecaseConfig):
     channel: Optional["Channel"] = None
 
     @property
-    def ack_first(self) -> bool:
-        return self.ack_policy is AckPolicy.ACK_FIRST
-
-    @property
     def auto_ack_disabled(self) -> bool:
         return self.ack_policy in {AckPolicy.MANUAL, AckPolicy.ACK_FIRST}
 

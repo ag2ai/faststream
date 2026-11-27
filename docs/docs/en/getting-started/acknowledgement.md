@@ -77,9 +77,11 @@ async def handle_event(msg: str) -> None:
     await msg.ack()
 ```
 
-The resolution order is: **subscriber-level > broker-level > built-in default**.
+The resolution order is: **subscriber-level > router-level > broker-level > built-in default**.
 
-If a subscriber specifies `ack_policy`, that value is used. Otherwise, the broker-level value applies. If neither is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `ACK` for MQTT, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis Streams consumer groups; Redis list, channel, and group-less stream subscribers are always `MANUAL`).
+If a subscriber specifies `ack_policy`, that value is used. Otherwise, the value of its router applies (`#!python NatsRouter(ack_policy=...)`), then the broker-level one. If none is set, the broker type's built-in default is used (`ACK_FIRST` for Kafka, `ACK` for MQTT, `REJECT_ON_ERROR` for RabbitMQ, NATS, and Redis Streams consumer groups; Redis list, channel, and group-less stream subscribers are always `MANUAL`).
+
+A subscriber follows the broker-level policy whether it was declared before or after its router was included: the policy is resolved when the subscriber starts.
 
 ### When to Use
 
@@ -117,7 +119,7 @@ from faststream.kafka import KafkaBroker
 broker = KafkaBroker()
 app = FastStream(broker)
 
-@broker.subscriber("events", ack_policy=AckPolicy.MANUAL)
+@broker.subscriber("events", group_id="group", ack_policy=AckPolicy.MANUAL)
 async def handle_event(msg: str) -> None:
     try:
         do_smth(msg)

@@ -80,6 +80,22 @@ class TestTestclient(ConfluentMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert event.is_set()
 
+    @pytest.mark.connected()
+    async def test_with_real_starts_publisher_fake_under_broker_ack_policy(
+        self,
+        queue: str,
+    ) -> None:
+        broker = self.get_broker(ack_policy=AckPolicy.NACK_ON_ERROR)
+
+        publisher = broker.publisher(queue)  # ruff: ignore[unused-variable]
+
+        test_client: Any = self.patch_broker(broker, with_real=True)
+        async with test_client:
+            (fake,) = test_client._fake_subscribers
+
+            # The fake has no group to commit with, yet the broker policy asks for one
+            assert fake.running
+
     async def test_publisher_autoflush_mock(self, queue: str) -> None:
         broker = self.get_broker()
 

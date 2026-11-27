@@ -703,6 +703,7 @@ class NatsBroker(
 
     async def start(self) -> None:
         """Connect broker to NATS cluster and startup all subscribers."""
+        self._validate_subscribers()
         await self.connect()
 
         stream_context = self.config.connection_state.stream

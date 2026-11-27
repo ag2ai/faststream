@@ -9,6 +9,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream._internal.endpoint.utils import process_msg
+from faststream.middlewares import AckPolicy
 from faststream.rabbit.parser import AioPikaParser
 from faststream.rabbit.publisher.fake import RabbitFakePublisher
 from faststream.rabbit.schemas import RabbitExchange
@@ -34,7 +35,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
     """A class to handle logic for RabbitMQ message consumption."""
 
     __slots__ = (
-        "__no_ack",
         "_consumer_tag",
         "_queue_obj",
         "channel",
@@ -65,8 +65,6 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
         self.consume_args = config.consume_args or {}
 
-        self.__no_ack = config.ack_first
-
         self._consumer_tag: str | None = None
         self._queue_obj: RobustQueue | None = None
         self.channel = config.channel
@@ -77,6 +75,11 @@ class RabbitSubscriber(SubscriberUsecase["IncomingMessage"]):
 
     def routing(self) -> str:
         return f"{self._outer_config.prefix}{self.queue.routing()}"
+
+    @property
+    def __no_ack(self) -> bool:
+        # ACK_FIRST leaves the acknowledgement to the server.
+        return self.ack_policy is AckPolicy.ACK_FIRST
 
     @override
     async def start(self) -> None:

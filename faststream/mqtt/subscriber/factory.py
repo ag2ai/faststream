@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, Any
 from zmqtt import QoS
 
 from faststream._internal.endpoint.subscriber.call_item import CallsCollection
+from faststream.middlewares import AckPolicy
+from faststream.mqtt.broker.config import warn_nack_on_error
 from faststream.mqtt.path import build_mqtt_address
 
 from .config import MQTTSubscriberConfig, MQTTSubscriberSpecificationConfig
@@ -10,7 +12,6 @@ from .specification import MQTTSubscriberSpecification
 from .usecase import MQTTSubscriber
 
 if TYPE_CHECKING:
-    from faststream.middlewares import AckPolicy
     from faststream.mqtt.broker.config import MQTTBrokerConfig
 
 
@@ -29,6 +30,10 @@ def create_subscriber(
     description_: str | None = None,
     include_in_schema: bool = True,
 ) -> MQTTSubscriber:
+    if ack_policy is AckPolicy.NACK_ON_ERROR:
+        # up to the line that registered the subscriber
+        warn_nack_on_error(stacklevel=3)
+
     address = build_mqtt_address(topic)
 
     subscriber_config = MQTTSubscriberConfig(

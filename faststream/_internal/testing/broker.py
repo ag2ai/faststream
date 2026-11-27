@@ -196,6 +196,9 @@ class TestBroker(Generic[Broker, EnterType]):
             yield
 
     def _fake_start(self, broker: Broker, *args: Any, **kwargs: Any) -> None:
+        # Stands in for `broker.start()`, under `TestApp` too: refuse what it refuses
+        broker._validate_subscribers()
+
         for publisher in broker.publishers:
             if getattr(publisher, "_fake_handler", None):
                 continue
@@ -277,6 +280,7 @@ def find_test_broker(
 def patch_broker_calls(broker: "BrokerUsecase[Any, Any, Any]") -> None:
     """Patch broker calls."""
     for sub in broker.subscribers:
+        sub._setup()
         sub._build_fastdepends_model()
 
         for h in sub.calls:

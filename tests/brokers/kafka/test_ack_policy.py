@@ -3,13 +3,25 @@ from unittest.mock import patch
 
 import pytest
 from aiokafka import AIOKafkaConsumer
+from aiokafka.structs import TopicPartition
 
 from faststream import AckPolicy
 from faststream.kafka import KafkaMessage
-from tests.brokers.base.consume import BrokerRealConsumeTestcase
+from tests.brokers.base.consume import BrokerRealConsumeTestcase, HandlerError
 from tests.tools import spy_decorator
 
 from .basic import KafkaTestcaseConfig
+
+
+async def committed_offset(topic: str, group_id: str) -> int | None:
+    """Offset the group resumes from in partition 0, read through a fresh consumer."""
+    consumer = AIOKafkaConsumer(group_id=group_id, enable_auto_commit=False)
+    await consumer.start()
+    try:
+        offset: int | None = await consumer.committed(TopicPartition(topic, 0))
+        return offset
+    finally:
+        await consumer.stop()
 
 
 @pytest.mark.kafka()
@@ -44,6 +56,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         @consume_broker.subscriber(
             queue,
+            group_id=f"{queue}-ack",
             ack_policy=ack_policy,
         )
         async def handler() -> None: ...
@@ -128,6 +141,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=ack_policy,
+            group_id=f"{queue}-ack",
         )
 
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
@@ -185,6 +199,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=ack_policy,
+            group_id=f"{queue}-ack",
         )
 
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
@@ -227,6 +242,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
         args, kwargs = self.get_subscriber_params(
             queue,
             ack_policy=AckPolicy.NACK_ON_ERROR,
+            group_id=f"{queue}-ack",
         )
 
         @consume_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
@@ -266,6 +282,85 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
         assert event.is_set()
 
+    @pytest.mark.slow()
+    async def test_batch_success_commits_next_offset(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """A batch handled under an inherited policy commits the group's next offset."""
+        broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.ACK)
+        router = self.get_router()
+        received: list[str] = []
+
+        args, kwargs = self.get_subscriber_params(
+            queue,
+            batch=True,
+            group_id=f"{queue}-ack",
+        )
+
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(msg: list[str]) -> None:
+            received.extend(msg)
+            if len(received) == 3:
+                event.set()
+
+        broker.include_router(router)
+
+        with patch.object(
+            AIOKafkaConsumer,
+            "__init__",
+            spy_decorator(AIOKafkaConsumer.__init__),
+        ) as init:
+            async with self.patch_broker(broker) as br:
+                await br.start()
+                await br.publish_batch("a", "b", "c", topic=queue)
+                await asyncio.wait_for(event.wait(), timeout=10)
+
+        # Auto-commit is off, so the ack itself committed: the batch ends at offset 2.
+        assert (
+            init.mock.call_args.kwargs["enable_auto_commit"],
+            await committed_offset(queue, f"{queue}-ack"),
+        ) == (False, 3)
+
+    @pytest.mark.slow()
+    async def test_inherited_nack_on_error_disables_auto_commit_and_rewinds(
+        self,
+        queue: str,
+        event: asyncio.Event,
+    ) -> None:
+        """An inherited policy reaches the consumer, not only the ack middleware."""
+        broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.NACK_ON_ERROR)
+        router = self.get_router()
+        received: list[str] = []
+
+        args, kwargs = self.get_ack_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
+        async def handler(body: str) -> None:
+            received.append(body)
+            if len(received) == 1:
+                raise HandlerError
+            event.set()
+
+        broker.include_router(router)
+
+        with patch.object(
+            AIOKafkaConsumer,
+            "__init__",
+            spy_decorator(AIOKafkaConsumer.__init__),
+        ) as init:
+            async with self.patch_broker(broker) as br:
+                await br.start()
+                await br.publish("hello", queue)
+                await asyncio.wait_for(event.wait(), timeout=10)
+
+        # Auto-commit is off, and the failed record is read again from its offset.
+        assert (init.mock.call_args.kwargs["enable_auto_commit"], received) == (
+            False,
+            ["hello", "hello"],
+        )
+
     async def test_reject_on_error_warning(self, queue: str) -> None:
         consume_broker = self.get_broker(apply_types=True)
 
@@ -276,6 +371,7 @@ class TestAckPolicy(KafkaTestcaseConfig, BrokerRealConsumeTestcase):
 
             @consume_broker.subscriber(
                 queue,
+                group_id=f"{queue}-ack",
                 ack_policy=AckPolicy.REJECT_ON_ERROR,
             )
             async def handler(msg: KafkaMessage) -> None: ...

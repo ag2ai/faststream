@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -78,6 +79,7 @@ def test_sub_overrides_router() -> None:
 
 
 @pytest.mark.mqtt()
+@pytest.mark.filterwarnings("ignore:MQTT has no nack primitive")
 def test_sub_overrides_broker_and_router() -> None:
     broker = MQTTBroker(ack_policy=AckPolicy.ACK)
 
@@ -86,6 +88,32 @@ def test_sub_overrides_broker_and_router() -> None:
 
     sub = router.subscriber("test", ack_policy=AckPolicy.ACK_FIRST)
     assert sub.ack_policy is AckPolicy.ACK_FIRST
+
+
+@pytest.mark.mqtt()
+@pytest.mark.parametrize(
+    "set_policy",
+    (
+        pytest.param(
+            lambda: MQTTBroker(ack_policy=AckPolicy.NACK_ON_ERROR),
+            id="broker",
+        ),
+        pytest.param(
+            lambda: MQTTRouter(ack_policy=AckPolicy.NACK_ON_ERROR),
+            id="router",
+        ),
+        pytest.param(
+            lambda: MQTTBroker().subscriber("test", ack_policy=AckPolicy.NACK_ON_ERROR),
+            id="subscriber",
+        ),
+    ),
+)
+def test_nack_on_error_warns_where_it_is_set(set_policy: Callable[[], object]) -> None:
+    with pytest.warns(RuntimeWarning, match="MQTT has no nack primitive") as record:
+        set_policy()
+
+    # the warning points at the line that set the policy, whatever the level
+    assert [w.filename for w in record if "no nack" in str(w.message)] == [__file__]
 
 
 @pytest.mark.mqtt()

@@ -34,6 +34,8 @@ async def base_handler(body: str, msg: NatsMessage):
 
 **FastStream** will see that the message was already acknowledged and will do nothing at the end of the process.
 
+Under `AckPolicy.ACK_FIRST` the message is acknowledged before your handler runs, so `msg.nack()` and `msg.reject()` do nothing: manual acknowledgement needs one of the other policies.
+
 ## Interrupt Process
 
 If you want to interrupt message processing at any call stack, you can raise `faststream.exceptions.AckMessage`

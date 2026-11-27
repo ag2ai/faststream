@@ -236,6 +236,7 @@ class MQTTBroker(
 
     @override
     async def start(self) -> None:
+        self._validate_subscribers()
         await self.connect()
         c = MQTTSubscriber.build_log_context(None, "")
         self.config.logger.log("Connection established", logging.INFO, c)

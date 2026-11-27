@@ -34,6 +34,9 @@ class TestTestclient(RedisMemoryTestcaseConfig, BrokerTestclientTestcase):
 
         assert event.is_set()
 
+    async def test_started_subscriber_keeps_its_ack_policy(self) -> None:  # type: ignore[override]
+        pytest.skip("TestRedisBroker cannot start a consumer group subscriber")
+
     async def test_respect_middleware(self, queue: str) -> None:
         routes: list[Any] = []
 

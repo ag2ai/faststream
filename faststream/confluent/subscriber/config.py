@@ -8,6 +8,7 @@ from faststream._internal.configs import (
 )
 from faststream._internal.constants import EMPTY
 from faststream.confluent.configs import KafkaBrokerConfig
+from faststream.exceptions import SetupError
 from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
@@ -30,9 +31,6 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
     group_id: str | None = None
     connection_data: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:
-        self.connection_data["enable_auto_commit"] = self.ack_first
-
     @property
     def ack_first(self) -> bool:
         return self.ack_policy is AckPolicy.ACK_FIRST
@@ -49,3 +47,27 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
             return AckPolicy.ACK_FIRST
 
         return self._ack_policy
+
+    def validate_ack_policy(self) -> None:
+        """Refuse an ack policy the consumer cannot honour."""
+        if self.ack_first:
+            return
+
+        # The consumer builder merges the broker's `config` over `group_id`, so a
+        # `group.id` key there wins even when it is empty.
+        consumer_config = self._outer_config.connection_config.consumer_config
+        if not consumer_config.get("group.id", self.group_id):
+            msg = (
+                f"ack_policy {self.ack_policy.value!r} commits offsets and needs "
+                "a group_id. Pass group_id=, or use ACK_FIRST. A `group.id` key in "
+                "the broker's `config` replaces group_id=, even when it is empty."
+            )
+            raise SetupError(msg)
+
+        if self.max_workers > 1:
+            msg = (
+                f"max_workers={self.max_workers} needs ACK_FIRST, but the ack_policy "
+                f"is {self.ack_policy.value!r}. Set max_workers=1, or "
+                "ack_policy=AckPolicy.ACK_FIRST on the subscriber."
+            )
+            raise SetupError(msg)

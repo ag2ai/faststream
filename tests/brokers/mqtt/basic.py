@@ -11,7 +11,8 @@ from tests.brokers.base.basic import BaseTestcaseConfig
 
 
 class MQTTTestcaseConfig(BaseTestcaseConfig[MQTTBroker]):
-    supports_cancel_ack_skip: bool = False
+    # MQTT nack is a no-op: StreamMessage.nack is never reached.
+    nack_is_observable: bool = False
     version: Literal["5.0", "3.1.1"] = "3.1.1"
 
     @pytest.fixture(autouse=True)

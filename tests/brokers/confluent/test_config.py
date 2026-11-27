@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +12,11 @@ from faststream.confluent.schemas import TopicPartition
 from faststream.confluent.subscriber.config import KafkaSubscriberConfig
 from faststream.exceptions import SetupError
 
+# The precedence cases put REJECT_ON_ERROR on a broker or a router, where Kafka warns
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:AckPolicy.REJECT_ON_ERROR has the same effect",
+)
+
 
 @pytest.mark.confluent()
 def test_default() -> None:
@@ -19,7 +24,6 @@ def test_default() -> None:
 
     assert config.auto_ack_disabled
     assert config.ack_policy is AckPolicy.ACK_FIRST
-    assert config.connection_data == {"enable_auto_commit": True}
 
 
 @pytest.mark.confluent()
@@ -31,7 +35,6 @@ def test_ack_first() -> None:
 
     assert config.auto_ack_disabled
     assert config.ack_policy is AckPolicy.ACK_FIRST
-    assert config.connection_data == {"enable_auto_commit": True}
 
 
 @pytest.mark.confluent()
@@ -42,7 +45,6 @@ def test_custom_ack() -> None:
     )
 
     assert config.ack_policy is AckPolicy.REJECT_ON_ERROR
-    assert config.connection_data == {"enable_auto_commit": False}
 
 
 @pytest.mark.confluent()
@@ -99,6 +101,20 @@ def test_sub_overrides_broker_and_router() -> None:
     broker.include_router(router)
     sub = router.subscriber("test", group_id="g", ack_policy=AckPolicy.ACK)
     assert sub.ack_policy is AckPolicy.ACK
+
+
+@pytest.mark.confluent()
+def test_late_included_router_subscriber_disables_auto_commit() -> None:
+    """Policy and auto-commit follow the broker as soon as the router is included."""
+    router = KafkaRouter()
+    subscriber: Any = router.subscriber("orders", group_id="workers")
+    broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
+    broker.include_router(router)
+
+    assert (
+        subscriber.ack_policy,
+        subscriber._connection_data["enable_auto_commit"],
+    ) == (AckPolicy.NACK_ON_ERROR, False)
 
 
 def build_consumer(

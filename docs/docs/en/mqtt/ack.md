@@ -45,7 +45,7 @@ Call `await msg.ack()` yourself when processing is done.
 
 ## `NACK_ON_ERROR`
 
-`NACK_ON_ERROR` is supported but behaves differently from other brokers: `MQTTMessage.nack()` is a no-op, so on error **no PUBACK is sent**. For QoS 1/2 topics the broker will redeliver the message. FastStream emits a **runtime warning** when this policy is used, because the redelivery behaviour may be surprising.
+`NACK_ON_ERROR` is supported but behaves differently from other brokers: `MQTTMessage.nack()` is a no-op, so on error **no PUBACK is sent**. For QoS 1/2 topics the broker will redeliver the message. FastStream emits a **runtime warning** where this policy is set, on a subscriber, a router or the broker, because the redelivery behaviour may be surprising.
 
 ## Interrupting with exceptions
 

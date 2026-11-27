@@ -432,15 +432,8 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig[Any]):
         ack_policy: AckPolicy,
         event: asyncio.Event,
     ) -> None:
-        if not self.supports_cancel_ack_skip:
-            pytest.skip("broker default subscriber has no acknowledgement middleware")
-
         broker = self.get_broker(graceful_timeout=0.2)
-        args, kwargs = self.get_subscriber_params(
-            queue,
-            ack_policy=ack_policy,
-            **self.get_cancel_ack_subscriber_kwargs(queue),
-        )
+        args, kwargs = self.get_ack_subscriber_params(queue, ack_policy=ack_policy)
 
         @broker.subscriber(*args, **kwargs)
         async def handler(_msg: Any) -> None:
@@ -466,7 +459,9 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig[Any]):
         ):
             async with self.patch_broker(broker) as br:
                 await br.start()
-                publish_task = asyncio.create_task(br.publish("hello", queue))
+                publish_task = asyncio.create_task(
+                    self.publish_to_ack_subscriber(br, queue, "hello"),
+                )
                 await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
                 # TestBroker awaits the handler inside publish; real brokers
@@ -489,20 +484,13 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig[Any]):
         queue: str,
         event: asyncio.Event,
     ) -> None:
-        if not self.supports_cancel_ack_skip:
-            pytest.skip("broker default subscriber has no acknowledgement middleware")
-
         class FailingMiddleware(BaseMiddleware):
             async def on_receive(self) -> None:
                 raise ValueError
 
         broker = self.get_broker()
         broker.add_middleware(FailingMiddleware)
-        args, kwargs = self.get_subscriber_params(
-            queue,
-            ack_policy=AckPolicy.ACK,
-            **self.get_cancel_ack_subscriber_kwargs(queue),
-        )
+        args, kwargs = self.get_ack_subscriber_params(queue, ack_policy=AckPolicy.ACK)
 
         @broker.subscriber(*args, **kwargs)
         async def handler(_msg: Any) -> None: ...
@@ -514,11 +502,87 @@ class BrokerConsumeTestcase(MultibrokerTestcase, BaseTestcaseConfig[Any]):
                 await br.start()
 
                 with suppress(ValueError):
-                    await br.publish("hello", queue)
+                    await self.publish_to_ack_subscriber(br, queue, "hello")
 
                 await asyncio.wait_for(event.wait(), timeout=self.timeout)
 
         ack.mock.assert_awaited_once()
+
+
+class HandlerError(Exception): ...
+
+
+# In-memory only: TestBroker awaits the handler inside publish, so the
+# acknowledgement has settled when publish raises.
+@pytest.mark.asyncio()
+# MQTT warns where a broker is given NACK_ON_ERROR
+@pytest.mark.filterwarnings("ignore:MQTT has no nack primitive")
+class SubscriberAckPolicyTestcase(BaseTestcaseConfig[Any]):
+    async def test_failed_handler_settles_with_inherited_policy(
+        self,
+        queue: str,
+    ) -> None:
+        """A failed handler declared before `include_router` nacks, as the broker asks."""
+        broker = self.get_broker(apply_types=True, ack_policy=AckPolicy.NACK_ON_ERROR)
+        router = self.get_router()
+        args, kwargs = self.get_ack_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(_msg: Any) -> None:
+            raise HandlerError
+
+        # The router joins the broker after its subscriber was declared
+        broker.include_router(router)
+
+        with (
+            patch.object(
+                StreamMessage,
+                "ack",
+                spy_decorator(StreamMessage.ack),
+            ) as ack,
+            patch.object(
+                StreamMessage,
+                "nack",
+                spy_decorator(StreamMessage.nack),
+            ) as nack,
+            patch.object(
+                StreamMessage,
+                "reject",
+                spy_decorator(StreamMessage.reject),
+            ) as reject,
+        ):
+            async with self.patch_broker(broker) as br:
+                await br.start()
+                with pytest.raises(HandlerError):
+                    await self.publish_to_ack_subscriber(br, queue, "hello")
+
+        # Nacked, as the broker asks, and settled no other way
+        assert (
+            ack.mock.await_count,
+            nack.mock.await_count,
+            reject.mock.await_count,
+        ) == (0, int(self.nack_is_observable), 0)
+
+    async def test_started_subscriber_keeps_its_ack_policy(self, queue: str) -> None:
+        broker = self.get_broker(ack_policy=AckPolicy.ACK)
+        other = self.get_broker(ack_policy=AckPolicy.NACK_ON_ERROR)
+        router = self.get_router()
+        args, kwargs = self.get_ack_subscriber_params(queue)
+        subscriber = router.subscriber(*args, **kwargs)
+        broker.include_router(router)
+
+        async with self.patch_broker(broker):
+            await subscriber.start()
+            # The router moves to another broker while its subscriber is running
+            other.include_router(router)
+            while_running = subscriber.ack_policy
+            await subscriber.stop()
+
+        # Stopped by now, so the new owner's policy applies
+        assert (while_running, subscriber.ack_policy) == (
+            AckPolicy.ACK,
+            AckPolicy.NACK_ON_ERROR,
+        )
 
 
 @pytest.mark.asyncio()

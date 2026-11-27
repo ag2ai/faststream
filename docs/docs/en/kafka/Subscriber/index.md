@@ -110,3 +110,6 @@ There are two possible modes of concurrent message processing:
 
 * With `AckPolicy.ACK_FIRST` and `max_workers` > 1, a handler processes all messages concurrently in an at-most-once semantic.
 * With any other `AckPolicy` and `max_workers` > 1, processing is concurrent between topic partitions and sequential within a partition to ensure reliable at-least-once processing. This mode requires a single plain topic: combining it with `pattern=` or `partitions=` raises a `SetupError` when the subscriber is declared. Maximum concurrency is achieved when the total number of workers across all application instances running workers in the same consumer group is equal to the number of partitions in the topic. Increasing worker count beyond that will result in idle workers as not more than one consumer from a consumer group can be consuming from the same partition.
+
+!!! warning "The mode is chosen when the subscriber is declared"
+    A router subscriber declared before `include_router` does not see the broker's policy yet, so it gets the first mode. If it then inherits any other `AckPolicy` from the broker, `broker.start()` raises a `SetupError`. To get the second mode, set `ack_policy=` on the subscriber or include the router before declaring the subscriber.

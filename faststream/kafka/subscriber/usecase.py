@@ -23,6 +23,7 @@ from faststream.kafka.message import KafkaAckableMessage, KafkaMessage, KafkaRaw
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
 from faststream.kafka.publisher.fake import KafkaFakePublisher
 from faststream.kafka.schemas import Topic
+from faststream.middlewares import AckPolicy
 
 if TYPE_CHECKING:
     from aiokafka import AIOKafkaConsumer
@@ -48,7 +49,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     """A class to handle logic for consuming messages from Kafka."""
 
     __slots__ = (
-        "_connection_args",
+        "__connection_args",
         "_listener",
         "_partitions",
         "_pattern",
@@ -63,6 +64,7 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
     parser: AioKafkaParser
 
     _outer_config: "KafkaBrokerConfig"
+    _subscriber_config: "KafkaSubscriberConfig"
     _call_wrapper_class = KafkaHandlerCallWrapper
 
     def __init__(
@@ -79,9 +81,27 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
 
         self._pattern = config.pattern
         self._listener = config.listener
-        self._connection_args = config.connection_args
+        self.__connection_args = config.connection_args
 
         self.consumer = None
+
+    @property
+    def _connection_args(self) -> dict[str, Any]:
+        """Consumer options; auto-commit follows the effective ack policy."""
+        return {
+            **self.__connection_args,
+            "enable_auto_commit": self.ack_policy is AckPolicy.ACK_FIRST,
+        }
+
+    @override
+    def _setup(self) -> None:
+        ack_first = self.ack_policy is AckPolicy.ACK_FIRST
+        # Mutate, don't replace: handlers already hold bound methods of this parser.
+        self.parser.msg_class = KafkaMessage if ack_first else KafkaAckableMessage
+
+    @override
+    def _pre_start(self) -> None:
+        self._subscriber_config.validate_ack_policy()
 
     @overload
     def __call__(
@@ -414,10 +434,8 @@ class DefaultSubscriber(LogicSubscriber["ConsumerRecord"]):
             else None
         )
 
-        self.parser = AioKafkaParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
-        )
+        # The message class follows the ack policy, final only once started
+        self.parser = AioKafkaParser(msg_class=KafkaMessage, regex=reg)
         config.parser = self.parser.parse_message
         config.decoder = self.parser.decode_message
         super().__init__(config, specification, calls)
@@ -464,10 +482,8 @@ class BatchSubscriber(LogicSubscriber[tuple["ConsumerRecord", ...]]):
             else None
         )
 
-        self.parser = AioKafkaBatchParser(
-            msg_class=KafkaMessage if config.ack_first else KafkaAckableMessage,
-            regex=reg,
-        )
+        # The message class follows the ack policy, final only once started
+        self.parser = AioKafkaBatchParser(msg_class=KafkaMessage, regex=reg)
         config.decoder = self.parser.decode_batch
         config.parser = self.parser.parse_batch
         super().__init__(config, specification, calls)
