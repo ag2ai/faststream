@@ -112,14 +112,22 @@ These are not users but neighbouring projects that took on maintaining an integr
 | **AnyDI** | dependency injection framework | [anydi](https://github.com/antonrh/anydi){.external-link target="_blank"} — built-in **FastStream** integration |
 | **that-depends** | dependency injection framework | [that-depends](https://github.com/modern-python/that-depends){.external-link target="_blank"} — built-in **FastStream** integration |
 
-## Community Extensions
+## Community Brokers
 
-Packages built on top of **FastStream** by the community:
+These packages provide broker implementations for **FastStream** and are maintained outside the core repository.
 
-* [`stompman`](https://github.com/community-of-python/stompman){.external-link target="_blank"} - STOMP client with a pleasant API
+* [`faststream-stomp`](https://github.com/community-of-python/stompman/tree/HEAD/packages/faststream-stomp){.external-link target="_blank"} - STOMP broker adapter from the `stompman` project
 * [`faststream-azure-servicebus`](https://github.com/thomaslaich/faststream-azure-servicebus){.external-link target="_blank"} - community broker adapter for **Azure Service Bus** queues and topics
 * [`faststream-gcp-pubsub`](https://github.com/powersemmi/faststream-gcp-pubsub){.external-link target="_blank"} - community broker adapter for **Google Cloud Pub/Sub** topics and subscriptions
 * [`faststream-mq`](https://github.com/davzucky/faststream-mq){.external-link target="_blank"} - standalone IBM MQ adapter
+* [`faststream-celery`](https://github.com/C3EQUALZz/faststream-celery){.external-link target="_blank"} - consumes tasks from **Celery** producers using Kombu transports
+* [`faststream-sqlbroker`](https://github.com/faststream-community/faststream-sqlbroker){.external-link target="_blank"} - SQL-backed broker for transactional outbox workflows
+* [`kubemq-faststream`](https://github.com/kubemq-io/kubemq-faststream){.external-link target="_blank"} - broker adapter for **KubeMQ** events, queues, commands, and queries
+
+## Community Extensions
+
+For additional broker implementations, see [Community Brokers](#community-brokers). The projects below provide client libraries, middleware, framework integrations, and other resources.
+
 * [`zMQTT`](https://github.com/faststream-community/zMQTT){.external-link target="_blank"} - pure asyncio MQTT 3.1.1 and 5.0 client library, no **paho** dependency
 * [`faststream-schema-registry`](https://github.com/mlovretovich/faststream-schema-registry){.external-link target="_blank"} - connects **FastStream** to the **Confluent** Schema Registry
 * [`opentelemetry-instrumentation-faststream`](https://github.com/ashambalev/opentelemetry-instrumentation-faststream){.external-link target="_blank"} - **FastStream** instrumentation for **OpenTelemetry**
@@ -136,7 +144,6 @@ Packages built on top of **FastStream** by the community:
 * [`litestar-faststream`](https://github.com/hasansezertasan/litestar-faststream){.external-link target="_blank"} - **Litestar** integration for **FastStream** message brokers
 * [`fast-healthchecks`](https://github.com/ZYLVEXT/fast-healthchecks){.external-link target="_blank"} - framework-agnostic health checks
 * [`awesome-faststream`](https://github.com/lesnik512/awesome-faststream){.external-link target="_blank"} - curated list of libraries, tools, templates and resources
-* [`faststream-celery`](https://github.com/C3EQUALZz/faststream-celery){.external-link target="_blank"} - connects **FastStream** to the **Celery (kombu)** broker.
 
 ## Add Your Project
 
