@@ -53,13 +53,14 @@ class KafkaSubscriberConfig(SubscriberUsecaseConfig):
         if self.ack_first:
             return
 
-        # `group.id` in the broker's `config` names the group too: the consumer
-        # builder merges it over `group_id`.
+        # The consumer builder merges the broker's `config` over `group_id`, so a
+        # `group.id` key there wins even when it is empty.
         consumer_config = self._outer_config.connection_config.consumer_config
-        if not (consumer_config.get("group.id") or self.group_id):
+        if not consumer_config.get("group.id", self.group_id):
             msg = (
                 f"ack_policy {self.ack_policy.value!r} commits offsets and needs "
-                "a group_id. Pass group_id=, or use ACK_FIRST."
+                "a group_id. Pass group_id=, or use ACK_FIRST. A `group.id` key in "
+                "the broker's `config` replaces group_id=, even when it is empty."
             )
             raise SetupError(msg)
 

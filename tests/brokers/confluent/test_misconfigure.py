@@ -94,6 +94,15 @@ async def test_group_from_broker_config_serves_inherited_commit_policy(
 
 
 @pytest.mark.confluent()
+def test_empty_group_in_broker_config_refuses_commit_policy(queue: str) -> None:
+    broker = KafkaBroker(config={"group.id": ""}, ack_policy=AckPolicy.ACK)
+
+    # The consumer takes the config's group, empty as it is, over "workers"
+    with pytest.raises(SetupError, match="group_id"):
+        broker.subscriber(queue, group_id="workers")
+
+
+@pytest.mark.confluent()
 @pytest.mark.asyncio()
 async def test_subscriber_start_refuses_group_less_inherited_commit_policy() -> None:
     broker = KafkaBroker(ack_policy=AckPolicy.NACK_ON_ERROR)
