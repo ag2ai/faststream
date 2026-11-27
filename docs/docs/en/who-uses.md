@@ -89,17 +89,15 @@ Additional postings and organization-confirmed deployments are listed in
 
 ## Usage Reported by Individual Team Members
 
-These authors describe their work on specific products. Their accounts are attributed to them,
-not presented as organization confirmations. They do not establish current organization-wide
-or production use; the Magalu Cloud account refers to the employment period shown below.
+These public accounts describe individual projects. They do not establish current or organization-wide adoption.
 
 | Organization | Reported use | Source |
 | --- | --- | --- |
-| **Magalu Cloud — Brazil** | Lucas França reports working on the first Load Balancing as a Service (LBaaS) product as a senior software developer, December 2023–June 2024. His project technologies include FastStream, RabbitMQ, FastAPI and OpenStack. This is a historical account of one team. | [Lucas França’s public CV, p. 2](https://web.archive.org/web/20261006053249/https://www.lucasfrancaid.com/CV_Lucas_Franca.pdf){.external-link target="_blank"}, archived 2026-10-06 |
-| **NtechLab** | Vladimir Kuznetsov describes a shared service template that uses FastStream for publish/subscribe messaging. Six services are built on the template; the article does not identify which messaging features each service uses. | [NtechLab engineering article](https://habr.com/ru/companies/ntechlab/articles/1108482/){.external-link target="_blank"} |
-| **Tessera / Identies** | A Tessera SDK contributor reports that Identies used FastStream 0.7.1 to publish NATS events and describes how stale credentials interrupted delivery. | [Tessera Python SDK incident report and fix](https://github.com/tesserahq/tessera-sdk-py/pull/129){.external-link target="_blank"} |
-| **Skan.ai** | Mubarak Abdulla (author bio: Chief Architect) describes using FastStream to decouple Skan.ai's event-processing application logic from RabbitMQ and enable future migration to Kafka or NATS. The article does not establish deployments on those other brokers. | [Architecture case study by Mubarak Abdulla](https://medium.com/architecture-without-the-hype/how-we-scaled-our-architecture-10-lessons-from-skan-ai-67371cd9002d){.external-link target="_blank"}, published 2026-01-06 |
-| **Tektome — Tokyo, Japan** | Pumidol Leelerdsakulvong reports designing and implementing an ingestion, conversion and extraction queue for 3D models and large PDFs using RabbitMQ and FastStream. Tektome’s team page confirms his role as Technical Product Lead. | [Technical lead’s personal site](https://web.archive.org/web/20261006053419/https://pumidol.com/){.external-link target="_blank"}, archived 2026-10-06; [official team page](https://tektome.com/leadership-and-team/){.external-link target="_blank"} |
+| **Magalu Cloud — Brazil** | An archived CV lists FastStream, RabbitMQ, FastAPI and OpenStack for the first Load Balancing as a Service (LBaaS) product, December 2023–June 2024. | [Archived CV, p. 2](https://web.archive.org/web/20261006053249/https://www.lucasfrancaid.com/CV_Lucas_Franca.pdf){.external-link target="_blank"}, archived 2026-10-06 |
+| **NtechLab** | An engineering article describes a shared service template that uses FastStream for publish/subscribe messaging. Six services are built on the template; the article does not identify which messaging features each service uses. | [NtechLab engineering article](https://habr.com/ru/companies/ntechlab/articles/1108482/){.external-link target="_blank"} |
+| **Tessera / Identies** | A Tessera SDK incident report says Identies used FastStream 0.7.1 to publish NATS events and describes how stale credentials interrupted delivery. | [Tessera Python SDK incident report and fix](https://github.com/tesserahq/tessera-sdk-py/pull/129){.external-link target="_blank"} |
+| **Skan.ai** | An architecture case study describes using FastStream to decouple Skan.ai's event-processing application logic from RabbitMQ and enable future migration to Kafka or NATS. The article does not establish deployments on those other brokers. | [Architecture case study](https://medium.com/architecture-without-the-hype/how-we-scaled-our-architecture-10-lessons-from-skan-ai-67371cd9002d){.external-link target="_blank"}, published 2026-01-06 |
+| **Tektome — Tokyo, Japan** | A project account describes a RabbitMQ and FastStream queue for ingesting, converting and extracting data from 3D models and large PDFs. | [Archived project account](https://web.archive.org/web/20261006053419/https://pumidol.com/){.external-link target="_blank"}, archived 2026-10-06 |
 
 ## Tools Shipping a FastStream Integration
 
