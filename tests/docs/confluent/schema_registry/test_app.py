@@ -35,7 +35,9 @@ def fake_registry(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None
     module.SCHEMAS_BY_ID.clear()
 
 
-def test_encoder_decoder_roundtrip(fake_registry: None) -> None:
+@pytest.mark.confluent()
+@pytest.mark.usefixtures("fake_registry")
+def test_encoder_decoder_roundtrip() -> None:
     schema_id, schema = module.get_latest_schema("people-value")
     body = module.encode_avro(module.Person(name="Ada", age=36), schema, schema_id)
 
@@ -44,7 +46,9 @@ def test_encoder_decoder_roundtrip(fake_registry: None) -> None:
     assert module.decode_avro(body) == {"name": "Ada", "age": 36}
 
 
-def test_batch_decoder(fake_registry: None) -> None:
+@pytest.mark.confluent()
+@pytest.mark.usefixtures("fake_registry")
+def test_batch_decoder() -> None:
     schema_id, schema = module.get_latest_schema("people-value")
     body = module.encode_avro(module.Person(name="Ada", age=36), schema, schema_id)
     msg = KafkaMessage(
@@ -61,7 +65,8 @@ def test_batch_decoder(fake_registry: None) -> None:
 
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
-async def test_app_roundtrip(fake_registry: None) -> None:
+@pytest.mark.usefixtures("fake_registry")
+async def test_app_roundtrip() -> None:
     async with TestKafkaBroker(module.broker) as br:
         await br.publish(module.Person(name="Ada", age=36), "people")
 
@@ -72,7 +77,8 @@ async def test_app_roundtrip(fake_registry: None) -> None:
 
 @pytest.mark.confluent()
 @pytest.mark.asyncio()
-async def test_batch_publish(fake_registry: None) -> None:
+@pytest.mark.usefixtures("fake_registry")
+async def test_batch_publish() -> None:
     async with TestKafkaBroker(module.broker) as br:
         await br.publish_batch(
             module.Person(name="Ada", age=36),
