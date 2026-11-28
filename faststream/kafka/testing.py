@@ -11,6 +11,12 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka import encode_headers
+from faststream._internal.kafka.tombstone import (
+    Tombstone,
+    encode_or_tombstone,
+    reject_batch_tombstones,
+    tombstone_to_none,
+)
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
@@ -209,7 +215,7 @@ class FakeProducer(AioKafkaFastProducer):
                 (incoming,) if isinstance(handler, BatchSubscriber) else incoming
             )
 
-            await self._execute_handler(msg_to_send, cmd.destination, handler)
+            await handler.process_message(msg_to_send)
 
     @override
     async def request(self, cmd: "KafkaPublishCommand") -> "ConsumerRecord":
@@ -250,6 +256,7 @@ class FakeProducer(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> None:
         """Publish a batch of messages to the Kafka broker."""
+        reject_batch_tombstones(cmd.batch_bodies)
         serializer = self.broker.config.fd_config._serializer
 
         if isinstance(self.codec, BatchCodecProto):
@@ -281,11 +288,11 @@ class FakeProducer(AioKafkaFastProducer):
             ]
 
             if isinstance(handler, BatchSubscriber):
-                await self._execute_handler(tuple(messages), cmd.destination, handler)
+                await handler.process_message(tuple(messages))
 
             else:
                 for m in messages:
-                    await self._execute_handler(m, cmd.destination, handler)
+                    await handler.process_message(m)
 
     async def _execute_handler(
         self,
@@ -298,6 +305,7 @@ class FakeProducer(AioKafkaFastProducer):
         return await build_message(
             topic=topic,
             message=result.body,
+            key=result.get_publish_key() if isinstance(result.body, Tombstone) else None,
             headers=result.headers,
             correlation_id=result.correlation_id,
             serializer=self.broker.config.fd_config._serializer,
@@ -321,12 +329,14 @@ async def build_message(
     id_generator: IdGenerator = gen_cor_id,
 ) -> "ConsumerRecord":
     """Build a Kafka ConsumerRecord for a sendable message."""
-    if message is None and key is not None:
-        # keyed None is a real tombstone, matching publish()'s own rule
-        # (aiokafka needs a key or value, a keyless None still goes b"")
-        msg, content_type = None, None
-    else:
-        msg, content_type = await (codec or DefaultCodec()).encode(message, serializer)
+    msg, content_type = await encode_or_tombstone(
+        message,
+        codec or DefaultCodec(),
+        serializer,
+        key=key,
+        none_is_tombstone=key is not None,
+    )
+    msg = tombstone_to_none(msg)
 
     k = key or b""
 

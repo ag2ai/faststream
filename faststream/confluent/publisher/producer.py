@@ -5,6 +5,11 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka import encode_headers
+from faststream._internal.kafka.tombstone import (
+    encode_or_tombstone,
+    reject_batch_tombstones,
+    tombstone_to_none,
+)
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
@@ -152,10 +157,13 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> "asyncio.Future[Message | None] | Message | None":
         """Publish a message to a topic."""
-        if cmd.body is None:
-            message, content_type = None, None
-        else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+        message, content_type = await encode_or_tombstone(
+            cmd.body,
+            self.codec,
+            self.serializer,
+            key=cmd.key,
+            none_is_tombstone=True,
+        )
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -164,7 +172,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
         return await self._producer.producer.send(
             topic=cmd.destination,
-            value=message,
+            value=tombstone_to_none(message),
             key=cmd.key,
             partition=cmd.partition,
             timestamp_ms=cmd.timestamp_ms,
@@ -175,6 +183,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     @override
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to a topic."""
+        reject_batch_tombstones(cmd.batch_bodies)
         batch = self._producer.producer.create_batch()
 
         headers_to_send = cmd.headers_to_publish()

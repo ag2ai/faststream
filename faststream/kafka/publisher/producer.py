@@ -5,6 +5,10 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka import encode_headers
+from faststream._internal.kafka.tombstone import (
+    encode_or_tombstone,
+    reject_batch_tombstones,
+)
 from faststream._internal.parser import BatchCodecProto, DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.exceptions import FeatureNotSupportedException
@@ -122,12 +126,13 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a message to a topic."""
-        if cmd.body is None and cmd.key is not None:
-            # keyed None is a tombstone: aiokafka requires at least key or value,
-            # so a keyless None still goes through the codec as b""
-            message, content_type = None, None
-        else:
-            message, content_type = await self.codec.encode(cmd.body, self.serializer)
+        message, content_type = await encode_or_tombstone(
+            cmd.body,
+            self.codec,
+            self.serializer,
+            key=cmd.key,
+            none_is_tombstone=cmd.key is not None,
+        )
 
         headers_to_send = {
             "content-type": content_type or "",
@@ -153,6 +158,7 @@ class AioKafkaFastProducerImpl(AioKafkaFastProducer):
         cmd: "KafkaPublishCommand",
     ) -> Union["asyncio.Future[RecordMetadata]", "RecordMetadata"]:
         """Publish a batch of messages to a topic."""
+        reject_batch_tombstones(cmd.batch_bodies)
         batch = self._producer.producer.create_batch()
 
         headers_to_send = cmd.headers_to_publish()

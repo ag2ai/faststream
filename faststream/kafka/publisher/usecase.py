@@ -5,6 +5,7 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.kafka import KafkaCallAssertions
+from faststream._internal.kafka.tombstone import resolve_publish_key
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.response import KafkaPublishCommand
@@ -235,7 +236,7 @@ class DefaultPublisher(LogicPublisher):
         cmd = KafkaPublishCommand(
             message,
             topic=topic or self.topic,
-            key=key or self.key,
+            key=resolve_publish_key(message, key, self.key),
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
             headers=self.headers | dict(headers or {}),
@@ -265,7 +266,7 @@ class DefaultPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
 
         cmd.partition = cmd.partition if cmd.partition is not None else self.partition
-        cmd.key = cmd.key or self.key
+        cmd.key = resolve_publish_key(cmd.body, cmd.key, self.key)
 
         await self._basic_publish(
             cmd,
