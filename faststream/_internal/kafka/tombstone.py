@@ -1,8 +1,9 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, TypeVar
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from typing_extensions import Self
 
+from faststream._internal.parser import BatchCodecProto
 from faststream.response import Response
 
 if TYPE_CHECKING:
@@ -41,6 +42,14 @@ def resolve_publish_key(body: object, key: _Key, default: _Key) -> _Key:
     return key or default
 
 
+def resolve_batch_publish_key(bodies: Sequence[object], key: _Key, default: _Key) -> _Key:
+    if key is not None and any(
+        isinstance(_batch_body(body), Tombstone) for body in bodies
+    ):
+        return key
+    return key or default
+
+
 def tombstone_to_none(body: bytes | None) -> bytes | None:
     return None if isinstance(body, Tombstone) else body
 
@@ -63,10 +72,37 @@ async def encode_or_tombstone(
     return await codec.encode(body, serializer)
 
 
-def reject_batch_tombstones(bodies: Sequence[object]) -> None:
-    if any(
-        isinstance(body.body if isinstance(body, Response) else body, Tombstone)
-        for body in bodies
-    ):
-        msg = "TOMBSTONE requires single-record publishing"
+async def encode_kafka_batch(
+    bodies: Sequence[Any],
+    codec: "CodecProto",
+    serializer: "SerializerProto | None",
+    key_for: Callable[[int], object],
+    partition: int | None,
+) -> tuple[Sequence[tuple[bytes | None, str | None]], bool]:
+    encoded_inputs = [_batch_body(body) for body in bodies]
+    has_tombstones = any(isinstance(body, Tombstone) for body in encoded_inputs)
+    if isinstance(codec, BatchCodecProto):
+        if has_tombstones:
+            msg = "TOMBSTONE batches require per-record encoding, not BatchCodecProto"
+            raise ValueError(msg)
+        return await codec.encode_batch(encoded_inputs, serializer), False
+    if has_tombstones and partition is None:
+        msg = "TOMBSTONE batches require an explicit partition"
         raise ValueError(msg)
+
+    return [
+        await encode_or_tombstone(
+            body,
+            codec,
+            serializer,
+            key=key_for(index),
+            none_is_tombstone=False,
+        )
+        for index, body in enumerate(encoded_inputs)
+    ], has_tombstones
+
+
+def _batch_body(body: Any) -> Any:
+    if isinstance(body, Response) and isinstance(body.body, Tombstone):
+        return body.body
+    return body

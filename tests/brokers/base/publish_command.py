@@ -88,6 +88,7 @@ class BatchPublishCommandTestcase(BasePublishCommandTestcase):
         assert cmd.extra_bodies == ()
 
 
+TOMBSTONE_INPUT = object()
 BODY_A, BODY_B, BODY_C = "body-A", "body-B", "body-C"
 
 
@@ -119,6 +120,30 @@ SHUFFLED = (
 
 # (original (body, key) pairs, batch_bodies mutation, expected (body, key) pairs)
 KEY_ALIGNMENT_CASES = (
+    pytest.param(
+        ((None, b"keep"), (TOMBSTONE_INPUT, b"delete")),
+        keep,
+        ((b"", b"keep"), (None, b"delete")),
+        id="none-then-tombstone",
+    ),
+    pytest.param(
+        ((TOMBSTONE_INPUT, b"delete"), (None, b"keep")),
+        keep,
+        ((None, b"delete"), (b"", b"keep")),
+        id="tombstone-then-none",
+    ),
+    pytest.param(
+        ((b"", b"keep"), (TOMBSTONE_INPUT, b"delete")),
+        reverse,
+        ((None, b"delete"), (b"", b"keep")),
+        id="reversed-tombstone-and-empty-value",
+    ),
+    pytest.param(
+        ((TOMBSTONE_INPUT, b"A"), (b"live", b"A"), (TOMBSTONE_INPUT, b"B")),
+        reverse,
+        ((None, b"B"), (b"live", b"A"), (None, b"A")),
+        id="reversed-distinct-tombstones",
+    ),
     pytest.param(
         ((None, b"empty"), (BODY_A, b"keep")),
         keep,
@@ -211,6 +236,7 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
 
     publish_command_cls: type[BatchPublishCommand]
     publish_message_cls: type[Any]
+    tombstone: bytes
 
     @staticmethod
     def get_message_key(raw_message: Any) -> bytes:
@@ -245,22 +271,30 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
 
         @broker.subscriber(*args, **kwargs)
         async def handler(msgs: Any, raw: Any = Context("message")) -> None:
-            received.extend(
-                zip(
-                    msgs,
-                    (self.get_message_key(m) for m in raw.raw_message),
-                    strict=True,
-                ),
-            )
+            for msg, record in zip(msgs, raw.raw_message, strict=True):
+                value = record.value() if callable(record.value) else record.value
+                received.append((
+                    None if value is None else msg,
+                    self.get_message_key(record),
+                ))
 
         async with self.patch_broker(broker) as br:
             await br.start()
             await br.publish_batch(
-                *(self.publish_message_cls(body, key=key) for body, key in pairs),
+                *(
+                    self.publish_message_cls(
+                        self.tombstone if body is TOMBSTONE_INPUT else body, key=key
+                    )
+                    for body, key in pairs
+                ),
                 topic=queue,
+                partition=0,
             )
-        assert [body for body, _ in received] == [body for body, _ in expected]
-        assert Counter(received) == Counter(expected)
+        unique_bodies = len({body for body, _ in expected}) == len(expected)
+        if unique_bodies or any(body is TOMBSTONE_INPUT for body, _ in pairs):
+            assert received == list(expected)
+        else:
+            assert Counter(received) == Counter(expected)
 
     @pytest.mark.asyncio()
     async def test_none_batch_bodies_follow_publish_entry_point(self, queue: str) -> None:

@@ -6,11 +6,11 @@ from typing_extensions import override
 from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka import encode_headers
 from faststream._internal.kafka.tombstone import (
+    encode_kafka_batch,
     encode_or_tombstone,
-    reject_batch_tombstones,
     tombstone_to_none,
 )
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.producer import ProducerProto
 from faststream.confluent.parser import AsyncConfluentParser
 from faststream.confluent.response import KafkaPublishCommand
@@ -183,19 +183,13 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
     @override
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to a topic."""
-        reject_batch_tombstones(cmd.batch_bodies)
-        batch = self._producer.producer.create_batch()
-
         headers_to_send = cmd.headers_to_publish()
 
-        if isinstance(self.codec, BatchCodecProto):
-            encoded_batch = await self.codec.encode_batch(
-                cmd.batch_bodies, self.serializer
-            )
-        else:
-            encoded_batch = [
-                await self.codec.encode(msg, self.serializer) for msg in cmd.batch_bodies
-            ]
+        encoded_batch, _ = await encode_kafka_batch(
+            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for, cmd.partition
+        )
+        producer = self._producer.producer
+        batch = producer.create_batch()
 
         for message_position, (message, content_type) in enumerate(encoded_batch):
             if content_type:
@@ -208,14 +202,11 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
 
             batch.append(
                 key=cmd.key_for(message_position),
-                value=message,
+                value=tombstone_to_none(message),
                 timestamp=cmd.timestamp_ms,
                 headers=encode_headers(final_headers),
             )
 
-        await self._producer.producer.send_batch(
-            batch,
-            cmd.destination,
-            partition=cmd.partition,
-            no_confirm=cmd.no_confirm,
+        await producer.send_batch(
+            batch, cmd.destination, partition=cmd.partition, no_confirm=cmd.no_confirm
         )

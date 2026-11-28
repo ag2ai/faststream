@@ -140,22 +140,12 @@ class AsyncConfluentProducer:
 
         # should be sync to prevent segfault
         # confluent stub expects bytes|None for value/key; we accept str and encode
-        produce_value: bytes | None = (
-            kwargs["value"]
-            if isinstance(kwargs["value"], (bytes, type(None)))
-            else kwargs["value"].encode()
-        )
-        produce_key: bytes | None = (
-            kwargs["key"]
-            if isinstance(kwargs["key"], (bytes, type(None)))
-            else kwargs["key"].encode()
-        )
         produce_headers = (
             list(kwargs["headers"]) if kwargs["headers"] is not None else None
         )
         produce_kwargs: dict[str, Any] = {
-            "value": produce_value,
-            "key": produce_key,
+            "value": _to_bytes(kwargs["value"]),
+            "key": _to_bytes(kwargs["key"]),
             "headers": produce_headers,
             "on_delivery": kwargs["on_delivery"],
         }
@@ -514,8 +504,12 @@ class BatchBuilder:
         self._builder.append(
             {
                 "timestamp_ms": timestamp or round(time() * 1000),
-                "key": key,
-                "value": value,
+                "key": _to_bytes(key),
+                "value": _to_bytes(value),
                 "headers": headers or [],
             },
         )
+
+
+def _to_bytes(value: bytes | str | None) -> bytes | None:
+    return value.encode() if value is not None and not isinstance(value, bytes) else value

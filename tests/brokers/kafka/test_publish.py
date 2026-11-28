@@ -374,27 +374,53 @@ class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
 
     @pytest.mark.asyncio()
     @pytest.mark.parametrize(
-        "body", (pytest.param(None, id="legacy"), pytest.param(TOMBSTONE, id="explicit"))
+        ("body", "batch"),
+        (
+            pytest.param(None, False, id="legacy"),
+            pytest.param(TOMBSTONE, False, id="explicit"),
+            pytest.param(TOMBSTONE, True, id="batch"),
+        ),
     )
     async def test_publish_sends_a_real_tombstone(
-        self, queue: str, body: bytes | None
+        self, queue: str, body: bytes | None, batch: bool
     ) -> None:
         pub_broker = self.get_broker(apply_types=True)
 
-        values: asyncio.Queue[bytes | None] = asyncio.Queue()
+        records: asyncio.Queue[tuple[bytes, bytes | None, int]] = asyncio.Queue()
 
         args, kwargs = self.get_subscriber_params(queue)
 
         @pub_broker.subscriber(*args, **kwargs)  # type: ignore[untyped-decorator]
         async def handler(msg: Any = Context("message")) -> None:
-            await values.put(msg.raw_message.value)
+            raw = msg.raw_message
+            records.put_nowait((raw.key, raw.value, raw.partition))
 
         async with self.patch_broker(pub_broker) as br:
             await br.start()
-            await br.publish(body, queue, key=b"tombstone-key")
-            value = await asyncio.wait_for(values.get(), timeout=self.timeout)
+            if batch:
+                await br.publish_batch(
+                    KafkaPublishMessage(None, key=b"keep"),
+                    KafkaPublishMessage(body, key=b"delete"),
+                    KafkaPublishMessage(b"", key=b"empty"),
+                    KafkaPublishMessage(b"null", key=b"json"),
+                    topic=queue,
+                    partition=0,
+                )
+                expected = [
+                    (b"keep", b"", 0),
+                    (b"delete", None, 0),
+                    (b"empty", b"", 0),
+                    (b"json", b"null", 0),
+                ]
+            else:
+                await br.publish(body, queue, key=b"delete", partition=0)
+                expected = [(b"delete", None, 0)]
+            actual = [
+                await asyncio.wait_for(records.get(), timeout=self.timeout)
+                for _ in expected
+            ]
 
-        assert value is None
+        assert actual == expected
 
     @pytest.mark.asyncio()
     async def test_batch_publisher_with_kafka_response_without_keys(

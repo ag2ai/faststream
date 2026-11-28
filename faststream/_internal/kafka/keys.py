@@ -11,6 +11,8 @@ from typing import Any
 
 from faststream.response.response import Response
 
+from .tombstone import Tombstone
+
 
 @singledispatch
 def _extract_body_and_key(item: Any) -> tuple[Any, Any | None]:
@@ -60,7 +62,7 @@ def extract_per_message_keys_and_bodies(
 
     for item in batch_bodies:
         body, key = _extract_body_and_key(item)
-        bodies.append(body)
+        bodies.append(Tombstone() if isinstance(body, Tombstone) else body)
         keys.append(key)
         if key is not None:
             has_key = True
@@ -97,13 +99,35 @@ def realign_keys(
     new_bodies: Sequence[Any],
 ) -> tuple[Any | None, ...]:
     """Realign per-message keys with a new batch of bodies."""
-    bodies_seen: dict[int, Any] = {}
+    used_indexes: set[int] = set()
+    aligned_keys = []
     for body in new_bodies:
-        index = current_bodies.index(body)
-        if index not in bodies_seen:
-            bodies_seen.update({index: body})
-            continue
-        while index in bodies_seen or current_bodies[index] != body:
-            index += 1
-        bodies_seen.update({index: body})
-    return tuple(keys[i] for i in bodies_seen)
+        if isinstance(body, Tombstone):
+            candidates = [
+                index
+                for index, candidate in enumerate(current_bodies)
+                if index not in used_indexes and isinstance(candidate, Tombstone)
+            ]
+            index = next((i for i in candidates if current_bodies[i] is body), None)
+            if index is None:
+                if len(candidates) != 1:
+                    msg = "Cannot identify the Kafka tombstone in the rewritten batch"
+                    raise ValueError(msg)
+                index = candidates[0]
+        else:
+            index = next(
+                (
+                    i
+                    for i, candidate in enumerate(current_bodies)
+                    if i not in used_indexes
+                    and not isinstance(candidate, Tombstone)
+                    and (candidate is body or candidate == body)
+                ),
+                None,
+            )
+            if index is None:
+                msg = f"{body!r} is not in the remaining batch bodies"
+                raise ValueError(msg)
+        used_indexes.add(index)
+        aligned_keys.append(keys[index])
+    return tuple(aligned_keys)

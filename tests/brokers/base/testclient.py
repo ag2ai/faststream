@@ -11,6 +11,7 @@ from dirty_equals import IsPartialDict
 from pydantic import BaseModel
 
 from faststream import Context, Depends
+from faststream._internal.parser import DefaultCodec
 from faststream.exceptions import SetupError
 from tests.tools import spy_decorator
 
@@ -620,13 +621,89 @@ class KafkaTombstoneTestclientTestcase(BrokerTestclientTestcase):
 
         mock.assert_called_once_with((expected, None))
 
-    async def test_rejects_keyless_and_batched_tombstones(self, queue: str) -> None:
+    @pytest.mark.parametrize(
+        "from_handler",
+        (
+            pytest.param(False, id="direct"),
+            pytest.param(True, id="response"),
+        ),
+    )
+    async def test_batch_publisher_preserves_empty_key(
+        self, queue: str, mock: Mock, from_handler: bool
+    ) -> None:
+        broker = self.get_broker(apply_types=True)
+        publisher = broker.publisher(queue, batch=True, key=b"default", partition=0)
+
+        args, kwargs = self.get_subscriber_params(queue)
+        source_args, source_kwargs = self.get_subscriber_params(f"{queue}-source")
+
+        @broker.subscriber(*args, **kwargs)
+        async def destination(msg: Any = Context("message")) -> None:
+            mock(_raw_key_value(msg.raw_message))
+
+        @broker.subscriber(*source_args, **source_kwargs)
+        @publisher
+        async def source() -> Any:
+            return self.kafka_response(self.tombstone, key=b"")
+
+        async with self.patch_broker(broker) as test:
+            if from_handler:
+                await test.publish(b"start", queue + "-source")
+            else:
+                await publisher.publish(self.tombstone, key=b"")
+
+        mock.assert_called_once_with((b"", None))
+
+    async def test_rejects_keyless_and_unpinned_tombstones(
+        self, queue: str, mock: Mock
+    ) -> None:
         broker = self.get_broker()
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def receive() -> None:
+            mock()
+
         async with self.patch_broker(broker) as test:
             with pytest.raises(ValueError, match="requires a key"):
                 await test.publish(self.tombstone, queue)
-            with pytest.raises(ValueError, match="requires single-record publishing"):
+            with pytest.raises(ValueError, match="requires a key"):
+                await test.publish_batch(
+                    b"keep", self.tombstone, topic=queue, partition=0
+                )
+            with pytest.raises(ValueError, match="require an explicit partition"):
                 await test.publish_batch(b"keep", self.tombstone, topic=queue)
+
+        mock.assert_not_called()
+
+    async def test_rejects_tombstones_with_batch_codec(
+        self, queue: str, mock: Mock
+    ) -> None:
+        class BatchCodec(DefaultCodec):
+            async def encode_batch(self, *_: Any) -> Any:
+                pytest.fail("A batch with a tombstone must be rejected before encoding")
+
+            async def decode_batch(self, *_: Any) -> Any:
+                pytest.fail("A rejected batch cannot reach the decoder")
+
+        broker = self.get_broker(codec=BatchCodec())
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @broker.subscriber(*args, **kwargs)
+        async def receive() -> None:
+            mock()
+
+        async with self.patch_broker(broker) as test:
+            with pytest.raises(ValueError, match="BatchCodecProto"):
+                await test.publish_batch(
+                    b"keep",
+                    self.kafka_response(self.tombstone, key=b"key"),
+                    topic=queue,
+                    partition=0,
+                )
+
+        mock.assert_not_called()
 
 
 def _raw_key_value(record: Any) -> tuple[bytes | None, bytes | None]:

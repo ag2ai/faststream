@@ -5,7 +5,10 @@ from typing_extensions import override
 
 from faststream._internal.endpoint.publisher import PublisherUsecase
 from faststream._internal.kafka import KafkaCallAssertions
-from faststream._internal.kafka.tombstone import resolve_publish_key
+from faststream._internal.kafka.tombstone import (
+    resolve_batch_publish_key,
+    resolve_publish_key,
+)
 from faststream._internal.types import P_HandlerParams, T_HandlerReturn
 from faststream.kafka.call_wrapper import KafkaHandlerCallWrapper
 from faststream.kafka.response import KafkaPublishCommand
@@ -425,7 +428,7 @@ class BatchPublisher(LogicPublisher):
         """
         cmd = KafkaPublishCommand(
             *messages,
-            key=key or self.key,
+            key=resolve_batch_publish_key(messages, key, self.key),
             topic=topic or self.topic,
             partition=partition if partition is not None else self.partition,
             reply_to=reply_to or self.reply_to,
@@ -463,7 +466,7 @@ class BatchPublisher(LogicPublisher):
         cmd.reply_to = cmd.reply_to or self.reply_to
 
         cmd.partition = cmd.partition if cmd.partition is not None else self.partition
-        cmd.key = cmd.key or self.key
+        cmd.key = resolve_batch_publish_key(cmd.batch_bodies, cmd.key, self.key)
 
         await self._basic_publish_batch(
             cmd,

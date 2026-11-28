@@ -12,11 +12,11 @@ from faststream._internal.endpoint.utils import ParserComposition
 from faststream._internal.kafka import encode_headers
 from faststream._internal.kafka.tombstone import (
     Tombstone,
+    encode_kafka_batch,
     encode_or_tombstone,
-    reject_batch_tombstones,
     tombstone_to_none,
 )
-from faststream._internal.parser import BatchCodecProto, DefaultCodec
+from faststream._internal.parser import DefaultCodec
 from faststream._internal.testing.broker import (
     EnterType,
     TestBroker,
@@ -208,15 +208,11 @@ class FakeProducer(AsyncConfluentFastProducer):
     @override
     async def publish_batch(self, cmd: "KafkaPublishCommand") -> None:
         """Publish a batch of messages to the Kafka broker."""
-        reject_batch_tombstones(cmd.batch_bodies)
         serializer = self.broker.config.fd_config._serializer
 
-        if isinstance(self.codec, BatchCodecProto):
-            encoded = await self.codec.encode_batch(cmd.batch_bodies, serializer)
-        else:
-            encoded = [
-                await self.codec.encode(body, serializer) for body in cmd.batch_bodies
-            ]
+        encoded, _ = await encode_kafka_batch(
+            cmd.batch_bodies, self.codec, serializer, cmd.key_for, cmd.partition
+        )
 
         for handler in _find_handler(
             self.subscribers,
@@ -406,7 +402,7 @@ async def build_message(
 
 
 def _build_mock_message(
-    body: bytes,
+    body: bytes | None,
     content_type: str | None,
     topic: str,
     partition: int | None = None,
@@ -425,7 +421,7 @@ def _build_mock_message(
         **(headers or {}),
     }
     return MockConfluentMessage(
-        raw_msg=body,
+        raw_msg=tombstone_to_none(body),
         topic=topic,
         key=k,
         headers=encode_headers(h),
