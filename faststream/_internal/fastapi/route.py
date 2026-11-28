@@ -25,6 +25,7 @@ from ._compat import (
     FASTAPI_V121,
     bind_tombstone_body,
     create_response_field,
+    get_tombstone_body,
     raise_fastapi_validation_error,
     solve_faststream_dependency,
 )
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
 
     from faststream.message import StreamMessage as NativeMessage
 
+    from ._compat import TombstoneBody
     from .config import FastAPIConfig
 
 
@@ -195,13 +197,7 @@ def build_faststream_to_fastapi_parser(
                 path={},
             )
 
-        return await consume(
-            stream_message,
-            message,
-            not message.has_body
-            and message.uses_default_decoder
-            and (body is None or (isinstance(body, (bytes, str)) and not body)),
-        )
+        return await consume(stream_message, message, get_tombstone_body(message, body))
 
     return parsed_consumer
 
@@ -218,7 +214,7 @@ def make_fastapi_execution(
     response_model_exclude_defaults: bool,
     response_model_exclude_none: bool,
 ) -> Callable[
-    ["StreamMessage", "NativeMessage[Any]", bool],
+    ["StreamMessage", "NativeMessage[Any]", Optional["TombstoneBody"]],
     Awaitable[Response],
 ]:
     """Creates a FastAPI application."""
@@ -227,7 +223,7 @@ def make_fastapi_execution(
     async def app(
         request: "StreamMessage",
         raw_message: "NativeMessage[Any]",  # to support BackgroundTasks by middleware
-        tombstone: bool,
+        tombstone: Optional["TombstoneBody"],
     ) -> Response:
         """Consume StreamMessage and return user function result."""
         async with AsyncExitStack() as stack:
@@ -248,9 +244,9 @@ def make_fastapi_execution(
 
             solver_dependant = dependent
             overrides = fastapi_config.dependency_overrides_provider
-            if tombstone:
+            if tombstone is not None:
                 solver_dependant, kwargs["dependency_cache"] = bind_tombstone_body(
-                    dependent, overrides
+                    dependent, overrides, tombstone
                 )
                 overrides = None
 

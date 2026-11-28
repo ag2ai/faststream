@@ -1,5 +1,5 @@
 import inspect
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from functools import partial
 from types import UnionType
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from fastapi._compat import ModelField
     from fastapi.dependencies.models import Dependant
     from fastapi.requests import Request
+
+    from faststream.message import StreamMessage
 
 major, minor, patch, *_ = FASTAPI_VERSION.split(".")
 
@@ -45,8 +47,10 @@ else:
 
 __all__ = (
     "RequestValidationError",
+    "TombstoneBody",
     "bind_tombstone_body",
     "create_response_field",
+    "get_tombstone_body",
     "raise_fastapi_validation_error",
     "solve_faststream_dependency",
 )
@@ -153,9 +157,32 @@ else:
         )
 
 
+@dataclass(slots=True)
+class TombstoneBody:
+    batch: list[Any] | None = None
+
+
+def get_tombstone_body(
+    message: "StreamMessage[Any]", decoded: Any
+) -> TombstoneBody | None:
+    if not message.uses_default_decoder:
+        return None
+    if not message.has_body and _is_empty_body(decoded):
+        return TombstoneBody()
+
+    missing = message.batch_body_missing
+    if isinstance(decoded, list) and len(decoded) == len(missing) and any(missing):
+        return TombstoneBody([
+            None if absent and _is_empty_body(item) else item
+            for item, absent in zip(decoded, missing, strict=True)
+        ])
+    return None
+
+
 def bind_tombstone_body(
     dependant: "Dependant",
     dependency_overrides_provider: Any,
+    tombstone: TombstoneBody,
 ) -> tuple["Dependant", "dict[tuple[Any, ...], Any] | None"]:
     """Apply the tombstone binding while retaining the original dependency keys."""
     overrides = getattr(dependency_overrides_provider, "dependency_overrides", {})
@@ -164,7 +191,7 @@ def bind_tombstone_body(
         if overrides and not hasattr(dependant, "cache_key")
         else None
     )
-    return _bind_tombstone_fields(dependant, overrides, cache), cache
+    return _bind_tombstone_fields(dependant, overrides, cache, tombstone.batch), cache
 
 
 _DEPENDANT_PARAMETERS = inspect.signature(get_dependant).parameters
@@ -174,6 +201,7 @@ def _bind_tombstone_fields(
     dependant: "Dependant",
     overrides: dict[Any, Any],
     cache: "_OverrideDependencyCache | None",
+    batch: list[Any] | None,
 ) -> "Dependant":
     dependencies = []
     for original in dependant.dependencies:
@@ -181,7 +209,7 @@ def _bind_tombstone_fields(
         override = overrides.get(original.call)
         if override is not None:
             dependency = _get_overridden_dependant(original, override)
-        adapted = _bind_tombstone_fields(dependency, overrides, cache)
+        adapted = _bind_tombstone_fields(dependency, overrides, cache, batch)
         if cache is not None:
             assert adapted.call is not None
             adapted.call = cache.bind(adapted.call, original)
@@ -190,9 +218,12 @@ def _bind_tombstone_fields(
             legacy_dependant.cache_key = cache_key
         dependencies.append(adapted)
 
+    accepts_tombstone = (
+        _is_optional_model_body if batch is None else _accepts_nullable_model_items
+    )
     body_params = [
-        cast("ModelField", _TombstoneBodyField(field))
-        if _is_optional_model_body(field)
+        cast("ModelField", _TombstoneBodyField(field, batch))
+        if accepts_tombstone(field)
         else field
         for field in dependant.body_params
     ]
@@ -296,10 +327,11 @@ def _is_generator(call: Any) -> bool:
 
 
 class _TombstoneBodyField:
-    __slots__ = ("_field",)
+    __slots__ = ("_batch", "_field")
 
-    def __init__(self, field: "ModelField") -> None:
+    def __init__(self, field: "ModelField", batch: list[Any] | None) -> None:
         self._field = field
+        self._batch = batch
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._field, name)
@@ -307,6 +339,8 @@ class _TombstoneBodyField:
     def validate(
         self, value: Any, values: dict[str, Any], *, loc: tuple[int | str, ...]
     ) -> tuple[Any, Any]:
+        if self._batch is not None:
+            return self._field.validate(self._batch, values, loc=loc)
         if getattr(self._field.field_info, "validate_default", False):
             return self._field.validate(None, values, loc=loc)
         return None, []
@@ -328,10 +362,38 @@ def _is_optional_model_body(field: "ModelField") -> bool:
     )
 
 
+def _is_empty_body(value: Any) -> bool:
+    return value is None or (isinstance(value, (bytes, str)) and not value)
+
+
+def _accepts_nullable_model_items(field: "ModelField") -> bool:
+    annotation = (
+        field.field_info.annotation if FASTAPI_V2 else getattr(field, "outer_type_", None)
+    )
+    annotation = _unwrap_annotated(annotation)
+    if get_origin(annotation) in {Union, UnionType}:
+        types = tuple(arg for arg in get_args(annotation) if arg is not type(None))
+        if len(types) != 1:
+            return False
+        annotation = _unwrap_annotated(types[0])
+    if get_origin(annotation) not in {list, Sequence}:
+        return False
+    items = get_args(annotation)
+    if not items:
+        return False
+    item = _unwrap_annotated(items[0])
+    return type(None) in get_args(item) and _is_model_annotation(item)
+
+
+def _unwrap_annotated(annotation: Any) -> Any:
+    if get_origin(annotation) is Annotated:
+        return get_args(annotation)[0]
+    return annotation
+
+
 def _is_model_annotation(annotation: Any) -> bool:
+    annotation = _unwrap_annotated(annotation)
     origin = get_origin(annotation)
-    if origin is Annotated:
-        return _is_model_annotation(get_args(annotation)[0])
     if origin in {Union, UnionType}:
         return all(
             _is_model_annotation(arg)

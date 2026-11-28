@@ -49,7 +49,7 @@ class StreamMessage(Generic[MsgType]):
         self.raw_message = raw_message
         self.body = body
         self.__no_body = _no_body
-        self._batch_body_missing = _batch_body_missing
+        self.__batch_body_missing = _batch_body_missing
         self.reply_to = reply_to
         self.content_type = content_type
         self.source_type = source_type
@@ -75,6 +75,11 @@ class StreamMessage(Generic[MsgType]):
     def has_body(self) -> bool:
         """Whether this message has a body on the wire."""
         return not self.__no_body
+
+    @property
+    def batch_body_missing(self) -> tuple[bool, ...]:
+        """Indicate which records in a batch have no body on the wire."""
+        return self.__batch_body_missing
 
     @property
     def uses_default_decoder(self) -> bool:

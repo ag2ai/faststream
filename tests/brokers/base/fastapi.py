@@ -1,5 +1,6 @@
 import asyncio
-from collections.abc import AsyncGenerator, Iterator
+import typing
+from collections.abc import AsyncGenerator, Iterator, Sequence
 from contextlib import asynccontextmanager
 from functools import partial
 from typing import Annotated, Any
@@ -10,7 +11,7 @@ from fastapi import BackgroundTasks, Body, Depends, FastAPI, Header, Security
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import SecurityScopes
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from faststream import (
     Context as FSContext,
@@ -275,6 +276,13 @@ class FastAPITestcase(BaseTestcaseConfig[Any]):
         mock.assert_called_once_with(True)
 
 
+_BareList = Annotated[typing.List, Body()]  # ruff: ignore[non-pep585-annotation]
+
+
+class _BatchModel(BaseModel):
+    x: int
+
+
 @pytest.mark.asyncio()
 class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
     router_class: Any
@@ -448,6 +456,55 @@ class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
 
         ordinary, tombstone = received
         assert tombstone == ordinary
+
+    @pytest.mark.parametrize(
+        ("annotation", "custom_decoder"),
+        (
+            pytest.param(list[_BatchModel | None], False, id="list"),
+            pytest.param(list[_BatchModel | None], True, id="custom-decoder"),
+            pytest.param(
+                Sequence[Annotated[_BatchModel | None, Field(description="record")]]
+                | None,
+                False,
+                id="optional-sequence-with-annotated-item",
+            ),
+            pytest.param(_BareList, False, id="bare-typing-list"),
+        ),
+    )
+    async def test_tombstone_batch_binds_each_body_field(
+        self, queue: str, mock: Mock, annotation: Any, custom_decoder: bool
+    ) -> None:
+        async def decoder(_: NativeMessage[Any]) -> list[dict[str, int]]:
+            return [{"x": 7}, {"x": 8}]
+
+        async def parse_raw(values: list[Any]) -> list[Any]:
+            return values
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(
+            queue, batch=True, decoder=decoder if custom_decoder else None
+        )
+
+        async def handler(
+            msg: Any, raw: Annotated[list[Any], Depends(parse_raw)]
+        ) -> None:
+            mock(msg, raw)
+
+        handler.__annotations__["msg"] = annotation
+        router.subscriber(*args, **kwargs)(handler)
+
+        publisher = router.broker.publisher(queue, batch=True, key=b"key")
+        async with self.patch_broker(router.broker):
+            await publisher.publish(b'{"x": 5}', TOMBSTONE, b"null")
+
+        expected: list[Any]
+        raw: list[Any]
+        if custom_decoder:
+            expected, raw = [_BatchModel(x=7), _BatchModel(x=8)], [{"x": 7}, {"x": 8}]
+        else:
+            raw = [{"x": 5}, b"", None]
+            expected = raw if annotation is _BareList else [_BatchModel(x=5), None, None]
+        mock.assert_called_once_with(expected, raw)
 
 
 @pytest.mark.asyncio()
