@@ -186,7 +186,7 @@ class AsyncConfluentFastProducerImpl(AsyncConfluentFastProducer):
         headers_to_send = cmd.headers_to_publish()
 
         encoded_batch, _ = await encode_kafka_batch(
-            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for, cmd.partition
+            cmd.batch_bodies, self.codec, self.serializer, cmd.key_for
         )
         producer = self._producer.producer
         batch = producer.create_batch()

@@ -743,7 +743,11 @@ class KafkaBroker(
         correlation_id: str | None = None,
         no_confirm: bool = False,
     ) -> asyncio.Future[RecordMetadata] | RecordMetadata:
-        """Publish a message batch as a single request to broker.
+        """Publish a message batch.
+
+        A batch containing `TOMBSTONE` confirms every record and returns the
+        metadata for its first input record. With `acks=0`, the result is
+        `None` because Kafka sends no acknowledgement.
 
         Args:
             *messages:

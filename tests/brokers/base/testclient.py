@@ -654,9 +654,7 @@ class KafkaTombstoneTestclientTestcase(BrokerTestclientTestcase):
 
         mock.assert_called_once_with((b"", None))
 
-    async def test_rejects_keyless_and_unpinned_tombstones(
-        self, queue: str, mock: Mock
-    ) -> None:
+    async def test_rejects_keyless_tombstones(self, queue: str, mock: Mock) -> None:
         broker = self.get_broker()
 
         args, kwargs = self.get_subscriber_params(queue)
@@ -672,7 +670,7 @@ class KafkaTombstoneTestclientTestcase(BrokerTestclientTestcase):
                 await test.publish_batch(
                     b"keep", self.tombstone, topic=queue, partition=0
                 )
-            with pytest.raises(ValueError, match="require an explicit partition"):
+            with pytest.raises(ValueError, match="requires a key"):
                 await test.publish_batch(b"keep", self.tombstone, topic=queue)
 
         mock.assert_not_called()

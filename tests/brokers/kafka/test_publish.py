@@ -3,12 +3,17 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from aiokafka import AIOKafkaProducer
+from aiokafka.errors import MessageSizeTooLargeError
 from aiokafka.structs import RecordMetadata
 
 from faststream import Context
-from faststream.kafka import TOMBSTONE, KafkaPublishMessage, KafkaResponse
+from faststream.kafka import TOMBSTONE, KafkaPublishMessage, KafkaResponse, Topic
 from faststream.kafka.exceptions import BatchBufferOverflowException
-from tests.brokers.base.publish import BrokerPublishTestcase
+from tests.brokers.base.publish import (
+    BrokerPublishTestcase,
+    KafkaTombstoneRoutingTestcase,
+)
 
 from .basic import KafkaTestcaseConfig
 
@@ -16,7 +21,119 @@ from .basic import KafkaTestcaseConfig
 @pytest.mark.kafka()
 @pytest.mark.connected()
 @pytest.mark.flaky(reruns=3, reruns_delay=1)
-class TestPublish(KafkaTestcaseConfig, BrokerPublishTestcase):
+class TestPublish(
+    KafkaTestcaseConfig, BrokerPublishTestcase, KafkaTombstoneRoutingTestcase
+):
+    topic_cls = Topic
+    tombstone = TOMBSTONE
+    returns_batch_metadata = True
+    publish_message_cls = KafkaPublishMessage
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        "no_confirm",
+        (pytest.param(False, id="confirmed"), pytest.param(True, id="future")),
+    )
+    @pytest.mark.parametrize(
+        "failure",
+        (
+            pytest.param("enqueue", id="enqueue"),
+            pytest.param("cancel", id="cancel"),
+            pytest.param("ack", id="ack"),
+        ),
+    )
+    async def test_tombstone_batch_raises_before_first_ack(
+        self, queue: str, no_confirm: bool, failure: str
+    ) -> None:
+        observed = asyncio.Event()
+        enqueuing_second = asyncio.Event()
+
+        class ObservedDelivery(asyncio.Future[RecordMetadata]):
+            def exception(self) -> BaseException | None:
+                observed.set()
+                return super().exception()
+
+        first = ObservedDelivery()
+        later: asyncio.Future[RecordMetadata] = asyncio.Future()
+
+        async def send(
+            _: str, *, key: bytes, **kwargs: Any
+        ) -> asyncio.Future[RecordMetadata]:
+            if key == b"delete":
+                return first
+            enqueuing_second.set()
+            if failure == "enqueue":
+                msg = "enqueue failed"
+                raise RuntimeError(msg)
+            if failure == "cancel":
+                await asyncio.Future()
+            return later
+
+        with patch.object(AIOKafkaProducer, "send", side_effect=send):
+            async with self.patch_broker(self.get_broker()) as br:
+                publishing = asyncio.create_task(
+                    br.publish_batch(
+                        KafkaPublishMessage(TOMBSTONE, key=b"delete"),
+                        KafkaPublishMessage(b"keep", key=b"keep"),
+                        topic=queue,
+                        no_confirm=no_confirm,
+                    )
+                )
+                await asyncio.wait_for(enqueuing_second.wait(), self.timeout)
+                if failure == "cancel":
+                    publishing.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await publishing
+                elif failure == "enqueue":
+                    with pytest.raises(RuntimeError, match="enqueue failed"):
+                        await asyncio.wait_for(publishing, self.timeout)
+                else:
+                    confirmation = await publishing if no_confirm else publishing
+                    assert isinstance(confirmation, asyncio.Future)
+                    assert not confirmation.done()
+                    later.set_exception(RuntimeError("delivery failed"))
+                    with pytest.raises(RuntimeError, match="delivery failed"):
+                        await asyncio.wait_for(confirmation, self.timeout)
+
+                assert not first.done()
+                first.set_exception(RuntimeError("first delivery failed"))
+                await asyncio.wait_for(observed.wait(), self.timeout)
+
+    @pytest.mark.asyncio()
+    @pytest.mark.parametrize(
+        ("options", "error", "message"),
+        (
+            pytest.param(
+                {"max_request_size": 1024},
+                MessageSizeTooLargeError,
+                "exceeding max_request_size",
+                id="later-record-too-large",
+            ),
+            pytest.param(
+                {"key_serializer": lambda _: None},
+                ValueError,
+                "requires a key that serializes to bytes",
+                id="serializer-removes-key",
+            ),
+        ),
+    )
+    async def test_tombstone_batch_validates_before_enqueue(
+        self, queue: str, options: dict[str, Any], error: type[Exception], message: str
+    ) -> None:
+        broker = self.get_broker(**options)
+        async with self.patch_broker(broker) as br:
+            with (
+                patch.object(AIOKafkaProducer, "send") as send,
+                pytest.raises(error, match=message),
+            ):
+                await br.publish_batch(
+                    KafkaPublishMessage(TOMBSTONE, key=b"delete"),
+                    KafkaPublishMessage(bytes(2048), key=b"large"),
+                    topic=queue,
+                )
+
+        send.assert_not_called()
+
     @pytest.mark.asyncio()
     async def test_publish_batch(self, queue: str) -> None:
         pub_broker = self.get_broker()

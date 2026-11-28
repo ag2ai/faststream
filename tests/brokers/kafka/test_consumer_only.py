@@ -30,9 +30,7 @@ class TestConsumerOnly:
         config.producer.connect = AsyncMock()
 
         with (
-            patch(
-                "faststream.kafka.configs.broker.aiokafka.AIOKafkaProducer"
-            ) as producer_cls,
+            patch("faststream.kafka.configs.broker.AioKafkaDriver") as producer_cls,
             patch(
                 "faststream.kafka.helpers.admin.aiokafka.admin.client.AIOKafkaAdminClient"
             ) as admin_cls,
@@ -52,9 +50,7 @@ class TestConsumerOnly:
         config.producer.connect = AsyncMock()
 
         with (
-            patch(
-                "faststream.kafka.configs.broker.aiokafka.AIOKafkaProducer"
-            ) as producer_cls,
+            patch("faststream.kafka.configs.broker.AioKafkaDriver") as producer_cls,
             patch(
                 "faststream.kafka.helpers.admin.aiokafka.admin.client.AIOKafkaAdminClient"
             ) as admin_cls,

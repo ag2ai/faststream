@@ -106,7 +106,7 @@ async def base_handler(
 
 ## Publishing a tombstone
 
-Import `#!python TOMBSTONE` from `#!python faststream.confluent`. Call `#!python await broker.publish(TOMBSTONE, "users", key=b"user-1")` to send a keyed record with a null Kafka value. This marks the key for removal on a compacted topic. The explicit marker requires a key. In `#!python publish_batch()`, wrap the marker in `#!python KafkaPublishMessage(TOMBSTONE, key=b"user-1")` and specify `#!python partition`. Tombstone batches require per-record encoding. FastStream rejects them when the publisher is configured with a batch codec.
+Import `#!python TOMBSTONE` from `#!python faststream.confluent`. Call `#!python await broker.publish(TOMBSTONE, "users", key=b"user-1")` to send a keyed record with a null Kafka value. This marks the key for removal on a compacted topic. The explicit marker requires a key. In `#!python publish_batch()`, wrap the marker in `#!python KafkaPublishMessage(TOMBSTONE, key=b"user-1")`. Without an explicit partition, each record follows the producer’s normal key-based routing. Tombstone batches require per-record encoding. FastStream rejects them when the publisher is configured with a batch codec. A later enqueue or delivery failure can occur after Kafka has accepted earlier records.
 
 In `#!python publish_batch()`, a plain `#!python None` goes through the configured codec. With the default codec, its record has a zero-byte value.
 
