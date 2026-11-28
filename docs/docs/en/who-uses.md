@@ -29,6 +29,7 @@ identifies the evidence and its scope. Tools with a **FastStream** integration a
 | **Data Cellar** | EU federated energy dataspace | [participant-template](https://github.com/Data-Cellar/participant-template){.external-link target="_blank"} — participant onboarding services |
 | **LMDDC** | Luxembourg Media & Digital Design Centre | [alice.skilltech.tools](https://github.com/lmddc-lu/alice.skilltech.tools){.external-link target="_blank"} — educational chatbots grounded in course materials |
 | **NHS Lancashire & South Cumbria SDE** | NHS secure data environment | [neulander](https://github.com/lsc-sde/neulander-core){.external-link target="_blank"} — three services |
+| **Foundation Zero** | engineering research foundation | [Zero yacht project: Modbus bridge](https://github.com/foundation-zero/zero/pull/1081/files){.external-link target="_blank"} — the shared bridge uses FastStream's MQTT broker in the `power-tags`, `termodinamica`, and `hull-temperature` applications |
 | **IT'IS Foundation** | Foundation for Research on Information Technologies in Society | [osparc-simcore](https://github.com/ITISFoundation/osparc-simcore){.external-link target="_blank"} — simulation framework |
 | **CTIC** | CTIC Technology Centre, Spain | [connector-building-blocks](https://github.com/fundacionctic/connector-building-blocks){.external-link target="_blank"} — Eclipse Dataspace Components tooling |
 | **QCrBox** | Quantum Crystallography Toolbox | [QCrBox](https://github.com/QCrBox/QCrBox){.external-link target="_blank"} — small-molecule crystallography |
@@ -40,6 +41,7 @@ identifies the evidence and its scope. Tools with a **FastStream** integration a
 | Name | Who they are | Project |
 | --- | --- | --- |
 | **Red Hat** | enterprise open-source vendor | [qontract-reconcile](https://github.com/app-sre/qontract-reconcile){.external-link target="_blank"} — App-SRE reconciliation tooling |
+| **Magnit Tech** | retail technology team | [MetaBridge engineering article](https://habr.com/ru/companies/magnit/articles/1085076/){.external-link target="_blank"} — the team describes using FastStream to handle Kafka events in a data-quality service that runs over 20,000 checks per day across more than 650 tables |
 | **MWS** | MTS Web Services, digital product ecosystem | [data-rentgen](https://github.com/MTSWebServices/data-rentgen){.external-link target="_blank"} — data lineage |
 | **Numberly** | marketing technology company | [reviewate](https://github.com/numberly/reviewate){.external-link target="_blank"} — AI code review agent |
 | **Gravitate** | AI platform for the fuel supply chain | [bb-integrations-library](https://pypi.org/project/bb-integrations-library/){.external-link target="_blank"} — shared integration-job logic |
@@ -87,15 +89,15 @@ Additional postings and organization-confirmed deployments are listed in
 
 ## Usage Reported by Individual Team Members
 
-These authors describe their work on specific products. Their accounts are attributed to them,
-not presented as organization confirmations. They do not establish current organization-wide
-or production use; the Magalu Cloud account refers to the employment period shown below.
+These public accounts describe individual projects. They do not establish current or organization-wide adoption.
 
 | Organization | Reported use | Source |
 | --- | --- | --- |
-| **Magalu Cloud — Brazil** | Lucas França reports working on the first Load Balancing as a Service (LBaaS) product as a senior software developer, December 2023–June 2024. His project technologies include FastStream, RabbitMQ, FastAPI and OpenStack. This is a historical account of one team. | [Lucas França’s public CV, p. 2](https://web.archive.org/web/20261006053249/https://www.lucasfrancaid.com/CV_Lucas_Franca.pdf){.external-link target="_blank"}, archived 2026-10-06 |
-| **Skan.ai** | Mubarak Abdulla (author bio: Chief Architect) describes using FastStream to decouple Skan.ai's event-processing application logic from RabbitMQ and enable future migration to Kafka or NATS. The article does not establish deployments on those other brokers. | [Architecture case study by Mubarak Abdulla](https://medium.com/architecture-without-the-hype/how-we-scaled-our-architecture-10-lessons-from-skan-ai-67371cd9002d){.external-link target="_blank"}, published 2026-01-06 |
-| **Tektome — Tokyo, Japan** | Pumidol Leelerdsakulvong reports designing and implementing an ingestion, conversion and extraction queue for 3D models and large PDFs using RabbitMQ and FastStream. Tektome’s team page confirms his role as Technical Product Lead. | [Technical lead’s personal site](https://web.archive.org/web/20261006053419/https://pumidol.com/){.external-link target="_blank"}, archived 2026-10-06; [official team page](https://tektome.com/leadership-and-team/){.external-link target="_blank"} |
+| **Magalu Cloud — Brazil** | An archived CV lists FastStream, RabbitMQ, FastAPI and OpenStack for the first Load Balancing as a Service (LBaaS) product, December 2023–June 2024. | [Archived CV, p. 2](https://web.archive.org/web/20261006053249/https://www.lucasfrancaid.com/CV_Lucas_Franca.pdf){.external-link target="_blank"}, archived 2026-10-06 |
+| **NtechLab** | An engineering article describes a shared service template that uses FastStream for publish/subscribe messaging. Six services are built on the template; the article does not identify which messaging features each service uses. | [NtechLab engineering article](https://habr.com/ru/companies/ntechlab/articles/1108482/){.external-link target="_blank"} |
+| **Tessera** | An SDK incident report describes how stale credentials interrupted NATS publishing in a service using FastStream 0.7.1. | [Tessera Python SDK incident report and fix](https://github.com/tesserahq/tessera-sdk-py/pull/129){.external-link target="_blank"} |
+| **Skan.ai** | An architecture case study describes using FastStream to decouple Skan.ai's event-processing application logic from RabbitMQ and enable future migration to Kafka or NATS. The article does not establish deployments on those other brokers. | [Architecture case study](https://medium.com/architecture-without-the-hype/how-we-scaled-our-architecture-10-lessons-from-skan-ai-67371cd9002d){.external-link target="_blank"}, published 2026-01-06 |
+| **Tektome — Tokyo, Japan** | A project account describes a RabbitMQ and FastStream queue for ingesting, converting and extracting data from 3D models and large PDFs. | [Archived project account](https://web.archive.org/web/20261006053419/https://pumidol.com/){.external-link target="_blank"}, archived 2026-10-06 |
 
 ## Tools Shipping a FastStream Integration
 
@@ -112,14 +114,22 @@ These are not users but neighbouring projects that took on maintaining an integr
 | **AnyDI** | dependency injection framework | [anydi](https://github.com/antonrh/anydi){.external-link target="_blank"} — built-in **FastStream** integration |
 | **that-depends** | dependency injection framework | [that-depends](https://github.com/modern-python/that-depends){.external-link target="_blank"} — built-in **FastStream** integration |
 
-## Community Extensions
+## Community Brokers
 
-Packages built on top of **FastStream** by the community:
+These packages provide broker implementations for **FastStream** and are maintained outside the core repository.
 
-* [`stompman`](https://github.com/community-of-python/stompman){.external-link target="_blank"} - STOMP client with a pleasant API
+* [`faststream-stomp`](https://github.com/community-of-python/stompman/tree/HEAD/packages/faststream-stomp){.external-link target="_blank"} - STOMP broker adapter from the `stompman` project
 * [`faststream-azure-servicebus`](https://github.com/thomaslaich/faststream-azure-servicebus){.external-link target="_blank"} - community broker adapter for **Azure Service Bus** queues and topics
 * [`faststream-gcp-pubsub`](https://github.com/powersemmi/faststream-gcp-pubsub){.external-link target="_blank"} - community broker adapter for **Google Cloud Pub/Sub** topics and subscriptions
 * [`faststream-mq`](https://github.com/davzucky/faststream-mq){.external-link target="_blank"} - standalone IBM MQ adapter
+* [`faststream-celery`](https://github.com/C3EQUALZz/faststream-celery){.external-link target="_blank"} - consumes tasks from **Celery** producers using Kombu transports
+* [`faststream-sqlbroker`](https://github.com/faststream-community/faststream-sqlbroker){.external-link target="_blank"} - SQL-backed broker for transactional outbox workflows
+* [`kubemq-faststream`](https://github.com/kubemq-io/kubemq-faststream){.external-link target="_blank"} - broker adapter for **KubeMQ** events, queues, commands, and queries
+
+## Community Extensions
+
+For additional broker implementations, see [Community Brokers](#community-brokers). The projects below provide client libraries, middleware, framework integrations, and other resources.
+
 * [`zMQTT`](https://github.com/faststream-community/zMQTT){.external-link target="_blank"} - pure asyncio MQTT 3.1.1 and 5.0 client library, no **paho** dependency
 * [`faststream-schema-registry`](https://github.com/mlovretovich/faststream-schema-registry){.external-link target="_blank"} - connects **FastStream** to the **Confluent** Schema Registry
 * [`opentelemetry-instrumentation-faststream`](https://github.com/ashambalev/opentelemetry-instrumentation-faststream){.external-link target="_blank"} - **FastStream** instrumentation for **OpenTelemetry**
@@ -136,7 +146,6 @@ Packages built on top of **FastStream** by the community:
 * [`litestar-faststream`](https://github.com/hasansezertasan/litestar-faststream){.external-link target="_blank"} - **Litestar** integration for **FastStream** message brokers
 * [`fast-healthchecks`](https://github.com/ZYLVEXT/fast-healthchecks){.external-link target="_blank"} - framework-agnostic health checks
 * [`awesome-faststream`](https://github.com/lesnik512/awesome-faststream){.external-link target="_blank"} - curated list of libraries, tools, templates and resources
-* [`faststream-celery`](https://github.com/C3EQUALZz/faststream-celery){.external-link target="_blank"} - connects **FastStream** to the **Celery (kombu)** broker.
 
 ## Add Your Project
 
