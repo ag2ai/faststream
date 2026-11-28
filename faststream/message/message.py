@@ -43,9 +43,13 @@ class StreamMessage(Generic[MsgType]):
         correlation_id: str | None = None,
         message_id: str | None = None,
         source_type: SourceType = SourceType.CONSUME,
+        _no_body: bool = False,
+        _batch_body_missing: tuple[bool, ...] = (),
     ) -> None:
         self.raw_message = raw_message
         self.body = body
+        self.__no_body = _no_body
+        self._batch_body_missing = _batch_body_missing
         self.reply_to = reply_to
         self.content_type = content_type
         self.source_type = source_type
@@ -65,6 +69,11 @@ class StreamMessage(Generic[MsgType]):
             Any,
             Any,
         ] = {}  # Cache values between filters and tests
+
+    @property
+    def has_body(self) -> bool:
+        """Whether this message has a body on the wire."""
+        return not self.__no_body
 
     def set_decoder(self, decoder: "AsyncCallable") -> None:
         self.__decoder = decoder

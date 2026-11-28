@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, cast
 
-from faststream.message import StreamMessage, decode_message
+from faststream._internal.kafka.decoder import decode_kafka_message
 
 from .message import FAKE_CONSUMER, KafkaMessage
 
@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from confluent_kafka import Message
 
     from faststream._internal.basic_types import DecodedMessage
+    from faststream.message import StreamMessage
 
     from .message import ConsumerProtocol
 
@@ -43,12 +44,13 @@ class AsyncConfluentParser:
         """Parses a Kafka message."""
         headers = _parse_msg_headers(cast("_HeadersInput", message.headers() or ()))
 
-        body = message.value() or b""
+        value = message.value()
         offset = message.offset()
         _, timestamp = message.timestamp()
 
         return KafkaMessage(
-            body=body,
+            body=value or b"",
+            _no_body=value is None,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
@@ -65,13 +67,16 @@ class AsyncConfluentParser:
     ) -> KafkaMessage:
         """Parses a batch of messages from a Kafka consumer."""
         body: list[Any] = []
+        missing: list[bool] = []
         batch_headers: list[dict[str, str]] = []
 
         first = message[0]
         last = message[-1]
 
         for m in message:
-            body.append(m.value() or b"")
+            value = m.value()
+            body.append(value or b"")
+            missing.append(value is None)
             batch_headers.append(
                 _parse_msg_headers(cast("_HeadersInput", m.headers() or ()))
             )
@@ -84,6 +89,7 @@ class AsyncConfluentParser:
             body=body,
             headers=headers,
             batch_headers=batch_headers,
+            _batch_body_missing=tuple(missing),
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
             message_id=f"{first.offset()}-{last.offset()}-{first_timestamp}",
@@ -98,14 +104,16 @@ class AsyncConfluentParser:
         msg: "StreamMessage[Message]",
     ) -> "DecodedMessage":
         """Decodes a message."""
-        return decode_message(msg)
+        return decode_kafka_message(msg)
 
     async def decode_batch(
         self,
         msg: "StreamMessage[tuple[Message, ...]]",
     ) -> "DecodedMessage":
         """Decode a batch of messages."""
-        return [decode_message(await self.parse_message(m)) for m in msg.raw_message]
+        return [
+            decode_kafka_message(await self.parse_message(m)) for m in msg.raw_message
+        ]
 
 
 def _parse_msg_headers(headers: "_HeadersInput") -> dict[str, str]:

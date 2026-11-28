@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
+from faststream._internal.kafka.decoder import decode_kafka_message
 from faststream._internal.utils.path import match_path
 from faststream.kafka.message import (
     FAKE_CONSUMER,
@@ -7,7 +8,6 @@ from faststream.kafka.message import (
     KafkaMessage,
     KafkaRawMessage,
 )
-from faststream.message import decode_message
 
 if TYPE_CHECKING:
     from re import Pattern
@@ -51,8 +51,11 @@ class AioKafkaParser:
             if value is not None
         }
 
+        # aiokafka computes the wire size before calling a user deserializer.
+        tombstone = message.serialized_value_size == -1
         return self.msg_class(
             body=message.value or b"",
+            _no_body=tombstone,
             headers=headers,
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
@@ -68,7 +71,7 @@ class AioKafkaParser:
         msg: "StreamMessage[ConsumerRecord]",
     ) -> "DecodedMessage":
         """Decodes a message."""
-        return decode_message(msg)
+        return decode_kafka_message(msg)
 
 
 class AioKafkaBatchParser(AioKafkaParser):
@@ -99,6 +102,9 @@ class AioKafkaBatchParser(AioKafkaParser):
             body=body,
             headers=headers,
             batch_headers=batch_headers,
+            _batch_body_missing=tuple(
+                record.serialized_value_size == -1 for record in message
+            ),
             reply_to=headers.get("reply_to", ""),
             content_type=headers.get("content-type"),
             message_id=f"{first.offset}-{last.offset}-{first.timestamp}",
@@ -116,4 +122,7 @@ class AioKafkaBatchParser(AioKafkaParser):
         # super() should be here due python can't find it in comprehension
         super_obj = cast("AioKafkaParser", super())
 
-        return [decode_message(await super_obj.parse_message(m)) for m in msg.raw_message]
+        return [
+            decode_kafka_message(await super_obj.parse_message(m))
+            for m in msg.raw_message
+        ]

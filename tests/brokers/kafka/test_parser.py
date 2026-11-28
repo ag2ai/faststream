@@ -1,10 +1,14 @@
+from dataclasses import replace
+from json import JSONDecodeError
+
 import pytest
+from aiokafka import AIOKafkaProducer
 from dirty_equals import IsUUID
 
 from faststream.kafka import ConsumerRecord
 from faststream.kafka.message import KafkaMessage
 from faststream.kafka.parser import AioKafkaBatchParser, AioKafkaParser
-from tests.brokers.base.parser import CustomParserTestcase
+from tests.brokers.base.parser import CustomParserTestcase, KafkaTombstoneConsumeTestcase
 
 from .basic import KafkaTestcaseConfig
 
@@ -28,7 +32,9 @@ class TestCustomParser(KafkaTestcaseConfig, CustomParserTestcase):
     pass
 
 
-def make_message(headers: list[tuple[str, bytes | None]]) -> ConsumerRecord[None, bytes]:
+def make_message(
+    headers: list[tuple[str, bytes | None]], *, value: bytes | None = b'{"value": 1}'
+) -> ConsumerRecord[None, bytes | None]:
     return ConsumerRecord(
         topic="test-topic",
         partition=0,
@@ -36,12 +42,42 @@ def make_message(headers: list[tuple[str, bytes | None]]) -> ConsumerRecord[None
         timestamp=0,
         timestamp_type=0,
         key=None,
-        value=b'{"value": 1}',
+        value=value,
         checksum=None,
         serialized_key_size=0,
-        serialized_value_size=12,
+        serialized_value_size=-1 if value is None else len(value),
         headers=headers,
     )
+
+
+@pytest.mark.kafka()
+@pytest.mark.asyncio()
+class TestParseTombstones:
+    @pytest.mark.parametrize(
+        ("wire_value", "decoded_value", "tombstone"),
+        (
+            pytest.param(None, b"", True, id="null-deserialized-to-bytes"),
+            pytest.param(b"null", None, False, id="payload-deserialized-to-none"),
+        ),
+    )
+    async def test_uses_the_wire_value_to_detect_tombstones(
+        self,
+        wire_value: bytes | None,
+        decoded_value: bytes | None,
+        tombstone: bool,
+    ) -> None:
+        parser = AioKafkaParser(msg_class=KafkaMessage, regex=None)
+        record = replace(make_message([], value=wire_value), value=decoded_value)
+        message = await parser.parse_message(record)
+
+        assert isinstance(message, KafkaMessage)
+        assert (message.body, message.tombstone) == (decoded_value or b"", tombstone)
+
+    async def test_empty_json_payload_is_not_decoded_as_a_tombstone(self) -> None:
+        parser = AioKafkaParser(msg_class=KafkaMessage, regex=None)
+        empty = make_message([("content-type", b"application/json")], value=b"")
+        with pytest.raises(JSONDecodeError):
+            await parser.decode_message(await parser.parse_message(empty))
 
 
 @pytest.mark.kafka()
@@ -177,3 +213,23 @@ async def test_parse_batch_reserved_headers(
         decoded if header == "content-type" else None,
         decoded if header == "correlation_id" and decoded else IsUUID(version=4),
     )
+
+
+@pytest.mark.kafka()
+@pytest.mark.connected()
+class TestTombstoneConsume(KafkaTestcaseConfig, KafkaTombstoneConsumeTestcase):
+    async def publish_native_records(
+        self,
+        url: str,
+        topic: str,
+        records: tuple[tuple[bytes, bytes | None, str], ...],
+    ) -> None:
+        async with AIOKafkaProducer(bootstrap_servers=url) as producer:
+            for key, value, content_type in records:
+                await producer.send_and_wait(
+                    topic,
+                    value=value,
+                    key=key,
+                    headers=[("content-type", content_type.encode())],
+                    partition=0,
+                )
