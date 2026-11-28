@@ -107,6 +107,8 @@ Finally, let's use Avro's `schemaless_reader` and `schemaless_writer` to decode 
 {! docs_src/getting_started/serialization/avro.py [ln:1-10,21-45] !}
 ```
 
+To use Avro together with Confluent Schema Registry, see [Schema Registry with Avro](../../howto/confluent/schema-registry.md){.internal-link}.
+
 ## Tips
 
 ### Data Compression

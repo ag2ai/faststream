@@ -79,6 +79,7 @@ search:
         - [Topic Configuration](confluent/topic-configuration.md)
         - [Additional Configuration](confluent/additional-configuration.md)
         - [How-To](howto/confluent/index.md)
+            - [Schema Registry](howto/confluent/schema-registry.md)
     - [How-To](howto/kafka/index.md)
         - [Kafka RPC](howto/kafka/rpc.md)
 - [RabbitMQ](rabbit/index.md)
