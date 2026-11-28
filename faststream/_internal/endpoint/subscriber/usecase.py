@@ -255,6 +255,7 @@ class SubscriberUsecase(Endpoint, Generic[MsgType]):
             call._setup(
                 parser=async_parser,
                 decoder=async_decoder,
+                uses_default_decoder=async_decoder is self._decoder,
                 config=fd_config,
                 broker_dependencies=self._outer_config.broker_dependencies,
                 _call_decorators=self._call_decorators,

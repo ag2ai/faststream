@@ -1,12 +1,19 @@
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+import inspect
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+from functools import partial
+from types import UnionType
+from typing import TYPE_CHECKING, Annotated, Any, Union, cast, get_args, get_origin
 
 from fastapi import __version__ as FASTAPI_VERSION  # ruff: ignore[lowercase-imported-as-non-lowercase]
-from fastapi.dependencies.utils import solve_dependencies
+from fastapi.dependencies.utils import get_dependant, solve_dependencies
+from fastapi.security.base import SecurityBase
+from pydantic import BaseModel
 from starlette.background import BackgroundTasks
 from typing_extensions import Never
 
 if TYPE_CHECKING:
+    from fastapi._compat import ModelField
     from fastapi.dependencies.models import Dependant
     from fastapi.requests import Request
 
@@ -38,6 +45,7 @@ else:
 
 __all__ = (
     "RequestValidationError",
+    "bind_tombstone_body",
     "create_response_field",
     "raise_fastapi_validation_error",
     "solve_faststream_dependency",
@@ -85,13 +93,14 @@ if FASTAPI_v102_3:
 
     async def solve_faststream_dependency(
         request: "Request",
+        body: Any,
         dependant: "Dependant",
         dependency_overrides_provider: Any | None,
         **kwargs: Any,
     ) -> SolvedDependency:
         solved_result = await solve_dependencies(
             request=request,
-            body=request._body,  # pyright: ignore[reportArgumentType]
+            body=body,
             dependant=dependant,
             dependency_overrides_provider=dependency_overrides_provider,
             **extra,  # type: ignore[arg-type]
@@ -116,13 +125,14 @@ else:
 
     async def solve_faststream_dependency(
         request: "Request",
+        body: Any,
         dependant: "Dependant",
         dependency_overrides_provider: Any | None,
         **kwargs: Any,
     ) -> SolvedDependency:
         solved_result = await solve_dependencies(
             request=request,
-            body=request._body,  # pyright: ignore[reportArgumentType]
+            body=body,
             dependant=dependant,
             dependency_overrides_provider=dependency_overrides_provider,
             **kwargs,
@@ -141,3 +151,191 @@ else:
             errors=errors,  # type: ignore[has-type]
             background_tasks=background,  # type: ignore[has-type]
         )
+
+
+def bind_tombstone_body(
+    dependant: "Dependant",
+    dependency_overrides_provider: Any,
+) -> tuple["Dependant", "dict[tuple[Any, ...], Any] | None"]:
+    """Apply the tombstone binding while retaining the original dependency keys."""
+    overrides = getattr(dependency_overrides_provider, "dependency_overrides", {})
+    cache = (
+        _OverrideDependencyCache()
+        if overrides and not hasattr(dependant, "cache_key")
+        else None
+    )
+    return _bind_tombstone_fields(dependant, overrides, cache), cache
+
+
+_DEPENDANT_PARAMETERS = inspect.signature(get_dependant).parameters
+
+
+def _bind_tombstone_fields(
+    dependant: "Dependant",
+    overrides: dict[Any, Any],
+    cache: "_OverrideDependencyCache | None",
+) -> "Dependant":
+    dependencies = []
+    for original in dependant.dependencies:
+        dependency = original
+        override = overrides.get(original.call)
+        if override is not None:
+            dependency = _get_overridden_dependant(original, override)
+        adapted = _bind_tombstone_fields(dependency, overrides, cache)
+        if cache is not None:
+            assert adapted.call is not None
+            adapted.call = cache.bind(adapted.call, original)
+        elif (cache_key := getattr(original, "cache_key", None)) is not None:
+            legacy_dependant: Any = adapted
+            legacy_dependant.cache_key = cache_key
+        dependencies.append(adapted)
+
+    body_params = [
+        cast("ModelField", _TombstoneBodyField(field))
+        if _is_optional_model_body(field)
+        else field
+        for field in dependant.body_params
+    ]
+    return replace(dependant, dependencies=dependencies, body_params=body_params)
+
+
+def _get_overridden_dependant(original: "Dependant", override: Any) -> "Dependant":
+    kwargs: dict[str, Any]
+    if "parent_oauth_scopes" in _DEPENDANT_PARAMETERS:
+        kwargs = {
+            "parent_oauth_scopes": _oauth_scopes(original),
+            "scope": getattr(original, "scope", None),
+        }
+    else:
+        kwargs = {"security_scopes": getattr(original, "security_scopes", None)}
+    return get_dependant(
+        path=original.path or "",
+        call=override,
+        name=original.name,
+        use_cache=original.use_cache,
+        **kwargs,
+    )
+
+
+# FastAPI accepts a dict for its dependency cache.
+class _OverrideDependencyCache(dict[tuple[Any, ...], Any]):  # ruff: ignore[subclass-builtin]
+    __slots__ = ("_original_keys",)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._original_keys: dict[Callable[..., Any], tuple[Any, ...]] = {}
+
+    def bind(self, call: Callable[..., Any], original: "Dependant") -> Callable[..., Any]:
+        # A distinct callable identifies this node even when overrides share a function.
+        adapted = partial(call)
+        scopes = (
+            tuple(sorted(set(_oauth_scopes(original))))
+            if _uses_oauth_scopes(original)
+            else ()
+        )
+        scope = original.scope
+        if scope is None and _is_generator_call(original.call):
+            scope = "request"
+        self._original_keys[adapted] = (original.call, scopes, scope or "")
+        return adapted
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, tuple) and super().__contains__(self._original_key(key))
+
+    def __getitem__(self, key: tuple[Any, ...]) -> Any:
+        return super().__getitem__(self._original_key(key))
+
+    def __setitem__(self, key: tuple[Any, ...], value: Any) -> None:
+        super().__setitem__(self._original_key(key), value)
+
+    def _original_key(self, key: tuple[Any, ...]) -> tuple[Any, ...]:
+        return self._original_keys.get(key[0], key)
+
+
+def _oauth_scopes(dependant: "Dependant") -> list[str]:
+    if (scopes := getattr(dependant, "oauth_scopes", None)) is not None:
+        return cast("list[str]", scopes)
+    scopes = list(dependant.parent_oauth_scopes or ())
+    for scope in dependant.own_oauth_scopes or ():
+        if scope not in scopes:
+            scopes.append(scope)
+    return scopes
+
+
+def _uses_oauth_scopes(dependant: "Dependant") -> bool:
+    return (
+        bool(dependant.own_oauth_scopes)
+        or dependant.security_scopes_param_name is not None
+        or isinstance(inspect.unwrap(_partial_target(dependant.call)), SecurityBase)
+        or any(_uses_oauth_scopes(child) for child in dependant.dependencies)
+    )
+
+
+def _partial_target(call: Any) -> Any:
+    while isinstance(call, partial):
+        call = call.func
+    return call
+
+
+def _is_generator_call(call: Any) -> bool:
+    target = _partial_target(call)
+    unwrapped = inspect.unwrap(target)
+    if _is_generator(target) or _is_generator(unwrapped):
+        return True
+    if inspect.isclass(unwrapped):
+        return False
+    for candidate in (target, unwrapped):
+        method = _partial_target(getattr(candidate, "__call__", None))  # ruff: ignore[unreliable-callable-check]
+        if _is_generator(method) or _is_generator(inspect.unwrap(method)):
+            return True
+    return False
+
+
+def _is_generator(call: Any) -> bool:
+    return inspect.isgeneratorfunction(call) or inspect.isasyncgenfunction(call)
+
+
+class _TombstoneBodyField:
+    __slots__ = ("_field",)
+
+    def __init__(self, field: "ModelField") -> None:
+        self._field = field
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._field, name)
+
+    def validate(
+        self, value: Any, values: dict[str, Any], *, loc: tuple[int | str, ...]
+    ) -> tuple[Any, Any]:
+        if getattr(self._field.field_info, "validate_default", False):
+            return self._field.validate(None, values, loc=loc)
+        return None, []
+
+
+def _is_optional_model_body(field: "ModelField") -> bool:
+    if FASTAPI_V2:
+        info = field.field_info
+        return (
+            info.default is None
+            and info.default_factory is None
+            and _is_model_annotation(info.annotation)
+        )
+    return (
+        getattr(field, "default", None) is None
+        and getattr(field, "default_factory", None) is None
+        and not getattr(field, "required", True)
+        and _is_model_annotation(getattr(field, "type_", None))
+    )
+
+
+def _is_model_annotation(annotation: Any) -> bool:
+    origin = get_origin(annotation)
+    if origin is Annotated:
+        return _is_model_annotation(get_args(annotation)[0])
+    if origin in {Union, UnionType}:
+        return all(
+            _is_model_annotation(arg)
+            for arg in get_args(annotation)
+            if arg is not type(None)
+        )
+    return isinstance(annotation, type) and issubclass(annotation, BaseModel)

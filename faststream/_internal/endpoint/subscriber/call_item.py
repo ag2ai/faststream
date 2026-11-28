@@ -33,6 +33,7 @@ class HandlerItem(Generic[MsgType]):
     """A class representing handler overloaded item."""
 
     __slots__ = (
+        "_uses_default_decoder",
         "decoder",
         "dependant",
         "dependencies",
@@ -67,6 +68,7 @@ class HandlerItem(Generic[MsgType]):
         self.item_decoder = item_decoder
         self.parser = None
         self.decoder = None
+        self._uses_default_decoder = False
         self.dependencies = dependencies
         self.dependant = None
 
@@ -80,12 +82,14 @@ class HandlerItem(Generic[MsgType]):
         *,
         parser: "AsyncCallable",
         decoder: "AsyncCallable",
+        uses_default_decoder: bool,
         config: "FastDependsConfig",
         broker_dependencies: Sequence["Dependant"],
         _call_decorators: Reversible["Decorator"],
     ) -> None:
         self.parser = parser
         self.decoder = decoder
+        self._uses_default_decoder = uses_default_decoder
 
         self.dependant = self.handler.set_wrapped(
             dependencies=(*broker_dependencies, *self.dependencies),
@@ -127,7 +131,10 @@ class HandlerItem(Generic[MsgType]):
         )
 
         # NOTE: final decoder will be set for success filter
-        message.set_decoder(decoder)
+        if self._uses_default_decoder:
+            message.set_default_decoder(decoder)
+        else:
+            message.set_decoder(decoder)
 
         if await self.filter(message):
             return message

@@ -1,13 +1,16 @@
 import asyncio
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
+from functools import partial
 from typing import Annotated, Any
 from unittest.mock import Mock
 
 import pytest
-from fastapi import BackgroundTasks, Depends, FastAPI, Header
+from fastapi import BackgroundTasks, Body, Depends, FastAPI, Header, Security
 from fastapi.exceptions import RequestValidationError
+from fastapi.security import SecurityScopes
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from faststream import (
     Context as FSContext,
@@ -16,7 +19,9 @@ from faststream import (
 )
 from faststream._internal.fastapi.context import Context
 from faststream._internal.fastapi.route import StreamMessage
+from faststream._internal.kafka.tombstone import TOMBSTONE
 from faststream.exceptions import SetupError
+from faststream.message import StreamMessage as NativeMessage
 
 from .basic import BaseTestcaseConfig
 
@@ -271,9 +276,200 @@ class FastAPITestcase(BaseTestcaseConfig[Any]):
 
 
 @pytest.mark.asyncio()
+class KafkaTombstoneFastAPILocalTestcase(BaseTestcaseConfig[Any]):
+    router_class: Any
+
+    @pytest.mark.parametrize(
+        "embed", (pytest.param(False, id="direct"), pytest.param(True, id="embedded"))
+    )
+    async def test_optional_body_resolves_to_none_for_tombstone(
+        self, queue: str, embed: bool
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/1967."""
+
+        class _BodyModel(BaseModel):
+            x: int
+
+        router = self.router_class()
+        received: list[tuple[_BodyModel | None, Any]] = []
+
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(
+            msg: Annotated[_BodyModel | None, Body(embed=embed)] = None,
+            *,
+            request: StreamMessage,
+        ) -> None:
+            received.append((msg, await request.body()))
+
+        app = FastAPI()
+        app.include_router(router)
+
+        async with self.patch_broker(router.broker) as br:
+            with TestClient(app):
+                payload = b'{"msg": {"x": 5}}' if embed else b'{"x": 5}'
+                await br.publish(payload, queue, key=b"k1")
+                await br.publish(None, queue, key=b"k2")
+                headers = {"content-type": "application/json"}
+                await br.publish(None, queue, key=b"k3", headers=headers)
+                with pytest.raises(RequestValidationError):
+                    await br.publish(b"", queue, key=b"k4")
+
+        assert received == [
+            (_BodyModel(x=5), {"msg": {"x": 5}} if embed else {"x": 5}),
+            (None, {"msg": b""}),
+            (None, {"msg": b""}),
+        ]
+
+    @pytest.mark.parametrize(
+        ("decoded", "expected"),
+        (
+            pytest.param({"msg": b"decoded"}, b"decoded", id="mapping"),
+            pytest.param(b"", b"", id="empty-bytes"),
+        ),
+    )
+    async def test_tombstone_preserves_custom_decoded_body(
+        self,
+        queue: str,
+        mock: Mock,
+        decoded: dict[str, bytes] | bytes,
+        expected: bytes,
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/1967."""
+
+        class _BodyModel(BaseModel):
+            msg: bytes
+
+        async def decoder(_: NativeMessage[Any]) -> dict[str, bytes] | bytes:
+            return decoded
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue, decoder=decoder)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: _BodyModel | None = None) -> None:
+            mock(msg)
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(None, queue, key=b"key")
+
+        mock.assert_called_once_with(_BodyModel(msg=expected))
+
+    @pytest.mark.parametrize(
+        "embed",
+        (pytest.param(False, id="direct"), pytest.param(True, id="embedded")),
+    )
+    async def test_tombstone_resolves_optional_body_in_dependency(
+        self, queue: str, mock: Mock, embed: bool
+    ) -> None:
+        """Fixes https://github.com/ag2ai/faststream/issues/1967."""
+
+        class _BodyModel(BaseModel):
+            x: int
+
+        async def parse_body(
+            msg: Annotated[_BodyModel | None, Body(embed=embed)] = None,
+        ) -> _BodyModel | None:
+            return msg
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(
+            msg: Annotated[_BodyModel | None, Depends(parse_body)],
+        ) -> None:
+            mock(msg)
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(None, queue, key=b"key")
+
+        mock.assert_called_once_with(None)
+
+    async def test_tombstone_binds_bytes_and_optional_model_independently(
+        self, queue: str, mock: Mock
+    ) -> None:
+        class Model(BaseModel):
+            msg: bytes
+
+        async def parse_body(msg: Model | None = None) -> Model | None:
+            return msg
+
+        fallback = Mock(return_value=b"fallback")
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(
+            msg: Annotated[bytes, Body(embed=True, default_factory=fallback)],
+            model: Annotated[Model | None, Depends(parse_body)],
+            request: StreamMessage,
+        ) -> None:
+            mock(msg, model, await request.body())
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(TOMBSTONE, queue, key=b"key")
+
+        mock.assert_called_once_with(b"", None, {"msg": b""})
+        fallback.assert_not_called()
+
+    async def test_tombstone_preserves_original_override_cache(self, queue: str) -> None:
+        class Model(BaseModel):
+            msg: bytes = b""
+
+        async def original_dependency() -> AsyncGenerator[str, None]:
+            yield ""
+
+        original = partial(original_dependency)
+
+        async def parent(value: Annotated[str, Depends(original)]) -> str:
+            return value
+
+        async def override(scopes: SecurityScopes, msg: Model | None = None) -> str:
+            return scopes.scopes[0]
+
+        app = FastAPI()
+        app.dependency_overrides[original] = override
+        router = self.router_class(dependency_overrides_provider=app)
+        args, kwargs = self.get_subscriber_params(queue)
+        received = []
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(
+            first: Annotated[str, Security(parent, scopes=["first"])],
+            second: Annotated[str, Security(parent, scopes=["second"])],
+        ) -> None:
+            received.append((first, second))
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(b"", queue)
+            await br.publish(TOMBSTONE, queue, key=b"key")
+
+        ordinary, tombstone = received
+        assert tombstone == ordinary
+
+
+@pytest.mark.asyncio()
 class FastAPILocalTestcase(BaseTestcaseConfig[Any]):
     router_class: Any
     broker_router_class: Any
+
+    async def test_json_null_still_binds_to_a_model(self, queue: str, mock: Mock) -> None:
+        class Model(BaseModel):
+            msg: bytes | None
+
+        router = self.router_class()
+        args, kwargs = self.get_subscriber_params(queue)
+
+        @router.subscriber(*args, **kwargs)
+        async def handler(msg: Model | None = None) -> None:
+            mock(msg)
+
+        async with self.patch_broker(router.broker) as br:
+            await br.publish(b"null", queue, headers={"content-type": "application/json"})
+
+        mock.assert_called_once_with(Model(msg=None))
 
     async def test_base(self, queue: str) -> None:
         router = self.router_class()
