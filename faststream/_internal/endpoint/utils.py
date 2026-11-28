@@ -2,19 +2,14 @@ import inspect
 from collections.abc import Awaitable, Callable, Iterable
 from contextlib import AsyncExitStack
 from functools import partial
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
 
 from faststream._internal.types import MsgType
 from faststream._internal.utils.functions import return_input, to_async
 from faststream.message.source_type import SourceType
 
 if TYPE_CHECKING:
-    from faststream._internal.types import (
-        AsyncCallable,
-        CustomCallable,
-        SyncCallable,
-    )
-    from faststream.message import StreamMessage
+    from faststream._internal.types import CustomCallable, Decoder, Parser, StreamMsgType
     from faststream.middlewares import BaseMiddleware
 
 
@@ -22,17 +17,17 @@ async def process_msg(
     msg: MsgType | None,
     *,
     middlewares: Iterable["BaseMiddleware"],
-    parser: Callable[[MsgType], Awaitable["StreamMessage[MsgType]"]],
-    decoder: Callable[["StreamMessage[MsgType]"], "Any"],
+    parser: "Parser[MsgType, StreamMsgType]",
+    decoder: "Decoder[StreamMsgType]",
     source_type: SourceType = SourceType.CONSUME,
-) -> Optional["StreamMessage[MsgType]"]:
+) -> "StreamMsgType | None":
     if msg is None:
         return None
 
     async with AsyncExitStack() as stack:
         return_msg: Callable[
-            [StreamMessage[MsgType]],
-            Awaitable[StreamMessage[MsgType]],
+            [StreamMsgType],
+            Awaitable[StreamMsgType],
         ] = return_input
 
         for m in middlewares:
@@ -48,7 +43,11 @@ async def process_msg(
     raise AssertionError(error_msg)
 
 
-class ParserComposition:
+_In = TypeVar("_In")
+_Out = TypeVar("_Out")
+
+
+class ParserComposition(Generic[_In, _Out]):
     __slots__ = (
         "custom_func",
         "default_func",
@@ -58,7 +57,7 @@ class ParserComposition:
     def __init__(
         self,
         custom_func: Optional["CustomCallable"],
-        default_func: "AsyncCallable",
+        default_func: Callable[[_In], Awaitable[_Out]],
     ) -> None:
         self.custom_func = custom_func
         self.default_func = default_func
@@ -69,13 +68,15 @@ class ParserComposition:
             original_params = inspect.signature(custom_func).parameters
 
             if len(original_params) == 1:
-                self.wrapped_func = to_async(
-                    cast("SyncCallable | AsyncCallable", custom_func)
-                )
+                custom_func = cast("Callable[[_In], Awaitable[_Out]]", custom_func)
+                self.wrapped_func = to_async(custom_func)
 
             else:
                 name = tuple(original_params.items())[1][0]
-                self.wrapped_func = partial(to_async(custom_func), **{name: default_func})
+                self.wrapped_func = cast(
+                    "Callable[[_In], Awaitable[_Out]]",
+                    partial(to_async(custom_func), **{name: default_func}),
+                )
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return self.wrapped_func(*args, **kwargs)
+    def __call__(self, msg: _In) -> Awaitable[_Out]:
+        return self.wrapped_func(msg)

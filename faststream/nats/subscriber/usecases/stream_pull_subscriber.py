@@ -175,7 +175,7 @@ class BatchPullStreamSubscriber(
         self.pull_sub = pull_sub
 
     @override
-    async def get_one(  # type: ignore[override]
+    async def get_one(
         self,
         *,
         timeout: float = 5,
@@ -217,7 +217,7 @@ class BatchPullStreamSubscriber(
         )
 
     @override
-    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:  # type: ignore[override]
+    async def __aiter__(self) -> AsyncIterator["NatsMessage"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )

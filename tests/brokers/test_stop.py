@@ -10,7 +10,7 @@ from faststream._internal.endpoint.subscriber import SubscriberUsecase
 from faststream.message import StreamMessage
 
 
-class _RecordingSubscriber(SubscriberUsecase[Any]):
+class _RecordingSubscriber(SubscriberUsecase[Any, Any]):
     def __init__(self, events: list[str]) -> None:
         self.events = events
 
@@ -31,12 +31,12 @@ class _RecordingSubscriber(SubscriberUsecase[Any]):
 
 
 class _StoppingBroker(BrokerUsecase[Any, Any, Any]):
-    def __init__(self, subscribers: list[SubscriberUsecase[Any]]) -> None:
+    def __init__(self, subscribers: list[SubscriberUsecase[Any, Any]]) -> None:
         self._stopping = subscribers
         self.running = True
 
     @property
-    def subscribers(self) -> list[SubscriberUsecase[Any]]:
+    def subscribers(self) -> list[SubscriberUsecase[Any, Any]]:
         return self._stopping
 
     async def _connect(self) -> Any:

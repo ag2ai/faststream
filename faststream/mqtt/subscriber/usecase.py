@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import AsyncIterator, Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import anyio
 import zmqtt
@@ -189,15 +189,17 @@ class MQTTSubscriber(SubscriberUsecase[zmqtt.Message]):
         context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
         async for raw_msg in self._subscription:
-            msg: MQTTMessage = await process_msg(  # type: ignore[assignment]
-                msg=raw_msg,
-                middlewares=(
-                    m(raw_msg, context=context) for m in self._broker_middlewares
+            yield cast(
+                "MQTTMessage",
+                await process_msg(
+                    msg=raw_msg,
+                    middlewares=(
+                        m(raw_msg, context=context) for m in self._broker_middlewares
+                    ),
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
-                parser=async_parser,
-                decoder=async_decoder,
             )
-            yield msg
 
     async def _consume_loop(self) -> None:
         assert self._subscription is not None

@@ -1,8 +1,9 @@
 import asyncio
 import logging
 import math
+from abc import abstractmethod
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, TypeAlias, TypeVar
 
 import anyio
 from redis.exceptions import ResponseError
@@ -16,6 +17,7 @@ from faststream.redis.exceptions import (
 from faststream.redis.message import (
     BatchStreamMessage,
     DefaultStreamMessage,
+    RedisBatchStreamMessage,
     RedisStreamMessage,
 )
 from faststream.redis.parser import (
@@ -33,7 +35,9 @@ if TYPE_CHECKING:
         CallsCollection,
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
-    from faststream.redis.message import _StreamMessage
+    from faststream.redis.message import (
+        _StreamMessage,
+    )
     from faststream.redis.parser.parsers import _StreamParser
     from faststream.redis.schemas import StreamSub
     from faststream.redis.subscriber.config import RedisSubscriberConfig
@@ -68,7 +72,15 @@ class ClaimMeta(NamedTuple):
     """Previous deliveries: 0 for a new entry, XPENDING's `times_delivered` - 1."""
 
 
-class _StreamHandlerMixin(LogicSubscriber):
+BaseStreamMsgType = TypeVar(
+    "BaseStreamMsgType", bound="BatchStreamMessage | DefaultStreamMessage"
+)
+BaseRedisStreamMsgType = TypeVar(
+    "BaseRedisStreamMsgType", bound="RedisStreamMessage | RedisBatchStreamMessage"
+)
+
+
+class _StreamHandlerMixin(LogicSubscriber[BaseStreamMsgType, BaseRedisStreamMsgType]):
     __slots__ = (
         "_stream_sub",
         "autoclaim_start_id",
@@ -79,13 +91,13 @@ class _StreamHandlerMixin(LogicSubscriber):
         "read_id",
     )
 
-    parser: "_StreamParser"
+    parser: "_StreamParser[BaseStreamMsgType, BaseRedisStreamMsgType]"
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[BaseStreamMsgType, BaseRedisStreamMsgType]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[BaseStreamMsgType, BaseRedisStreamMsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
 
@@ -229,12 +241,23 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         await super().start(read)
 
+    @abstractmethod
+    def _wrap_raw(
+        self,
+        channel: str,
+        message_id: bytes,
+        data: dict[bytes, bytes],
+        claim_meta: "ClaimMeta | None",
+    ) -> BaseStreamMsgType:
+        """Wrap a single read stream entry into this subscriber's raw message."""
+        raise NotImplementedError
+
     @override
     async def get_one(
         self,
         *,
         timeout: float = 5.0,
-    ) -> "RedisStreamMessage | None":
+    ) -> "BaseRedisStreamMsgType | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -281,18 +304,14 @@ class _StreamHandlerMixin(LogicSubscriber):
 
         self.last_id = message_id.decode()
 
-        redis_incoming_msg = DefaultStreamMessage(
-            type="stream",
-            channel=stream_name.decode(),
-            message_ids=[message_id],
-            data=raw_message,
+        redis_incoming_msg = self._wrap_raw(
+            stream_name.decode(), message_id, raw_message, claim_meta
         )
-        _attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
         context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
-        msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
+        return await process_msg(
             msg=redis_incoming_msg,
             middlewares=(
                 m(redis_incoming_msg, context=context) for m in self._broker_middlewares
@@ -300,10 +319,9 @@ class _StreamHandlerMixin(LogicSubscriber):
             parser=async_parser,
             decoder=async_decoder,
         )
-        return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisStreamMessage"]:
+    async def __aiter__(self) -> AsyncIterator["BaseRedisStreamMsgType"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
@@ -361,15 +379,11 @@ class _StreamHandlerMixin(LogicSubscriber):
 
             self.last_id = message_id.decode()
 
-            redis_incoming_msg = DefaultStreamMessage(
-                type="stream",
-                channel=stream_name.decode(),
-                message_ids=[message_id],
-                data=raw_message,
+            redis_incoming_msg = self._wrap_raw(
+                stream_name.decode(), message_id, raw_message, claim_meta
             )
-            _attach_claim_metadata(redis_incoming_msg, [claim_meta])
 
-            msg: RedisStreamMessage = await process_msg(  # type: ignore[assignment]
+            msg = await process_msg(
                 msg=redis_incoming_msg,
                 middlewares=(
                     m(redis_incoming_msg, context=context)
@@ -378,6 +392,7 @@ class _StreamHandlerMixin(LogicSubscriber):
                 parser=async_parser,
                 decoder=async_decoder,
             )
+            assert msg
             yield msg
 
     async def _xreadgroup(
@@ -449,19 +464,36 @@ class _StreamHandlerMixin(LogicSubscriber):
         raise ValueError(msg)
 
 
-class StreamSubscriber(_StreamHandlerMixin):
+class StreamSubscriber(_StreamHandlerMixin[DefaultStreamMessage, RedisStreamMessage]):
     __slots__ = ()
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[DefaultStreamMessage, RedisStreamMessage]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[DefaultStreamMessage, RedisStreamMessage]",
     ) -> None:
         self.parser = RedisStreamParser(config)
         config.decoder = self.parser.decode_message
         config.parser = self.parser.parse_message
         super().__init__(config, specification, calls)
+
+    @override
+    def _wrap_raw(
+        self,
+        channel: str,
+        message_id: bytes,
+        data: dict[bytes, bytes],
+        claim_meta: "ClaimMeta | None",
+    ) -> DefaultStreamMessage:
+        msg = DefaultStreamMessage(
+            type="stream",
+            channel=channel,
+            message_ids=[message_id],
+            data=data,
+        )
+        _attach_claim_metadata(msg, [claim_meta])
+        return msg
 
     async def _get_msgs(
         self,
@@ -474,30 +506,45 @@ class StreamSubscriber(_StreamHandlerMixin):
                 for entry in msgs:
                     message_id, raw_msg, claim_meta = self._parse_stream_entry(entry)
 
-                    msg = DefaultStreamMessage(
-                        type="stream",
-                        channel=stream_name.decode(),
-                        message_ids=[message_id],
-                        data=raw_msg,
+                    await self.consume_dispatcher.dispatch(
+                        self._wrap_raw(
+                            stream_name.decode(), message_id, raw_msg, claim_meta
+                        )
                     )
-                    _attach_claim_metadata(msg, [claim_meta])
-
-                    await self.consume_dispatcher.dispatch(msg)
 
 
-class StreamBatchSubscriber(_StreamHandlerMixin):
+class StreamBatchSubscriber(
+    _StreamHandlerMixin[BatchStreamMessage, RedisBatchStreamMessage]
+):
     __slots__ = ()
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[BatchStreamMessage, RedisBatchStreamMessage]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[BatchStreamMessage, RedisBatchStreamMessage]",
     ) -> None:
         self.parser = RedisBatchStreamParser(config)
         config.decoder = self.parser.decode_message
         config.parser = self.parser.parse_message
         super().__init__(config, specification, calls)
+
+    @override
+    def _wrap_raw(
+        self,
+        channel: str,
+        message_id: bytes,
+        data: dict[bytes, bytes],
+        claim_meta: "ClaimMeta | None",
+    ) -> BatchStreamMessage:
+        msg = BatchStreamMessage(
+            type="bstream",
+            channel=channel,
+            message_ids=[message_id],
+            data=[data],
+        )
+        _attach_claim_metadata(msg, [claim_meta])
+        return msg
 
     async def _get_msgs(
         self,

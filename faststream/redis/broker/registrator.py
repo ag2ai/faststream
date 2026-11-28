@@ -10,11 +10,12 @@ from faststream.middlewares import AckPolicy
 from faststream.redis.configs import RedisBrokerConfig
 from faststream.redis.message import UnifyRedisDict
 from faststream.redis.publisher.factory import create_publisher
-from faststream.redis.subscriber.factory import create_subscriber
+from faststream.redis.subscriber.factory import SubscriberType, create_subscriber
 
 if TYPE_CHECKING:
     from fast_depends.dependencies import Dependant
 
+    from faststream._internal.endpoint.subscriber import SubscriberUsecase
     from faststream._internal.parser import CodecProto
     from faststream._internal.types import (
         BrokerMiddleware,
@@ -33,7 +34,6 @@ if TYPE_CHECKING:
         ChannelSubscriber,
         ListBatchSubscriber,
         ListSubscriber,
-        LogicSubscriber,
         StreamBatchSubscriber,
         StreamSubscriber,
     )
@@ -226,7 +226,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber": ...
+    ) -> SubscriberType: ...
 
     @overload
     def subscriber(
@@ -249,7 +249,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber": ...
+    ) -> SubscriberType: ...
 
     @overload
     def subscriber(
@@ -272,7 +272,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber": ...
+    ) -> SubscriberType: ...
 
     @override
     def subscriber(
@@ -295,7 +295,7 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
         description: str | None = None,
         include_in_schema: bool = True,
         max_workers: int | None = None,
-    ) -> "LogicSubscriber":
+    ) -> SubscriberType:
         """Subscribe a handler to a RabbitMQ queue.
 
         Args:
@@ -334,7 +334,14 @@ class RedisRegistrator(Registrator[UnifyRedisDict, RedisBrokerConfig]):
             include_in_schema=include_in_schema,
         )
 
-        super().subscriber(subscriber, persistent=persistent)
+        # TODO: when subscribers across all brokers are typed, change signature of base `Registrator`
+        # to accept concrete subscriber type instead of its generic params and account for their non-covariance
+        # (UnifyRedisDict is wrong but left for compatibility)
+        # so when `RedisRegistrator(Registrator[..., SubscriberType])` is used, this cast will be removed
+        super().subscriber(
+            cast("SubscriberUsecase[UnifyRedisDict, Any]", subscriber),
+            persistent=persistent,
+        )
 
         return subscriber.add_call(
             parser_=parser or self._parser,

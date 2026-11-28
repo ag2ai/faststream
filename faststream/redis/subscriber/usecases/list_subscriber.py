@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional, TypeAlias
 
@@ -5,9 +6,12 @@ import anyio
 from typing_extensions import override
 
 from faststream._internal.endpoint.utils import process_msg
+from faststream._internal.types import StreamMsgType
 from faststream.redis.message import (
+    BaseRedisMsgType,
     BatchListMessage,
     DefaultListMessage,
+    RedisBatchListMessage,
     RedisListMessage,
 )
 from faststream.redis.parser import (
@@ -33,7 +37,7 @@ TopicName: TypeAlias = bytes
 Offset: TypeAlias = bytes
 
 
-class _ListHandlerMixin(LogicSubscriber):
+class _ListHandlerMixin(LogicSubscriber[BaseRedisMsgType, StreamMsgType]):
     __slots__ = (
         "_list_sub",
         "_read_lock",
@@ -41,9 +45,9 @@ class _ListHandlerMixin(LogicSubscriber):
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[BaseRedisMsgType, StreamMsgType]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[BaseRedisMsgType, StreamMsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
         self._read_lock = anyio.Lock()
@@ -86,12 +90,17 @@ class _ListHandlerMixin(LogicSubscriber):
                 # A popped message has no ack, so handle the queued ones before `consume` skips them
                 await self.consume_dispatcher.drain(timeout)
 
+    @abstractmethod
+    def _wrap_raw(self, data: bytes) -> BaseRedisMsgType:
+        """Wrap a single popped list entry into this subscriber's raw message."""
+        raise NotImplementedError
+
     @override
     async def get_one(
         self,
         *,
         timeout: float = 5.0,
-    ) -> "RedisListMessage | None":
+    ) -> "StreamMsgType | None":
         assert not self.calls, (
             "You can't use `get_one` method if subscriber has registered handlers."
         )
@@ -108,16 +117,12 @@ class _ListHandlerMixin(LogicSubscriber):
         if raw_message is None:
             return None
 
-        redis_incoming_msg = DefaultListMessage(
-            type="list",
-            data=raw_message,
-            channel=self.list_sub.name,
-        )
+        redis_incoming_msg = self._wrap_raw(raw_message)
 
         context = self._outer_config.context
         async_parser, async_decoder = self._get_parser_and_decoder()
 
-        msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
+        return await process_msg(
             msg=redis_incoming_msg,
             middlewares=(
                 m(redis_incoming_msg, context=context) for m in self._broker_middlewares
@@ -125,10 +130,9 @@ class _ListHandlerMixin(LogicSubscriber):
             parser=async_parser,
             decoder=async_decoder,
         )
-        return msg
 
     @override
-    async def __aiter__(self) -> AsyncIterator["RedisListMessage"]:
+    async def __aiter__(self) -> AsyncIterator["StreamMsgType"]:
         assert not self.calls, (
             "You can't use iterator if subscriber has registered handlers."
         )
@@ -150,13 +154,9 @@ class _ListHandlerMixin(LogicSubscriber):
             if raw_message is None:
                 continue
 
-            redis_incoming_msg = DefaultListMessage(
-                type="list",
-                data=raw_message,
-                channel=self.list_sub.name,
-            )
+            redis_incoming_msg = self._wrap_raw(raw_message)
 
-            msg: RedisListMessage = await process_msg(  # type: ignore[assignment]
+            msg = await process_msg(
                 msg=redis_incoming_msg,
                 middlewares=(
                     m(redis_incoming_msg, context=context)
@@ -165,22 +165,27 @@ class _ListHandlerMixin(LogicSubscriber):
                 parser=async_parser,
                 decoder=async_decoder,
             )
+            assert msg
             yield msg
 
 
-class ListSubscriber(_ListHandlerMixin):
+class ListSubscriber(_ListHandlerMixin[DefaultListMessage, RedisListMessage]):
     __slots__ = ()
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[DefaultListMessage, RedisListMessage]",
         specification: "RedisSubscriberSpecification",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[DefaultListMessage, RedisListMessage]",
     ) -> None:
         parser = RedisListParser(config)
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
+
+    @override
+    def _wrap_raw(self, data: bytes) -> DefaultListMessage:
+        return DefaultListMessage(type="list", data=data, channel=self.list_sub.name)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:
@@ -193,29 +198,26 @@ class ListSubscriber(_ListHandlerMixin):
 
             if raw_msg:
                 _, msg_data = raw_msg
-
-                msg = DefaultListMessage(
-                    type="list",
-                    data=msg_data,
-                    channel=self.list_sub.name,
-                )
-
-                await self.consume_dispatcher.dispatch(msg)
+                await self.consume_dispatcher.dispatch(self._wrap_raw(msg_data))
 
 
-class ListBatchSubscriber(_ListHandlerMixin):
+class ListBatchSubscriber(_ListHandlerMixin[BatchListMessage, RedisBatchListMessage]):
     __slots__ = ()
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[BatchListMessage, RedisBatchListMessage]",
         specification: "RedisSubscriberSpecification",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[BatchListMessage, RedisBatchListMessage]",
     ) -> None:
         parser = RedisBatchListParser(config)
         config.parser = parser.parse_message
         config.decoder = parser.decode_message
         super().__init__(config, specification, calls)
+
+    @override
+    def _wrap_raw(self, data: bytes) -> BatchListMessage:
+        return BatchListMessage(type="blist", data=[data], channel=self.list_sub.name)
 
     async def _get_msgs(self, client: "Redis[bytes]") -> None:
         async with self._read_lock:

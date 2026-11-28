@@ -11,6 +11,8 @@ from faststream._internal.endpoint.subscriber import (
     SubscriberSpecification,
     SubscriberUsecase,
 )
+from faststream._internal.types import StreamMsgType
+from faststream.redis.message import BaseRedisMsgType
 from faststream.redis.publisher.fake import RedisFakePublisher
 
 if TYPE_CHECKING:
@@ -22,7 +24,6 @@ if TYPE_CHECKING:
     )
     from faststream.message import StreamMessage as BrokerStreamMessage
     from faststream.redis.configs import RedisBrokerConfig
-    from faststream.redis.message import UnifyRedisDict
     from faststream.redis.subscriber.config import RedisSubscriberConfig
 
 
@@ -35,7 +36,7 @@ Offset: TypeAlias = bytes
 CONSUME_ERROR_BACKOFF_SECONDS = 5
 
 
-class LogicSubscriber(SubscriberUsecase[Any]):
+class LogicSubscriber(SubscriberUsecase[BaseRedisMsgType, StreamMsgType]):
     """A class to represent a Redis handler."""
 
     __slots__ = ("config",)
@@ -44,9 +45,9 @@ class LogicSubscriber(SubscriberUsecase[Any]):
 
     def __init__(
         self,
-        config: "RedisSubscriberConfig",
+        config: "RedisSubscriberConfig[BaseRedisMsgType, StreamMsgType]",
         specification: "SubscriberSpecification[Any, Any]",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[BaseRedisMsgType, StreamMsgType]",
     ) -> None:
         super().__init__(config, specification, calls)
         self.config = config
@@ -57,7 +58,7 @@ class LogicSubscriber(SubscriberUsecase[Any]):
 
     def _make_response_publisher(
         self,
-        message: "BrokerStreamMessage[UnifyRedisDict]",
+        message: StreamMsgType,
     ) -> Sequence["PublisherProto"]:
         return (
             RedisFakePublisher(
@@ -90,8 +91,6 @@ class LogicSubscriber(SubscriberUsecase[Any]):
             start_signal.set()
 
     async def _consume(self, *args: Any, start_signal: anyio.Event) -> None:
-        connected = True
-
         while self.running:
             try:
                 await self._get_msgs(*args)
@@ -102,16 +101,7 @@ class LogicSubscriber(SubscriberUsecase[Any]):
                     message="Message fetch error",
                     exc_info=e,
                 )
-
-                if connected:
-                    connected = False
-
                 await anyio.sleep(CONSUME_ERROR_BACKOFF_SECONDS)
-
-            else:
-                if not connected:
-                    connected = True
-
             finally:
                 if not start_signal.is_set():
                     with suppress(Exception):

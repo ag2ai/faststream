@@ -60,7 +60,7 @@ class ChannelSubscriberSpecification(RedisSubscriberSpecification):
         self,
         _outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[Any, Any]",
         channel: PubSub,
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
@@ -87,7 +87,7 @@ class ListSubscriberSpecification(RedisSubscriberSpecification):
         self,
         _outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[Any, Any]",
         list_sub: ListSub,
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)
@@ -112,7 +112,7 @@ class StreamSubscriberSpecification(RedisSubscriberSpecification):
         self,
         _outer_config: "RedisBrokerConfig",
         specification_config: "RedisSubscriberSpecificationConfig",
-        calls: "CallsCollection[Any]",
+        calls: "CallsCollection[Any, Any]",
         stream_sub: StreamSub,
     ) -> None:
         super().__init__(_outer_config, specification_config, calls)

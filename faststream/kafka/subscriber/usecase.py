@@ -312,15 +312,17 @@ class LogicSubscriber(SubscriberUsecase[Any], Generic[MsgType]):
         async_parser, async_decoder = self._get_parser_and_decoder()
 
         async for raw_message in self.consumer:
-            msg: KafkaMessage = await process_msg(  # type: ignore[assignment]
-                msg=raw_message,
-                middlewares=(
-                    m(raw_message, context=context) for m in self._broker_middlewares
+            yield cast(
+                "KafkaMessage",
+                await process_msg(
+                    msg=raw_message,
+                    middlewares=(
+                        m(raw_message, context=context) for m in self._broker_middlewares
+                    ),
+                    parser=async_parser,
+                    decoder=async_decoder,
                 ),
-                parser=async_parser,
-                decoder=async_decoder,
             )
-            yield msg
 
     def _make_response_publisher(
         self,

@@ -30,11 +30,11 @@ from faststream.redis.publisher.usecase import (
     LogicPublisher,
     StreamPublisher,
 )
+from faststream.redis.subscriber.factory import SubscriberType
 from faststream.redis.subscriber.usecases import (
     ChannelSubscriber,
     ListBatchSubscriber,
     ListSubscriber,
-    LogicSubscriber,
     StreamBatchSubscriber,
     StreamSubscriber,
 )
@@ -502,8 +502,8 @@ def check_destination_is_required(broker: RedisBroker, router: FastAPIRouter) ->
 
 
 def check_runtime_destination_type(broker: RedisBroker, name: str | None) -> None:
-    assert_type(broker.subscriber(list=name), LogicSubscriber)
-    assert_type(broker.subscriber(stream=name), LogicSubscriber)
+    assert_type(broker.subscriber(list=name), SubscriberType)
+    assert_type(broker.subscriber(stream=name), SubscriberType)
 
     assert_type(broker.publisher(list=name), LogicPublisher)
     assert_type(broker.publisher(stream=name), LogicPublisher)
