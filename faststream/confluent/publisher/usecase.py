@@ -276,6 +276,7 @@ class BatchPublisher(LogicPublisher):
             timestamp_ms=timestamp_ms,
             no_confirm=no_confirm,
             _publish_type=PublishType.PUBLISH,
+            _batch=True,
         )
 
         await self._basic_publish_batch(

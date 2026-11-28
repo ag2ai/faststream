@@ -83,7 +83,9 @@ class KafkaPublishCommand(BatchPublishCommand):
         reply_to: str = "",
         no_confirm: bool = False,
         timeout: float = 0.5,
+        _batch: bool = False,
     ) -> None:
+        self._retain_null_body = _batch or bool(messages)
         super().__init__(
             message,
             *messages,
@@ -121,7 +123,7 @@ class KafkaPublishCommand(BatchPublishCommand):
 
         body, extra_bodies = cls._parse_bodies(cmd.body, batch=batch)
 
-        return cls(
+        result = cls(
             body,
             *extra_bodies,
             topic=cmd.destination,
@@ -129,7 +131,11 @@ class KafkaPublishCommand(BatchPublishCommand):
             headers=cmd.headers,
             reply_to=cmd.reply_to,
             _publish_type=cmd.publish_type,
+            _batch=batch,
         )
+        if batch and body is None and (cmd.body is None or len(cmd.body) == 0):
+            result.batch_bodies = ()
+        return result
 
     def key_for(self, index: int) -> Any | None:
         return key_for_index(self._per_message_keys, self.key, index)
@@ -147,13 +153,9 @@ class KafkaPublishCommand(BatchPublishCommand):
 
     @BatchPublishCommand.batch_bodies.setter  # type: ignore[attr-defined, untyped-decorator]
     def batch_bodies(self, value: Sequence["Any"]) -> None:
-        if len(value) == 0:
-            self.body = None
-            self.extra_bodies = ()
-        else:
+        if len(value) > 0:
             self._align_keys(value)
-            self.body = value[0]
-            self.extra_bodies = tuple(value[1:])
+        self._replace_batch_bodies(value)
 
     def _align_keys(self, value: Sequence["Any"]) -> None:
         """Align the per-message keys with the batch_bodies."""

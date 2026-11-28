@@ -14,6 +14,12 @@ from faststream.response.response import (
 from .basic import BaseTestcaseConfig
 
 
+class LengthOnlyBatch(tuple[Any, ...]):
+    def __bool__(self) -> bool:
+        msg = "a batch uses the sequence length"
+        raise AssertionError(msg)
+
+
 class BasePublishCommandTestcase:
     publish_command_cls: type[PublishCommand]
 
@@ -41,6 +47,7 @@ class BatchPublishCommandTestcase(BasePublishCommandTestcase):
             pytest.param("", ("",), id="Empty String Response"),
             pytest.param(b"", (b"",), id="Empty Bytes Response"),
             pytest.param([1, 2, 3], (1, 2, 3), id="Sequence Data"),
+            pytest.param(LengthOnlyBatch((1, 2)), (1, 2), id="length-only-sequence"),
             pytest.param(
                 [0, 1, 2],
                 (0, 1, 2),
@@ -112,6 +119,24 @@ SHUFFLED = (
 
 # (original (body, key) pairs, batch_bodies mutation, expected (body, key) pairs)
 KEY_ALIGNMENT_CASES = (
+    pytest.param(
+        ((None, b"empty"), (BODY_A, b"keep")),
+        keep,
+        ((b"", b"empty"), (BODY_A, b"keep")),
+        id="none-first",
+    ),
+    pytest.param(
+        ((BODY_A, b"keep"), (None, b"empty")),
+        reverse,
+        ((b"", b"empty"), (BODY_A, b"keep")),
+        id="none-reordered-to-first",
+    ),
+    pytest.param(
+        ((BODY_A, b"keep"), (None, b"empty")),
+        lambda bodies: LengthOnlyBatch(reversed(bodies)),
+        ((b"", b"empty"), (BODY_A, b"keep")),
+        id="length-only-batch-reordered",
+    ),
     pytest.param(
         ((BODY_A, b"key-A"), (BODY_B, b"key-B")),
         reverse,
@@ -215,10 +240,10 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
                 return await call_next(cmd)
 
         broker = self.get_broker(apply_types=True, middlewares=(MutatingMiddleware,))
-
+        args, kwargs = self.get_subscriber_params(queue, batch=True)
         received: list[Any] = []
 
-        @broker.subscriber(queue, batch=True)
+        @broker.subscriber(*args, **kwargs)
         async def handler(msgs: Any, raw: Any = Context("message")) -> None:
             received.extend(
                 zip(
@@ -234,4 +259,25 @@ class BatchKeysTestcase(BaseTestcaseConfig[Any]):
                 *(self.publish_message_cls(body, key=key) for body, key in pairs),
                 topic=queue,
             )
+        assert [body for body, _ in received] == [body for body, _ in expected]
         assert Counter(received) == Counter(expected)
+
+    @pytest.mark.asyncio()
+    async def test_none_batch_bodies_follow_publish_entry_point(self, queue: str) -> None:
+        bodies: list[tuple[Any, ...]] = []
+
+        class CaptureBodies(BaseMiddleware):
+            async def publish_scope(
+                self, call_next: Callable[[Any], Awaitable[Any]], cmd: Any
+            ) -> Any:
+                bodies.append(cmd.batch_bodies)
+                return await call_next(cmd)
+
+        broker = self.get_broker(middlewares=(CaptureBodies,))
+        publisher = broker.publisher(queue, batch=True)
+        async with self.patch_broker(broker) as br:
+            await br.publish(None, queue)
+            await br.publish_batch(None, topic=queue)
+            await publisher.publish(None)
+
+        assert bodies == [(), (None,), (None,)]

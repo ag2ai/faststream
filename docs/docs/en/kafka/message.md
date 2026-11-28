@@ -96,3 +96,5 @@ async def base_handler(
 ## Publishing a tombstone
 
 Import `#!python TOMBSTONE` from `#!python faststream.kafka`. Call `#!python await broker.publish(TOMBSTONE, "users", key=b"user-1")` to send a keyed record with a null Kafka value. This marks the key for removal on a compacted topic. The explicit marker requires a key and a single-record publish call.
+
+In `#!python publish_batch()`, a plain `#!python None` is encoded by the batch codec. With the default codec, its record has a zero-byte value.
